@@ -23,6 +23,7 @@ import os
 # ==============================================================================
 CURRENT_VERSION = "1.0"
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
+CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 
 # ==============================================================================
 # DEBUGGER
@@ -129,6 +130,7 @@ DATA_SOURCES = [
 # ==============================================================================
 def get_local_time_str(utc_date_str):
     try:
+        # Expected format: "2023-10-25T19:00Z"
         if 'T' in utc_date_str:
             date_part, time_part = utc_date_str.split('T')
             y, m, d = map(int, date_part.split('-'))
@@ -138,13 +140,20 @@ def get_local_time_str(utc_date_str):
             dt_utc = datetime.datetime(y, m, d, H, M)
             timestamp = calendar.timegm(dt_utc.timetuple())
             
-            local_struct = time.localtime(timestamp)
+            # Convert to local time
             local_dt = datetime.datetime.fromtimestamp(timestamp)
             now = datetime.datetime.now()
             
-            time_str = "{:02d}:{:02d}".format(local_struct.tm_hour, local_struct.tm_min)
-            if local_dt.date() == now.date(): return str(time_str)
-            else: return local_dt.strftime("%d/%m") + " " + time_str
+            # Format time (HH:MM)
+            time_str = "{:02d}:{:02d}".format(local_dt.hour, local_dt.minute)
+            
+            # Logic: If today, show time. If future/past, show Date + Time
+            if local_dt.date() == now.date():
+                return str(time_str)
+            else:
+                # Format: "Mon 23/10 20:00"
+                # %a=Short Day, %d=Day, %m=Month
+                return local_dt.strftime("%a %d/%m") + " " + time_str
     except:
         return "--:--"
 
@@ -153,8 +162,7 @@ def get_local_time_str(utc_date_str):
 # ==============================================================================
 def SportListEntry(entry):
     try:
-        # entry: (status, left_text, score_text, right_text, time_str, goal_side)
-        status, left_text, score_text, right_text, time_str, goal_side = entry
+        status, left_text, score_text, right_text, time_str, goal_side, is_live = entry
         
         status = str(status)
         left_text = str(left_text)
@@ -172,7 +180,6 @@ def SportListEntry(entry):
         left_col = col_white
         right_col = col_white
         
-        # --- GOAL VISUALIZATION (1 min persistence) ---
         if goal_side == 'home':
             left_text = "(!) " + left_text
             left_col = col_gold
@@ -183,38 +190,72 @@ def SportListEntry(entry):
         status_col = col_gray
         if status == "LIVE": status_col = col_green
         elif status == "FIN": status_col = col_red
+        elif status == "INFO": status_col = col_blue
         
         time_col = col_white
-        if "/" in time_str: time_col = col_blue
+        if is_live: 
+            time_col = col_green
+        elif "/" in time_str: 
+            # If it contains a date slash, color it blue-ish to distinguish
+            time_col = col_blue
         
         res = [entry]
-        # WIDTH = 620px
-        # ROW HEIGHT = 55px
-        
+        # Adjusted widths to fit potential date string in rightmost column
+        # Total Width: 620
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 5, 5, 50, 45, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, status, status_col))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 60, 5, 190, 45, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, left_col))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 260, 5, 90, 45, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, col_gold))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 360, 5, 190, 45, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, right_col))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 560, 5, 55, 45, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, time_col))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 60, 5, 180, 45, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, left_col))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 245, 5, 80, 45, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, col_gold))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 330, 5, 180, 45, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, right_col))
+        # Expanded time column width to 105 to fit "Mon 23/10 20:00"
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 510, 5, 105, 45, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, time_col))
         
         return res
     except:
         return []
 
 # ==============================================================================
-# BACKGROUND SERVICE
+# BACKGROUND SERVICE & SHARED STATE
 # ==============================================================================
 class SportsMonitor:
     def __init__(self):
         self.active = False
         self.current_league_index = 0
         self.last_scores = {}
-        self.goal_flags = {} 
+        self.goal_flags = {}
+        self.live_only_filter = False
         self.timer = eTimer()
         self.timer.callback.append(self.check_goals)
         self.session = None
         self.cached_events = [] 
         self.callbacks = []
+        self.status_message = "Initializing..."
+        
+        self.load_config()
+
+    def load_config(self):
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r") as f:
+                    data = json.load(f)
+                    self.current_league_index = int(data.get("league_index", 0))
+                    self.live_only_filter = bool(data.get("filter", False))
+                    self.active = bool(data.get("active", False))
+                    if self.active:
+                        self.timer.start(60000, False)
+            except Exception as e:
+                log("Error loading config: " + str(e))
+
+    def save_config(self):
+        data = {
+            "league_index": self.current_league_index,
+            "filter": self.live_only_filter,
+            "active": self.active
+        }
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(data, f)
+        except Exception as e:
+            log("Error saving config: " + str(e))
 
     def set_session(self, session):
         self.session = session
@@ -234,26 +275,47 @@ class SportsMonitor:
             self.check_goals()
         else:
             self.timer.stop()
+        self.save_config()
         return self.active
+
+    def toggle_filter(self):
+        self.live_only_filter = not self.live_only_filter
+        self.save_config()
+        return self.live_only_filter
 
     def set_league(self, index):
         if index >= 0 and index < len(DATA_SOURCES):
             self.current_league_index = index
             self.last_scores = {}
+            self.save_config()
             self.check_goals()
 
     def check_goals(self):
         try:
             name, url = DATA_SOURCES[self.current_league_index]
+            self.status_message = "Loading Data..."
+            for cb in self.callbacks: cb(False) 
+            
             agent = Agent(reactor)
             d = agent.request(b'GET', url.encode('utf-8'))
             d.addCallback(self.handle_response)
+            d.addErrback(self.handle_error) 
         except: pass
+
+    def handle_error(self, failure):
+        log("API Error: " + str(failure))
+        self.status_message = "API Connection Error"
+        self.cached_events = []
+        for cb in self.callbacks: cb(True)
 
     def handle_response(self, response):
         if response.code == 200:
             d = readBody(response)
             d.addCallback(self.parse_json)
+        else:
+            self.status_message = "HTTP Error: " + str(response.code)
+            self.cached_events = []
+            for cb in self.callbacks: cb(True)
 
     def parse_json(self, body):
         try:
@@ -262,7 +324,11 @@ class SportsMonitor:
             events = data.get('events', [])
             self.cached_events = events 
             
-            # Cleanup old goal flags (> 60s)
+            if len(events) == 0:
+                self.status_message = "No Matches Scheduled"
+            else:
+                self.status_message = "Data Updated"
+
             now = time.time()
             keys_to_del = []
             for mid, info in self.goal_flags.items():
@@ -306,7 +372,10 @@ class SportsMonitor:
 
             for cb in self.callbacks:
                 cb(True)
-        except: pass
+        except Exception as e:
+            self.status_message = "JSON Parse Error"
+            log("Parse Error: " + str(e))
+            for cb in self.callbacks: cb(True)
 
 if global_sports_monitor is None:
     global_sports_monitor = SportsMonitor()
@@ -332,24 +401,40 @@ class GoalToast(Screen):
         self.timer.start(6000, True)
 
 class SimpleSportsMiniBar(Screen):
+    # PREMIUM SKIN DESIGN
+    # #AA000000 = Semi-transparent Black (AA is Alpha)
+    # Height reduced to 60px for a sleek look
+    # Floating near bottom (1020 Y-position)
     skin = """
-        <screen position="0,980" size="1920,100" title="Sports Ticker" backgroundColor="#40000000" flags="wfNoBorder">
-            <eLabel position="0,10" size="1920,90" backgroundColor="#151515" zPosition="-1" />
-            <eLabel position="0,10" size="1920,2" backgroundColor="#00FF00" zPosition="0" />
-            <widget name="league_name" position="40,25" size="350,60" font="Regular;32" foregroundColor="#00FF00" backgroundColor="#151515" transparent="1" valign="center" />
-            <eLabel position="400,25" size="2,60" backgroundColor="#333333" />
-            <widget name="match_info" position="430,20" size="1450,70" font="Regular;36" foregroundColor="#FFFFFF" backgroundColor="#151515" transparent="1" valign="center" halign="left" />
-            <widget name="credit" position="1600,60" size="300,30" font="Regular;20" foregroundColor="#555555" backgroundColor="#151515" transparent="1" halign="right" />
+        <screen position="center,980" size="1800,60" title="Sports Ticker" backgroundColor="#40000000" flags="wfNoBorder">
+            <eLabel position="0,0" size="1800,60" backgroundColor="#AA000000" zPosition="-1" />
+            
+            <eLabel position="0,0" size="5,60" backgroundColor="#FFD700" zPosition="1" />
+            
+            <widget name="league_name" position="20,0" size="300,60" font="Regular;28" foregroundColor="#FFD700" backgroundColor="#AA000000" transparent="1" valign="center" halign="left" />
+            
+            <eLabel position="330,15" size="2,30" backgroundColor="#555555" zPosition="1" />
+            
+            <widget name="match_info" position="350,0" size="1100,60" font="Regular;30" foregroundColor="#FFFFFF" backgroundColor="#AA000000" transparent="1" valign="center" halign="left" />
+            
+            <widget name="filter_status" position="1500,0" size="280,60" font="Regular;24" foregroundColor="#AAAAAA" backgroundColor="#AA000000" transparent="1" valign="center" halign="right" />
         </screen>
     """
     def __init__(self, session):
         Screen.__init__(self, session)
         self.matches = []
         self.current_match_idx = 0
-        self["league_name"] = Label("MINI MODE")
+        self["league_name"] = Label("Loading...")
         self["match_info"] = Label("Loading...")
-        self["credit"] = Label("Dev: Reali22 (v" + CURRENT_VERSION + ")")
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {"cancel": self.close, "green": self.close}, -1)
+        self["filter_status"] = Label("")
+        self["credit"] = Label("")
+        
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
+            "cancel": self.close, 
+            "green": self.close,
+            "yellow": self.toggle_filter_mini
+        }, -1)
+        
         self.ticker_timer = eTimer()
         self.ticker_timer.callback.append(self.show_next_match)
         self.refresh_timer = eTimer()
@@ -357,74 +442,89 @@ class SimpleSportsMiniBar(Screen):
         self.onLayoutFinish.append(self.start_all_timers)
 
     def start_all_timers(self):
+        try:
+            current_name = DATA_SOURCES[global_sports_monitor.current_league_index][0]
+            self["league_name"].setText(current_name)
+        except:
+            self["league_name"].setText("Unknown")
+
+        self.update_filter_label()
         self.load_data()
         self.refresh_timer.start(60000)
 
+    def toggle_filter_mini(self):
+        global_sports_monitor.toggle_filter()
+        self.update_filter_label()
+        self.load_data() 
+
+    def update_filter_label(self):
+        if global_sports_monitor.live_only_filter:
+            self["filter_status"].setText("LIVE ONLY")
+        else:
+            self["filter_status"].setText("")
+
     def load_data(self):
-        try:
-            name, url = DATA_SOURCES[global_sports_monitor.current_league_index]
-            self["league_name"].setText(name)
-            agent = Agent(reactor)
-            d = agent.request(b'GET', url.encode('utf-8'))
-            d.addCallback(self.handle_response)
-        except: self["match_info"].setText("Data Error")
+        global_sports_monitor.check_goals()
+        self.parse_json()
 
-    def handle_response(self, response):
-        if response.code == 200:
-            d = readBody(response)
-            d.addCallback(self.parse_json)
+    def parse_json(self):
+        events = global_sports_monitor.cached_events
+        self.matches = []
+        
+        if not events:
+            self["match_info"].setText(global_sports_monitor.status_message)
+            return
 
-    def parse_json(self, body):
-        try:
-            json_str = body.decode('utf-8', errors='ignore')
-            data = json.loads(json_str)
-            events = data.get('events', [])
-            self.matches = []
-            for event in events:
-                status = event.get('status', {})
-                state = status.get('type', {}).get('state', 'pre')
-                clock = status.get('displayClock', '')
+        for event in events:
+            status = event.get('status', {})
+            state = status.get('type', {}).get('state', 'pre')
+            clock = status.get('displayClock', '00:00')
+            utc_date = event.get('date', '')
+            local_time = get_local_time_str(utc_date) # Now returns Time or Date+Time
+            
+            if global_sports_monitor.live_only_filter and state != 'in':
+                continue
+
+            comps = event.get('competitions', [{}])[0].get('competitors', [])
+            if len(comps) > 2:
+                race = event.get('shortName', 'Race')
+                venue = event.get('competitions', [{}])[0].get('venue', {}).get('fullName', '')
+                txt = "{} @ {}".format(race, venue)
+            else:
+                home, away, h_score, a_score = "Home", "Away", "0", "0"
+                for team in comps:
+                    name = team.get('team', {}).get('shortDisplayName', 'Tm')
+                    sc = team.get('score', '0')
+                    if team.get('homeAway') == 'home': home, h_score = name, sc
+                    else: away, a_score = name, sc
                 
-                utc_date = event.get('date', '')
-                local_time = get_local_time_str(utc_date)
+                match_id = home + "_" + away
+                goal_flag = ""
+                if match_id in global_sports_monitor.goal_flags: goal_flag = " GOAL!"
                 
-                comps = event.get('competitions', [{}])[0].get('competitors', [])
-                if len(comps) > 2:
-                    race = event.get('shortName', 'Race')
-                    venue = event.get('competitions', [{}])[0].get('venue', {}).get('fullName', '')
-                    txt = "{} @ {}".format(race, venue)
-                else:
-                    home, away, h_score, a_score = "Home", "Away", "0", "0"
-                    for team in comps:
-                        name = team.get('team', {}).get('shortDisplayName', 'Tm')
-                        sc = team.get('score', '0')
-                        if team.get('homeAway') == 'home': home, h_score = name, sc
-                        else: away, a_score = name, sc
-                    match_id = home + "_" + away
-                    goal_flag = ""
-                    if match_id in global_sports_monitor.goal_flags: goal_flag = " GOAL!"
+                if state == 'in': 
+                    txt = "LIVE {}' :: {}{} {} - {} {}".format(clock, home, goal_flag, h_score, a_score, away)
+                elif state == 'post': 
+                    txt = "FIN :: {} {} - {} {}".format(home, h_score, a_score, away)
+                else: 
+                    # Use the improved local_time string (might contain date)
+                    txt = "{} :: {} vs {}".format(local_time, home, away)
                     
-                    if state == 'in': 
-                        txt = "LIVE {}' :: {}{} {} - {} {}".format(clock, home, goal_flag, h_score, a_score, away)
-                    elif state == 'post': 
-                        txt = "FIN :: {} {} - {} {}".format(home, h_score, a_score, away)
-                    else: 
-                        txt = "{} :: {} vs {}".format(local_time, home, away)
-                        
-                self.matches.append(txt)
-            if self.matches and not self.ticker_timer.isActive():
+            self.matches.append(txt)
+        
+        if self.matches:
+            if not self.ticker_timer.isActive():
                 self.show_next_match()
                 self.ticker_timer.start(4000)
-        except: pass
+        else:
+            msg = "No live games." if global_sports_monitor.live_only_filter else global_sports_monitor.status_message
+            self["match_info"].setText(msg)
 
     def show_next_match(self):
         if not self.matches: return
         self.current_match_idx = (self.current_match_idx + 1) % len(self.matches)
         self["match_info"].setText(self.matches[self.current_match_idx])
 
-# ==============================================================================
-# MAIN GUI (SIDEBAR 620px x 720px)
-# ==============================================================================
 class SimpleSportsScreen(Screen):
     skin = """
         <screen position="0,0" size="620,720" title="SimplySports" backgroundColor="#40000000" flags="wfNoBorder">
@@ -437,10 +537,10 @@ class SimpleSportsScreen(Screen):
             
             <eLabel position="5,90" size="610,2" backgroundColor="#555555" />
             <widget name="lab_status" position="5,95" size="50,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" text="ST" />
-            <widget name="lab_home" position="60,95" size="190,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="right" text="HOME" />
-            <widget name="lab_score" position="260,95" size="90,30" font="Regular;20" foregroundColor="#FFD700" backgroundColor="#40000000" transparent="1" halign="center" text="SCR" />
-            <widget name="lab_away" position="360,95" size="190,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="left" text="AWAY" />
-            <widget name="lab_time" position="560,95" size="55,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="right" text="TIME" />
+            <widget name="lab_home" position="60,95" size="180,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="right" text="HOME" />
+            <widget name="lab_score" position="245,95" size="80,30" font="Regular;20" foregroundColor="#FFD700" backgroundColor="#40000000" transparent="1" halign="center" text="SCR" />
+            <widget name="lab_away" position="330,95" size="180,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="left" text="AWAY" />
+            <widget name="lab_time" position="510,95" size="105,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="right" text="TIME" />
             <eLabel position="5,130" size="610,2" backgroundColor="#555555" />
             
             <widget name="list" position="0,135" size="620,510" scrollbarMode="showOnDemand" transparent="1" />
@@ -462,7 +562,7 @@ class SimpleSportsScreen(Screen):
             
             <widget name="key_menu" position="300,690" size="150,25" font="Regular;22" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
             
-            <widget name="credit" position="450,690" size="160,25" font="Regular;16" foregroundColor="#555555" backgroundColor="#181818" transparent="1" halign="right" zPosition="2" />
+            <widget name="credit" position="520,690" size="90,25" font="Regular;16" foregroundColor="#555555" backgroundColor="#181818" transparent="1" halign="right" zPosition="2" />
         </screen>
     """
 
@@ -471,7 +571,6 @@ class SimpleSportsScreen(Screen):
         self.session = session
         global_sports_monitor.set_session(session)
         self.monitor = global_sports_monitor
-        self.live_only_filter = False
         self.monitor.register_callback(self.refresh_ui)
         
         self["header"] = Label("SimplySports")
@@ -481,14 +580,13 @@ class SimpleSportsScreen(Screen):
         self["lab_score"] = Label("SCR")
         self["lab_away"] = Label("AWAY")
         self["lab_time"] = Label("TIME")
-        
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         self["list"].l.setFont(0, gFont("Regular", 24))
         self["list"].l.setItemHeight(55)
         
         self["key_red"] = Label("League")
         self["key_green"] = Label("Mini")
-        self["key_yellow"] = Label("Live")
+        self["key_yellow"] = Label("Live Only")
         self["key_blue"] = Label("Discovery: OFF")
         self["key_menu"] = Label("MENU: Update")
         self["credit"] = Label("Reali22 (v" + CURRENT_VERSION + ")")
@@ -512,6 +610,7 @@ class SimpleSportsScreen(Screen):
     def start_ui(self):
         self["header"].setText("SimplySports")
         self.update_header()
+        self.update_filter_button()
         self.fetch_data()
         self.auto_refresh_timer.start(120000)
 
@@ -527,8 +626,13 @@ class SimpleSportsScreen(Screen):
             else: self["key_blue"].setText("Discovery: OFF")
         except: pass
 
+    def update_filter_button(self):
+        if self.monitor.live_only_filter:
+            self["key_yellow"].setText("Show All")
+        else:
+            self["key_yellow"].setText("Live Only")
+
     def fetch_data(self):
-        self["league_title"].setText("DOWNLOADING...")
         self.monitor.check_goals()
 
     def toggle_discovery(self):
@@ -537,7 +641,8 @@ class SimpleSportsScreen(Screen):
         if is_active: self.session.open(MessageBox, "Discovery ON", MessageBox.TYPE_INFO, timeout=2)
 
     def toggle_filter(self):
-        self.live_only_filter = not self.live_only_filter
+        self.monitor.toggle_filter()
+        self.update_filter_button()
         self.refresh_ui(True)
 
     def open_league_select(self):
@@ -586,9 +691,11 @@ class SimpleSportsScreen(Screen):
     def refresh_ui(self, success):
         self.update_header()
         events = self.monitor.cached_events
+        
         if not events:
-            self["list"].setList([])
-            self["league_title"].setText("NO GAMES")
+            status_msg = self.monitor.status_message
+            dummy_entry = ("INFO", "Status:", status_msg, "", "", "", False)
+            self["list"].setList([SportListEntry(dummy_entry)])
             return
         
         list_content = []
@@ -596,6 +703,12 @@ class SimpleSportsScreen(Screen):
             try:
                 status = event.get('status', {})
                 state = status.get('type', {}).get('state', 'pre')
+                clock = status.get('displayClock', '') 
+                
+                if ":" in clock:
+                    clock_parts = clock.split(':')
+                    if len(clock_parts) > 0: clock = clock_parts[0] + "'"
+                
                 utc_date = event.get('date', '')
                 local_time = get_local_time_str(utc_date)
                 
@@ -603,12 +716,17 @@ class SimpleSportsScreen(Screen):
                 venue = venue_data.get('fullName', '')
                 comps = event.get('competitions', [{}])[0].get('competitors', [])
                 
+                is_live = False
+                display_time = local_time
+                
                 if len(comps) > 2:
                     left_text = event.get('shortName', 'Race') 
                     right_text = venue 
                     score_text = "" 
                     if state == 'post': score_text = "FIN"
-                    elif state == 'in': score_text = "LIVE"
+                    elif state == 'in': 
+                        score_text = "LIVE"
+                        is_live = True
                     goal_side = None
                 else:
                     home, away, h_score, a_score = "Home", "Away", "0", "0"
@@ -622,6 +740,10 @@ class SimpleSportsScreen(Screen):
                     right_text = away
                     score_text = h_score + " - " + a_score if state != 'pre' else "vs"
                     
+                    if state == 'in': 
+                        is_live = True
+                        display_time = clock 
+                    
                     match_id = home + "_" + away
                     goal_side = None
                     if match_id in self.monitor.goal_flags:
@@ -631,12 +753,17 @@ class SimpleSportsScreen(Screen):
                 if state == 'in': status_short = "LIVE"
                 elif state == 'post': status_short = "FIN"
 
-                if self.live_only_filter and state != 'in': continue
+                if self.monitor.live_only_filter and state != 'in': continue
 
-                entry_data = (status_short, left_text, score_text, right_text, local_time, goal_side)
+                entry_data = (status_short, left_text, score_text, right_text, display_time, goal_side, is_live)
                 list_content.append(SportListEntry(entry_data))
             except: continue
-        self["list"].setList(list_content)
+        
+        if not list_content:
+             dummy_entry = ("INFO", "Status:", "No Live Games", "", "", "", False)
+             self["list"].setList([SportListEntry(dummy_entry)])
+        else:
+             self["list"].setList(list_content)
 
 def main(session, **kwargs):
     session.open(SimpleSportsScreen)
