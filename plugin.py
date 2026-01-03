@@ -8,8 +8,9 @@ from Components.MenuList import MenuList
 from Components.GUIComponent import GUIComponent
 from Components.HTMLComponent import HTMLComponent
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
-from twisted.internet import reactor
-from twisted.web.client import getPage, downloadPage
+from twisted.internet import reactor, ssl
+from twisted.web.client import Agent, readBody, getPage, downloadPage
+from twisted.web.http_headers import Headers
 from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER
 import json
 import datetime
@@ -21,7 +22,7 @@ import os
 # CONFIGURATION
 # ==============================================================================
 CURRENT_VERSION = "1.0"
-GITHUB_BASE_URL = "http://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
+GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 
 # ==============================================================================
 # DEBUGGER
@@ -43,84 +44,84 @@ global_sports_monitor = None
 # ==============================================================================
 DATA_SOURCES = [
     # --- ENGLAND ---
-    ("Premier League", "http://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard"),
-    ("Championship",   "http://site.api.espn.com/apis/site/v2/sports/soccer/eng.2/scoreboard"),
-    ("League One",     "http://site.api.espn.com/apis/site/v2/sports/soccer/eng.3/scoreboard"),
-    ("League Two",     "http://site.api.espn.com/apis/site/v2/sports/soccer/eng.4/scoreboard"),
-    ("FA Cup",         "http://site.api.espn.com/apis/site/v2/sports/soccer/eng.fa/scoreboard"),
-    ("Carabao Cup",    "http://site.api.espn.com/apis/site/v2/sports/soccer/eng.league_cup/scoreboard"),
-    ("Women's Super Lg","http://site.api.espn.com/apis/site/v2/sports/soccer/eng.w.1/scoreboard"),
+    ("Premier League", "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard"),
+    ("Championship",   "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.2/scoreboard"),
+    ("League One",     "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.3/scoreboard"),
+    ("League Two",     "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.4/scoreboard"),
+    ("FA Cup",         "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.fa/scoreboard"),
+    ("Carabao Cup",    "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.league_cup/scoreboard"),
+    ("Women's Super Lg","https://site.api.espn.com/apis/site/v2/sports/soccer/eng.w.1/scoreboard"),
 
     # --- SPAIN ---
-    ("La Liga",        "http://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard"),
-    ("La Liga 2",      "http://site.api.espn.com/apis/site/v2/sports/soccer/esp.2/scoreboard"),
-    ("Copa del Rey",   "http://site.api.espn.com/apis/site/v2/sports/soccer/esp.copa_del_rey/scoreboard"),
+    ("La Liga",        "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard"),
+    ("La Liga 2",      "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.2/scoreboard"),
+    ("Copa del Rey",   "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.copa_del_rey/scoreboard"),
 
     # --- ITALY ---
-    ("Serie A",        "http://site.api.espn.com/apis/site/v2/sports/soccer/ita.1/scoreboard"),
-    ("Serie B",        "http://site.api.espn.com/apis/site/v2/sports/soccer/ita.2/scoreboard"),
-    ("Coppa Italia",   "http://site.api.espn.com/apis/site/v2/sports/soccer/ita.coppa_italia/scoreboard"),
+    ("Serie A",        "https://site.api.espn.com/apis/site/v2/sports/soccer/ita.1/scoreboard"),
+    ("Serie B",        "https://site.api.espn.com/apis/site/v2/sports/soccer/ita.2/scoreboard"),
+    ("Coppa Italia",   "https://site.api.espn.com/apis/site/v2/sports/soccer/ita.coppa_italia/scoreboard"),
 
     # --- GERMANY ---
-    ("Bundesliga",     "http://site.api.espn.com/apis/site/v2/sports/soccer/ger.1/scoreboard"),
-    ("2. Bundesliga",  "http://site.api.espn.com/apis/site/v2/sports/soccer/ger.2/scoreboard"),
-    ("DFB Pokal",      "http://site.api.espn.com/apis/site/v2/sports/soccer/ger.dfb_pokal/scoreboard"),
+    ("Bundesliga",     "https://site.api.espn.com/apis/site/v2/sports/soccer/ger.1/scoreboard"),
+    ("2. Bundesliga",  "https://site.api.espn.com/apis/site/v2/sports/soccer/ger.2/scoreboard"),
+    ("DFB Pokal",      "https://site.api.espn.com/apis/site/v2/sports/soccer/ger.dfb_pokal/scoreboard"),
 
     # --- FRANCE ---
-    ("Ligue 1",        "http://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard"),
-    ("Ligue 2",        "http://site.api.espn.com/apis/site/v2/sports/soccer/fra.2/scoreboard"),
-    ("Coupe de France","http://site.api.espn.com/apis/site/v2/sports/soccer/fra.coupe_de_france/scoreboard"),
+    ("Ligue 1",        "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard"),
+    ("Ligue 2",        "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.2/scoreboard"),
+    ("Coupe de France","https://site.api.espn.com/apis/site/v2/sports/soccer/fra.coupe_de_france/scoreboard"),
 
     # --- EUROPE (REST) ---
-    ("Eredivisie (NED)","http://site.api.espn.com/apis/site/v2/sports/soccer/ned.1/scoreboard"),
-    ("Primeira (POR)", "http://site.api.espn.com/apis/site/v2/sports/soccer/por.1/scoreboard"),
-    ("Süper Lig (TUR)", "http://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/scoreboard"),
-    ("Scottish Prem",  "http://site.api.espn.com/apis/site/v2/sports/soccer/sco.1/scoreboard"),
-    ("Belgian Pro Lg", "http://site.api.espn.com/apis/site/v2/sports/soccer/bel.1/scoreboard"),
-    ("Austrian Bund",  "http://site.api.espn.com/apis/site/v2/sports/soccer/aut.1/scoreboard"),
-    ("Swiss Super Lg", "http://site.api.espn.com/apis/site/v2/sports/soccer/sui.1/scoreboard"),
-    ("Danish Super",   "http://site.api.espn.com/apis/site/v2/sports/soccer/den.1/scoreboard"),
-    ("Swedish Allsv",  "http://site.api.espn.com/apis/site/v2/sports/soccer/swe.1/scoreboard"),
+    ("Eredivisie (NED)","https://site.api.espn.com/apis/site/v2/sports/soccer/ned.1/scoreboard"),
+    ("Primeira (POR)", "https://site.api.espn.com/apis/site/v2/sports/soccer/por.1/scoreboard"),
+    ("Süper Lig (TUR)", "https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/scoreboard"),
+    ("Scottish Prem",  "https://site.api.espn.com/apis/site/v2/sports/soccer/sco.1/scoreboard"),
+    ("Belgian Pro Lg", "https://site.api.espn.com/apis/site/v2/sports/soccer/bel.1/scoreboard"),
+    ("Austrian Bund",  "https://site.api.espn.com/apis/site/v2/sports/soccer/aut.1/scoreboard"),
+    ("Swiss Super Lg", "https://site.api.espn.com/apis/site/v2/sports/soccer/sui.1/scoreboard"),
+    ("Danish Super",   "https://site.api.espn.com/apis/site/v2/sports/soccer/den.1/scoreboard"),
+    ("Swedish Allsv",  "https://site.api.espn.com/apis/site/v2/sports/soccer/swe.1/scoreboard"),
 
     # --- UEFA ---
-    ("Champions Lg",   "http://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard"),
-    ("Europa League",  "http://site.api.espn.com/apis/site/v2/sports/soccer/uefa.europa/scoreboard"),
-    ("Conference Lg",  "http://site.api.espn.com/apis/site/v2/sports/soccer/uefa.europa.conf/scoreboard"),
-    ("Nations League", "http://site.api.espn.com/apis/site/v2/sports/soccer/uefa.nations/scoreboard"),
-    ("Euro Qualifiers","http://site.api.espn.com/apis/site/v2/sports/soccer/uefa.euroq/scoreboard"),
+    ("Champions Lg",   "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard"),
+    ("Europa League",  "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.europa/scoreboard"),
+    ("Conference Lg",  "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.europa.conf/scoreboard"),
+    ("Nations League", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.nations/scoreboard"),
+    ("Euro Qualifiers","https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.euroq/scoreboard"),
 
     # --- AMERICAS ---
-    ("MLS (USA)",      "http://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard"),
-    ("Liga MX (MEX)",  "http://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/scoreboard"),
-    ("Brasileirão",    "http://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard"),
-    ("Arg Primera",    "http://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard"),
-    ("Copa Libertadores","http://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.libertadores/scoreboard"),
-    ("Copa Sudamer",   "http://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.sudamericana/scoreboard"),
+    ("MLS (USA)",      "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard"),
+    ("Liga MX (MEX)",  "https://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/scoreboard"),
+    ("Brasileirão",    "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard"),
+    ("Arg Primera",    "https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard"),
+    ("Copa Libertadores","https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.libertadores/scoreboard"),
+    ("Copa Sudamer",   "https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.sudamericana/scoreboard"),
 
     # --- ASIA/OCEANIA ---
-    ("Saudi Pro Lg",   "http://site.api.espn.com/apis/site/v2/sports/soccer/sa.1/scoreboard"),
-    ("A-League (AUS)", "http://site.api.espn.com/apis/site/v2/sports/soccer/aus.1/scoreboard"),
-    ("Chinese Super Lg","http://site.api.espn.com/apis/site/v2/sports/soccer/chn.1/scoreboard"),
+    ("Saudi Pro Lg",   "https://site.api.espn.com/apis/site/v2/sports/soccer/sa.1/scoreboard"),
+    ("A-League (AUS)", "https://site.api.espn.com/apis/site/v2/sports/soccer/aus.1/scoreboard"),
+    ("Chinese Super Lg","https://site.api.espn.com/apis/site/v2/sports/soccer/chn.1/scoreboard"),
 
     # --- BASKETBALL ---
-    ("NBA",            "http://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"),
-    ("WNBA",           "http://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard"),
-    ("NCAA Basket (M)","http://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard"),
-    ("NCAA Basket (W)","http://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard"),
-    ("EuroLeague",     "http://site.api.espn.com/apis/site/v2/sports/basketball/eurl.euroleague/scoreboard"),
+    ("NBA",            "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"),
+    ("WNBA",           "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard"),
+    ("NCAA Basket (M)","https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard"),
+    ("NCAA Basket (W)","https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard"),
+    ("EuroLeague",     "https://site.api.espn.com/apis/site/v2/sports/basketball/eurl.euroleague/scoreboard"),
 
     # --- US SPORTS ---
-    ("NFL (Football)", "http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"),
-    ("NCAA Football",  "http://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard"),
-    ("UFL (Football)", "http://site.api.espn.com/apis/site/v2/sports/football/ufl/scoreboard"),
-    ("NHL (Hockey)",   "http://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard"),
-    ("MLB (Baseball)", "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"),
-    ("NCAA Baseball",  "http://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball/scoreboard"),
+    ("NFL (Football)", "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"),
+    ("NCAA Football",  "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard"),
+    ("UFL (Football)", "https://site.api.espn.com/apis/site/v2/sports/football/ufl/scoreboard"),
+    ("NHL (Hockey)",   "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard"),
+    ("MLB (Baseball)", "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"),
+    ("NCAA Baseball",  "https://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball/scoreboard"),
 
     # --- RACING & FIGHTING ---
-    ("Formula 1",      "http://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard"),
-    ("NASCAR Cup",     "http://site.api.espn.com/apis/site/v2/sports/racing/nascar-premier/scoreboard"),
-    ("UFC / MMA",      "http://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard"),
+    ("Formula 1",      "https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard"),
+    ("NASCAR Cup",     "https://site.api.espn.com/apis/site/v2/sports/racing/nascar-premier/scoreboard"),
+    ("UFC / MMA",      "https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard"),
 ]
 
 # ==============================================================================
@@ -142,11 +143,8 @@ def get_local_time_str(utc_date_str):
             now = datetime.datetime.now()
             
             time_str = "{:02d}:{:02d}".format(local_struct.tm_hour, local_struct.tm_min)
-            if local_dt.date() == now.date():
-                return str(time_str)
-            else:
-                date_str = local_dt.strftime("%a %d %b")
-                return "{} {}".format(date_str, time_str)
+            if local_dt.date() == now.date(): return str(time_str)
+            else: return local_dt.strftime("%d/%m") + " " + time_str
     except:
         return "--:--"
 
@@ -155,12 +153,13 @@ def get_local_time_str(utc_date_str):
 # ==============================================================================
 def SportListEntry(entry):
     try:
-        status, home, score, away, time_str, venue, full_status = entry
+        # entry: (status, left_text, score_text, right_text, time_str, goal_side)
+        status, left_text, score_text, right_text, time_str, goal_side = entry
         
         status = str(status)
-        home = str(home)
-        score = str(score)
-        away = str(away)
+        left_text = str(left_text)
+        score_text = str(score_text)
+        right_text = str(right_text)
         time_str = str(time_str)
         
         col_white = 0xFFFFFF
@@ -170,32 +169,47 @@ def SportListEntry(entry):
         col_gray = 0xAAAAAA
         col_blue = 0x88CCFF
         
+        left_col = col_white
+        right_col = col_white
+        
+        # --- GOAL VISUALIZATION (1 min persistence) ---
+        if goal_side == 'home':
+            left_text = "(!) " + left_text
+            left_col = col_gold
+        elif goal_side == 'away':
+            right_text = right_text + " (!)"
+            right_col = col_gold
+        
         status_col = col_gray
         if status == "LIVE": status_col = col_green
         elif status == "FIN": status_col = col_red
         
         time_col = col_white
-        if len(time_str) > 6:
-            time_col = col_blue
+        if "/" in time_str: time_col = col_blue
         
         res = [entry]
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 5, 80, 40, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, status, status_col))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 5, 380, 40, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, home, col_white))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 500, 5, 200, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score, col_gold))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 710, 5, 380, 40, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, away, col_white))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1100, 5, 220, 40, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, time_col))
+        # WIDTH = 620px
+        # ROW HEIGHT = 55px
+        
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 5, 5, 50, 45, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, status, status_col))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 60, 5, 190, 45, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, left_col))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 260, 5, 90, 45, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, col_gold))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 360, 5, 190, 45, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, right_col))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 560, 5, 55, 45, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, time_col))
+        
         return res
     except:
         return []
 
 # ==============================================================================
-# BACKGROUND MONITOR
+# BACKGROUND SERVICE
 # ==============================================================================
 class SportsMonitor:
     def __init__(self):
         self.active = False
         self.current_league_index = 0
         self.last_scores = {}
+        self.goal_flags = {} 
         self.timer = eTimer()
         self.timer.callback.append(self.check_goals)
         self.session = None
@@ -226,34 +240,36 @@ class SportsMonitor:
         if index >= 0 and index < len(DATA_SOURCES):
             self.current_league_index = index
             self.last_scores = {}
-            self.cached_events = []
             self.check_goals()
 
     def check_goals(self):
         try:
-            if self.current_league_index < len(DATA_SOURCES):
-                name, url = DATA_SOURCES[self.current_league_index]
-                log("Fetching: " + name)
-                getPage(url).addCallback(self.parse_json).addErrback(self.error_fetch)
-        except Exception as e:
-            log("Fetch Error: " + str(e))
+            name, url = DATA_SOURCES[self.current_league_index]
+            agent = Agent(reactor)
+            d = agent.request(b'GET', url.encode('utf-8'))
+            d.addCallback(self.handle_response)
+        except: pass
 
-    def error_fetch(self, error):
-        log("Network Error: " + str(error))
-        for cb in self.callbacks:
-            cb(False)
+    def handle_response(self, response):
+        if response.code == 200:
+            d = readBody(response)
+            d.addCallback(self.parse_json)
 
-    def parse_json(self, json_data):
+    def parse_json(self, body):
         try:
-            data = json.loads(json_data)
+            json_str = body.decode('utf-8', errors='ignore')
+            data = json.loads(json_str)
             events = data.get('events', [])
             self.cached_events = events 
-            log("Got " + str(len(events)) + " events")
             
-            for cb in self.callbacks:
-                cb(True)
-
-            if not self.active or self.session is None: return
+            # Cleanup old goal flags (> 60s)
+            now = time.time()
+            keys_to_del = []
+            for mid, info in self.goal_flags.items():
+                if now - info['time'] > 60:
+                    keys_to_del.append(mid)
+            for k in keys_to_del:
+                del self.goal_flags[k]
 
             for event in events:
                 status = event.get('status', {})
@@ -261,10 +277,12 @@ class SportsMonitor:
                 
                 if state == 'in':
                     comps = event.get('competitions', [{}])[0].get('competitors', [])
-                    home, away, h_score, a_score = "", "", "0", "0"
+                    if len(comps) > 2: continue 
+                    
+                    home, away, h_score, a_score = "Home", "Away", 0, 0
                     for team in comps:
                         name = team.get('team', {}).get('shortDisplayName', 'Tm')
-                        sc = team.get('score', '0')
+                        sc = int(team.get('score', '0'))
                         if team.get('homeAway') == 'home': home, h_score = name, sc
                         else: away, a_score = name, sc
                     
@@ -274,15 +292,21 @@ class SportsMonitor:
                     if match_id in self.last_scores:
                         if self.last_scores[match_id] != score_str:
                             try:
-                                self.session.open(GoalToast, "GOAL! {} {} - {} {}".format(home, h_score, a_score, away))
-                            except:
-                                self.active = False
+                                prev_h, prev_a = map(int, self.last_scores[match_id].split('-'))
+                                if h_score > prev_h:
+                                    self.goal_flags[match_id] = {'side': 'home', 'time': time.time()}
+                                elif a_score > prev_a:
+                                    self.goal_flags[match_id] = {'side': 'away', 'time': time.time()}
+                                
+                                if self.active and self.session:
+                                    self.session.open(GoalToast, "GOAL! {} {} - {} {}".format(home, h_score, a_score, away))
+                            except: pass
                     
                     self.last_scores[match_id] = score_str
-        except Exception as e:
-            log("Parse Error: " + str(e))
+
             for cb in self.callbacks:
-                cb(False)
+                cb(True)
+        except: pass
 
 if global_sports_monitor is None:
     global_sports_monitor = SportsMonitor()
@@ -324,49 +348,74 @@ class SimpleSportsMiniBar(Screen):
         self.current_match_idx = 0
         self["league_name"] = Label("MINI MODE")
         self["match_info"] = Label("Loading...")
-        self["credit"] = Label("Dev: Reali22")
-        
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
-            "cancel": self.close, "green": self.close 
-        }, -1)
-        
+        self["credit"] = Label("Dev: Reali22 (v" + CURRENT_VERSION + ")")
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {"cancel": self.close, "green": self.close}, -1)
         self.ticker_timer = eTimer()
         self.ticker_timer.callback.append(self.show_next_match)
-        self.onLayoutFinish.append(self.load_data)
+        self.refresh_timer = eTimer()
+        self.refresh_timer.callback.append(self.load_data)
+        self.onLayoutFinish.append(self.start_all_timers)
+
+    def start_all_timers(self):
+        self.load_data()
+        self.refresh_timer.start(60000)
 
     def load_data(self):
         try:
-            if global_sports_monitor.current_league_index < len(DATA_SOURCES):
-                name = DATA_SOURCES[global_sports_monitor.current_league_index][0]
-                self["league_name"].setText(name)
-            
-            events = global_sports_monitor.cached_events
+            name, url = DATA_SOURCES[global_sports_monitor.current_league_index]
+            self["league_name"].setText(name)
+            agent = Agent(reactor)
+            d = agent.request(b'GET', url.encode('utf-8'))
+            d.addCallback(self.handle_response)
+        except: self["match_info"].setText("Data Error")
+
+    def handle_response(self, response):
+        if response.code == 200:
+            d = readBody(response)
+            d.addCallback(self.parse_json)
+
+    def parse_json(self, body):
+        try:
+            json_str = body.decode('utf-8', errors='ignore')
+            data = json.loads(json_str)
+            events = data.get('events', [])
             self.matches = []
-            
             for event in events:
                 status = event.get('status', {})
                 state = status.get('type', {}).get('state', 'pre')
                 clock = status.get('displayClock', '')
+                
+                utc_date = event.get('date', '')
+                local_time = get_local_time_str(utc_date)
+                
                 comps = event.get('competitions', [{}])[0].get('competitors', [])
-                home, away, h_score, a_score = "Home", "Away", "0", "0"
-                for team in comps:
-                    name = team.get('team', {}).get('shortDisplayName', 'Tm')
-                    sc = team.get('score', '0')
-                    if team.get('homeAway') == 'home': home, h_score = name, sc
-                    else: away, a_score = name, sc
-                
-                if state == 'in': txt = "LIVE {}' :: {} {} - {} {}".format(clock, home, h_score, a_score, away)
-                elif state == 'post': txt = "FIN :: {} {} - {} {}".format(home, h_score, a_score, away)
-                else: txt = "{} vs {}".format(home, away)
+                if len(comps) > 2:
+                    race = event.get('shortName', 'Race')
+                    venue = event.get('competitions', [{}])[0].get('venue', {}).get('fullName', '')
+                    txt = "{} @ {}".format(race, venue)
+                else:
+                    home, away, h_score, a_score = "Home", "Away", "0", "0"
+                    for team in comps:
+                        name = team.get('team', {}).get('shortDisplayName', 'Tm')
+                        sc = team.get('score', '0')
+                        if team.get('homeAway') == 'home': home, h_score = name, sc
+                        else: away, a_score = name, sc
+                    match_id = home + "_" + away
+                    goal_flag = ""
+                    if match_id in global_sports_monitor.goal_flags: goal_flag = " GOAL!"
+                    
+                    if state == 'in': 
+                        txt = "LIVE {}' :: {}{} {} - {} {}".format(clock, home, goal_flag, h_score, a_score, away)
+                    elif state == 'post': 
+                        txt = "FIN :: {} {} - {} {}".format(home, h_score, a_score, away)
+                    else: 
+                        txt = "{} :: {} vs {}".format(local_time, home, away)
+                        
                 self.matches.append(txt)
-                
-            if self.matches:
+            if self.matches and not self.ticker_timer.isActive():
                 self.show_next_match()
                 self.ticker_timer.start(4000)
-            else:
-                self["match_info"].setText("No games available.")
-        except:
-             self["match_info"].setText("Data Error")
+        except: pass
 
     def show_next_match(self):
         if not self.matches: return
@@ -374,79 +423,75 @@ class SimpleSportsMiniBar(Screen):
         self["match_info"].setText(self.matches[self.current_match_idx])
 
 # ==============================================================================
-# MAIN GUI
+# MAIN GUI (SIDEBAR 620px x 720px)
 # ==============================================================================
 class SimpleSportsScreen(Screen):
     skin = """
-        <screen position="center,center" size="1280,720" title="SimplySports" backgroundColor="#40000000" flags="wfNoBorder">
-            <eLabel position="0,0" size="1280,720" backgroundColor="#40000000" zPosition="-1" />
-            <eLabel position="0,0" size="1280,85" backgroundColor="#002244" zPosition="0" />
-            <eLabel position="0,85" size="1280,3" backgroundColor="#FFD700" zPosition="1" />
+        <screen position="0,0" size="620,720" title="SimplySports" backgroundColor="#40000000" flags="wfNoBorder">
+            <eLabel position="0,0" size="620,720" backgroundColor="#40000000" zPosition="-1" />
+            <eLabel position="0,0" size="620,80" backgroundColor="#002244" zPosition="0" />
+            <eLabel position="0,80" size="620,3" backgroundColor="#FFD700" zPosition="1" />
             
-            <widget name="header" position="20,15" size="1000,60" font="Regular;38" foregroundColor="#FFFFFF" backgroundColor="#002244" transparent="1" valign="center" />
-            <widget name="disc_status" position="1050,15" size="200,60" font="Regular;28" foregroundColor="#AAAAAA" backgroundColor="#002244" transparent="1" halign="right" valign="center" />
+            <widget name="header" position="10,5" size="600,40" font="Regular;32" foregroundColor="#FFFFFF" backgroundColor="#002244" transparent="1" valign="center" halign="center" />
+            <widget name="league_title" position="10,45" size="600,30" font="Regular;26" foregroundColor="#00FF00" backgroundColor="#002244" transparent="1" halign="center" />
             
-            <widget name="league_title" position="30,100" size="1220,50" font="Regular;34" foregroundColor="#00FF00" backgroundColor="#40000000" transparent="1" halign="center" />
+            <eLabel position="5,90" size="610,2" backgroundColor="#555555" />
+            <widget name="lab_status" position="5,95" size="50,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" text="ST" />
+            <widget name="lab_home" position="60,95" size="190,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="right" text="HOME" />
+            <widget name="lab_score" position="260,95" size="90,30" font="Regular;20" foregroundColor="#FFD700" backgroundColor="#40000000" transparent="1" halign="center" text="SCR" />
+            <widget name="lab_away" position="360,95" size="190,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="left" text="AWAY" />
+            <widget name="lab_time" position="560,95" size="55,30" font="Regular;20" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="right" text="TIME" />
+            <eLabel position="5,130" size="610,2" backgroundColor="#555555" />
             
-            <eLabel position="30,160" size="1220,2" backgroundColor="#555555" />
-            <widget name="lab_status" position="30,170" size="100,40" font="Regular;22" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" text="STATE" />
-            <widget name="lab_home" position="150,170" size="380,40" font="Regular;22" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="right" text="HOME TEAM" />
-            <widget name="lab_score" position="540,170" size="120,40" font="Regular;22" foregroundColor="#FFD700" backgroundColor="#40000000" transparent="1" halign="center" text="SCORE" />
-            <widget name="lab_away" position="670,170" size="380,40" font="Regular;22" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="left" text="AWAY TEAM" />
-            <widget name="lab_time" position="1060,170" size="150,40" font="Regular;22" foregroundColor="#AAAAAA" backgroundColor="#40000000" transparent="1" halign="right" text="DATE/TIME" />
-            <eLabel position="30,215" size="1220,2" backgroundColor="#555555" />
+            <widget name="list" position="0,135" size="620,510" scrollbarMode="showOnDemand" transparent="1" />
             
-            <widget name="list" position="20,230" size="1240,430" scrollbarMode="showOnDemand" transparent="1" />
+            <eLabel position="0,650" size="620,70" backgroundColor="#181818" zPosition="0" />
+            <eLabel position="0,650" size="620,2" backgroundColor="#333333" zPosition="1" />
             
-            <eLabel position="0,670" size="1280,50" backgroundColor="#181818" zPosition="0" />
-            <eLabel position="0,670" size="1280,2" backgroundColor="#333333" zPosition="1" />
+            <eLabel position="10,660" size="15,15" backgroundColor="#FF5555" zPosition="2" />
+            <widget name="key_red" position="30,660" size="120,25" font="Regular;22" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
             
-            <eLabel position="30,680" size="30,30" backgroundColor="#FF5555" zPosition="2" />
-            <widget name="key_red" position="70,680" size="220,35" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
+            <eLabel position="160,660" size="15,15" backgroundColor="#55FF55" zPosition="2" />
+            <widget name="key_green" position="180,660" size="120,25" font="Regular;22" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
             
-            <eLabel position="300,680" size="30,30" backgroundColor="#55FF55" zPosition="2" />
-            <widget name="key_green" position="340,680" size="220,35" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
+            <eLabel position="310,660" size="15,15" backgroundColor="#FFFF55" zPosition="2" />
+            <widget name="key_yellow" position="330,660" size="120,25" font="Regular;22" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
             
-            <eLabel position="570,680" size="30,30" backgroundColor="#FFFF55" zPosition="2" />
-            <widget name="key_yellow" position="610,680" size="220,35" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
+            <eLabel position="10,690" size="15,15" backgroundColor="#5555FF" zPosition="2" />
+            <widget name="key_blue" position="30,690" size="180,25" font="Regular;22" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
             
-            <eLabel position="840,680" size="30,30" backgroundColor="#5555FF" zPosition="2" />
-            <widget name="key_blue" position="880,680" size="240,35" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
-
-            <eLabel position="1120,680" size="30,30" backgroundColor="#777777" zPosition="2" />
-            <widget name="key_menu" position="1160,680" size="150,35" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
+            <widget name="key_menu" position="300,690" size="150,25" font="Regular;22" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
+            
+            <widget name="credit" position="450,690" size="160,25" font="Regular;16" foregroundColor="#555555" backgroundColor="#181818" transparent="1" halign="right" zPosition="2" />
         </screen>
     """
 
     def __init__(self, session):
         Screen.__init__(self, session)
         self.session = session
-        
         global_sports_monitor.set_session(session)
         self.monitor = global_sports_monitor
         self.live_only_filter = False
-        
         self.monitor.register_callback(self.refresh_ui)
         
-        self["header"] = Label("SimplySports CENTER")
-        self["disc_status"] = Label("DISCOVERY: OFF")
-        self["league_title"] = Label("LOADING DATA...")
-        
-        self["lab_status"] = Label("STATE")
+        self["header"] = Label("SimplySports")
+        self["league_title"] = Label("LOADING...")
+        self["lab_status"] = Label("ST")
         self["lab_home"] = Label("HOME")
-        self["lab_score"] = Label("SCORE")
+        self["lab_score"] = Label("SCR")
         self["lab_away"] = Label("AWAY")
-        self["lab_time"] = Label("DATE / TIME")
+        self["lab_time"] = Label("TIME")
         
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("Regular", 28))
-        self["list"].l.setItemHeight(50)
+        self["list"].l.setFont(0, gFont("Regular", 24))
+        self["list"].l.setItemHeight(55)
         
-        self["key_red"] = Label("LEAGUES")
-        self["key_green"] = Label("MINI MODE")
-        self["key_yellow"] = Label("LIVE ONLY")
-        self["key_blue"] = Label("DISCOVERY")
-        self["key_menu"] = Label("UPDATE")
+        self["key_red"] = Label("League")
+        self["key_green"] = Label("Mini")
+        self["key_yellow"] = Label("Live")
+        self["key_blue"] = Label("Discovery: OFF")
+        self["key_menu"] = Label("MENU: Update")
+        self["credit"] = Label("Reali22 (v" + CURRENT_VERSION + ")")
         
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions"], {
             "cancel": self.close,
@@ -459,105 +504,93 @@ class SimpleSportsScreen(Screen):
             "down": self["list"].down,
         }, -1)
         
+        self.auto_refresh_timer = eTimer()
+        self.auto_refresh_timer.callback.append(self.fetch_data)
         self.onLayoutFinish.append(self.start_ui)
         self.onClose.append(self.cleanup)
 
     def start_ui(self):
+        self["header"].setText("SimplySports")
         self.update_header()
-        self["league_title"].setText("DOWNLOADING DATA...")
-        self.monitor.check_goals()
+        self.fetch_data()
+        self.auto_refresh_timer.start(120000)
 
     def cleanup(self):
         self.monitor.unregister_callback(self.refresh_ui)
 
     def update_header(self):
+        self["header"].setText("SimplySports")
         try:
-            curr_league = DATA_SOURCES[self.monitor.current_league_index][0]
-            self["header"].setText("SimplySports")
-            self["league_title"].setText(curr_league.upper() + " FIXTURES")
-            
-            if self.monitor.active:
-                self["disc_status"].setText("DISCOVERY: ON")
-                self["key_blue"].setText("DISCOVERY: ON")
-            else:
-                self["disc_status"].setText("DISCOVERY: OFF")
-                self["key_blue"].setText("DISCOVERY: OFF")
+            curr = DATA_SOURCES[self.monitor.current_league_index][0]
+            self["league_title"].setText(curr)
+            if self.monitor.active: self["key_blue"].setText("Discovery: ON")
+            else: self["key_blue"].setText("Discovery: OFF")
         except: pass
+
+    def fetch_data(self):
+        self["league_title"].setText("DOWNLOADING...")
+        self.monitor.check_goals()
 
     def toggle_discovery(self):
         is_active = self.monitor.toggle_activity()
         self.update_header()
-        if is_active:
-             self.session.open(MessageBox, "Discovery Mode ON\nBackground notifications active.", MessageBox.TYPE_INFO, timeout=2)
+        if is_active: self.session.open(MessageBox, "Discovery ON", MessageBox.TYPE_INFO, timeout=2)
 
     def toggle_filter(self):
         self.live_only_filter = not self.live_only_filter
-        if self.live_only_filter: self["key_yellow"].setText("SHOW ALL")
-        else: self["key_yellow"].setText("LIVE ONLY")
         self.refresh_ui(True)
 
     def open_league_select(self):
         options = []
-        for idx, (name, url) in enumerate(DATA_SOURCES):
-            options.append((name, idx))
+        for idx, (name, url) in enumerate(DATA_SOURCES): options.append((name, idx))
         self.session.openWithCallback(self.league_selected, ChoiceBox, title="Select League", list=options)
 
     def league_selected(self, selection):
         if selection:
             self.monitor.set_league(selection[1])
             self.update_header()
-            self["league_title"].setText("DOWNLOADING...")
+            self.fetch_data()
 
     def open_mini_bar(self):
         self.session.open(SimpleSportsMiniBar)
 
-    # ---------------- UPDATE LOGIC ----------------
     def check_for_updates(self):
-        self["league_title"].setText("CHECKING UPDATES...")
+        self["league_title"].setText("CHECKING...")
         url = GITHUB_BASE_URL + "version.txt"
         getPage(url.encode('utf-8')).addCallback(self.got_version).addErrback(self.update_fail)
 
     def got_version(self, data):
         try:
-            remote_version = data.decode('utf-8').strip()
-            if remote_version > CURRENT_VERSION:
-                self.session.openWithCallback(self.start_update, MessageBox, 
-                    "New version " + remote_version + " available!\n(Current: " + CURRENT_VERSION + ")\nUpdate now?", 
-                    MessageBox.TYPE_YESNO)
+            remote = data.decode('utf-8').strip()
+            if remote > CURRENT_VERSION:
+                self.session.openWithCallback(self.start_update, MessageBox, "Update to " + remote + "?", MessageBox.TYPE_YESNO)
             else:
-                self.session.open(MessageBox, "You have the latest version.", MessageBox.TYPE_INFO)
+                self.session.open(MessageBox, "Up to date.", MessageBox.TYPE_INFO)
                 self.update_header()
-        except:
-            self.update_fail(None)
+        except: self.update_fail(None)
 
     def update_fail(self, error):
-        self.session.open(MessageBox, "Update check failed.\nCheck internet or GitHub URL.", MessageBox.TYPE_ERROR)
+        self.session.open(MessageBox, "Update Failed.", MessageBox.TYPE_ERROR)
         self.update_header()
 
     def start_update(self, answer):
         if answer:
-            self["league_title"].setText("DOWNLOADING UPDATE...")
+            self["league_title"].setText("UPDATING...")
             url = GITHUB_BASE_URL + "plugin.py"
             target = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/plugin.py")
             downloadPage(url.encode('utf-8'), target).addCallback(self.update_finished).addErrback(self.update_fail)
 
     def update_finished(self, data):
-        self.session.open(MessageBox, "Update Successful!\nPlease restart GUI.", MessageBox.TYPE_INFO)
-    # -----------------------------------------------
+        self.session.open(MessageBox, "Updated. Restart GUI.", MessageBox.TYPE_INFO)
 
     def refresh_ui(self, success):
-        if not success:
-            self["league_title"].setText("CONNECTION FAILED")
-            return
-
         self.update_header()
         events = self.monitor.cached_events
-        
-        if not events: 
+        if not events:
             self["list"].setList([])
-            self["league_title"].setText("NO GAMES TODAY")
+            self["league_title"].setText("NO GAMES")
             return
-
+        
         list_content = []
         for event in events:
             try:
@@ -568,27 +601,39 @@ class SimpleSportsScreen(Screen):
                 
                 venue_data = event.get('competitions', [{}])[0].get('venue', {})
                 venue = venue_data.get('fullName', '')
-                
                 comps = event.get('competitions', [{}])[0].get('competitors', [])
-                home, away, h_score, a_score = "", "", "0", "0"
-                for team in comps:
-                    name = team.get('team', {}).get('shortDisplayName', 'Tm')
-                    sc = team.get('score', '0')
-                    if team.get('homeAway') == 'home': home, h_score = name, sc
-                    else: away, a_score = name, sc
+                
+                if len(comps) > 2:
+                    left_text = event.get('shortName', 'Race') 
+                    right_text = venue 
+                    score_text = "" 
+                    if state == 'post': score_text = "FIN"
+                    elif state == 'in': score_text = "LIVE"
+                    goal_side = None
+                else:
+                    home, away, h_score, a_score = "Home", "Away", "0", "0"
+                    for team in comps:
+                        name = team.get('team', {}).get('shortDisplayName', 'Tm')
+                        sc = team.get('score', '0')
+                        if team.get('homeAway') == 'home': home, h_score = name, sc
+                        else: away, a_score = name, sc
+                    
+                    left_text = home
+                    right_text = away
+                    score_text = h_score + " - " + a_score if state != 'pre' else "vs"
+                    
+                    match_id = home + "_" + away
+                    goal_side = None
+                    if match_id in self.monitor.goal_flags:
+                        goal_side = self.monitor.goal_flags[match_id]['side']
 
                 status_short = "SCH"
-                score_display = "vs"
-                if state == 'in': 
-                    status_short = "LIVE"
-                    score_display = h_score + " - " + a_score
-                elif state == 'post': 
-                    status_short = "FIN"
-                    score_display = h_score + " - " + a_score
+                if state == 'in': status_short = "LIVE"
+                elif state == 'post': status_short = "FIN"
 
                 if self.live_only_filter and state != 'in': continue
 
-                entry_data = (status_short, home, score_display, away, local_time, venue, "")
+                entry_data = (status_short, left_text, score_text, right_text, local_time, goal_side)
                 list_content.append(SportListEntry(entry_data))
             except: continue
         self["list"].setList(list_content)
@@ -597,9 +642,8 @@ def main(session, **kwargs):
     session.open(SimpleSportsScreen)
 
 def Plugins(**kwargs):
-    # This automatically finds picon.png in your plugin folder
     iconPath = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/picon.png")
     return [
-        PluginDescriptor(name="SimplySports", description="Live Scores by Reali22", where=PluginDescriptor.WHERE_PLUGINMENU, fnc=main, icon=iconPath),
+        PluginDescriptor(name="SimplySports", description="Live Scores Sidebar", where=PluginDescriptor.WHERE_PLUGINMENU, fnc=main, icon=iconPath),
         PluginDescriptor(name="SimplySports Monitor", where=PluginDescriptor.WHERE_SESSIONSTART, fnc=lambda session, **kwargs: global_sports_monitor.set_session(session))
     ]
