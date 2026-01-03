@@ -9,8 +9,7 @@ from Components.GUIComponent import GUIComponent
 from Components.HTMLComponent import HTMLComponent
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 from twisted.internet import reactor
-from twisted.web.client import downloadPage, getPage
-from twisted.web.http_headers import Headers
+from twisted.web.client import getPage, downloadPage
 from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER
 import json
 import datetime
@@ -22,8 +21,17 @@ import os
 # CONFIGURATION
 # ==============================================================================
 CURRENT_VERSION = "1.0"
-# IMPORTANT: Ensure your folder on the box is named 'SimplySports'
-GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
+GITHUB_BASE_URL = "http://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
+
+# ==============================================================================
+# DEBUGGER
+# ==============================================================================
+def log(msg):
+    try:
+        with open("/tmp/simply_debug.log", "a") as f:
+            f.write(str(msg) + "\n")
+    except:
+        pass
 
 # ==============================================================================
 # GLOBAL SERVICE INSTANCE
@@ -225,28 +233,25 @@ class SportsMonitor:
         try:
             if self.current_league_index < len(DATA_SOURCES):
                 name, url = DATA_SOURCES[self.current_league_index]
-                headers = Headers({
-                    'User-Agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36']
-                })
-                agent = Agent(reactor)
-                d = agent.request(b'GET', url.encode('utf-8'), headers)
-                d.addCallback(self.handle_response)
-        except: pass
+                log("Fetching: " + name)
+                getPage(url).addCallback(self.parse_json).addErrback(self.error_fetch)
+        except Exception as e:
+            log("Fetch Error: " + str(e))
 
-    def handle_response(self, response):
-        if response.code == 200:
-            d = readBody(response)
-            d.addCallback(self.parse_json)
+    def error_fetch(self, error):
+        log("Network Error: " + str(error))
+        for cb in self.callbacks:
+            cb(False)
 
-    def parse_json(self, body):
+    def parse_json(self, json_data):
         try:
-            json_str = body.decode('utf-8', errors='ignore')
-            data = json.loads(json_str)
+            data = json.loads(json_data)
             events = data.get('events', [])
             self.cached_events = events 
+            log("Got " + str(len(events)) + " events")
             
             for cb in self.callbacks:
-                cb()
+                cb(True)
 
             if not self.active or self.session is None: return
 
@@ -274,7 +279,10 @@ class SportsMonitor:
                                 self.active = False
                     
                     self.last_scores[match_id] = score_str
-        except: pass
+        except Exception as e:
+            log("Parse Error: " + str(e))
+            for cb in self.callbacks:
+                cb(False)
 
 if global_sports_monitor is None:
     global_sports_monitor = SportsMonitor()
@@ -486,7 +494,7 @@ class SimpleSportsScreen(Screen):
         self.live_only_filter = not self.live_only_filter
         if self.live_only_filter: self["key_yellow"].setText("SHOW ALL")
         else: self["key_yellow"].setText("LIVE ONLY")
-        self.refresh_ui()
+        self.refresh_ui(True)
 
     def open_league_select(self):
         options = []
@@ -530,7 +538,6 @@ class SimpleSportsScreen(Screen):
         if answer:
             self["league_title"].setText("DOWNLOADING UPDATE...")
             url = GITHUB_BASE_URL + "plugin.py"
-            # Ensure correct path 'SimplySports'
             target = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/plugin.py")
             downloadPage(url.encode('utf-8'), target).addCallback(self.update_finished).addErrback(self.update_fail)
 
@@ -538,11 +545,17 @@ class SimpleSportsScreen(Screen):
         self.session.open(MessageBox, "Update Successful!\nPlease restart GUI.", MessageBox.TYPE_INFO)
     # -----------------------------------------------
 
-    def refresh_ui(self):
+    def refresh_ui(self, success):
+        if not success:
+            self["league_title"].setText("CONNECTION FAILED")
+            return
+
         self.update_header()
         events = self.monitor.cached_events
+        
         if not events: 
             self["list"].setList([])
+            self["league_title"].setText("NO GAMES TODAY")
             return
 
         list_content = []
@@ -584,7 +597,9 @@ def main(session, **kwargs):
     session.open(SimpleSportsScreen)
 
 def Plugins(**kwargs):
+    # This automatically finds picon.png in your plugin folder
+    iconPath = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/picon.png")
     return [
-        PluginDescriptor(name="SimplySports", description="Live Scores by Reali22", where=PluginDescriptor.WHERE_PLUGINMENU, fnc=main, icon=None),
+        PluginDescriptor(name="SimplySports", description="Live Scores by Reali22", where=PluginDescriptor.WHERE_PLUGINMENU, fnc=main, icon=iconPath),
         PluginDescriptor(name="SimplySports Monitor", where=PluginDescriptor.WHERE_SESSIONSTART, fnc=lambda session, **kwargs: global_sports_monitor.set_session(session))
     ]
