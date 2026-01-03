@@ -21,7 +21,7 @@ import os
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "1.5"
+CURRENT_VERSION = "1.0"
 # IMPORTANT: Ensure your folder on the box is named 'SimplySports'
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 
