@@ -21,7 +21,8 @@ import os
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "1.0"
+CURRENT_VERSION = "1.5"
+# IMPORTANT: Ensure your folder on the box is named 'SimplySports'
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 
 # ==============================================================================
@@ -30,7 +31,7 @@ GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/Simply
 global_sports_monitor = None
 
 # ==============================================================================
-# LEAGUE DATABASE (60+ LEAGUES)
+# LEAGUE DATABASE
 # ==============================================================================
 DATA_SOURCES = [
     # --- ENGLAND ---
@@ -115,7 +116,7 @@ DATA_SOURCES = [
 ]
 
 # ==============================================================================
-# UTILS (Smart Date/Time)
+# UTILS
 # ==============================================================================
 def get_local_time_str(utc_date_str):
     try:
@@ -132,15 +133,10 @@ def get_local_time_str(utc_date_str):
             local_dt = datetime.datetime.fromtimestamp(timestamp)
             now = datetime.datetime.now()
             
-            # Format 1: Time (HH:MM)
             time_str = "{:02d}:{:02d}".format(local_struct.tm_hour, local_struct.tm_min)
-            
             if local_dt.date() == now.date():
-                # If match is today, return just the time
                 return str(time_str)
             else:
-                # If match is scheduled for later, return Date + Time
-                # Format: "Mon 05 Jan 20:00"
                 date_str = local_dt.strftime("%a %d %b")
                 return "{} {}".format(date_str, time_str)
     except:
@@ -170,13 +166,11 @@ def SportListEntry(entry):
         if status == "LIVE": status_col = col_green
         elif status == "FIN": status_col = col_red
         
-        # Determine time color (Gold if today/live, Blue if future date)
         time_col = col_white
-        if len(time_str) > 6: # Means it has a date (e.g. "Mon 05 Jan...")
+        if len(time_str) > 6:
             time_col = col_blue
         
         res = [entry]
-        # Layout: STATUS | HOME | SCORE | AWAY | DATE/TIME
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 5, 80, 40, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, status, status_col))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 5, 380, 40, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, home, col_white))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 500, 5, 200, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score, col_gold))
@@ -198,9 +192,18 @@ class SportsMonitor:
         self.timer.callback.append(self.check_goals)
         self.session = None
         self.cached_events = [] 
+        self.callbacks = []
 
     def set_session(self, session):
         self.session = session
+
+    def register_callback(self, func):
+        if func not in self.callbacks:
+            self.callbacks.append(func)
+
+    def unregister_callback(self, func):
+        if func in self.callbacks:
+            self.callbacks.remove(func)
 
     def toggle_activity(self):
         self.active = not self.active
@@ -216,15 +219,17 @@ class SportsMonitor:
             self.current_league_index = index
             self.last_scores = {}
             self.cached_events = []
-            if self.active:
-                self.check_goals()
+            self.check_goals()
 
     def check_goals(self):
         try:
             if self.current_league_index < len(DATA_SOURCES):
                 name, url = DATA_SOURCES[self.current_league_index]
+                headers = Headers({
+                    'User-Agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36']
+                })
                 agent = Agent(reactor)
-                d = agent.request(b'GET', url.encode('utf-8'))
+                d = agent.request(b'GET', url.encode('utf-8'), headers)
                 d.addCallback(self.handle_response)
         except: pass
 
@@ -240,6 +245,9 @@ class SportsMonitor:
             events = data.get('events', [])
             self.cached_events = events 
             
+            for cb in self.callbacks:
+                cb()
+
             if not self.active or self.session is None: return
 
             for event in events:
@@ -292,7 +300,6 @@ class GoalToast(Screen):
         self.timer.start(6000, True)
 
 class SimpleSportsMiniBar(Screen):
-    # Transparent Bottom Bar (Glass Look)
     skin = """
         <screen position="0,980" size="1920,100" title="Sports Ticker" backgroundColor="#40000000" flags="wfNoBorder">
             <eLabel position="0,10" size="1920,90" backgroundColor="#151515" zPosition="-1" />
@@ -363,9 +370,8 @@ class SimpleSportsMiniBar(Screen):
 # ==============================================================================
 class SimpleSportsScreen(Screen):
     skin = """
-        <screen position="center,center" size="1280,720" title="Sports Center" backgroundColor="#40000000" flags="wfNoBorder">
+        <screen position="center,center" size="1280,720" title="SimplySports" backgroundColor="#40000000" flags="wfNoBorder">
             <eLabel position="0,0" size="1280,720" backgroundColor="#40000000" zPosition="-1" />
-            
             <eLabel position="0,0" size="1280,85" backgroundColor="#002244" zPosition="0" />
             <eLabel position="0,85" size="1280,3" backgroundColor="#FFD700" zPosition="1" />
             
@@ -399,7 +405,8 @@ class SimpleSportsScreen(Screen):
             <eLabel position="840,680" size="30,30" backgroundColor="#5555FF" zPosition="2" />
             <widget name="key_blue" position="880,680" size="240,35" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
 
-            <widget name="credit" position="1120,680" size="150,35" font="Regular;20" foregroundColor="#777777" backgroundColor="#181818" transparent="1" halign="right" zPosition="2" />
+            <eLabel position="1120,680" size="30,30" backgroundColor="#777777" zPosition="2" />
+            <widget name="key_menu" position="1160,680" size="150,35" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#181818" transparent="1" zPosition="2" />
         </screen>
     """
 
@@ -411,9 +418,11 @@ class SimpleSportsScreen(Screen):
         self.monitor = global_sports_monitor
         self.live_only_filter = False
         
-        self["header"] = Label("SPORTS CENTER")
+        self.monitor.register_callback(self.refresh_ui)
+        
+        self["header"] = Label("SimplySports CENTER")
         self["disc_status"] = Label("DISCOVERY: OFF")
-        self["league_title"] = Label("LOADING...")
+        self["league_title"] = Label("LOADING DATA...")
         
         self["lab_status"] = Label("STATE")
         self["lab_home"] = Label("HOME")
@@ -429,7 +438,7 @@ class SimpleSportsScreen(Screen):
         self["key_green"] = Label("MINI MODE")
         self["key_yellow"] = Label("LIVE ONLY")
         self["key_blue"] = Label("DISCOVERY")
-        self["credit"] = Label("Dev: Reali22")
+        self["key_menu"] = Label("UPDATE")
         
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions"], {
             "cancel": self.close,
@@ -442,19 +451,21 @@ class SimpleSportsScreen(Screen):
             "down": self["list"].down,
         }, -1)
         
-        self.ui_timer = eTimer()
-        self.ui_timer.callback.append(self.refresh_ui)
         self.onLayoutFinish.append(self.start_ui)
+        self.onClose.append(self.cleanup)
 
     def start_ui(self):
         self.update_header()
-        self.refresh_ui()
-        self.ui_timer.start(10000)
+        self["league_title"].setText("DOWNLOADING DATA...")
+        self.monitor.check_goals()
+
+    def cleanup(self):
+        self.monitor.unregister_callback(self.refresh_ui)
 
     def update_header(self):
         try:
             curr_league = DATA_SOURCES[self.monitor.current_league_index][0]
-            self["header"].setText(curr_league.upper())
+            self["header"].setText("SimplySports")
             self["league_title"].setText(curr_league.upper() + " FIXTURES")
             
             if self.monitor.active:
@@ -487,15 +498,14 @@ class SimpleSportsScreen(Screen):
         if selection:
             self.monitor.set_league(selection[1])
             self.update_header()
-            self.monitor.check_goals()
-            reactor.callLater(1, self.refresh_ui)
+            self["league_title"].setText("DOWNLOADING...")
 
     def open_mini_bar(self):
         self.session.open(SimpleSportsMiniBar)
 
     # ---------------- UPDATE LOGIC ----------------
     def check_for_updates(self):
-        self["header"].setText("CHECKING UPDATES...")
+        self["league_title"].setText("CHECKING UPDATES...")
         url = GITHUB_BASE_URL + "version.txt"
         getPage(url.encode('utf-8')).addCallback(self.got_version).addErrback(self.update_fail)
 
@@ -518,9 +528,10 @@ class SimpleSportsScreen(Screen):
 
     def start_update(self, answer):
         if answer:
-            self["header"].setText("DOWNLOADING...")
+            self["league_title"].setText("DOWNLOADING UPDATE...")
             url = GITHUB_BASE_URL + "plugin.py"
-            target = resolveFilename(SCOPE_PLUGINS, "Extensions/SimpleSports/plugin.py")
+            # Ensure correct path 'SimplySports'
+            target = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/plugin.py")
             downloadPage(url.encode('utf-8'), target).addCallback(self.update_finished).addErrback(self.update_fail)
 
     def update_finished(self, data):
@@ -528,11 +539,11 @@ class SimpleSportsScreen(Screen):
     # -----------------------------------------------
 
     def refresh_ui(self):
-        if not self.monitor.active:
-            self.monitor.check_goals()
-            
+        self.update_header()
         events = self.monitor.cached_events
-        if not events: return
+        if not events: 
+            self["list"].setList([])
+            return
 
         list_content = []
         for event in events:
@@ -574,7 +585,6 @@ def main(session, **kwargs):
 
 def Plugins(**kwargs):
     return [
-        PluginDescriptor(name="Simple Sports", description="Live Scores by Reali22", where=PluginDescriptor.WHERE_PLUGINMENU, fnc=main, icon=None),
-        PluginDescriptor(name="Simple Sports Monitor", where=PluginDescriptor.WHERE_SESSIONSTART, fnc=lambda session, **kwargs: global_sports_monitor.set_session(session))
+        PluginDescriptor(name="SimplySports", description="Live Scores by Reali22", where=PluginDescriptor.WHERE_PLUGINMENU, fnc=main, icon=None),
+        PluginDescriptor(name="SimplySports Monitor", where=PluginDescriptor.WHERE_SESSIONSTART, fnc=lambda session, **kwargs: global_sports_monitor.set_session(session))
     ]
-
