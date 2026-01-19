@@ -270,7 +270,6 @@ def get_league_abbr(full_name):
 # ==============================================================================
 def SportListEntry(entry):
     try:
-        # Unpack entry
         if len(entry) >= 10:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png = entry[:10]
         else:
@@ -278,17 +277,13 @@ def SportListEntry(entry):
              league_short = get_league_abbr(league_name)
              h_png, a_png = None, None
 
-        # --- SAFETY CHECK ---
-        # FIXED: Allow even tiny files (size > 0). Do NOT delete them.
         if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
         if a_png and (not os.path.exists(a_png) or os.path.getsize(a_png) == 0): a_png = None
 
         left_col = C_WHITE
         right_col = C_WHITE
-        if goal_side == 'home': 
-            left_col = C_PL_GREEN
-        elif goal_side == 'away': 
-            right_col = C_PL_GREEN
+        if goal_side == 'home': left_col = C_PL_GREEN
+        elif goal_side == 'away': right_col = C_PL_GREEN
         
         status_col = C_WHITE
         status_bg = C_GREY
@@ -307,8 +302,6 @@ def SportListEntry(entry):
         score_fg = C_PL_PURPLE if (status == "LIVE" or status == "FIN") else C_WHITE
 
         res = [entry]
-
-        # --- STEP 1: DRAW ALL TEXT FIRST (So it never disappears) ---
         
         # Status Box
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 10, 12, 70, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, status_col, status_col, status_bg, status_bg, 0, 5))
@@ -316,83 +309,69 @@ def SportListEntry(entry):
         # League Name
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 85, 12, 75, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, C_GOLD))
         
-        # Home Team Name (Adjusted Width: 300 -> 280)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 170, 5, 280, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, left_col))
+        # Home Team (Width reduced: 280 -> 260)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 170, 5, 260, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, left_col))
 
-        # Score (WIDENED: 90 -> 130px, Shifted Left to 510)
+        # Score
         if score_bg:
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 510, 12, 130, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, score_fg, score_fg, score_bg, score_bg, 0, 0))
         else:
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 510, 12, 130, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, score_fg))
 
-        # Away Team Name (Adjusted Start: 680 -> 700, Width: 300 -> 280)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 700, 5, 280, 55, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, right_col))
+        # Away Team (Width reduced: 280 -> 260)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 700, 5, 260, 55, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, right_col))
         
-        # Time
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 5, 200, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, time_col))
+        # Time (Width Increased: 200 -> 250, Position shifted left: 990 -> 970)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 5, 250, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, time_col))
 
-        # --- STEP 2: DRAW IMAGES LAST (If they fail, only the logo is missing) ---
-        
-        # Home Logo (Shifted Left: 480 -> 460)
-        if h_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 460, 12, 40, 40, LoadPixmap(h_png)))
+        # Logos
+        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 460, 12, 40, 40, LoadPixmap(h_png)))
+        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 650, 12, 40, 40, LoadPixmap(a_png)))
             
-        # Away Logo (Shifted Right: 630 -> 650)
-        if a_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 650, 12, 40, 40, LoadPixmap(a_png)))
-            
-        # Divider Line
+        # Divider
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 63, 1180, 1, 0, RT_HALIGN_CENTER, "", C_DARK_GREY, C_DARK_GREY, C_DARK_GREY, C_DARK_GREY))
         return res
     except: return []
 
 def UCLListEntry(entry):
-    # UCL THEME RENDERER: Dark Blue bars, Centered Scores, White Text
     try:
         if len(entry) >= 10:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png = entry[:10]
-        else:
-             return []
+        else: return []
 
         if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
         if a_png and (not os.path.exists(a_png) or os.path.getsize(a_png) == 0): a_png = None
 
-        # Colors
         text_col = C_UCL_WHITE
         accent_col = C_UCL_CYAN
-        row_bg = C_UCL_BLUE_LIGHT # The bar background
+        row_bg = C_UCL_BLUE_LIGHT
         
-        # Highlight live matches
-        if status == "LIVE":
-            score_col = C_UCL_CYAN
-        else:
-            score_col = C_UCL_WHITE
+        if status == "LIVE": score_col = C_UCL_CYAN
+        else: score_col = C_UCL_WHITE
 
         res = [entry]
 
-        # 1. The Background Bar (Rounded look simulated by margin)
+        # Background
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 5, 2, 1220, 60, 0, RT_HALIGN_CENTER, "", None, None, row_bg, row_bg))
 
-        # 2. Status (Left Side)
+        # Status
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 10, 80, 45, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, accent_col, accent_col, None, None))
 
-        # 3. Home Team (Right Aligned to center)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 120, 5, 330, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, text_col))
+        # Home Team (Width reduced: 330 -> 300)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 120, 5, 300, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, text_col))
 
-        # 4. Scores (Centered, Larger)
+        # Score
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 510, 5, 130, 55, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, score_col))
 
-        # 5. Away Team (Left Aligned from center)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 700, 5, 330, 55, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, text_col))
+        # Away Team (Width reduced: 330 -> 300)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 700, 5, 300, 55, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, text_col))
 
-        # 6. Time (Right Side)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1080, 5, 130, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, accent_col))
+        # Time (Width Increased: 130 -> 220, Position shifted left: 1080 -> 1010)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1010, 5, 220, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, accent_col))
 
-        # 7. Logos
-        if h_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 460, 12, 40, 40, LoadPixmap(h_png)))
-        if a_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 650, 12, 40, 40, LoadPixmap(a_png)))
+        # Logos
+        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 460, 12, 40, 40, LoadPixmap(h_png)))
+        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 650, 12, 40, 40, LoadPixmap(a_png)))
 
         return res
     except: return []
@@ -1392,18 +1371,20 @@ class SimpleSportsScreen(Screen):
                 <eLabel position="0,0" size="1280,100" backgroundColor="#091442" zPosition="0" />
                 <widget name="top_title" position="0,20" size="1280,50" font="Regular;38" foregroundColor="#00ffff" backgroundColor="#091442" transparent="1" halign="center" valign="center" zPosition="1" />
                 
-                <widget name="key_epg" position="1050,20" size="200,30" font="Regular;22" foregroundColor="#ffffff" backgroundColor="#091442" transparent="1" halign="right" zPosition="2" />
-                <widget name="key_menu" position="1050,55" size="200,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#091442" transparent="1" halign="right" zPosition="2" />
+                <widget name="key_epg" position="1000,15" size="260,25" font="Regular;22" foregroundColor="#ffffff" backgroundColor="#091442" transparent="1" halign="right" zPosition="2" />
+                <widget name="key_menu" position="1000,45" size="260,25" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#091442" transparent="1" halign="right" zPosition="2" />
 
                 <widget name="league_title" position="40,80" size="800,35" font="Regular;26" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="left" zPosition="1" />
-                <widget name="credit" position="1020,80" size="240,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="2" />
+                
+                <widget name="credit" position="1000,80" size="260,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="2" />
                 
                 <eLabel position="0,120" size="1280,40" backgroundColor="#182c82" zPosition="0" />
                 <widget name="head_status" position="10,125" size="80,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="center" zPosition="1" />
-                <widget name="head_home" position="120,125" size="330,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="right" zPosition="1" />
+                
+                <widget name="head_home" position="120,125" size="300,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="right" zPosition="1" />
                 <widget name="head_score" position="510,125" size="130,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="center" zPosition="1" />
-                <widget name="head_away" position="700,125" size="330,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="left" zPosition="1" />
-                <widget name="head_time" position="1080,125" size="130,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="right" zPosition="1" />
+                <widget name="head_away" position="700,125" size="300,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="left" zPosition="1" />
+                <widget name="head_time" position="1010,125" size="220,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="right" zPosition="1" />
                 
                 <widget name="list" position="20,170" size="1240,590" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
                 
@@ -1422,20 +1403,22 @@ class SimpleSportsScreen(Screen):
                 <eLabel position="0,0" size="1280,60" backgroundColor="#28002C" zPosition="0" />
                 <widget name="top_title" position="0,10" size="1280,45" font="Regular;34" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="center" valign="center" zPosition="1" />
                 
-                <widget name="key_epg" position="1050,15" size="200,30" font="Regular;22" foregroundColor="#ffffff" backgroundColor="#28002C" transparent="1" halign="right" zPosition="2" />
-                <widget name="key_menu" position="1050,45" size="200,30" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="right" zPosition="2" />
+                <widget name="key_epg" position="1000,5" size="260,25" font="Regular;22" foregroundColor="#ffffff" backgroundColor="#28002C" transparent="1" halign="right" zPosition="2" />
+                <widget name="key_menu" position="1000,32" size="260,25" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="right" zPosition="2" />
 
                 <eLabel position="0,60" size="1280,50" backgroundColor="#38003C" zPosition="0" />
                 <widget name="league_title" position="40,65" size="850,35" font="Regular;28" foregroundColor="#FFFFFF" backgroundColor="#38003C" transparent="1" halign="left" zPosition="1" />
-                <widget name="credit" position="1020,65" size="240,30" font="Regular;22" foregroundColor="#888888" backgroundColor="#38003C" transparent="1" halign="right" zPosition="2" />
+                
+                <widget name="credit" position="1000,65" size="260,30" font="Regular;22" foregroundColor="#888888" backgroundColor="#38003C" transparent="1" halign="right" zPosition="2" />
                 
                 <eLabel position="0,110" size="1280,45" backgroundColor="#28002C" zPosition="0" />
                 <widget name="head_status" position="10,115" size="70,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="center" valign="center" zPosition="1" />
                 <widget name="head_league" position="85,115" size="75,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="center" valign="center" zPosition="1" />
-                <widget name="head_home" position="170,115" size="300,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="right" valign="center" zPosition="1" />
-                <widget name="head_score" position="530,115" size="90,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="center" valign="center" zPosition="1" />
-                <widget name="head_away" position="680,115" size="300,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="left" valign="center" zPosition="1" />
-                <widget name="head_time" position="990,115" size="200,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="right" valign="center" zPosition="1" />
+                
+                <widget name="head_home" position="170,115" size="260,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="right" valign="center" zPosition="1" />
+                <widget name="head_score" position="510,115" size="130,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="center" valign="center" zPosition="1" />
+                <widget name="head_away" position="700,115" size="260,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="left" valign="center" zPosition="1" />
+                <widget name="head_time" position="970,115" size="250,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="right" valign="center" zPosition="1" />
                 
                 <eLabel position="0,158" size="1280,4" backgroundColor="#00FF85" zPosition="1" />
                 <widget name="list" position="20,170" size="1240,590" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
@@ -1674,9 +1657,6 @@ class SimpleSportsScreen(Screen):
                 except: pass
             if event_id and url: self.session.open(GameInfoScreen, event_id, url)
 
-    # ==========================================================================
-    # UPDATED: DOWNLOAD MANAGER (Sequential Downloads)
-    # ==========================================================================
     def check_for_updates(self): 
         self["league_title"].setText("CHECKING FOR UPDATES...")
         url = GITHUB_BASE_URL + "version.txt"
@@ -1699,17 +1679,14 @@ class SimpleSportsScreen(Screen):
     def start_update(self, answer):
         if answer: 
             self["league_title"].setText("DOWNLOADING PLUGIN.PY...")
-            # Step 1: Download plugin.py
             url = GITHUB_BASE_URL + "plugin.py"
             target = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/plugin.py")
             downloadPage(url.encode('utf-8'), target).addCallback(self.download_extra_files).addErrback(self.update_fail)
             
     def download_extra_files(self, data):
         self["league_title"].setText("DOWNLOADING UCL.JPG...")
-        # Step 2: Download ucl.jpg
         url = GITHUB_BASE_URL + "ucl.jpg"
         target = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ucl.jpg")
-        # Proceed even if image fails (using addBoth instead of addCallback)
         downloadPage(url.encode('utf-8'), target).addBoth(self.final_update_success)
 
     def final_update_success(self, data): 
