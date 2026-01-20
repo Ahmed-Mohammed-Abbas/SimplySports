@@ -450,59 +450,41 @@ def SelectionListEntry(name, is_selected):
 class GoalToast(Screen):
     def __init__(self, session, league_text, match_text, scorer_text, l_url, h_url, a_url):
         # --- DYNAMIC WIDTH CALCULATION ---
-        # 1. Measure the longest string
         len_league = len(str(league_text))
         len_match = len(str(match_text))
         len_scorer = len(str(scorer_text))
         max_len = max(len_league, len_match, len_scorer)
-        
-        # 2. Calculate pixels (approx 16px per char + 160px padding for logos)
-        # Min width: 620px, Max width: 1200px (to fit on screen)
         calc_width = (max_len * 16) + 160
         width = max(620, min(1200, int(calc_width)))
         
-        # 3. Calculate dynamic positions
-        right_logo_x = width - 65      # Logo is 50px wide, 15px padding
-        right_bar_x = width - 5        # Bar is 5px wide
-        center_text_w = width - 140    # Width between logos
+        right_logo_x = width - 65
+        right_bar_x = width - 5
+        center_text_w = width - 140
         
-        # --- GENERATE SKIN WITH DYNAMIC VALUES ---
         if global_sports_monitor.theme_mode == "ucl":
-            # UCL THEME
             self.skin = """
                 <screen position="40,10" size="{w},80" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">
                     <eLabel position="0,0" size="{w},80" backgroundColor="#0e1e5b" zPosition="0" />
                     <eLabel position="0,0" size="{w},2" backgroundColor="#00ffff" zPosition="2" />
-                    
                     <widget name="league" position="10,5" size="{text_w_half},20" font="Regular;16" foregroundColor="#00ffff" backgroundColor="#0e1e5b" valign="center" halign="left" transparent="1" zPosition="1" />
-                    
                     <widget name="scorer" position="{scr_x},5" size="{text_w_half},20" font="Regular;16" foregroundColor="#ffffff" backgroundColor="#0e1e5b" valign="center" halign="right" transparent="1" zPosition="1" />
-                    
                     <widget name="h_logo" position="15,30" size="45,45" alphatest="blend" zPosition="2" />
                     <widget name="a_logo" position="{log_x},30" size="45,45" alphatest="blend" zPosition="2" />
-                    
                     <widget name="match" position="70,25" size="{txt_w},50" font="Regular;26" foregroundColor="#ffffff" backgroundColor="#0e1e5b" valign="center" halign="center" transparent="1" zPosition="2" />
                 </screen>
             """.format(w=width, log_x=right_logo_x, txt_w=center_text_w, text_w_half=(width//2)-20, scr_x=(width//2)+10)
         else:
-            # DEFAULT THEME
             self.skin = """
             <screen position="40,10" size="{w},80" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">
                 <eLabel position="0,0" size="{w},20" backgroundColor="#E6000000" zPosition="0" />
-                
                 <widget name="league" position="10,0" size="{text_w_half},20" font="Regular;16" foregroundColor="#FFD700" backgroundColor="#E6000000" valign="center" halign="left" transparent="1" zPosition="1" />
                 <widget name="scorer" position="{scr_x},0" size="{text_w_half},20" font="Regular;16" foregroundColor="#00FF85" backgroundColor="#E6000000" valign="center" halign="right" transparent="1" zPosition="1" />
-                
                 <eLabel position="0,20" size="{w},60" backgroundColor="#33190028" zPosition="0" />
-                
                 <eLabel position="0,20" size="5,60" backgroundColor="#E90052" zPosition="1" /> 
                 <eLabel position="{bar_x},20" size="5,60" backgroundColor="#F6B900" zPosition="1" /> 
-                
                 <widget name="h_logo" position="15,25" size="50,50" alphatest="blend" zPosition="2" />
                 <widget name="a_logo" position="{log_x},25" size="50,50" alphatest="blend" zPosition="2" />
-                
                 <widget name="match" position="70,20" size="{txt_w},60" font="Regular;26" foregroundColor="#FFFFFF" backgroundColor="#33190028" valign="center" halign="center" transparent="1" zPosition="2" />
-                
                 <eLabel position="0,78" size="{w},2" backgroundColor="#00FF85" zPosition="2" />
             </screen>
             """.format(w=width, log_x=right_logo_x, bar_x=right_bar_x, txt_w=center_text_w, text_w_half=(width//2)-20, scr_x=(width//2)+10)
@@ -520,8 +502,12 @@ class GoalToast(Screen):
         self.download_image(h_url, "h_logo", "/tmp/ss_h_logo.png")
         self.download_image(a_url, "a_logo", "/tmp/ss_a_logo.png")
 
+        # --- TIMER COMPATIBILITY FIX ---
         self.timer = eTimer()
-        self.timer.callback.append(self.close)
+        try:
+            self.timer.callback.append(self.close)
+        except AttributeError:
+            self.timer.timeout.get().append(self.close)
         self.timer.start(8000, True)
 
         self["actions"] = ActionMap(["SetupActions", "ColorActions"], {
@@ -561,13 +547,16 @@ class SportsMonitor:
         self.last_scores = {}
         self.goal_flags = {}
         self.last_states = {} 
-        
-        # FILTER MODES: 0=Live, 1=All, 2=Today, 3=Tomorrow
         self.filter_mode = 0 
         self.theme_mode = "default"
         
+        # --- TIMER COMPATIBILITY FIX ---
         self.timer = eTimer()
-        self.timer.callback.append(self.check_goals)
+        try:
+            self.timer.callback.append(self.check_goals)
+        except AttributeError:
+            self.timer.timeout.get().append(self.check_goals)
+            
         self.session = None
         self.cached_events = [] 
         self.callbacks = []
@@ -834,7 +823,6 @@ class SportsMonitor:
 
                 prev_state = self.last_states.get(match_id)
                 if self.active and self.session and prev_state:
-                    # FIX: SWAPPED TEAMS AND STATUS TEXT FOR START/END NOTIFICATIONS
                     if state == 'in' and prev_state == 'pre':
                         match_txt = "{} {} - {} {}".format(home, h_score, a_score, away)
                         self.queue_notification(league_name, match_txt, "MATCH STARTED", l_logo, h_logo, a_logo)
@@ -876,6 +864,9 @@ class SportsMonitor:
         except:
             self.status_message = "JSON Parse Error"
             for cb in self.callbacks: cb(True)
+
+if global_sports_monitor is None:
+    global_sports_monitor = SportsMonitor()
 # ==============================================================================
 # INITIALIZE GLOBAL MONITOR
 # ==============================================================================
