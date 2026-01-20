@@ -32,7 +32,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "2.1"
+CURRENT_VERSION = "2.2"
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 
@@ -354,22 +354,25 @@ def UCLListEntry(entry):
         # Background
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 5, 2, 1220, 60, 0, RT_HALIGN_CENTER, "", None, None, row_bg, row_bg))
 
-        # Status
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 10, 80, 45, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, accent_col, accent_col, None, None))
+        # 1. Status (x=10, w=70)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 10, 10, 70, 45, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, accent_col, accent_col, None, None))
 
-        # Home Team (Width reduced: 330 -> 300)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 120, 5, 300, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, text_col))
+        # 2. League Name (RESTORED: x=85, w=75)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 85, 10, 75, 45, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, C_GOLD))
 
-        # Score
+        # 3. Home Team (x=170, w=260)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 170, 5, 260, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, text_col))
+
+        # 4. Score (x=510, w=130)
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 510, 5, 130, 55, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, score_col))
 
-        # Away Team (Width reduced: 330 -> 300)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 700, 5, 300, 55, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, text_col))
+        # 5. Away Team (x=700, w=260)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 700, 5, 260, 55, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, text_col))
 
-        # Time (Width Increased: 130 -> 220, Position shifted left: 1080 -> 1010)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1010, 5, 220, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, accent_col))
+        # 6. Time (x=970, w=250)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 5, 250, 55, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, accent_col))
 
-        # Logos
+        # 7. Logos
         if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 460, 12, 40, 40, LoadPixmap(h_png)))
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 650, 12, 40, 40, LoadPixmap(a_png)))
 
@@ -446,43 +449,65 @@ def SelectionListEntry(name, is_selected):
 # ==============================================================================
 class GoalToast(Screen):
     def __init__(self, session, league_text, match_text, scorer_text, l_url, h_url, a_url):
-        Screen.__init__(self, session)
+        # --- DYNAMIC WIDTH CALCULATION ---
+        # 1. Measure the longest string
+        len_league = len(str(league_text))
+        len_match = len(str(match_text))
+        len_scorer = len(str(scorer_text))
+        max_len = max(len_league, len_match, len_scorer)
         
-        # CHECK THEME
+        # 2. Calculate pixels (approx 16px per char + 160px padding for logos)
+        # Min width: 620px, Max width: 1200px (to fit on screen)
+        calc_width = (max_len * 16) + 160
+        width = max(620, min(1200, int(calc_width)))
+        
+        # 3. Calculate dynamic positions
+        right_logo_x = width - 65      # Logo is 50px wide, 15px padding
+        right_bar_x = width - 5        # Bar is 5px wide
+        center_text_w = width - 140    # Width between logos
+        
+        # --- GENERATE SKIN WITH DYNAMIC VALUES ---
         if global_sports_monitor.theme_mode == "ucl":
-            # UCL THEME SKIN (Dark Blue, Starball style)
+            # UCL THEME
             self.skin = """
-                <screen position="40,10" size="620,80" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">
-                    <eLabel position="0,0" size="620,80" backgroundColor="#0e1e5b" zPosition="0" />
+                <screen position="40,10" size="{w},80" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">
+                    <eLabel position="0,0" size="{w},80" backgroundColor="#0e1e5b" zPosition="0" />
+                    <eLabel position="0,0" size="{w},2" backgroundColor="#00ffff" zPosition="2" />
                     
-                    <eLabel position="0,0" size="620,2" backgroundColor="#00ffff" zPosition="2" />
+                    <widget name="league" position="10,5" size="{text_w_half},20" font="Regular;16" foregroundColor="#00ffff" backgroundColor="#0e1e5b" valign="center" halign="left" transparent="1" zPosition="1" />
                     
-                    <widget name="league" position="10,5" size="300,20" font="Regular;16" foregroundColor="#00ffff" backgroundColor="#0e1e5b" valign="center" halign="left" transparent="1" zPosition="1" />
-                    
-                    <widget name="scorer" position="310,5" size="300,20" font="Regular;16" foregroundColor="#ffffff" backgroundColor="#0e1e5b" valign="center" halign="right" transparent="1" zPosition="1" />
+                    <widget name="scorer" position="{scr_x},5" size="{text_w_half},20" font="Regular;16" foregroundColor="#ffffff" backgroundColor="#0e1e5b" valign="center" halign="right" transparent="1" zPosition="1" />
                     
                     <widget name="h_logo" position="15,30" size="45,45" alphatest="blend" zPosition="2" />
-                    <widget name="a_logo" position="560,30" size="45,45" alphatest="blend" zPosition="2" />
+                    <widget name="a_logo" position="{log_x},30" size="45,45" alphatest="blend" zPosition="2" />
                     
-                    <widget name="match" position="70,25" size="480,50" font="Regular;26" foregroundColor="#ffffff" backgroundColor="#0e1e5b" valign="center" halign="center" transparent="1" zPosition="2" />
+                    <widget name="match" position="70,25" size="{txt_w},50" font="Regular;26" foregroundColor="#ffffff" backgroundColor="#0e1e5b" valign="center" halign="center" transparent="1" zPosition="2" />
                 </screen>
-            """
+            """.format(w=width, log_x=right_logo_x, txt_w=center_text_w, text_w_half=(width//2)-20, scr_x=(width//2)+10)
         else:
-            # DEFAULT THEME SKIN
+            # DEFAULT THEME
             self.skin = """
-            <screen position="40,10" size="620,80" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">
-                <eLabel position="0,0" size="620,20" backgroundColor="#E6000000" zPosition="0" />
-                <widget name="league" position="10,0" size="300,20" font="Regular;16" foregroundColor="#FFD700" backgroundColor="#E6000000" valign="center" halign="left" transparent="1" zPosition="1" />
-                <widget name="scorer" position="310,0" size="300,20" font="Regular;16" foregroundColor="#00FF85" backgroundColor="#E6000000" valign="center" halign="right" transparent="1" zPosition="1" />
-                <eLabel position="0,20" size="620,60" backgroundColor="#33190028" zPosition="0" />
-                <eLabel position="0,20" size="5,60" backgroundColor="#E90052" zPosition="1" /> <eLabel position="615,20" size="5,60" backgroundColor="#F6B900" zPosition="1" /> 
+            <screen position="40,10" size="{w},80" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">
+                <eLabel position="0,0" size="{w},20" backgroundColor="#E6000000" zPosition="0" />
+                
+                <widget name="league" position="10,0" size="{text_w_half},20" font="Regular;16" foregroundColor="#FFD700" backgroundColor="#E6000000" valign="center" halign="left" transparent="1" zPosition="1" />
+                <widget name="scorer" position="{scr_x},0" size="{text_w_half},20" font="Regular;16" foregroundColor="#00FF85" backgroundColor="#E6000000" valign="center" halign="right" transparent="1" zPosition="1" />
+                
+                <eLabel position="0,20" size="{w},60" backgroundColor="#33190028" zPosition="0" />
+                
+                <eLabel position="0,20" size="5,60" backgroundColor="#E90052" zPosition="1" /> 
+                <eLabel position="{bar_x},20" size="5,60" backgroundColor="#F6B900" zPosition="1" /> 
+                
                 <widget name="h_logo" position="15,25" size="50,50" alphatest="blend" zPosition="2" />
-                <widget name="a_logo" position="555,25" size="50,50" alphatest="blend" zPosition="2" />
-                <widget name="match" position="70,20" size="480,60" font="Regular;26" foregroundColor="#FFFFFF" backgroundColor="#33190028" valign="center" halign="center" transparent="1" zPosition="2" />
-                <eLabel position="0,78" size="620,2" backgroundColor="#00FF85" zPosition="2" />
+                <widget name="a_logo" position="{log_x},25" size="50,50" alphatest="blend" zPosition="2" />
+                
+                <widget name="match" position="70,20" size="{txt_w},60" font="Regular;26" foregroundColor="#FFFFFF" backgroundColor="#33190028" valign="center" halign="center" transparent="1" zPosition="2" />
+                
+                <eLabel position="0,78" size="{w},2" backgroundColor="#00FF85" zPosition="2" />
             </screen>
-            """
+            """.format(w=width, log_x=right_logo_x, bar_x=right_bar_x, txt_w=center_text_w, text_w_half=(width//2)-20, scr_x=(width//2)+10)
 
+        Screen.__init__(self, session)
         self["league"] = Label(str(league_text))
         self["match"] = Label(str(match_text))
         self["scorer"] = Label(str(scorer_text))
@@ -502,6 +527,12 @@ class GoalToast(Screen):
         self["actions"] = ActionMap(["SetupActions", "ColorActions"], {
             "ok": self.close, "cancel": self.close
         }, -1)
+        
+        self.onLayoutFinish.append(self.force_top)
+
+    def force_top(self):
+        try: self.instance.setZPosition(10)
+        except: pass
 
     def download_image(self, url, widget_name, target_path):
         if url and url.startswith("http"):
@@ -530,7 +561,11 @@ class SportsMonitor:
         self.last_scores = {}
         self.goal_flags = {}
         self.last_states = {} 
-        self.live_only_filter = False
+        
+        # FILTER MODES: 0=Live, 1=All, 2=Today, 3=Tomorrow
+        self.filter_mode = 0 
+        self.theme_mode = "default"
+        
         self.timer = eTimer()
         self.timer.callback.append(self.check_goals)
         self.session = None
@@ -541,49 +576,53 @@ class SportsMonitor:
         self.notification_active = False
         self.load_config()
 
+    def set_session(self, session): self.session = session
+
+    def register_callback(self, func):
+        if func not in self.callbacks: self.callbacks.append(func)
+
+    def unregister_callback(self, func):
+        if func in self.callbacks: self.callbacks.remove(func)
+
     def load_config(self):
         if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, "r") as f:
                     data = json.load(f)
                     self.current_league_index = int(data.get("league_index", 0))
-                    self.live_only_filter = bool(data.get("filter", False))
+                    self.filter_mode = int(data.get("filter_mode", 0))
+                    self.theme_mode = data.get("theme_mode", "default")
                     self.active = bool(data.get("active", False))
                     self.custom_league_indices = data.get("custom_indices", [])
                     self.is_custom_mode = bool(data.get("is_custom_mode", False))
-                    self.theme_mode = data.get("theme_mode", "default") # New setting
                     if self.active: self.timer.start(60000, False)
             except: 
+                self.filter_mode = 0
                 self.theme_mode = "default"
-        else:
-            self.theme_mode = "default"
 
     def save_config(self):
         data = {
             "league_index": self.current_league_index,
-            "filter": self.live_only_filter,
+            "filter_mode": self.filter_mode,
+            "theme_mode": self.theme_mode,
             "active": self.active,
             "custom_indices": self.custom_league_indices,
-            "is_custom_mode": self.is_custom_mode,
-            "theme_mode": self.theme_mode # Save setting
+            "is_custom_mode": self.is_custom_mode
         }
         try:
             with open(CONFIG_FILE, "w") as f: json.dump(data, f)
         except: pass
 
     def toggle_theme(self):
-        if self.theme_mode == "default":
-            self.theme_mode = "ucl"
-        else:
-            self.theme_mode = "default"
+        if self.theme_mode == "default": self.theme_mode = "ucl"
+        else: self.theme_mode = "default"
         self.save_config()
         return self.theme_mode
 
-    def set_session(self, session): self.session = session
-    def register_callback(self, func):
-        if func not in self.callbacks: self.callbacks.append(func)
-    def unregister_callback(self, func):
-        if func in self.callbacks: self.callbacks.remove(func)
+    def toggle_filter(self):
+        self.filter_mode = (self.filter_mode + 1) % 4
+        self.save_config()
+        return self.filter_mode
 
     def toggle_activity(self):
         self.active = not self.active
@@ -593,11 +632,6 @@ class SportsMonitor:
         else: self.timer.stop()
         self.save_config()
         return self.active
-
-    def toggle_filter(self):
-        self.live_only_filter = not self.live_only_filter
-        self.save_config()
-        return self.live_only_filter
 
     def set_league(self, index):
         self.is_custom_mode = False
@@ -776,7 +810,6 @@ class SportsMonitor:
                 home, away, h_score, a_score = "Home", "Away", 0, 0
                 h_logo, a_logo = "", ""
                 
-                # --- AUTO-CONSTRUCT LOGO URLS ---
                 for team in comps:
                     name = team.get('team', {}).get('shortDisplayName', 'Tm')
                     sc = int(team.get('score', '0'))
@@ -797,16 +830,17 @@ class SportsMonitor:
 
                 l_logo = "" 
                 match_id = home + "_" + away
-                
                 score_str = str(h_score) + "-" + str(a_score)
 
                 prev_state = self.last_states.get(match_id)
                 if self.active and self.session and prev_state:
+                    # FIX: SWAPPED TEAMS AND STATUS TEXT FOR START/END NOTIFICATIONS
                     if state == 'in' and prev_state == 'pre':
-                        self.queue_notification(league_name, "MATCH STARTED", "{} vs {}".format(home, away), l_logo, h_logo, a_logo)
+                        match_txt = "{} {} - {} {}".format(home, h_score, a_score, away)
+                        self.queue_notification(league_name, match_txt, "MATCH STARTED", l_logo, h_logo, a_logo)
                     elif state == 'post' and prev_state == 'in':
-                        final_txt = "FT: {} {} - {} {}".format(home, h_score, a_score, away)
-                        self.queue_notification(league_name, final_txt, "FULL TIME", l_logo, h_logo, a_logo)
+                        match_txt = "{} {} - {} {}".format(home, h_score, a_score, away)
+                        self.queue_notification(league_name, match_txt, "FULL TIME", l_logo, h_logo, a_logo)
 
                 self.last_states[match_id] = state
 
@@ -842,7 +876,9 @@ class SportsMonitor:
         except:
             self.status_message = "JSON Parse Error"
             for cb in self.callbacks: cb(True)
-
+# ==============================================================================
+# INITIALIZE GLOBAL MONITOR
+# ==============================================================================
 if global_sports_monitor is None:
     global_sports_monitor = SportsMonitor()
 
@@ -1129,55 +1165,139 @@ class LeagueSelector(Screen):
 # ==============================================================================
 # MINI BAR (Premier League Style - Slimmer & Transparent)
 # ==============================================================================
-class SimpleSportsMiniBar(Screen):
+# ==============================================================================
+# MINI BAR 2 (Bottom Screen - Dynamic FHD/HD Support)
+# ==============================================================================
+class SimpleSportsMiniBar2(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
         
-        if global_sports_monitor.theme_mode == "ucl":
-             # UCL STYLE MINI BAR
-             # FIX: Screen background set to semi-transparent to force composition
-             # League Label: Removed backgroundColor, kept transparent=1
-            self.skin = """
-            <screen position="40,10" size="620,90" title="Sports Ticker" backgroundColor="#40000000" flags="wfNoBorder">
-                
-                <widget name="lbl_league" position="0,0" size="620,20" font="Regular;16" foregroundColor="#00ffff" transparent="1" halign="center" valign="center" zPosition="2" />
-                
-                <eLabel position="0,20" size="620,70" backgroundColor="#0e1e5b" zPosition="0" />
-                
-                <eLabel position="230,20" size="160,70" backgroundColor="#ffffff" zPosition="1" />
-                
-                <widget name="h_logo" position="10,35" size="50,50" alphatest="blend" zPosition="2" />
-                <widget name="lbl_home" position="70,35" size="150,50" font="Regular;24" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="right" valign="center" zPosition="2" />
-                
-                <widget name="lbl_score" position="230,30" size="160,35" font="Regular;30" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" />
-                <widget name="lbl_status" position="230,65" size="160,20" font="Regular;18" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" />
-
-                <widget name="lbl_away" position="400,35" size="150,50" font="Regular;24" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="left" valign="center" zPosition="2" />
-                <widget name="a_logo" position="560,35" size="50,50" alphatest="blend" zPosition="2" />
-            </screen>
-            """
+        # DETECT RESOLUTION
+        d_size = getDesktop(0).size()
+        width = d_size.width()
+        height = d_size.height()
+        
+        # LAYOUT CONFIGURATION
+        if width > 1280:
+            # FHD (1920x1080)
+            is_fhd = True
+            bar_h = 60
+            bar_y = height - bar_h - 10 # 10px padding from absolute bottom
+            font_lg = "Regular;32"
+            font_sm = "Regular;26"
+            logo_s = 50
+            
+            # WIDER LEAGUE COLUMN & REORDERED TIME
+            x_league = 30
+            w_league = 450          # Wider
+            
+            x_home_name = 500
+            w_home_name = 350
+            x_h_logo = 860
+            
+            x_score = 920
+            w_score = 120           # Center
+            
+            x_a_logo = 1050
+            x_away_name = 1110
+            w_away_name = 350
+            
+            x_status = 1480         # Match Time (After Away Team)
+            w_status = 150
+            
+            x_time = 1650           # Local Clock
+            w_time = 250
         else:
-            # DEFAULT STYLE
+            # HD (1280x720)
+            is_fhd = False
+            bar_h = 50
+            bar_y = height - bar_h
+            font_lg = "Regular;24"
+            font_sm = "Regular;20"
+            logo_s = 40
+            
+            # WIDER LEAGUE COLUMN & REORDERED TIME
+            x_league = 10
+            w_league = 280          # Wider
+            
+            x_home_name = 300
+            w_home_name = 220
+            x_h_logo = 530
+            
+            x_score = 580
+            w_score = 100
+            
+            x_a_logo = 690
+            x_away_name = 740
+            w_away_name = 220
+            
+            x_status = 970          # Match Time (After Away Team)
+            w_status = 90
+            
+            x_time = 1070           # Local Clock
+            w_time = 200
+
+        # BUILD SKIN
+        if global_sports_monitor.theme_mode == "ucl":
+            # UCL THEME (Blue/Cyan)
             self.skin = """
-                <screen position="40,10" size="620,100" title="Sports Ticker" backgroundColor="#40000000" flags="wfNoBorder">
-                    <widget name="lbl_league" position="0,0" size="620,30" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#E6000000" transparent="0" halign="center" valign="center" />
-                    <eLabel position="0,30" size="5,70" backgroundColor="#E90052" zPosition="1" /> <eLabel position="5,30" size="235,70" backgroundColor="#33190028" zPosition="1" />
-                    <widget name="h_logo" position="15,35" size="60,60" alphatest="blend" zPosition="2" />
-                    <widget name="lbl_home" position="80,30" size="155,70" font="Regular;26" foregroundColor="#FFFFFF" backgroundColor="#33190028" transparent="1" halign="right" valign="center" zPosition="2" />
-                    <eLabel position="240,30" size="140,70" backgroundColor="#00FF85" zPosition="1" /> <widget name="lbl_score" position="240,30" size="140,40" font="Regular;34" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="2" />
-                    <eLabel position="240,70" size="140,30" backgroundColor="#FFFFFF" zPosition="2" />
-                    <widget name="lbl_status" position="240,70" size="140,30" font="Regular;24" foregroundColor="#000000" backgroundColor="#FFFFFF" transparent="1" halign="center" valign="center" zPosition="3" />
-                    <eLabel position="380,30" size="235,70" backgroundColor="#33190028" zPosition="1" /> 
-                    <widget name="lbl_away" position="385,30" size="155,70" font="Regular;26" foregroundColor="#FFFFFF" backgroundColor="#33190028" transparent="1" halign="left" valign="center" zPosition="2" />
-                    <widget name="a_logo" position="545,35" size="60,60" alphatest="blend" zPosition="2" />
-                    <eLabel position="615,30" size="5,70" backgroundColor="#F6B900" zPosition="1" /> </screen>
-            """
+            <screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="{w},{h}" backgroundColor="#0e1e5b" zPosition="0" />
+                <eLabel position="0,0" size="{w},2" backgroundColor="#00ffff" zPosition="1" />
+                
+                <widget name="lbl_league" position="{xl},0" size="{wl},{h}" font="{fl}" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="left" valign="center" zPosition="2" />
+                
+                <widget name="lbl_home" position="{xh},0" size="{wh},{h}" font="{fl}" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="right" valign="center" zPosition="2" />
+                <widget name="h_logo" position="{xhl},5" size="{ls},{ls}" alphatest="blend" zPosition="2" />
+                
+                <eLabel position="{xs},0" size="{ws},{h}" backgroundColor="#ffffff" zPosition="1" />
+                <widget name="lbl_score" position="{xs},0" size="{ws},{h}" font="{fl}" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" />
+                
+                <widget name="a_logo" position="{xal},5" size="{ls},{ls}" alphatest="blend" zPosition="2" />
+                <widget name="lbl_away" position="{xa},0" size="{wa},{h}" font="{fl}" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="left" valign="center" zPosition="2" />
+                
+                <widget name="lbl_status" position="{xst},0" size="{wst},{h}" font="{fs}" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="center" valign="center" zPosition="2" />
+                
+                <widget name="lbl_time" position="{xt},0" size="{wt},{h}" font="{fs}" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="right" valign="center" zPosition="2" />
+            </screen>
+            """.format(y=bar_y, w=width, h=bar_h, fl=font_lg, fs=font_sm, ls=logo_s,
+                       xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo,
+                       xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo,
+                       xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time)
+        else:
+            # DEFAULT THEME (Purple/Green)
+            self.skin = """
+            <screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="{w},{h}" backgroundColor="#33190028" zPosition="0" />
+                <eLabel position="0,0" size="5,{h}" backgroundColor="#E90052" zPosition="1" /> 
+                <eLabel position="{rend},{h}" size="5,{h}" backgroundColor="#F6B900" zPosition="1" />
+                
+                <widget name="lbl_league" position="{xl},0" size="{wl},{h}" font="{fl}" foregroundColor="#FFD700" backgroundColor="#33190028" transparent="1" halign="left" valign="center" zPosition="2" />
+                
+                <widget name="lbl_home" position="{xh},0" size="{wh},{h}" font="{fl}" foregroundColor="#FFFFFF" backgroundColor="#33190028" transparent="1" halign="right" valign="center" zPosition="2" />
+                <widget name="h_logo" position="{xhl},5" size="{ls},{ls}" alphatest="blend" zPosition="2" />
+                
+                <eLabel position="{xs},0" size="{ws},{h}" backgroundColor="#00FF85" zPosition="1" />
+                <widget name="lbl_score" position="{xs},0" size="{ws},{h}" font="{fl}" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="3" />
+                
+                <widget name="a_logo" position="{xal},5" size="{ls},{ls}" alphatest="blend" zPosition="2" />
+                <widget name="lbl_away" position="{xa},0" size="{wa},{h}" font="{fl}" foregroundColor="#FFFFFF" backgroundColor="#33190028" transparent="1" halign="left" valign="center" zPosition="2" />
+                
+                <widget name="lbl_status" position="{xst},0" size="{wst},{h}" font="{fs}" foregroundColor="#FFFFFF" backgroundColor="#33190028" transparent="1" halign="center" valign="center" zPosition="2" />
+                
+                <widget name="lbl_time" position="{xt},0" size="{wt},{h}" font="{fs}" foregroundColor="#00FF85" backgroundColor="#33190028" transparent="1" halign="right" valign="center" zPosition="2" />
+            </screen>
+            """.format(y=bar_y, w=width, h=bar_h, rend=width-5, fl=font_lg, fs=font_sm, ls=logo_s,
+                       xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo,
+                       xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo,
+                       xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time)
 
         self["lbl_league"] = Label("")
         self["lbl_home"] = Label("")
         self["lbl_score"] = Label("")
         self["lbl_away"] = Label("")
         self["lbl_status"] = Label("")
+        self["lbl_time"] = Label("")
         
         self["h_logo"] = Pixmap()
         self["a_logo"] = Pixmap()
@@ -1187,7 +1307,11 @@ class SimpleSportsMiniBar(Screen):
         self.matches = []
         self.current_match_idx = 0
         
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {"cancel": self.close, "green": self.close, "yellow": self.toggle_filter_mini}, -1)
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
+            "cancel": self.close, 
+            "green": self.close, # Close to return to main
+            "yellow": self.toggle_filter_mini
+        }, -1)
         
         self.ticker_timer = eTimer()
         self.ticker_timer.callback.append(self.show_next_match)
@@ -1214,19 +1338,19 @@ class SimpleSportsMiniBar(Screen):
         if not events:
             self.matches.append({
                 'league': "SimplySports", 'home': global_sports_monitor.status_message, 
-                'away': "", 'score': "", 'status': "", 'h_png': None, 'a_png': None
+                'away': "", 'score': "", 'status': "", 'time': "", 'h_png': None, 'a_png': None
             })
             return
             
         tmp_path = "/tmp/simplysports/logos/"
-        if os.path.exists("/media/hdd/"):
-            hdd_path = "/media/hdd/simplysports/logos/"
-        elif os.path.exists("/hdd/"):
-            hdd_path = "/hdd/simplysports/logos/"
-        elif os.path.exists("/media/usb/"):
-            hdd_path = "/media/usb/simplysports/logos/"
-        else:
-            hdd_path = "/tmp/simplysports/logos/"
+        if os.path.exists("/media/hdd/"): hdd_path = "/media/hdd/simplysports/logos/"
+        elif os.path.exists("/hdd/"): hdd_path = "/hdd/simplysports/logos/"
+        elif os.path.exists("/media/usb/"): hdd_path = "/media/usb/simplysports/logos/"
+        else: hdd_path = "/tmp/simplysports/logos/"
+
+        now = datetime.datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        tom_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 
         for event in events:
             status = event.get('status', {})
@@ -1235,8 +1359,11 @@ class SimpleSportsMiniBar(Screen):
             local_time = get_local_time_str(event.get('date', ''))
             league_name = event.get('league_name', '')
             
-            if global_sports_monitor.live_only_filter and state != 'in': 
-                continue
+            mode = global_sports_monitor.filter_mode
+            ev_date = event.get('date', '')[:10]
+            if mode == 0 and state != 'in': continue
+            if mode == 2 and ev_date != today_str: continue
+            if mode == 3 and ev_date != tom_str: continue
 
             h_url = event.get('h_logo_url', '')
             a_url = event.get('a_logo_url', '')
@@ -1249,14 +1376,12 @@ class SimpleSportsMiniBar(Screen):
             h_png = hdd_path + h_id + ".png"
             if not os.path.exists(h_png) or os.path.getsize(h_png) == 0:
                 h_png = tmp_path + h_id + ".png"
-                if not os.path.exists(h_png) or os.path.getsize(h_png) == 0:
-                    h_png = None
+                if not os.path.exists(h_png) or os.path.getsize(h_png) == 0: h_png = None
             
             a_png = hdd_path + a_id + ".png"
             if not os.path.exists(a_png) or os.path.getsize(a_png) == 0:
                 a_png = tmp_path + a_id + ".png"
-                if not os.path.exists(a_png) or os.path.getsize(a_png) == 0:
-                    a_png = None
+                if not os.path.exists(a_png) or os.path.getsize(a_png) == 0: a_png = None
 
             comps = event.get('competitions', [{}])[0].get('competitors', [])
             
@@ -1264,12 +1389,8 @@ class SimpleSportsMiniBar(Screen):
                 race = event.get('shortName', 'Event')
                 venue = event.get('competitions', [{}])[0].get('venue', {}).get('fullName', '')
                 match_data = {
-                    'league': league_name,
-                    'home': race,
-                    'away': venue,
-                    'score': "VS",
-                    'status': local_time,
-                    'h_png': None, 'a_png': None
+                    'league': league_name, 'home': race, 'away': venue, 'score': "VS",
+                    'status': "SCH", 'time': local_time, 'h_png': None, 'a_png': None
                 }
             else:
                 home, away, h_score, a_score = "Home", "Away", "0", "0"
@@ -1280,7 +1401,7 @@ class SimpleSportsMiniBar(Screen):
                     else: away, a_score = name, sc
                 
                 score_str = "VS"
-                status_str = local_time
+                status_str = "SCH"
                 
                 if state == 'in':
                     score_str = "{} - {}".format(h_score, a_score)
@@ -1290,13 +1411,8 @@ class SimpleSportsMiniBar(Screen):
                     status_str = "FT"
                 
                 match_data = {
-                    'league': league_name,
-                    'home': home,
-                    'away': away,
-                    'score': score_str,
-                    'status': status_str,
-                    'h_png': h_png,
-                    'a_png': a_png
+                    'league': league_name, 'home': home, 'away': away, 'score': score_str,
+                    'status': status_str, 'time': local_time, 'h_png': h_png, 'a_png': a_png
                 }
                 
             self.matches.append(match_data)
@@ -1309,7 +1425,6 @@ class SimpleSportsMiniBar(Screen):
     def show_next_match(self):
         if not self.matches: return
         self.current_match_idx = (self.current_match_idx + 1) % len(self.matches)
-        
         data = self.matches[self.current_match_idx]
         
         self["lbl_league"].setText(str(data.get('league', '')))
@@ -1317,18 +1432,184 @@ class SimpleSportsMiniBar(Screen):
         self["lbl_score"].setText(str(data.get('score', '')))
         self["lbl_away"].setText(str(data.get('away', '')))
         self["lbl_status"].setText(str(data.get('status', '')))
+        self["lbl_time"].setText(str(data.get('time', '')))
         
         if data.get('h_png'):
             self["h_logo"].instance.setPixmapFromFile(data['h_png'])
             self["h_logo"].show()
-        else:
-            self["h_logo"].hide()
+        else: self["h_logo"].hide()
 
         if data.get('a_png'):
             self["a_logo"].instance.setPixmapFromFile(data['a_png'])
             self["a_logo"].show()
+        else: self["a_logo"].hide()
+
+
+# ==============================================================================
+# MINI BAR 1 (Top Left)
+# ==============================================================================
+class SimpleSportsMiniBar(Screen):
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        
+        if global_sports_monitor.theme_mode == "ucl":
+            self.skin = """
+            <screen position="40,10" size="900,90" title="Sports Ticker" backgroundColor="#40000000" flags="wfNoBorder">
+                <widget name="lbl_league" position="0,0" size="900,20" font="Regular;16" foregroundColor="#00ffff" transparent="1" halign="center" valign="center" zPosition="2" />
+                <eLabel position="0,20" size="900,70" backgroundColor="#0e1e5b" zPosition="0" />
+                <eLabel position="370,20" size="160,70" backgroundColor="#ffffff" zPosition="1" />
+                <widget name="h_logo" position="10,35" size="50,50" alphatest="blend" zPosition="2" />
+                <widget name="lbl_home" position="70,35" size="290,50" font="Regular;24" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="right" valign="center" zPosition="2" />
+                <widget name="lbl_score" position="370,30" size="160,35" font="Regular;30" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" />
+                <widget name="lbl_status" position="370,65" size="160,20" font="Regular;18" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" />
+                <widget name="lbl_away" position="540,35" size="290,50" font="Regular;24" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="left" valign="center" zPosition="2" />
+                <widget name="a_logo" position="840,35" size="50,50" alphatest="blend" zPosition="2" />
+            </screen>
+            """
         else:
-            self["a_logo"].hide()
+            self.skin = """
+                <screen position="40,10" size="900,100" title="Sports Ticker" backgroundColor="#40000000" flags="wfNoBorder">
+                    <widget name="lbl_league" position="0,0" size="900,30" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#E6000000" transparent="0" halign="center" valign="center" />
+                    <eLabel position="0,30" size="5,70" backgroundColor="#E90052" zPosition="1" /> 
+                    <eLabel position="5,30" size="375,70" backgroundColor="#33190028" zPosition="1" />
+                    <widget name="h_logo" position="15,35" size="60,60" alphatest="blend" zPosition="2" />
+                    <widget name="lbl_home" position="80,30" size="290,70" font="Regular;26" foregroundColor="#FFFFFF" backgroundColor="#33190028" transparent="1" halign="right" valign="center" zPosition="2" />
+                    <eLabel position="380,30" size="140,70" backgroundColor="#00FF85" zPosition="1" /> 
+                    <widget name="lbl_score" position="380,30" size="140,40" font="Regular;34" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="2" />
+                    <eLabel position="380,70" size="140,30" backgroundColor="#FFFFFF" zPosition="2" />
+                    <widget name="lbl_status" position="380,70" size="140,30" font="Regular;24" foregroundColor="#000000" backgroundColor="#FFFFFF" transparent="1" halign="center" valign="center" zPosition="3" />
+                    <eLabel position="520,30" size="375,70" backgroundColor="#33190028" zPosition="1" /> 
+                    <widget name="lbl_away" position="530,30" size="290,70" font="Regular;26" foregroundColor="#FFFFFF" backgroundColor="#33190028" transparent="1" halign="left" valign="center" zPosition="2" />
+                    <widget name="a_logo" position="825,35" size="60,60" alphatest="blend" zPosition="2" />
+                    <eLabel position="895,30" size="5,70" backgroundColor="#F6B900" zPosition="1" /> 
+                </screen>
+            """
+
+        self["lbl_league"] = Label("")
+        self["lbl_home"] = Label("")
+        self["lbl_score"] = Label("")
+        self["lbl_away"] = Label("")
+        self["lbl_status"] = Label("")
+        
+        self["h_logo"] = Pixmap()
+        self["a_logo"] = Pixmap()
+        self["h_logo"].hide()
+        self["a_logo"].hide()
+        
+        self.matches = []
+        self.current_match_idx = 0
+        
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
+            "cancel": self.close,
+            "green": self.switch_to_bottom, # FIX: Uses close callback
+            "yellow": self.toggle_filter_mini
+        }, -1)
+        
+        self.ticker_timer = eTimer()
+        self.ticker_timer.callback.append(self.show_next_match)
+        self.refresh_timer = eTimer()
+        self.refresh_timer.callback.append(self.load_data)
+        self.onLayoutFinish.append(self.start_all_timers)
+
+    def switch_to_bottom(self):
+        # Close self and pass "next" string to parent
+        self.close("next")
+
+    def start_all_timers(self):
+        self.load_data()
+        self.refresh_timer.start(60000)
+
+    def toggle_filter_mini(self): 
+        global_sports_monitor.toggle_filter()
+        self.load_data()
+            
+    def load_data(self): 
+        global_sports_monitor.check_goals()
+        self.parse_json()
+
+    def parse_json(self):
+        # Same data parsing logic as above
+        events = global_sports_monitor.cached_events
+        self.matches = []
+        if not events:
+            self.matches.append({'league': "SimplySports", 'home': global_sports_monitor.status_message, 'away': "", 'score': "", 'status': "", 'h_png': None, 'a_png': None})
+            return
+        tmp_path = "/tmp/simplysports/logos/"
+        if os.path.exists("/media/hdd/"): hdd_path = "/media/hdd/simplysports/logos/"
+        elif os.path.exists("/hdd/"): hdd_path = "/hdd/simplysports/logos/"
+        elif os.path.exists("/media/usb/"): hdd_path = "/media/usb/simplysports/logos/"
+        else: hdd_path = "/tmp/simplysports/logos/"
+        now = datetime.datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        tom_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        for event in events:
+            status = event.get('status', {})
+            state = status.get('type', {}).get('state', 'pre')
+            clock = status.get('displayClock', '00:00')
+            league_name = event.get('league_name', '')
+            mode = global_sports_monitor.filter_mode
+            ev_date = event.get('date', '')[:10]
+            if mode == 0 and state != 'in': continue
+            if mode == 2 and ev_date != today_str: continue
+            if mode == 3 and ev_date != tom_str: continue
+            h_url = event.get('h_logo_url', '')
+            a_url = event.get('a_logo_url', '')
+            try: h_id = h_url.split('500/')[-1].split('.png')[0]
+            except: h_id = '0'
+            try: a_id = a_url.split('500/')[-1].split('.png')[0]
+            except: a_id = '0'
+            h_png = hdd_path + h_id + ".png"
+            if not os.path.exists(h_png) or os.path.getsize(h_png) == 0:
+                h_png = tmp_path + h_id + ".png"
+                if not os.path.exists(h_png) or os.path.getsize(h_png) == 0: h_png = None
+            a_png = hdd_path + a_id + ".png"
+            if not os.path.exists(a_png) or os.path.getsize(a_png) == 0:
+                a_png = tmp_path + a_id + ".png"
+                if not os.path.exists(a_png) or os.path.getsize(a_png) == 0: a_png = None
+            comps = event.get('competitions', [{}])[0].get('competitors', [])
+            if len(comps) > 2:
+                race = event.get('shortName', 'Event')
+                venue = event.get('competitions', [{}])[0].get('venue', {}).get('fullName', '')
+                match_data = {'league': league_name, 'home': race, 'away': venue, 'score': "VS", 'status': "SCH", 'h_png': None, 'a_png': None}
+            else:
+                home, away, h_score, a_score = "Home", "Away", "0", "0"
+                for team in comps:
+                    name = team.get('team', {}).get('displayName', 'Team')
+                    sc = team.get('score', '0')
+                    if team.get('homeAway') == 'home': home, h_score = name, sc
+                    else: away, a_score = name, sc
+                score_str = "VS"
+                status_str = "SCH"
+                if state == 'in':
+                    score_str = "{} - {}".format(h_score, a_score)
+                    status_str = clock + "'" if ":" not in clock else clock
+                elif state == 'post':
+                    score_str = "{} - {}".format(h_score, a_score)
+                    status_str = "FT"
+                match_data = {'league': league_name, 'home': home, 'away': away, 'score': score_str, 'status': status_str, 'h_png': h_png, 'a_png': a_png}
+            self.matches.append(match_data)
+        if self.matches:
+            if not self.ticker_timer.isActive(): 
+                self.show_next_match()
+                self.ticker_timer.start(5000)
+
+    def show_next_match(self):
+        if not self.matches: return
+        self.current_match_idx = (self.current_match_idx + 1) % len(self.matches)
+        data = self.matches[self.current_match_idx]
+        self["lbl_league"].setText(str(data.get('league', '')))
+        self["lbl_home"].setText(str(data.get('home', '')))
+        self["lbl_score"].setText(str(data.get('score', '')))
+        self["lbl_away"].setText(str(data.get('away', '')))
+        self["lbl_status"].setText(str(data.get('status', '')))
+        if data.get('h_png'):
+            self["h_logo"].instance.setPixmapFromFile(data['h_png'])
+            self["h_logo"].show()
+        else: self["h_logo"].hide()
+        if data.get('a_png'):
+            self["a_logo"].instance.setPixmapFromFile(data['a_png'])
+            self["a_logo"].show()
+        else: self["a_logo"].hide()
 
 
 # ==============================================================================
@@ -1348,7 +1629,6 @@ class SimpleSportsScreen(Screen):
         # THEME SELECTION LOGIC
         # ======================================================================
         if self.monitor.theme_mode == "ucl":
-            # --- UCL THEME BACKGROUND CHECK ---
             bg_element = '<eLabel position="0,0" size="1280,860" backgroundColor="#0e1e5b" zPosition="-1" />'
             try:
                 ucl_png = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ucl.png")
@@ -1363,28 +1643,27 @@ class SimpleSportsScreen(Screen):
                     bg_element = '<ePixmap position="0,0" size="1280,860" pixmap="{}" zPosition="-1" alphatest="off" />'.format(ucl_epg)
             except: pass
 
-            # --- UCL THEME SKIN ---
             self.skin = """
             <screen position="center,center" size="1280,860" title="SimplySports" flags="wfNoBorder" backgroundColor="#00000000">
                 {}
-                
                 <eLabel position="0,0" size="1280,100" backgroundColor="#091442" zPosition="0" />
                 <widget name="top_title" position="0,20" size="1280,50" font="Regular;38" foregroundColor="#00ffff" backgroundColor="#091442" transparent="1" halign="center" valign="center" zPosition="1" />
                 
                 <widget name="key_epg" position="1000,15" size="260,25" font="Regular;22" foregroundColor="#ffffff" backgroundColor="#091442" transparent="1" halign="right" zPosition="2" />
                 <widget name="key_menu" position="1000,45" size="260,25" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#091442" transparent="1" halign="right" zPosition="2" />
 
-                <widget name="league_title" position="40,80" size="800,35" font="Regular;26" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="left" zPosition="1" />
-                
+                <widget name="league_title" position="40,80" size="450,35" font="Regular;26" foregroundColor="#ffffff" backgroundColor="#0e1e5b" transparent="1" halign="left" zPosition="1" />
+                <widget name="list_title" position="500,80" size="400,35" font="Regular;26" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
                 <widget name="credit" position="1000,80" size="260,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="2" />
                 
                 <eLabel position="0,120" size="1280,40" backgroundColor="#182c82" zPosition="0" />
-                <widget name="head_status" position="10,125" size="80,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="center" zPosition="1" />
                 
-                <widget name="head_home" position="120,125" size="300,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="right" zPosition="1" />
+                <widget name="head_status" position="10,125" size="70,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="center" zPosition="1" />
+                <widget name="head_league" position="85,125" size="75,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="center" zPosition="1" />
+                <widget name="head_home" position="170,125" size="260,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="right" zPosition="1" />
                 <widget name="head_score" position="510,125" size="130,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="center" zPosition="1" />
-                <widget name="head_away" position="700,125" size="300,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="left" zPosition="1" />
-                <widget name="head_time" position="1010,125" size="220,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="right" zPosition="1" />
+                <widget name="head_away" position="700,125" size="260,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="left" zPosition="1" />
+                <widget name="head_time" position="970,125" size="250,30" font="Regular;22" foregroundColor="#00ffff" backgroundColor="#182c82" transparent="1" halign="right" zPosition="1" />
                 
                 <widget name="list" position="20,170" size="1240,590" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
                 
@@ -1396,7 +1675,6 @@ class SimpleSportsScreen(Screen):
             </screen>
             """.format(bg_element)
         else:
-            # --- DEFAULT THEME SKIN ---
             self.skin = """
             <screen position="center,center" size="1280,860" title="SimplySports" flags="wfNoBorder" backgroundColor="#00000000">
                 <eLabel position="0,0" size="1280,860" backgroundColor="#38003C" zPosition="-1" />
@@ -1407,14 +1685,13 @@ class SimpleSportsScreen(Screen):
                 <widget name="key_menu" position="1000,32" size="260,25" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="right" zPosition="2" />
 
                 <eLabel position="0,60" size="1280,50" backgroundColor="#38003C" zPosition="0" />
-                <widget name="league_title" position="40,65" size="850,35" font="Regular;28" foregroundColor="#FFFFFF" backgroundColor="#38003C" transparent="1" halign="left" zPosition="1" />
-                
+                <widget name="league_title" position="40,65" size="450,35" font="Regular;28" foregroundColor="#FFFFFF" backgroundColor="#38003C" transparent="1" halign="left" zPosition="1" />
+                <widget name="list_title" position="500,65" size="400,35" font="Regular;28" foregroundColor="#00FF85" backgroundColor="#38003C" transparent="1" halign="center" zPosition="1" />
                 <widget name="credit" position="1000,65" size="260,30" font="Regular;22" foregroundColor="#888888" backgroundColor="#38003C" transparent="1" halign="right" zPosition="2" />
                 
                 <eLabel position="0,110" size="1280,45" backgroundColor="#28002C" zPosition="0" />
                 <widget name="head_status" position="10,115" size="70,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="center" valign="center" zPosition="1" />
                 <widget name="head_league" position="85,115" size="75,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="center" valign="center" zPosition="1" />
-                
                 <widget name="head_home" position="170,115" size="260,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="right" valign="center" zPosition="1" />
                 <widget name="head_score" position="510,115" size="130,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="center" valign="center" zPosition="1" />
                 <widget name="head_away" position="700,115" size="260,35" font="Regular;22" foregroundColor="#00FF85" backgroundColor="#28002C" transparent="1" halign="left" valign="center" zPosition="1" />
@@ -1432,7 +1709,6 @@ class SimpleSportsScreen(Screen):
             </screen>
             """
         
-        # --- UI REFRESH TIMER & INIT ---
         self.logo_timer = eTimer()
         self.logo_timer.callback.append(lambda: self.refresh_ui(True))
         self.logo_timer.start(5000, False) 
@@ -1462,6 +1738,7 @@ class SimpleSportsScreen(Screen):
         
         self["top_title"] = Label("SimplySports Score Center")
         self["league_title"] = Label("LOADING...")
+        self["list_title"] = Label("")
         self["credit"] = Label("reali22 (v" + CURRENT_VERSION + ")")
         
         self["key_epg"] = Label("EPG: Theme")
@@ -1511,6 +1788,14 @@ class SimpleSportsScreen(Screen):
     def cleanup(self): 
         self.monitor.unregister_callback(self.refresh_ui)
 
+    # --- UPDATED: Callback method handles the chain ---
+    def open_mini_bar(self): 
+        self.session.openWithCallback(self.mini_bar_callback, SimpleSportsMiniBar)
+
+    def mini_bar_callback(self, result=None):
+        if result == "next":
+            self.session.open(SimpleSportsMiniBar2)
+
     def open_theme_selector(self):
         menu_list = [
             ("SimplySports Default (Purple/Green)", "default"),
@@ -1537,16 +1822,24 @@ class SimpleSportsScreen(Screen):
                 self["league_title"].setText(item[0])
             except: pass
         
+        mode = self.monitor.filter_mode
+        if mode == 0: self["list_title"].setText("Live Matches")
+        elif mode == 1: self["list_title"].setText("All Matches")
+        elif mode == 2: self["list_title"].setText("Today's Matches")
+        elif mode == 3: self["list_title"].setText("Tomorrow's Matches")
+
         if self.monitor.active:
             self["key_blue"].setText("Discovery: ON")
         else:
             self["key_blue"].setText("Discovery: OFF")
 
     def update_filter_button(self): 
-        if self.monitor.live_only_filter:
-            self["key_yellow"].setText("Show All")
-        else:
-            self["key_yellow"].setText("Live Only")
+        mode = self.monitor.filter_mode
+        if mode == 0: self["key_yellow"].setText("Show All")
+        elif mode == 1: self["key_yellow"].setText("Show Today")
+        elif mode == 2: self["key_yellow"].setText("Show Tomorrow")
+        elif mode == 3: self["key_yellow"].setText("Live Only")
+        self.update_header()
             
     def fetch_data(self): 
         self.monitor.check_goals()
@@ -1624,13 +1917,9 @@ class SimpleSportsScreen(Screen):
         self.session.openWithCallback(self.single_league_selected, ChoiceBox, title="Select Single League", list=options)
 
     def single_league_selected(self, selection):
-        if selection:
-            self.monitor.set_league(selection[1])
-            self.update_header()
-            self.fetch_data()
-
-    def open_mini_bar(self): 
-        self.session.open(SimpleSportsMiniBar)
+        self.monitor.set_league(selection[1])
+        self.update_header()
+        self.fetch_data()
 
     def open_game_info(self):
         idx = self["list"].getSelectedIndex()
@@ -1639,7 +1928,16 @@ class SimpleSportsScreen(Screen):
         for event in self.monitor.cached_events:
             status = event.get('status', {})
             state = status.get('type', {}).get('state', 'pre')
-            if self.monitor.live_only_filter and state != 'in': continue
+            ev_date = event.get('date', '')[:10]
+            mode = self.monitor.filter_mode
+            if mode == 0 and state != 'in': continue
+            if mode == 2:
+                now = datetime.datetime.now()
+                if ev_date != now.strftime("%Y-%m-%d"): continue
+            if mode == 3:
+                 now = datetime.datetime.now()
+                 tom = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+                 if ev_date != tom: continue
             events.append(event)
         if 0 <= idx < len(events):
             selected_event = events[idx]
@@ -1700,6 +1998,11 @@ class SimpleSportsScreen(Screen):
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
             else: self["list"].setList([SportListEntry(dummy_entry)])
             return
+        
+        now = datetime.datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        tom_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        
         list_content = []
         for event in events:
             try:
@@ -1747,7 +2050,14 @@ class SimpleSportsScreen(Screen):
                 status_short = "SCH"
                 if state == 'in': status_short = "LIVE"
                 elif state == 'post': status_short = "FIN"
-                if self.monitor.live_only_filter and state != 'in': continue
+                
+                mode = self.monitor.filter_mode
+                ev_date = event.get('date', '')[:10]
+                
+                if mode == 0 and state != 'in': continue
+                if mode == 2 and ev_date != today_str: continue
+                if mode == 3 and ev_date != tom_str: continue
+
                 entry_data = (status_short, get_league_abbr(league_prefix), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png)
                 if self.monitor.theme_mode == "ucl": list_content.append(UCLListEntry(entry_data))
                 else: list_content.append(SportListEntry(entry_data))
@@ -1756,7 +2066,19 @@ class SimpleSportsScreen(Screen):
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(("INFO", "", "No Live Games", "", "", "", False, "", None, None))])
             else: self["list"].setList([SportListEntry(("INFO", "", "No Live Games", "", "", "", False, "", None, None))])
         else: self["list"].setList(list_content)
+        # ... (Inside SimpleSportsScreen class) ...
 
+    # --- FIX: Safe screen switching via Callback ---
+    def open_mini_bar(self): 
+        # Open Mini Bar 1 with a callback listener
+        self.session.openWithCallback(self.mini_bar_callback, SimpleSportsMiniBar)
+
+    def mini_bar_callback(self, result=None):
+        # If Mini Bar 1 closed with "next", open Mini Bar 2
+        if result == "next":
+            self.session.open(SimpleSportsMiniBar2)
+
+# ... (Rest of SimpleSportsScreen class remains the same) ...
 def main(session, **kwargs): 
     session.open(SimpleSportsScreen)
     
