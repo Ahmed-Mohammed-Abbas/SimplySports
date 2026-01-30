@@ -53,7 +53,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "2.9" # Performance & Optimization Release
+CURRENT_VERSION = "2.8" # Performance & Optimization Release
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOG_FILE = "/tmp/simplysports.log"
@@ -520,13 +520,14 @@ class SportsMonitor:
                     self.custom_league_indices = data.get("custom_indices", [])
                     self.is_custom_mode = bool(data.get("is_custom_mode", False))
                     self.reminders = data.get("reminders", [])
+                    self.menu_section = data.get("menu_section", "all")
                     if self.active: self.timer.start(60000, False)
             except: self.defaults()
         else: self.defaults()
 
     def defaults(self):
         self.filter_mode = 0; self.theme_mode = "default"; self.transparency = "59"
-        self.discovery_mode = 0; self.reminders = []
+        self.discovery_mode = 0; self.reminders = []; self.menu_section = "all"
 
     def save_config(self):
         data = {
@@ -534,7 +535,7 @@ class SportsMonitor:
             "theme_mode": self.theme_mode, "transparency": self.transparency,
             "discovery_mode": self.discovery_mode, "active": self.active,
             "custom_indices": self.custom_league_indices, "is_custom_mode": self.is_custom_mode,
-            "reminders": self.reminders
+            "reminders": self.reminders, "menu_section": self.menu_section
         }
         try:
             with open(CONFIG_FILE, "w") as f: json.dump(data, f)
@@ -1471,7 +1472,8 @@ class GameInfoScreen(Screen):
                     goals_found = False
                     for play in details:
                         text_desc = play.get('type', {}).get('text', '').lower()
-                        is_score = play.get('scoringPlay', False) or "goal" in text_desc or "touchdown" in text_desc
+                        # Detect scoring plays for various sports: soccer (goal), football (touchdown), hockey (power play, etc.)
+                        is_score = play.get('scoringPlay', False) or "goal" in text_desc or "touchdown" in text_desc or "power play" in text_desc or "short-handed" in text_desc or "even strength" in text_desc or "empty net" in text_desc or "shorthanded" in text_desc
                         is_card = "card" in text_desc
                         is_sub = "substitution" in text_desc
                         
@@ -2511,7 +2513,7 @@ class SimpleSportsScreen(Screen):
     # ... (Keep existing Menu, Reminder, and Update methods unchanged) ...
     # [PASTE EXISTING METHODS HERE]
     def open_settings_menu(self):
-        menu_options = [("Check for Updates", "update"), ("Change Interface Theme", "theme"), ("Window Transparency", "transparency")]
+        menu_options = [("Check for Updates", "update"), ("Change Interface Theme", "theme"), ("Window Transparency", "transparency"), ("Plugin Menu Section", "menu_section")]
         self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title="Settings & Tools", list=menu_options)
     def settings_menu_callback(self, selection):
         if selection:
@@ -2519,6 +2521,22 @@ class SimpleSportsScreen(Screen):
             if action == "update": self.check_for_updates()
             elif action == "theme": self.open_theme_selector()
             elif action == "transparency": self.open_transparency_selector()
+            elif action == "menu_section": self.open_menu_section_selector()
+    def open_menu_section_selector(self):
+        section_options = [
+            ("All Menus (Plugins, Extensions, Main Menu)", "all"),
+            ("Plugins Menu Only (Green Button)", "plugins"),
+            ("Extensions Menu Only (Blue Button)", "extensions"),
+            ("Main Menu Only (Menu Button)", "mainmenu")
+        ]
+        self.session.openWithCallback(self.menu_section_selected, ChoiceBox, title="Select where SimplySports appears", list=section_options)
+    def menu_section_selected(self, selection):
+        if selection:
+            new_section = selection[1]
+            if new_section != self.monitor.menu_section:
+                self.monitor.menu_section = new_section
+                self.monitor.save_config()
+                self.session.open(MessageBox, "Plugin section changed!\nChanges take effect after restart.", MessageBox.TYPE_INFO, timeout=5)
     def open_transparency_selector(self):
         t_options = [("Solid (0% Transparent)", "00"), ("Standard (35% Transparent)", "59"), ("90% Transparent", "E6"), ("Fully Transparent (100%)", "FF")]
         self.session.openWithCallback(self.transparency_selected, ChoiceBox, title="Select Transparency", list=t_options)
@@ -2666,38 +2684,55 @@ def main(session, **kwargs):
     session.openWithCallback(callback, SimpleSportsScreen)
 
 # ==============================================================================
-# PLUGIN REGISTRATION (Updated: Icon = picon.png)
+# PLUGIN REGISTRATION (Updated: Configurable Menu Section)
 # ==============================================================================
+def get_menu_section():
+    """Read the configured menu section from config file"""
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, "r") as f:
+                data = json.load(f)
+                return data.get("menu_section", "all")
+    except: pass
+    return "all"
+
 def menu(menuid, **kwargs):
     # This checks if the menu being built is the "Main Menu"
-    if menuid == "mainmenu":
+    section = get_menu_section()
+    if menuid == "mainmenu" and section in ["all", "mainmenu"]:
         return [("SimplySports", main, "simply_sports", 44)]
     return []
 
 def Plugins(**kwargs):
-    return [
-        # 1. Show in Plugins Browser (Green Button -> Plugins)
-        PluginDescriptor(
+    section = get_menu_section()
+    plugins = []
+    
+    # 1. Show in Plugins Browser (Green Button -> Plugins)
+    if section in ["all", "plugins"]:
+        plugins.append(PluginDescriptor(
             name="SimplySports",
             description="Live Sports Scores & Alerts by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
-            icon="picon.png",  # <--- FIXED: Using picon.png
+            icon="picon.png",
             fnc=main
-        ),
-        
-        # 2. Show in Extensions Menu (Blue Button)
-        PluginDescriptor(
+        ))
+    
+    # 2. Show in Extensions Menu (Blue Button)
+    if section in ["all", "extensions"]:
+        plugins.append(PluginDescriptor(
             name="SimplySports",
             description="Live Sports Scores & Alerts by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
-        ),
-        
-        # 3. Show in Main Menu (Menu Button)
-        PluginDescriptor(
+        ))
+    
+    # 3. Show in Main Menu (Menu Button)
+    if section in ["all", "mainmenu"]:
+        plugins.append(PluginDescriptor(
             name="SimplySports",
             description="Live Sports Scores & Alerts by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
-        )
-    ]
+        ))
+    
+    return plugins
