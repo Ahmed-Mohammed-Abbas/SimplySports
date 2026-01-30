@@ -53,7 +53,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "2.8" # Performance & Optimization Release
+CURRENT_VERSION = "2.9" # Performance & Optimization Release
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOG_FILE = "/tmp/simplysports.log"
