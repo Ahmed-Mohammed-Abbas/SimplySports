@@ -2513,7 +2513,7 @@ class SimpleSportsScreen(Screen):
     # ... (Keep existing Menu, Reminder, and Update methods unchanged) ...
     # [PASTE EXISTING METHODS HERE]
     def open_settings_menu(self):
-        menu_options = [("Check for Updates", "update"), ("Change Interface Theme", "theme"), ("Window Transparency", "transparency"), ("Plugin Menu Section", "menu_section")]
+        menu_options = [("Check for Updates", "update"), ("Change Interface Theme", "theme"), ("Window Transparency", "transparency")]
         self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title="Settings & Tools", list=menu_options)
     def settings_menu_callback(self, selection):
         if selection:
@@ -2521,22 +2521,6 @@ class SimpleSportsScreen(Screen):
             if action == "update": self.check_for_updates()
             elif action == "theme": self.open_theme_selector()
             elif action == "transparency": self.open_transparency_selector()
-            elif action == "menu_section": self.open_menu_section_selector()
-    def open_menu_section_selector(self):
-        section_options = [
-            ("All Menus (Plugins, Extensions, Main Menu)", "all"),
-            ("Plugins Menu Only (Green Button)", "plugins"),
-            ("Extensions Menu Only (Blue Button)", "extensions"),
-            ("Main Menu Only (Menu Button)", "mainmenu")
-        ]
-        self.session.openWithCallback(self.menu_section_selected, ChoiceBox, title="Select where SimplySports appears", list=section_options)
-    def menu_section_selected(self, selection):
-        if selection:
-            new_section = selection[1]
-            if new_section != self.monitor.menu_section:
-                self.monitor.menu_section = new_section
-                self.monitor.save_config()
-                self.session.open(MessageBox, "Plugin section changed!\nChanges take effect after restart.", MessageBox.TYPE_INFO, timeout=5)
     def open_transparency_selector(self):
         t_options = [("Solid (0% Transparent)", "00"), ("Standard (35% Transparent)", "59"), ("90% Transparent", "E6"), ("Fully Transparent (100%)", "FF")]
         self.session.openWithCallback(self.transparency_selected, ChoiceBox, title="Select Transparency", list=t_options)
@@ -2684,55 +2668,32 @@ def main(session, **kwargs):
     session.openWithCallback(callback, SimpleSportsScreen)
 
 # ==============================================================================
-# PLUGIN REGISTRATION (Updated: Configurable Menu Section)
+# PLUGIN REGISTRATION
 # ==============================================================================
-def get_menu_section():
-    """Read the configured menu section from config file"""
-    try:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, "r") as f:
-                data = json.load(f)
-                return data.get("menu_section", "all")
-    except: pass
-    return "all"
-
 def menu(menuid, **kwargs):
-    # This checks if the menu being built is the "Main Menu"
-    section = get_menu_section()
-    if menuid == "mainmenu" and section in ["all", "mainmenu"]:
+    if menuid == "mainmenu":
         return [("SimplySports", main, "simply_sports", 44)]
     return []
 
 def Plugins(**kwargs):
-    section = get_menu_section()
-    plugins = []
-    
-    # 1. Show in Plugins Browser (Green Button -> Plugins)
-    if section in ["all", "plugins"]:
-        plugins.append(PluginDescriptor(
+    return [
+        PluginDescriptor(
             name="SimplySports",
             description="Live Sports Scores & Alerts by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
-        ))
-    
-    # 2. Show in Extensions Menu (Blue Button)
-    if section in ["all", "extensions"]:
-        plugins.append(PluginDescriptor(
+        ),
+        PluginDescriptor(
             name="SimplySports",
             description="Live Sports Scores & Alerts by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
-        ))
-    
-    # 3. Show in Main Menu (Menu Button)
-    if section in ["all", "mainmenu"]:
-        plugins.append(PluginDescriptor(
+        ),
+        PluginDescriptor(
             name="SimplySports",
             description="Live Sports Scores & Alerts by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
-        ))
-    
-    return plugins
+        )
+    ]
