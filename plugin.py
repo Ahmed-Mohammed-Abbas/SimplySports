@@ -490,7 +490,7 @@ def SportListEntry(entry):
 
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1060, 10, 55, 55, LoadPixmap(a_png)))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1125, 0, 605, h, 2, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_a_name))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1730, 0, 180, h, 3, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, c_dim, c_dim))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1680, 0, 180, h, 3, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, c_dim, c_dim))
 
         if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 780, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
         elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
@@ -547,7 +547,7 @@ def UCLListEntry(entry):
 
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1110, 10, 55, 55, LoadPixmap(a_png)))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1190, 0, 420, h, 2, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_a_name))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1630, 0, 200, h, 3, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, c_dim, c_dim))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1680, 0, 180, h, 3, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, c_dim, c_dim))
 
         if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 720, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
         elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1180, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
@@ -3454,7 +3454,7 @@ class SimpleSportsScreen(Screen):
             <widget name="head_home" position="190,125" size="605,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="1" />
             <widget name="head_score" position="870,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
             <widget name="head_away" position="1125,125" size="605,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="left" zPosition="1" />
-            <widget name="head_time" position="1730,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="1" />
+            <widget name="head_time" position="1680,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="1" />
             <widget name="list" position="0,170" size="1920,800" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
             {bottom}
             <widget name="key_red" position="60,1005" size="400,60" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="2" halign="center" valign="center" />
