@@ -43,7 +43,7 @@ except ImportError:
     
 from twisted.web.client import Agent, readBody, getPage, downloadPage
 from twisted.web.http_headers import Headers
-from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER, getDesktop, eConsoleAppContainer, gRGB, addFont
+from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER, getDesktop, eConsoleAppContainer, gRGB, addFont, eEPGCache, eServiceReference, iServiceInformation, eServiceCenter
 
 from Components.Sources.StaticText import StaticText
 import json
@@ -77,7 +77,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.1" # tennis results fixing
+CURRENT_VERSION = "3.2" # Performance & Optimization Release
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOG_FILE = "/tmp/simplysports.log"
@@ -254,7 +254,6 @@ DATA_SOURCES = [
     ("NASCAR Cup", "https://site.api.espn.com/apis/site/v2/sports/racing/nascar-premier/scoreboard"),
     ("IndyCar", "https://site.api.espn.com/apis/site/v2/sports/racing/irl/scoreboard"),
     ("UFC / MMA", "https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard"),
-    ("Boxing", "https://site.api.espn.com/apis/site/v2/sports/boxing/scoreboard"),
     ("PGA Tour", "https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard"),
     ("LPGA Tour", "https://site.api.espn.com/apis/site/v2/sports/golf/lpga/scoreboard"),
     ("Euro Tour", "https://site.api.espn.com/apis/site/v2/sports/golf/eur/scoreboard"),
@@ -293,16 +292,12 @@ DATA_SOURCES = [
     ("NASCAR Trucks", "https://site.api.espn.com/apis/site/v2/sports/racing/nascar-trucks/scoreboard"),
     # Additional Soccer
     ("Ireland Premier", "https://site.api.espn.com/apis/site/v2/sports/soccer/irl.1/scoreboard"),
-    ("Croatian HNL", "https://site.api.espn.com/apis/site/v2/sports/soccer/cro.1/scoreboard"),
-    ("Serbian SuperLiga", "https://site.api.espn.com/apis/site/v2/sports/soccer/srb.1/scoreboard"),
     ("Romanian Liga I", "https://site.api.espn.com/apis/site/v2/sports/soccer/rou.1/scoreboard"),
-    ("Bulgarian First League", "https://site.api.espn.com/apis/site/v2/sports/soccer/bul.1/scoreboard"),
     ("Hungarian NB I", "https://site.api.espn.com/apis/site/v2/sports/soccer/hun.1/scoreboard"),
     ("Moroccan Botola", "https://site.api.espn.com/apis/site/v2/sports/soccer/mar.1/scoreboard"),
     ("Peruvian Primera", "https://site.api.espn.com/apis/site/v2/sports/soccer/per.1/scoreboard"),
     ("Bolivian Primera", "https://site.api.espn.com/apis/site/v2/sports/soccer/bol.1/scoreboard"),
     ("Cypriot First Division", "https://site.api.espn.com/apis/site/v2/sports/soccer/cyp.1/scoreboard"),
-    ("Israeli Premier", "https://site.api.espn.com/apis/site/v2/sports/soccer/isr.1/scoreboard"),
 ]
 
 # ==============================================================================
@@ -507,6 +502,7 @@ def SportListEntry(entry):
         c_accent = 0x00FF85 
         c_live = 0xe74c3c   
         c_box = 0x202020    
+        c_sel = c_accent # Green for Selection
         
         c_h_score = c_text
         c_a_score = c_text
@@ -527,9 +523,14 @@ def SportListEntry(entry):
         res = [entry]
         h = 75 
 
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 0, 80, h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_status))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 95, 0, 90, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_dim))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 190, 0, 605, h, 2, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_h_name))
+        # Dynamic Font for Team Names
+        font_h = 2; font_a = 2
+        if len(left_text) > 18: font_h = 1 # Size 28
+        if len(right_text) > 18: font_a = 1 # Size 28
+
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 25, 0, 60, h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 0, 80, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 150, 0, 640, h, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
         if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 805, 10, 55, 55, LoadPixmap(h_png)))
         
         if "-" in score_text:
@@ -543,15 +544,20 @@ def SportListEntry(entry):
             elif max_len > 5: font_idx = 0 # Medium 26
 
             # Center 960. Use full available space (860-950 and 970-1060)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_h_score, c_box, c_box))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 950, 0, 20, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_dim))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_a_score, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 950, 0, 20, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_dim))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1060, 10, 55, 55, LoadPixmap(a_png)))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1125, 0, 605, h, 2, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_a_name))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1680, 0, 180, h, 3, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, c_dim, c_dim))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1130, 0, 640, h, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        
+        # Dynamic Font/Width for Time (Handle Dates)
+        font_time = 3 # Default Size 20
+        # Check if it's a date (e.g. "Mon 23/04") -> >8 chars
+        # Widen column slightly to 160 and shift start to 1720 to accommodate
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1720, 0, 160, h, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_dim, c_sel))
 
         if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 780, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
         elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
@@ -563,6 +569,7 @@ def UCLListEntry(entry):
     try:
         if len(entry) >= 12:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
+             has_epg = entry[12] if len(entry) > 12 else False
         else: return []
 
         if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
@@ -573,6 +580,7 @@ def UCLListEntry(entry):
         c_accent = 0x00ffff # Cyan
         c_live = 0xff3333   # Red
         c_box = 0x051030    # Dark Navy
+        c_sel = c_accent # Cyan
         
         c_h_score = c_text
         c_a_score = c_text
@@ -593,10 +601,15 @@ def UCLListEntry(entry):
         res = [entry]
         h = 75 
 
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 60, 0, 100, h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_status))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 180, 0, 120, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_dim))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 320, 0, 420, h, 2, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_h_name))
-        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 755, 10, 55, 55, LoadPixmap(h_png)))
+        # Dynamic Font for Team Names
+        font_h = 2; font_a = 2
+        if len(left_text) > 18: font_h = 1 # Size 28
+        if len(right_text) > 18: font_a = 1 # Size 28
+
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 25, 0, 60, h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 0, 80, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 150, 0, 640, h, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
+        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 805, 10, 55, 55, LoadPixmap(h_png)))
         
         if "-" in score_text:
             parts = score_text.split('-')
@@ -608,18 +621,25 @@ def UCLListEntry(entry):
             if max_len > 8: font_idx = 3 # Small 20
             elif max_len > 5: font_idx = 0 # Medium 26
 
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 810, 15, 100, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_h_score, c_box, c_box))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 910, 0, 100, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_dim))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 1010, 15, 100, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_a_score, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 950, 0, 20, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 810, 0, 300, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_dim))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
-        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1110, 10, 55, 55, LoadPixmap(a_png)))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1190, 0, 420, h, 2, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_a_name))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1680, 0, 180, h, 3, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, time_str, c_dim, c_dim))
+        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1060, 10, 55, 55, LoadPixmap(a_png)))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1130, 0, 640, h, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        
+        # EPG Indicator (Left of Time, x=1680)
+        if has_epg:
+             res.append((eListboxPythonMultiContent.TYPE_TEXT, 1680, 0, 40, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "EPG", c_accent, c_sel))
 
-        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 720, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
-        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1180, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+        # Dynamic Time (Center Aligned, widen for dates)
+        font_time = 3 
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1720, 0, 160, h, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_dim, c_sel))
+
+        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 780, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
+        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 72, 1880, 2, 0, RT_HALIGN_CENTER, "", 0x22182c82, 0x22182c82))
         return res
     except: return []
@@ -1289,15 +1309,15 @@ def InfoListEntry(entry):
     col_none = None
     return [
         entry,
-        # 1. Time
+        # 1. Time (Centered: 325)
         eListboxPythonMultiContent.TYPE_TEXT,
-        0, 0, 100, 40, 0, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, entry[0], col_text, col_none, 
-        # 2. Emoji
+        325, 0, 100, 40, 0, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, entry[0], col_text, col_none, 
+        # 2. Emoji (Centered: 435)
         eListboxPythonMultiContent.TYPE_TEXT,
-        110, 0, 50, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, entry[1], col_text, col_none,
-        # 3. Text
+        435, 0, 50, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, entry[1], col_text, col_none,
+        # 3. Text (Centered: 495)
         eListboxPythonMultiContent.TYPE_TEXT,
-        170, 0, 800, 40, 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, entry[2], col_text, col_none
+        495, 0, 800, 40, 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, entry[2], col_text, col_none
     ]
 
 # ==============================================================================
@@ -1308,12 +1328,36 @@ def StatsListEntry(label, home_val, away_val, theme_mode):
     """3-Column Layout: [ HOME ] [ LABEL/TIME ] [ AWAY ]"""
     if theme_mode == "ucl": col_label, col_val, col_bg = 0x00ffff, 0xffffff, 0x0e1e5b
     else: col_label, col_val, col_bg = 0x00FF85, 0xFFFFFF, 0x33190028
-    # Layout: wider columns to fit scorer names
-    h_x, h_w = 20, 460; l_x, l_w = 500, 200; a_x, a_w = 720, 460
+    # Layout: Centered Block. Total width ~1320px
+    # Home (400) | Label (520) | Away (400)
+    h_x, h_w = 140, 400; l_x, l_w = 540, 520; a_x, a_w = 1060, 400
     res = [None]
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1200, 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 48, 1400, 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label).upper(), col_label, 0xFFFFFF))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_val, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_val, 0xFFFFFF))
+    return res
+
+def EventListEntry(label, home_val, away_val, theme_mode):
+    """3-Column Layout for Events (Goals/Cards) - Optimized for 1600px Width"""
+    if theme_mode == "ucl": col_label, col_val, col_bg = 0x00ffff, 0xffffff, 0x0e1e5b
+    else: col_label, col_val, col_bg = 0x00FF85, 0xFFFFFF, 0x33190028
+    
+    # New Wide Layout (Total ~1520px for list) 
+    # Home: 650px (Right Aligned) | Time: 120px (Center) | Away: 650px (Left Aligned)
+    # Center 800 (was 760) -> Shift +40
+    h_x, h_w = 80, 650
+    l_x, l_w = 740, 120
+    a_x, a_w = 870, 650
+
+    res = [None]
+    # Background line
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1550, 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+    # Time/Label (Center)
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label), col_label, 0xFFFFFF))
+    # Home Event (Right)
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_val, 0xFFFFFF))
+    # Away Event (Left)
     res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_val, 0xFFFFFF))
     return res
 
@@ -1332,13 +1376,13 @@ def RosterListEntry(home_player, away_player, theme_mode):
         col_bg = 0x28002C if is_header else None
         col_sep = 0x505050
     
-    h_x, h_w = 30, 560; a_x, a_w = 610, 560
+    h_x, h_w = 220, 560; a_x, a_w = 820, 560
     res = [None]
     # Add separator line
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1200, 2, 0, RT_HALIGN_CENTER, "", col_sep, col_sep, 1))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 200, 48, 1200, 2, 0, RT_HALIGN_CENTER, "", col_sep, col_sep, 1))
     # Background for headers
     if is_header:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1200, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 200, 0, 1200, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_player), col_text, 0xFFFFFF))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_player), col_text, 0xFFFFFF))
     return res
@@ -1358,9 +1402,9 @@ def TextListEntry(text, theme_mode, align="center", is_header=False):
     res = [None]
     # Background line if header
     if is_header:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1200, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 200, 0, 1200, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
     
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 0, 1160, 50, 0, flags, str(text), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 200, 0, 1200, 50, 0, flags, str(text), col_text, 0xFFFFFF))
     return res
 
 def wrap_text(text, max_chars=70):
@@ -1408,20 +1452,21 @@ def StandingTableEntry(pos, team, played, won, draw, lost, gd, pts, theme_mode, 
     
     res = [None]
     # Separator line at bottom
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1200, 2, 0, RT_HALIGN_CENTER, "", col_dim, col_dim, 1))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 48, 1140, 2, 0, RT_HALIGN_CENTER, "", col_dim, col_dim, 1))
     # Background for header
     if is_header:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1200, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 0, 1140, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
     
     # Table columns: Pos(60) | Team(420) | P(80) | W(80) | D(80) | L(80) | GD(100) | Pts(80)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 0, 60, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pos), col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 90, 0, 420, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(team), col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 520, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(played), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 600, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(won), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 680, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(draw), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 760, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(lost), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 0, 100, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(gd), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 950, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pts), col_text, 0xFFFFFF))
+    # Start X offset: 280 (Centered for Total Width 1040)
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 280, 0, 60, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pos), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 350, 0, 420, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(team), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 780, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(played), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(won), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 940, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(draw), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1020, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(lost), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1100, 0, 100, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(gd), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1220, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pts), col_text, 0xFFFFFF))
     return res
 
 # ==============================================================================
@@ -1436,28 +1481,28 @@ class TeamStandingScreen(Screen):
         self.theme = global_sports_monitor.theme_mode
         self.standings_rows = []
         
-        # --- SKIN ---
+        # --- SKIN (1600x900 Upgrade) ---
         if self.theme == "ucl":
             bg_color = "#00000000"; top_bar = "#091442"; accent = "#00ffff"
-            self.skin = f"""<screen position="center,center" size="1280,720" title="League Standings" flags="wfNoBorder" backgroundColor="{bg_color}">
-                <eLabel position="0,0" size="1280,100" backgroundColor="{top_bar}" zPosition="0" />
-                <eLabel position="0,100" size="1280,4" backgroundColor="{accent}" zPosition="1" />
-                <widget name="title" position="0,30" size="1280,40" font="Regular;32" foregroundColor="{accent}" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
-                <widget name="subtitle" position="0,70" size="1280,25" font="Regular;18" foregroundColor="#aaaaaa" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
-                <widget name="standings_list" position="40,120" size="1200,550" scrollbarMode="showNever" transparent="1" zPosition="5" />
-                <widget name="loading" position="0,350" size="1280,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
-                <widget name="hint" position="0,680" size="1280,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
+            self.skin = f"""<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="{bg_color}">
+                <eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" />
+                <eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />
+                <widget name="title" position="0,50" size="1600,40" font="Regular;32" foregroundColor="{accent}" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="subtitle" position="0,90" size="1600,25" font="Regular;20" foregroundColor="#aaaaaa" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="standings_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
+                <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
+                <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
             </screen>"""
         else:
             bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
-            self.skin = f"""<screen position="center,center" size="1280,720" title="League Standings" flags="wfNoBorder" backgroundColor="{bg_color}">
-                <eLabel position="0,0" size="1280,100" backgroundColor="{top_bar}" zPosition="0" />
-                <eLabel position="0,100" size="1280,4" backgroundColor="{accent}" zPosition="1" />
-                <widget name="title" position="0,30" size="1280,40" font="Regular;32" foregroundColor="{accent}" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
-                <widget name="subtitle" position="0,70" size="1280,25" font="Regular;18" foregroundColor="#aaaaaa" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
-                <widget name="standings_list" position="40,120" size="1200,550" scrollbarMode="showNever" transparent="1" zPosition="5" />
-                <widget name="loading" position="0,350" size="1280,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
-                <widget name="hint" position="0,680" size="1280,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
+            self.skin = f"""<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="{bg_color}">
+                <eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" />
+                <eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />
+                <widget name="title" position="0,50" size="1600,40" font="Regular;32" foregroundColor="{accent}" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="subtitle" position="0,90" size="1600,25" font="Regular;20" foregroundColor="#aaaaaa" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="standings_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
+                <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
+                <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
             </screen>"""
         
         self["title"] = Label(league_name.upper() if league_name else "LEAGUE STANDINGS")
@@ -1476,7 +1521,7 @@ class TeamStandingScreen(Screen):
         }, -2)
         
         self.current_page = 0
-        self.items_per_page = 11
+        self.items_per_page = 14
         self.onLayoutFinish.append(self.fetch_standings)
     
     def cursor_up(self):
@@ -1673,51 +1718,51 @@ class GameInfoScreen(Screen):
         if is_individual_sport:
             # Single event layout - centered title, no team logos in header
             common_widgets = """
-                <widget name="match_title" position="0,5" size="1280,28" font="Regular;22" foregroundColor="{accent}" transparent="1" halign="center" valign="center" text="" zPosition="6" />
+                <widget name="match_title" position="0,5" size="1600,28" font="Regular;26" foregroundColor="{accent}" transparent="1" halign="center" valign="center" text="" zPosition="6" />
                 
                 <widget name="h_logo" position="40,40" size="80,80" alphatest="blend" zPosition="5" scale="1" />
-                <widget name="h_name" position="0,35" size="1280,50" font="Regular;38" foregroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="h_name" position="0,35" size="1600,50" font="Regular;38" foregroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="5" />
                 <widget name="h_score" position="0,0" size="0,0" font="Regular;1" transparent="1" zPosition="-10" />
                 <widget name="a_score" position="0,0" size="0,0" font="Regular;1" transparent="1" zPosition="-10" />
                 <widget name="a_name" position="0,0" size="0,0" font="Regular;1" transparent="1" zPosition="-10" />
                 <widget name="a_logo" position="0,0" size="0,0" alphatest="blend" zPosition="-10" />
                 
-                <widget name="stadium_name" position="0,90" size="1280,28" font="Regular;20" foregroundColor="#aaaaaa" transparent="1" halign="center" valign="center" zPosition="5" />
-
-                <widget name="info_list" position="40,155" size="1200,555" scrollbarMode="showNever" transparent="1" zPosition="5" />
-                <widget name="loading" position="0,350" size="1280,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
-                <widget name="page_indicator" position="0,690" size="1280,30" font="Regular;22" foregroundColor="#ffffff" transparent="1" halign="center" zPosition="10" />
+                <widget name="stadium_name" position="0,90" size="1600,28" font="Regular;24" foregroundColor="#aaaaaa" transparent="1" halign="center" valign="center" zPosition="5" />
+ 
+                <widget name="info_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
+                <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
+                <widget name="page_indicator" position="0,860" size="1600,30" font="Regular;24" foregroundColor="#ffffff" transparent="1" halign="center" zPosition="10" />
             """
         else:
-            # Two-team match layout (existing)
+            # Two-team match layout (1600px Wide)
             common_widgets = """
-                <widget name="match_title" position="0,5" size="1280,28" font="Regular;22" foregroundColor="{accent}" transparent="1" halign="center" valign="center" text="" zPosition="6" />
+                <widget name="match_title" position="0,5" size="1600,28" font="Regular;26" foregroundColor="{accent}" transparent="1" halign="center" valign="center" text="" zPosition="6" />
                 
-                <widget name="h_logo" position="30,35" size="90,90" alphatest="blend" zPosition="5" scale="1" />
-                <widget name="h_name" position="130,40" size="300,40" font="Regular;32" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
-                <widget name="h_score" position="430,35" size="150,90" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
+                <widget name="h_logo" position="50,35" size="90,90" alphatest="blend" zPosition="5" scale="1" />
+                <widget name="h_name" position="160,40" size="450,45" font="Regular;36" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
+                <widget name="h_score" position="620,35" size="150,90" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
 
-                <eLabel position="595,50" size="90,50" font="Regular;36" foregroundColor="#888888" transparent="1" halign="center" valign="center" text="-" zPosition="5" />
+                <eLabel position="785,50" size="30,50" font="Regular;36" foregroundColor="#888888" transparent="1" halign="center" valign="center" text="-" zPosition="5" />
 
-                <widget name="a_score" position="700,35" size="150,90" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
-                <widget name="a_name" position="850,40" size="300,40" font="Regular;32" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
-                <widget name="a_logo" position="1160,35" size="90,90" alphatest="blend" zPosition="5" scale="1" />
+                <widget name="a_score" position="830,35" size="150,90" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
+                <widget name="a_name" position="990,40" size="450,45" font="Regular;36" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
+                <widget name="a_logo" position="1460,35" size="90,90" alphatest="blend" zPosition="5" scale="1" />
                 
-                <widget name="stadium_name" position="0,125" size="1280,25" font="Regular;18" foregroundColor="#aaaaaa" transparent="1" halign="center" valign="center" zPosition="5" />
-
-                <widget name="info_list" position="40,155" size="1200,555" scrollbarMode="showNever" transparent="1" zPosition="5" />
-                <widget name="loading" position="0,350" size="1280,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
-                <widget name="page_indicator" position="0,690" size="1280,30" font="Regular;22" foregroundColor="#ffffff" transparent="1" halign="center" zPosition="10" />
+                <widget name="stadium_name" position="0,125" size="1600,25" font="Regular;22" foregroundColor="#aaaaaa" transparent="1" halign="center" valign="center" zPosition="5" />
+ 
+                <widget name="info_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
+                <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
+                <widget name="page_indicator" position="0,860" size="1600,30" font="Regular;24" foregroundColor="#ffffff" transparent="1" halign="center" zPosition="10" />
             """
 
         if self.theme == "ucl":
             bg_color = "#00000000"; top_bar = "#091442"; accent = "#00ffff"
             skin_widgets = common_widgets.replace("{accent}", accent)
-            self.skin = f"""<screen position="center,center" size="1280,720" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1280,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1280,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>"""
+            self.skin = f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>"""
         else:
             bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
             skin_widgets = common_widgets.replace("{accent}", accent)
-            self.skin = f"""<screen position="center,center" size="1280,720" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1280,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1280,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>"""
+            self.skin = f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>"""
 
         self["h_name"] = Label(""); self["a_name"] = Label("")
         self["h_score"] = Label(""); self["a_score"] = Label("")
@@ -1729,6 +1774,7 @@ class GameInfoScreen(Screen):
         self["info_list"].l.setFont(0, gFont("Regular", 24))
         self["info_list"].l.setFont(1, gFont("Regular", 20))
         self["info_list"].l.setItemHeight(50)
+        self.items_per_page = 14 # Fill screen (700px / 50px = 14)
         
         self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions"], {
             "cancel": self.close, "green": self.close, "ok": self.open_standings, "back": self.close,
@@ -1969,7 +2015,7 @@ class GameInfoScreen(Screen):
                     details = data.get('header', {}).get('competitions', [{}])[0]['details']
 
                 if details:
-                    self.full_rows.append(StatsListEntry("TIME", "HOME EVENTS", "AWAY EVENTS", self.theme))
+                    self.full_rows.append(EventListEntry("TIME", "HOME EVENTS", "AWAY EVENTS", self.theme))
                     goals_found = False
                     for play in details:
                         text_desc = play.get('type', {}).get('text', '').lower()
@@ -2024,10 +2070,16 @@ class GameInfoScreen(Screen):
                             
                             t_id = str(play.get('team', {}).get('id', ''))
                             h_id_root = str(home_team.get('id', 'h'))
+                            
+                            home_evt = ""
+                            away_evt = ""
                             if t_id == h_id_root:
-                                self.full_rows.append(StatsListEntry(clock, scorer, "", self.theme))
+                                home_evt = scorer
                             else:
-                                self.full_rows.append(StatsListEntry(clock, "", scorer, self.theme))
+                                away_evt = scorer
+                            
+                            # Append to list
+                            self.full_rows.append(EventListEntry(clock, home_evt, away_evt, self.theme))
                     
                     if not goals_found:
                         self.full_rows.append(StatsListEntry("-", "No Events", "", self.theme))
@@ -3459,6 +3511,141 @@ class SimpleSportsMiniBar(Screen):
 # ==============================================================================
 # MAIN GUI (FIXED: Cursor Lock Logic)
 # ==============================================================================
+# ==============================================================================
+# EPG HELPERS
+# ==============================================================================
+def get_sat_position(ref_str):
+    if ref_str.startswith("4097:") or ref_str.startswith("5001:"): return "IPTV"
+    try:
+        parts = ref_str.split(":")
+        if len(parts) > 6:
+            ns_val = int(parts[6], 16)
+            orb_pos = (ns_val >> 16) & 0xFFFF
+            if orb_pos == 0xFFFF: return "DVB-T/C"
+            if orb_pos > 1800: return "{:.1f}W".format((3600 - orb_pos)/10.0)
+            else: return "{:.1f}E".format(orb_pos/10.0)
+    except: pass
+    return ""
+
+def get_search_keywords(text):
+    if not text: return []
+    # Stop words to ignore
+    STOP_WORDS = ['fc', 'fk', 'club', 'united', 'city', 'real', 'sport', 'sports', 'live', 'tv', 'hd', 'league', 'cup', 'match', 'football', 'soccer', 'basket', 'basketball', 'v', 'vs', 'at', 'de', 'la']
+    
+    # specialized fix for common prefixes like "Real Madrid" -> "Madrid" is handled by stop words
+    # Clean and split
+    import re
+    clean = re.sub(r'[^\w\s]', '', text.lower())
+    words = clean.split()
+    
+    valid = []
+    for w in words:
+        if len(w) > 2 and w not in STOP_WORDS:
+            valid.append(w)
+    return valid
+
+def normalize_text(text):
+    if not text: return ""
+    try:
+        if isinstance(text, str): text = text.decode('utf-8', 'ignore')
+    except: pass
+    
+    # Basic Greek to Latin mapping for common chars
+    greek_map = {
+        u'α': u'a', u'β': u'b', u'γ': u'g', u'δ': u'd', u'ε': u'e', u'ζ': u'z', u'η': u'i', u'θ': u'th',
+        u'ι': u'i', u'κ': u'k', u'λ': u'l', u'μ': u'm', u'ν': u'n', u'ξ': u'x', u'ο': u'o', u'π': u'p',
+        u'ρ': u'r', u'σ': u's', u'ς': u's', u'τ': u't', u'υ': u'y', u'φ': u'f', u'χ': u'ch', u'ψ': u'ps', u'ω': u'o'
+    }
+    
+    import unicodedata
+    import re
+    # Lowercase
+    t = text.lower()
+    
+    # Manual transliteration for Greek
+    for g, l in greek_map.items():
+        t = t.replace(g, l)
+        
+    # Remove accents
+    t = ''.join(c for c in unicodedata.normalize('NFD', t) if unicodedata.category(c) != 'Mn')
+    # Remove punctuation chars (keep space)
+    t = re.sub(r'[^\w\s]', '', t)
+    return t
+
+# Category Colors
+CAT_SPORTS = 0x00FF00 # Green
+CAT_MOVIE = 0x0000FF # Blue
+CAT_NEWS = 0xFFFF00 # Yellow
+CAT_DEFAULT = 0xAAAAAA # Grey
+
+def classify_enhanced(channel_name, event_name):
+    # Determine category and color based on names
+    c_name = channel_name.lower()
+    e_name = event_name.lower()
+    
+    if "sport" in c_name or "football" in c_name or "soccer" in c_name or "espn" in c_name or "bein" in c_name:
+        return "Sports", CAT_SPORTS
+    if "league" in e_name or "cup" in e_name or "vs" in e_name or "champions" in e_name:
+        return "Sports", CAT_SPORTS
+        
+    if "movie" in c_name or "cinema" in c_name or "film" in c_name:
+        return "Movies", CAT_MOVIE
+    if "news" in c_name or "cnn" in c_name or "bbc" in c_name:
+        return "News", CAT_NEWS
+        
+    return "Other", CAT_DEFAULT
+
+def get_all_services():
+    # Helper to get all TV services from bouquets
+    services_list = []
+    service_handler = eServiceCenter.getInstance()
+    if not service_handler: return []
+    
+    # Root of all bouquets
+    ref_str = '1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "bouquets.tv" ORDER BY bouquet'
+    bouquet_root = eServiceReference(ref_str)
+    bouquet_list = service_handler.list(bouquet_root)
+    if not bouquet_list: return []
+    
+    bouquet_content = bouquet_list.getContent("SN", True)
+    if not bouquet_content: return []
+    
+    for bouquet in bouquet_content:
+        # bouquet[0] is the service reference string
+        srvs = service_handler.list(eServiceReference(bouquet[0]))
+        if srvs:
+            # get content returns list of (ref, name)
+            chan_list = srvs.getContent("SN", True)
+            if chan_list:
+                for c in chan_list:
+                    # Filter markers/separators
+                    if "::" not in c[0]:
+                        services_list.append(c)
+                        # Safety limit? 
+                        if len(services_list) > 3000: return services_list
+    return services_list
+
+# Picon Paths
+PICON_PATHS = ["/usr/share/enigma2/picon/", "/media/hdd/picon/", "/media/usb/picon/", "/picon/", "/mnt/hdd/picon/"]
+
+def get_picon(service_ref):
+    # Try to find picon by service reference
+    # Ref: 1:0:1:...
+    # Picon name: 1_0_1_... .png (replace : with _)
+    if not service_ref: return None
+    
+    sref_str = str(service_ref).strip()
+    # Clean ref for filename
+    # Remove last : if exists? No, standard is replace : with _
+    picon_name = sref_str.replace(':', '_').rstrip('_') + ".png"
+    
+    for path in PICON_PATHS:
+        full_path = path + picon_name
+        if os.path.exists(full_path):
+            return LoadPixmap(full_path)
+            
+    return None
+
 class SimpleSportsScreen(Screen):
     @profile_function("SimpleSportsScreen")
     def __init__(self, session):
@@ -3479,6 +3666,12 @@ class SimpleSportsScreen(Screen):
         
         # Track matches for cursor locking
         self.current_match_ids = []
+        
+        # Debounce for remote keys
+        self.last_key_time = 0
+        
+        # Cache for channels to avoid re-scanning bouquets
+        self.service_cache = None
 
         valid_alphas = ['00', '1A', '33', '4D', '59', '66', '80', '99', 'B3', 'CC', 'E6', 'FF']
         self.current_alpha = self.monitor.transparency 
@@ -3515,7 +3708,7 @@ class SimpleSportsScreen(Screen):
             <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
             <widget name="key_menu" position="40,30" size="300,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
             <widget name="credit" position="1600,20" size="300,30" font="SimplySportFont;20" foregroundColor="#888888" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
-            <widget name="clock" position="1600,50" size="300,30" font="SimplySportFont;24" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
+            <widget name="clock" position="1580,75" size="320,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="#38003C" transparent="1" halign="right" zPosition="2" />
             {bar}
             <widget name="league_title" position="50,75" size="500,35" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="#38003C" transparent="1" halign="left" zPosition="1" />
             <widget name="list_title" position="0,75" size="1920,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="#38003C" transparent="1" halign="center" zPosition="1" />
@@ -3525,7 +3718,7 @@ class SimpleSportsScreen(Screen):
             <widget name="head_home" position="190,125" size="605,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="1" />
             <widget name="head_score" position="870,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
             <widget name="head_away" position="1125,125" size="605,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="left" zPosition="1" />
-            <widget name="head_time" position="1680,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="1" />
+            <widget name="head_time" position="1720,125" size="160,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
             <widget name="list" position="0,170" size="1920,800" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
             {bottom}
             <widget name="key_red" position="60,1005" size="400,60" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="2" halign="center" valign="center" />
@@ -3554,7 +3747,7 @@ class SimpleSportsScreen(Screen):
         safe_connect(self.clock_timer, self.update_clock)
         
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions", "EPGSelectActions"], 
-            {"cancel": self.close, "red": self.open_league_menu, "green": self.open_mini_bar, "yellow": self.toggle_filter, "blue": self.toggle_discovery, "ok": self.open_game_info, "menu": self.open_settings_menu, "up": self["list"].up, "down": self["list"].down}, -1)
+            {"cancel": self.close, "red": self.open_league_menu, "green": self.open_mini_bar, "yellow": self.toggle_filter, "blue": self.toggle_discovery, "ok": self.open_game_info, "menu": self.open_settings_menu, "up": self["list"].up, "down": self["list"].down, "info": self.open_broadcasting}, -1)
         
         self.container = eConsoleAppContainer(); self.container.appClosed.append(self.download_finished)
         self.onLayoutFinish.append(self.start_ui); self.onClose.append(self.cleanup)
@@ -3646,6 +3839,166 @@ class SimpleSportsScreen(Screen):
                 from twisted.web.client import downloadPage
                 downloadPage(url.encode('utf-8'), target_path).addCallback(self.download_finished, filename, target_path).addErrback(self.download_failed, filename)
         
+    def check_epg_availability(self, home, away):
+        # Quick check using epg.search to see if teams exist in current EPG cache
+        epg = eEPGCache.getInstance()
+        if not epg: return False
+        
+        # Search for either team name (Home is more reliable)
+        # Use first keyword from home team
+        kw_list = get_search_keywords(home)
+        if not kw_list: kw_list = get_search_keywords(away)
+        if not kw_list: return False
+        
+        kw = kw_list[0] # Use only one for speed
+        try:
+            # Search global cache (fast)
+            # flags=2 (Partial match), case=0, max=1
+            results = epg.search((kw, 2, 0, 1))
+            if results:
+                # Basic validation (must contain keyword)
+                # This is just for the [EPG] indicator
+                return True
+        except: pass
+        return False
+
+    def open_broadcasting(self):
+        idx = self["list"].getSelectedIndex()
+        if idx is None or idx < 0 or idx >= len(self.current_match_ids): return
+        
+        selected_id = self.current_match_ids[idx]
+        target_event = None
+        
+        # Re-find event
+        for event in self.monitor.cached_events:
+            try:
+                # 1. Define comps/status
+                comps = event.get('competitions', [{}])[0].get('competitors', [])
+                status = event.get('status', {}); state = status.get('type', {}).get('state', 'pre')
+                ev_date_str = event.get('date', '')
+                league_name = event.get('league_name', '')
+                
+                # 2. Calculate Timestamp
+                match_time_ts = 0
+                try: 
+                    import calendar
+                    dt = datetime.datetime.strptime(ev_date_str.replace("Z", ""), "%Y-%m-%dT%H:%M:%S")
+                    match_time_ts = calendar.timegm(dt.timetuple())
+                except: pass
+
+                if len(comps) > 2:
+                    left = event.get('shortName', 'Race'); right = "Event"
+                    mid = left + right
+                else:
+                    team_h = next((t for t in comps if t.get('homeAway') == 'home'), comps[0] if comps else None)
+                    team_a = next((t for t in comps if t.get('homeAway') == 'away'), comps[1] if len(comps)>1 else None)
+                    
+                    home = "Home"; away = "Away"
+                    if team_h:
+                        if 'athlete' in team_h: home = team_h.get('athlete', {}).get('shortName', 'P1')
+                        else: home = team_h.get('team', {}).get('displayName', 'Home')
+                    if team_a:
+                        if 'athlete' in team_a: away = team_a.get('athlete', {}).get('shortName', 'P2')
+                        else: away = team_a.get('team', {}).get('displayName', 'Away')
+                    mid = home + "_" + away
+                
+                if mid == selected_id:
+                    target_event = event
+                    # Extract names and Time for Smart Search
+                    self.search_and_display_epg(home, away, league_name, match_time_ts)
+                    return
+            except: continue
+
+    def search_and_display_epg(self, home, away, league, match_time_ts):
+        channels = []
+        epg = eEPGCache.getInstance()
+        if not epg: return
+
+        # 1. Prepare Keywords (Normalized)
+        raw_keywords = set()
+        raw_keywords.update(get_search_keywords(home))
+        raw_keywords.update(get_search_keywords(away))
+        raw_keywords.update(get_search_keywords(league))
+        
+    def search_and_display_epg(self, home, away, league, match_time_ts):
+        channels = []
+        epg = eEPGCache.getInstance()
+        if not epg: return
+
+        # 1. Prepare Keywords (Normalized)
+        raw_home = get_search_keywords(home)
+        raw_away = get_search_keywords(away)
+        raw_league = get_search_keywords(league)
+        
+        norm_home = [normalize_text(kw) for kw in raw_home if len(normalize_text(kw)) > 2]
+        norm_away = [normalize_text(kw) for kw in raw_away if len(normalize_text(kw)) > 2]
+        norm_league = [normalize_text(kw) for kw in raw_league if len(normalize_text(kw)) > 2]
+        
+        all_norm = set(norm_home + norm_away + norm_league)
+        if not all_norm: return
+
+        # 2. Get Channels in Bouquets (for Filtering)
+        if not self.service_cache:
+            self.service_cache = get_all_services()
+        bouquet_refs = set(str(s[0]) for s in self.service_cache)
+        bouquet_names = {str(s[0]): s[1] for s in self.service_cache}
+
+        # 3. Discover Candidates via Global Search
+        # We search for the first few keywords to find candidates
+        search_results = []
+        # Search for Home and Away main keywords
+        for kw in (norm_home[:2] + norm_away[:2]):
+            try:
+                res = epg.search((kw, 2, 0, -1)) # Partial, case insensitive, all matches
+                if res: search_results.extend(res)
+            except: pass
+
+        seen_unique = set()
+        
+        # 4. Filter & Match
+        for entry in search_results:
+            try:
+                # entry: (ref, name, title, short_desc, start_time, duration, ...)
+                s_ref = str(entry[0])
+                # Filter: Must be in user bouquets
+                if s_ref not in bouquet_refs: continue
+                
+                title = entry[2] or ""
+                start = entry[4] or 0
+                
+                unique_key = (s_ref, start)
+                if unique_key in seen_unique: continue
+                seen_unique.add(unique_key)
+                
+                # Broad Time Filter (+/- 4 hours)
+                if abs(start - match_time_ts) < 14400:
+                    # Deep Match: Check all keywords in Title + Desc
+                    short_desc = entry[3] or ""
+                    # For extended desc, we might need a lookup if not in search result
+                    # but usually search returns enough.
+                    text_blob = normalize_text(title + " " + short_desc)
+                    
+                    found_count = 0
+                    for kw in all_norm:
+                        if kw in text_blob:
+                            found_count += 1
+                            
+                    if found_count > 0:
+                        chan_name = bouquet_names.get(s_ref, entry[1])
+                        cat_name, cat_color = classify_enhanced(chan_name, title)
+                        
+                        sat_pos = get_sat_position(s_ref)
+                        full_name = chan_name + ((" (" + sat_pos + ")") if sat_pos else "")
+                        channels.append((eServiceReference(s_ref), full_name, title, cat_color))
+            except: continue
+
+        if not channels:
+            msg = "No matches linked in your bouquets.\nKeywords: " + ", ".join(list(all_norm))
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=5)
+        else:
+            channels.sort(key=lambda x: x[1])
+            self.session.open(BroadcastingChannelsScreen, channels)
+
     @profile_function("SimpleSportsScreen")
     def refresh_ui(self, success):
         self.update_header()
@@ -3764,7 +4117,8 @@ class SimpleSportsScreen(Screen):
                 if mode == 2 and ev_date != today_str: continue
                 if mode == 3 and ev_date != tom_str: continue
                 
-                entry_data = (status_short, get_league_abbr(league_prefix), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int)
+                has_epg = self.check_epg_availability(home, away) if state == 'pre' or is_live else False
+                entry_data = (status_short, get_league_abbr(league_prefix), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg)
                 
                 # Store raw data for sorting (include event for excitement calculation)
                 raw_entries.append((entry_data, match_id, is_live, event))
@@ -3945,8 +4299,12 @@ class SimpleSportsScreen(Screen):
             self.session.open(MessageBox, "Reminder set!", MessageBox.TYPE_INFO, timeout=2)
         except: pass
     def toggle_discovery(self):
+        if time.time() - self.last_key_time < 0.5: return
+        self.last_key_time = time.time()
         self.monitor.cycle_discovery_mode(); self.update_header()
     def toggle_filter(self): 
+        if time.time() - self.last_key_time < 0.5: return
+        self.last_key_time = time.time()
         self.monitor.toggle_filter(); self.update_filter_button(); self.refresh_ui(True)
     def check_for_updates(self): 
         self["league_title"].setText("CHECKING FOR UPDATES...")
@@ -4015,3 +4373,83 @@ def Plugins(**kwargs):
             fnc=menu
         )
     ]
+    
+# ==============================================================================
+# BROADCASTING CHANNELS SCREEN
+# ==============================================================================
+class BroadcastingChannelsScreen(Screen):
+    def __init__(self, session, channels):
+        Screen.__init__(self, session)
+        self.session = session
+        self.channels = channels # List of (ServiceRef, ServiceName, EventName)
+        self.theme = global_sports_monitor.theme_mode
+        
+        # --- SKIN ---
+        if self.theme == "ucl":
+            bg_color = "#00000000"; top_bar = "#091442"; accent = "#00ffff"
+        else:
+            bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
+            
+        self.skin = f"""<screen position="center,center" size="1000,600" title="Broadcasting Channels" flags="wfNoBorder" backgroundColor="{bg_color}">
+            <eLabel position="0,0" size="1000,80" backgroundColor="{top_bar}" zPosition="0" />
+            <eLabel position="0,80" size="1000,4" backgroundColor="{accent}" zPosition="1" />
+            <widget name="title" position="0,20" size="1000,40" font="Regular;30" foregroundColor="{accent}" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
+            <widget name="channel_list" position="20,100" size="960,450" scrollbarMode="showOnDemand" transparent="1" zPosition="5" />
+            <widget name="hint" position="0,560" size="1000,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
+        </screen>"""
+        
+        self["title"] = Label("MATCH BROADCASTS")
+        self["hint"] = Label("Press OK to zap to channel")
+        self["channel_list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        self["channel_list"].l.setFont(0, gFont("Regular", 26)) # Name
+        self["channel_list"].l.setFont(1, gFont("Regular", 22)) # Event/Sat
+        self["channel_list"].l.setItemHeight(70) # Increased for Picon
+        
+        self["actions"] = ActionMap(["SetupActions", "ColorActions"], {
+            "cancel": self.close, "ok": self.zap_to_channel, "back": self.close
+        }, -2)
+        
+        self.onLayoutFinish.append(self.show_channels)
+
+    def show_channels(self):
+        res = []
+        for (sref, sname, event_name, cat_color) in self.channels:
+            res.append(self.build_entry(sref, sname, event_name, cat_color))
+        self["channel_list"].setList(res)
+
+    def build_entry(self, sref, sname, event_name, cat_color):
+        c_text = 0xffffff; c_dim = 0xaaaaaa; c_sel = 0x00FF85 if self.theme != "ucl" else 0x00ffff
+        
+        # Load Picon
+        picon = get_picon(sref)
+        
+        res = [None]
+        # 1. Category Color Strip (Left Edge)
+        # Using correct constant for text background if available, or just a small label
+        # eListboxPythonMultiContent doesn't support direct rects easily without a pixmap.
+        # But we can use a Text item with a background color.
+        # Flags: RT_HALIGN_LEFT etc.
+        # Note: Background color in MultiContent is tricky. 
+        # Better: Just color the Channel Name? Or use the "Picon" area?
+        # Let's try to pass the color to the text or use a pixmap if we can generate one.
+        # Simple fallback: Color the Event Name? 
+        # Ref says: MultiContentEntryText... backcolor=cat_color. 
+        # Standard E2: (TYPE_TEXT, x, y, w, h, font, flags, text, foreColor, backColor)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 8, 70, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, "", 0x000000, cat_color))
+        
+        # Picon: x=15, y=10
+        if picon:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 15, 10, 100, 50, picon))
+            
+        # Text shifted to x=125
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 125, 5, 800, 35, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, sname, c_text, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 125, 40, 800, 25, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, event_name, c_dim, c_sel))
+        return res
+
+    def zap_to_channel(self):
+        idx = self["channel_list"].getSelectedIndex()
+        if idx is not None and idx >= 0 and idx < len(self.channels):
+            sref = self.channels[idx][0]
+            if sref:
+                self.session.nav.playService(eServiceReference(sref))
+                self.close()
