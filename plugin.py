@@ -3108,11 +3108,14 @@ class SimpleSportsMiniBar2(Screen):
                         name = comp.get('athlete', {}).get('shortName') or comp.get('athlete', {}).get('displayName') or comp.get('name', 'Player')
                         if len(name) > 15: name = name[:14] + "."
                         # Tennis: calculate sets won from linescores
-                        linescores = comp.get('linescores', [])
-                        if linescores:
-                            sc = str(sum(1 for ls in linescores if ls.get('winner', False)))
-                        else:
-                            sc = comp.get('score', '0')
+                        # Tennis: use score first (sets won), fallback to linescores
+                        sc = comp.get('score', '')
+                        if not sc or sc == '0':
+                            linescores = comp.get('linescores', [])
+                            if linescores:
+                                # Fallback: count sets with games if score is missing
+                                sc = str(len([s for s in linescores if int(s.get('value', 0) or 0) > 0]))
+                        if not sc: sc = '0'
                         tid = comp.get('athlete', {}).get('id', '0')
                         # Tennis: first competitor = player1/home, second = player2/away
                         if i == 0: home, h_score, h_team_id = name, sc, tid
@@ -3317,11 +3320,14 @@ class SimpleSportsMiniBar(Screen):
                         # Truncate long names
                         if len(name) > 15: name = name[:14] + "."
                         # Tennis: calculate sets won from linescores
-                        linescores = comp.get('linescores', [])
-                        if linescores:
-                            sc = str(sum(1 for ls in linescores if ls.get('winner', False)))
-                        else:
-                            sc = comp.get('score', '0')
+                        # Tennis: use score first (sets won), fallback to linescores
+                        sc = comp.get('score', '')
+                        if not sc or sc == '0':
+                            linescores = comp.get('linescores', [])
+                            if linescores:
+                                # Fallback: count sets with games if score is missing
+                                sc = str(len([s for s in linescores if int(s.get('value', 0) or 0) > 0]))
+                        if not sc: sc = '0'
                         # Tennis: first competitor = player1/home, second = player2/away
                         if i == 0: home, h_score = name, sc
                         else: away, a_score = name, sc
