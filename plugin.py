@@ -77,7 +77,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.0" # Performance & Optimization Release
+CURRENT_VERSION = "3.1" # tennis results fixing
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOG_FILE = "/tmp/simplysports.log"
@@ -340,6 +340,59 @@ def get_sport_type(league_url):
     else:
         return SPORT_TYPE_TEAM  # Default: two-team match format (soccer, basketball, lacrosse, etc.)
 
+def calculate_tennis_scores(competitors, state):
+    """
+    Calculate sets won for tennis based on completed sets.
+    Ignores the current set if match is LIVE.
+    Returns strings (score1, score2).
+    """
+    s1, s2 = 0, 0
+    try:
+        if len(competitors) < 2: return "0", "0"
+        
+        # Check if score is already explicitly provided
+        c1, c2 = competitors[0], competitors[1]
+        sc1 = c1.get('score', '')
+        sc2 = c2.get('score', '')
+        
+        # If valid scores exist (and at least one is non-zero), trust the API
+        # But if both are 0 or empty, we may need to calc (or if it's early match)
+        # Actually, ESPN sometimes returns '0' for score but has linescores
+        # So we only calc if scores are missing or both 0 AND there are linescores indicating play
+        
+        has_linescores = c1.get('linescores') or c2.get('linescores')
+        trust_api = (sc1 and sc1 != '0') or (sc2 and sc2 != '0')
+        
+        if trust_api:
+            return sc1 or '0', sc2 or '0'
+            
+        if not has_linescores:
+            return sc1 or '0', sc2 or '0'
+
+        # fallback calculation
+        ls1 = c1.get('linescores', [])
+        ls2 = c2.get('linescores', [])
+        count = min(len(ls1), len(ls2))
+        
+        for i in range(count):
+            # If match is LIVE ('in'), the last set in the list is the current playing set -> Don't count it yet
+            is_last = (i == count - 1)
+            if is_last and state == 'in':
+                continue
+            
+            val1 = 0
+            val2 = 0
+            try: val1 = float(ls1[i].get('value', 0))
+            except: pass
+            try: val2 = float(ls2[i].get('value', 0))
+            except: pass
+            
+            if val1 > val2: s1 += 1
+            elif val2 > val1: s2 += 1
+            
+    except: pass
+    return str(s1), str(s2)
+
 def get_sport_type_display_name(sport_type):
     """Get human-readable name for sport type"""
     names = {
@@ -481,12 +534,20 @@ def SportListEntry(entry):
         
         if "-" in score_text:
             parts = score_text.split('-')
-            # Center 960. Tight scoreboard.
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 870, 15, 80, 45, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, parts[0].strip(), c_h_score, c_h_score, c_box, c_box))
+            # Dynamic Font Sizing for long scores (Cricket)
+            s1 = parts[0].strip()
+            s2 = parts[1].strip()
+            font_idx = 2 # Default 34
+            max_len = max(len(s1), len(s2))
+            if max_len > 8: font_idx = 3 # Small 20
+            elif max_len > 5: font_idx = 0 # Medium 26
+
+            # Center 960. Use full available space (860-950 and 970-1060)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_h_score, c_box, c_box))
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 950, 0, 20, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_dim))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 15, 80, 45, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, parts[1].strip(), c_a_score, c_a_score, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_a_score, c_box, c_box))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 870, 0, 180, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_dim))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_dim))
 
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1060, 10, 55, 55, LoadPixmap(a_png)))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1125, 0, 605, h, 2, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_a_name))
@@ -539,11 +600,19 @@ def UCLListEntry(entry):
         
         if "-" in score_text:
             parts = score_text.split('-')
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 15, 80, 45, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, parts[0].strip(), c_h_score, c_h_score, c_box, c_box))
+            # Dynamic Font Sizing
+            s1 = parts[0].strip()
+            s2 = parts[1].strip()
+            font_idx = 2 # Default 34
+            max_len = max(len(s1), len(s2))
+            if max_len > 8: font_idx = 3 # Small 20
+            elif max_len > 5: font_idx = 0 # Medium 26
+
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 810, 15, 100, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_h_score, c_box, c_box))
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 910, 0, 100, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_dim))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 1010, 15, 80, 45, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, parts[1].strip(), c_a_score, c_a_score, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 1010, 15, 100, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_a_score, c_box, c_box))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 0, 260, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_dim))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 810, 0, 300, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_dim))
 
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1110, 10, 55, 55, LoadPixmap(a_png)))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1190, 0, 420, h, 2, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_a_name))
@@ -3107,14 +3176,12 @@ class SimpleSportsMiniBar2(Screen):
                     for i, comp in enumerate(comps[:2]):
                         name = comp.get('athlete', {}).get('shortName') or comp.get('athlete', {}).get('displayName') or comp.get('name', 'Player')
                         if len(name) > 15: name = name[:14] + "."
-                        # Tennis: calculate sets won from linescores
-                        # Tennis: use score first (sets won), fallback to linescores
+                        
                         sc = comp.get('score', '')
-                        if not sc or sc == '0':
-                            linescores = comp.get('linescores', [])
-                            if linescores:
-                                # Fallback: count sets with games if score is missing
-                                sc = str(len([s for s in linescores if int(s.get('value', 0) or 0) > 0]))
+                        if event_sport_type == SPORT_TYPE_TENNIS:
+                            t1, t2 = calculate_tennis_scores(comps, state)
+                            sc = t1 if i == 0 else t2
+                        
                         if not sc: sc = '0'
                         tid = comp.get('athlete', {}).get('id', '0')
                         # Tennis: first competitor = player1/home, second = player2/away
@@ -3319,14 +3386,12 @@ class SimpleSportsMiniBar(Screen):
                         name = comp.get('athlete', {}).get('shortName') or comp.get('athlete', {}).get('displayName') or comp.get('name', 'Player')
                         # Truncate long names
                         if len(name) > 15: name = name[:14] + "."
-                        # Tennis: calculate sets won from linescores
-                        # Tennis: use score first (sets won), fallback to linescores
+                        
                         sc = comp.get('score', '')
-                        if not sc or sc == '0':
-                            linescores = comp.get('linescores', [])
-                            if linescores:
-                                # Fallback: count sets with games if score is missing
-                                sc = str(len([s for s in linescores if int(s.get('value', 0) or 0) > 0]))
+                        if event_sport_type == SPORT_TYPE_TENNIS:
+                            t1, t2 = calculate_tennis_scores(comps, state)
+                            sc = t1 if i == 0 else t2
+                        
                         if not sc: sc = '0'
                         # Tennis: first competitor = player1/home, second = player2/away
                         if i == 0: home, h_score = name, sc
@@ -3650,14 +3715,12 @@ class SimpleSportsScreen(Screen):
                         
                         # For tennis, try multiple score sources
                         if is_tennis:
-                            h_score = team_h.get('score', '')
-                            if not h_score or h_score == '0':
-                                # Try linescores - count sets with games
-                                linescores = team_h.get('linescores', [])
-                                if linescores:
-                                    h_score = str(len([s for s in linescores if int(s.get('value', 0) or 0) > 0]))
-                            if not h_score:
-                                h_score = 'W' if team_h.get('winner') else '0'
+                            t_s1, t_s2 = calculate_tennis_scores(comps, state)
+                            # Assuming team_h is index 0 and team_a is index 1 if available in comps
+                            # But comps has all competitors. We need to match team_h to comps index?
+                            # Usually comps list is [home, away] or [p1, p2].
+                            # team_h logic: derived from first competitor with homeAway='home' OR index 0.
+                            h_score = t_s1 if team_h == comps[0] else t_s2
                         else:
                             h_score = team_h.get('score', '0') or '0'
                     
@@ -3670,14 +3733,8 @@ class SimpleSportsScreen(Screen):
                         
                         # For tennis, try multiple score sources
                         if is_tennis:
-                            a_score = team_a.get('score', '')
-                            if not a_score or a_score == '0':
-                                # Try linescores - count sets with games
-                                linescores = team_a.get('linescores', [])
-                                if linescores:
-                                    a_score = str(len([s for s in linescores if int(s.get('value', 0) or 0) > 0]))
-                            if not a_score:
-                                a_score = 'W' if team_a.get('winner') else '0'
+                            t_s1, t_s2 = calculate_tennis_scores(comps, state)
+                            a_score = t_s1 if team_a == comps[0] else t_s2
                         else:
                             a_score = team_a.get('score', '0') or '0'
                     
