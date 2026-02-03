@@ -4240,10 +4240,10 @@ class SimpleSportsScreen(Screen):
                     # Search Priority: Title > Short Desc > Extended Desc > Channel Name
                     blob = normalize_text(title + " " + desc + " " + ext + " " + ch_name)
                     
-                    # --- UNIVERSAL SMART SCORING ---
+                    # --- UNIVERSAL SMART SCORING (Granular) ---
                     STOP_WORDS = ['al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs', 'live', 'hd', 'fhd', '4k', 'uhd']
                     
-                    def match_sig(keywords, text_blob, require_all=True):
+                    def match_sig_score(keywords, text_blob, require_all=True):
                         sig = [w for w in keywords if w not in STOP_WORDS and len(w) > 1]
                         if not sig: sig = keywords 
                         
@@ -4251,36 +4251,68 @@ class SimpleSportsScreen(Screen):
                         for w in sig:
                             if w in text_blob: found_count += 1
                         
-                        if require_all: return found_count == len(sig) and len(sig) > 0
-                        else: return found_count > 0
+                        return found_count, len(sig)
 
-                    score = 0
-                    is_home_match = match_sig(h_norm, blob, require_all=True)
-                    is_away_match = match_sig(a_norm, blob, require_all=True) if a_norm else False
-                    is_league_match = match_sig(l_norm, blob, require_all=False) 
+                    # Calculate ratios (0.0 to 1.0)
+                    h_found, h_total = match_sig_score(h_norm, blob)
+                    a_found, a_total = match_sig_score(a_norm, blob) if a_norm else (0, 0)
+                    l_found, l_total = match_sig_score(l_norm, blob)
                     
-                    # Advanced Scoring Logic
-                    if is_home_match and is_away_match:
-                        score = 100
-                        if is_league_match: score += 10
-                    elif is_home_match and not a_norm:
-                        score = 80
-                        if is_league_match: score += 20
-                    elif (is_home_match or is_away_match) and is_league_match:
-                        score = 60
+                    h_ratio = h_found / float(h_total) if h_total > 0 else 0.0
+                    a_ratio = a_found / float(a_total) if a_total > 0 else 0.0
+                    l_ratio = l_found / float(l_total) if l_total > 0 else 0.0
+                    
+                    score = 0.0
+                    # Weighted Scoring: Home(40%) + Away(40%) + League(20%)
+                    score += (h_ratio * 40)
+                    score += (a_ratio * 40)
+                    score += (l_ratio * 20)
+                    
+                    # Bonus for COMPLETE matches (Exact Phrase match essentially)
+                    if h_ratio == 1.0: score += 10
+                    if a_ratio == 1.0: score += 10
+                    
+                    # Huge bonus if BOTH teams match perfectly
+                    if h_ratio == 1.0 and (a_ratio == 1.0 or not a_norm):
+                        score += 30
                         
-                    if score > 0:
+                    # Tie-Breaker: Reward matches with MORE matched words total
+                    # This favors "Man City" (2 words) over "City" (1 word) if both are 100%
+                    score += (h_found + a_found + l_found)
+
+                    # --- TIME PROXIMITY BONUS ---
+                    # Prioritize events starting close to match time (Live Coverage)
+                    try:
+                        evt_start = evt.getBeginTime()
+                        diff_min = abs(evt_start - match_time_ts) / 60.0
+                        
+                        if diff_min <= 15: score += 20     # Starts within 15 mins (Prime Live Slot)
+                        elif diff_min <= 45: score += 10   # Starts within 45 mins (Pre-show included)
+                        elif diff_min <= 90: score += 5    # Reasonable window
+                        elif diff_min > 120: score -= 15   # >2 hours off (Likely replay or different match)
+                    except: diff_min = 999
+                    
+                    # Filtering Thresholds
+                    # We want at least one team fully matched OR both partially matched good enough
+                    valid_match = False
+                    if h_ratio == 1.0 and (a_ratio == 1.0 or not a_norm): valid_match = True
+                    elif h_ratio >= 0.5 and a_ratio >= 0.5: valid_match = True # Partial on both
+                    elif (h_ratio == 1.0 or a_ratio == 1.0) and l_ratio >= 0.5: valid_match = True # One team + League
+                    
+                    if valid_match and score > 40:
                         cat_color = 0xffffff
-                        if score >= 80: cat_color = 0x00FF00
-                        elif score >= 60: cat_color = 0xFFFF00
+                        if score >= 100: cat_color = 0x00FF00    # Perfect
+                        elif score >= 80: cat_color = 0xFFFF00   # Good
                         
                         sat_pos = get_sat_position(sref_raw)
                         full_name = ch_name + ((" (" + sat_pos + ")") if sat_pos else "")
-                        # Add search hit context if possible, but for now just title
-                        display_title = "[%d] %s" % (score, title)
+                        # Show score and time diff for transparency
+                        time_info = "T+0" if diff_min < 1 else "T-%d" % int(diff_min) if evt_start < match_time_ts else "T+%d" % int(diff_min)
+                        display_title = "[%d|%s] %s" % (int(score), time_info, title)
                         results.append((sref_raw, full_name, display_title, cat_color, score))
             except: pass
 
+        # Sort by Score Descending
         results.sort(key=lambda x: x[4], reverse=True)
         final_list = [ (r[0], r[1], r[2], r[3]) for r in results[:200] ]
         
@@ -4907,20 +4939,20 @@ def Plugins(**kwargs):
     return [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores & Alerts by reali22",
+            description="Live Sports Scores, Alerts, and EPG by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores & Alerts by reali22",
+            description="Live Sports Scores, Alerts, and EPG by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores & Alerts by reali22",
+            description="Live Sports Scores, Alerts, and EPG by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         )
