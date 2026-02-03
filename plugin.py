@@ -4234,10 +4234,14 @@ class SimpleSportsScreen(Screen):
                 if evt:
                     title = evt.getEventName() or ""
                     desc = evt.getShortDescription() or ""
-                    blob = normalize_text(title + " " + desc + " " + ch_name)
+                    ext = evt.getExtendedDescription() or "" # Multi-field Search: Extended Info
+                    
+                    # Combine all fields into a single searchable blob
+                    # Search Priority: Title > Short Desc > Extended Desc > Channel Name
+                    blob = normalize_text(title + " " + desc + " " + ext + " " + ch_name)
                     
                     # --- UNIVERSAL SMART SCORING ---
-                    STOP_WORDS = ['al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs', 'live']
+                    STOP_WORDS = ['al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs', 'live', 'hd', 'fhd', '4k', 'uhd']
                     
                     def match_sig(keywords, text_blob, require_all=True):
                         sig = [w for w in keywords if w not in STOP_WORDS and len(w) > 1]
@@ -4255,6 +4259,7 @@ class SimpleSportsScreen(Screen):
                     is_away_match = match_sig(a_norm, blob, require_all=True) if a_norm else False
                     is_league_match = match_sig(l_norm, blob, require_all=False) 
                     
+                    # Advanced Scoring Logic
                     if is_home_match and is_away_match:
                         score = 100
                         if is_league_match: score += 10
@@ -4271,6 +4276,7 @@ class SimpleSportsScreen(Screen):
                         
                         sat_pos = get_sat_position(sref_raw)
                         full_name = ch_name + ((" (" + sat_pos + ")") if sat_pos else "")
+                        # Add search hit context if possible, but for now just title
                         display_title = "[%d] %s" % (score, title)
                         results.append((sref_raw, full_name, display_title, cat_color, score))
             except: pass
