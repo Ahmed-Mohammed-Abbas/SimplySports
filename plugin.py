@@ -836,8 +836,8 @@ class SportsMonitor:
             self.current_league_index = index; self.last_scores = {}; self.save_config(); self.check_goals()
     def set_custom_leagues(self, indices):
         self.custom_league_indices = indices; self.is_custom_mode = True; self.last_scores = {}; self.save_config(); self.check_goals()
-    def add_reminder(self, match_name, trigger_time, league_name, h_logo, a_logo, label):
-        new_rem = {"match": match_name, "trigger": trigger_time, "league": league_name, "h_logo": h_logo, "a_logo": a_logo, "label": label}
+    def add_reminder(self, match_name, trigger_time, league_name, h_logo, a_logo, label, sref=None):
+        new_rem = {"match": match_name, "trigger": trigger_time, "league": league_name, "h_logo": h_logo, "a_logo": a_logo, "label": label, "sref": sref}
         for r in self.reminders:
             if r["match"] == match_name and r["trigger"] == trigger_time: return
         self.reminders.append(new_rem); self.save_config()
@@ -849,10 +849,30 @@ class SportsMonitor:
         now = time.time(); active_reminders = []; reminders_triggered = False
         for rem in self.reminders:
             if now >= rem["trigger"]:
-                self.queue_notification(rem["league"], rem["match"], rem["label"], None, rem["h_logo"], rem["a_logo"])
-                self.play_stend_sound(); reminders_triggered = True
+                if rem.get("sref"):
+                    # Interactive Zap Reminder
+                    self.trigger_zap_alert(rem)
+                else:
+                    # Standard Notification
+                    self.queue_notification(rem["league"], rem["match"], rem["label"], None, rem["h_logo"], rem["a_logo"])
+                    self.play_stend_sound()
+                reminders_triggered = True
             else: active_reminders.append(rem)
         if reminders_triggered: self.reminders = active_reminders; self.save_config()
+
+    def trigger_zap_alert(self, rem):
+        if self.session:
+            self.session.openWithCallback(self.zap_confirmation_callback, MessageBox, 
+                "Match Starting:\n{}\n\nZap to channel?".format(rem["match"]), 
+                MessageBox.TYPE_YESNO, timeout=30, default=True, domain=(rem.get("sref"),))
+
+    def zap_confirmation_callback(self, answer, domain=None):
+        if answer and domain:
+            try:
+                sref = domain[0]
+                from enigma import eServiceReference
+                self.session.nav.playService(eServiceReference(sref))
+            except: pass
 
     @profile_function("SportsMonitor")
     def check_goals(self):
@@ -4028,15 +4048,21 @@ class SimpleSportsScreen(Screen):
                     import calendar
                     import time
                     if ev_date_str:
-                        # Harden Parsing: Remove Z and fractional seconds if present
-                        clean_date = ev_date_str.replace("Z", "").split(".")[0]
-                        try:
-                            # Try standard format with seconds
-                            dt = datetime.datetime.strptime(clean_date, "%Y-%m-%dT%H:%M:%S")
-                        except ValueError:
-                            # Fallback to format without seconds
-                            dt = datetime.datetime.strptime(clean_date, "%Y-%m-%dT%H:%M")
-                        match_time_ts = calendar.timegm(dt.timetuple())
+                        # Harden Parsing: Standardize separator and remove Z/fractions
+                        clean_date = ev_date_str.replace("Z", "").replace("T", " ")
+                        if "." in clean_date: 
+                            clean_date = clean_date.split(".")[0]
+                        
+                        dt = None
+                        # Try formats: with seconds, without seconds
+                        for fmt in ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"]:
+                            try:
+                                dt = datetime.datetime.strptime(clean_date, fmt)
+                                break
+                            except ValueError: continue
+                            
+                        if dt:
+                            match_time_ts = calendar.timegm(dt.timetuple())
                 except: pass
                 
                 # FALLBACK: If date parse failed or missing, use CURRENT TIME
@@ -4692,39 +4718,30 @@ class BroadcastingChannelsScreen(Screen):
         self["list"].l.setFont(1, gFont("SimplySportFont", 22)) 
         self["list"].l.setItemHeight(60) 
         
-        # Priority 0: Stronger capture
-        # Standard Contexts: OkCancel (OK/Exit), Color (Red/Green..), Direction (Arrows)
+        # Priority -1: Standard Screen Priority
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
             "ok": self.zap_to_channel,
             "cancel": self.close,
             "back": self.close,
             "red": self.close,
-            "up": self.key_up,
-            "down": self.key_down,
-            "green": self.key_up,    # User Requested: Green = Up
-            "yellow": self.key_down  # User Requested: Yellow = Down
-        }, 0)
+            "up": self["list"].up,
+            "down": self["list"].down,
+            "green": self["list"].up,
+            "yellow": self["list"].down,
+            "left": self["list"].pageUp,
+            "right": self["list"].pageDown
+        }, -1)
         
         self.onLayoutFinish.append(self.start_list)
 
     def start_list(self):
         self.show_channels()
-        # Explicit focus on the list widget instance
+        # Explicit focus and selection visibility
         try:
             self["list"].selectionEnabled(1)
+            self["list"].instance.setSelectionEnable(1)
+            self["list"].instance.setShowSelection(True)
         except: pass
-
-    def key_up(self):
-        # Direct C++ call to force move
-        from enigma import eListbox
-        try: self["list"].instance.moveSelection(eListbox.moveUp)
-        except: self["list"].up()
-
-    def key_down(self):
-        # Direct C++ call to force move
-        from enigma import eListbox
-        try: self["list"].instance.moveSelection(eListbox.moveDown)
-        except: self["list"].down()
 
     def show_channels(self):
         res = []
@@ -4737,6 +4754,9 @@ class BroadcastingChannelsScreen(Screen):
             else: continue
             res.append(self.build_entry(sref, sname, event_name, cat_color))
         self["list"].setList(res)
+        
+        if res:
+             self["list"].moveToIndex(0)
 
     def build_entry(self, sref, sname, event_name, cat_color):
         c_text = 0xffffff; c_dim = 0xaaaaaa; c_sel = 0x00FF85 if self.theme != "ucl" else 0x00ffff
@@ -4750,7 +4770,9 @@ class BroadcastingChannelsScreen(Screen):
         BT_SCALE = 0x80
         BT_KEEP_ASPECT_RATIO = 0x40
             
-        res = [None]
+        # FIX: Provide valid data payload instead of None to ensure selectability
+        res = [(sref, sname, event_name, cat_color)]
+        
         # Adjusted layout to fit new width (890px)
         # 1. Color Strip
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 5, 5, 8, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, "", 0x000000, cat_color))
@@ -4768,26 +4790,50 @@ class BroadcastingChannelsScreen(Screen):
 
     def zap_to_channel(self):
         idx = self["list"].getSelectedIndex()
-        if idx is not None and idx >= 0 and idx < len(self.channels):
-            item = self.channels[idx]
-            sref = item[0] if len(item) > 0 else None
-            if sref:
+        if idx is not None:
+             # Get valid data tuple (sref, sname, event_name, cat_color)
+             item = self["list"].list[idx][0]
+             sref = item[0]
+             sname = item[1]
+             event_name = item[2]
+             
+             if sref:
                 # Check if match is in the future (> 5 mins from now)
                 import time
                 now = int(time.time())
                 if self.match_time_ts > now + 300:
-                    self.session.openWithCallback(self.zap_callback, ChoiceBox, title="Future Match Selected", list=[("Zap Now (Check Channel)", "zap"), ("Add Timer (Zap when starts)", "timer")])
+                    self.session.openWithCallback(self.zap_callback, ChoiceBox, title="Future Match Selected", list=[("Zap Now (Check Channel)", "zap"), ("Remind & Zap (When starts)", "remind_zap")])
                 else:
                     self.real_zap(sref)
 
     def zap_callback(self, answer):
         if not answer: return
         action = answer[1]
+        
+        idx = self["list"].getSelectedIndex()
+        if idx is None: return
+        item = self["list"].list[idx][0]
+        sref = item[0]
+        sname = item[1]
+        event_name = item[2] # This is "Team A vs Team B" usually or Title
+
         if action == "zap":
-            idx = self["list"].getSelectedIndex()
-            if idx is not None: self.real_zap(self.channels[idx][0])
-        elif action == "timer":
-            self.add_timer()
+            self.real_zap(sref)
+        elif action == "remind_zap":
+            # Add Zap Reminder
+            # Use event_name as match name
+            # Trigger time = match_time_ts (exact start)
+            # Use channel name as league/label fallback
+            try:
+                trigger = self.match_time_ts
+                # Label for reminder list
+                label = "Zap Reminder"
+                
+                # Check for duplicate
+                global_sports_monitor.add_reminder(event_name, trigger, "SimplySports", "", "", label, sref=sref)
+                self.session.open(MessageBox, "Zap Reminder Set!\nYou will be asked to zap when the match starts.", MessageBox.TYPE_INFO, timeout=5)
+            except Exception as e:
+                self.session.open(MessageBox, "Error setting reminder: " + str(e), MessageBox.TYPE_ERROR)
 
     def real_zap(self, sref):
         self.session.nav.playService(eServiceReference(sref))
