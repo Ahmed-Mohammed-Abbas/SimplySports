@@ -77,7 +77,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.3" # Performance & Optimization Release
+CURRENT_VERSION = "3.4" # Visual and performance enhancements to the main screen and the mini bars
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOG_FILE = "/tmp/simplysports.log"
@@ -499,11 +499,11 @@ def SportListEntry(entry):
         if a_png and (not os.path.exists(a_png) or os.path.getsize(a_png) == 0): a_png = None
 
         c_text = 0xffffff
-        c_dim = 0x999999
+        c_dim = 0xDDDDDD 
         c_accent = 0x00FF85 
         c_live = 0xe74c3c   
         c_box = 0x202020    
-        c_sel = c_accent # Green for Selection
+        c_sel = c_accent 
         
         c_h_score = c_text
         c_a_score = c_text
@@ -517,53 +517,59 @@ def SportListEntry(entry):
             c_a_score = c_accent
             c_a_name = c_accent
 
-        c_status = c_dim
+        c_status = 0xAAAAAA
         if status == "LIVE": c_status = c_live
         if status == "FIN": c_status = c_accent
 
         res = [entry]
         h = 90 
 
-        # Dynamic Font for Team Names
+        # Extended Limits matching visual enhancements
         font_h = 2; font_a = 2
-        if len(left_text) > 22: font_h = 0 # Size 26 (Smallest)
-        elif len(left_text) > 18: font_h = 1 # Size 28
-        if len(right_text) > 22: font_a = 0 # Size 26 (Smallest)
-        elif len(right_text) > 18: font_a = 1 # Size 28
+        if len(left_text) > 27: font_h = 0 
+        elif len(left_text) > 23: font_h = 1 
+        if len(right_text) > 27: font_a = 0 
+        elif len(right_text) > 23: font_a = 1 
 
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 25, 0, 60, h-12, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 150, 0, 640, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
-        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 805, 15, 75, 75, LoadPixmap(h_png)))
+        # New Coordinates (Refined for Request 102)
+        # Status: 30, 80 (+10w) | League: 110, 80 (+10w) | Home: 195, 575 (-40w, shifted +20)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 80, h-12, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 195, 0, 575, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
+        
+        # Center Block: Logos pulled out. Y=5.
+        # Home Logo: 780 (was 800) -> 20px gap to 860.
+        if h_png: 
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 780, 5, 60, 60, get_scaled_pixmap(h_png, 60, 60)))
         
         if "-" in score_text:
             parts = score_text.split('-')
-            # Dynamic Font Sizing for long scores (Cricket)
             s1 = parts[0].strip()
             s2 = parts[1].strip()
-            font_idx = 2 # Default 34
+            font_idx = 2 
             max_len = max(len(s1), len(s2))
-            if max_len > 8: font_idx = 3 # Small 20
-            elif max_len > 5: font_idx = 0 # Medium 26
+            if max_len > 8: font_idx = 3 
+            elif max_len > 5: font_idx = 0 
 
-            # Center 960. Use full available space (860-950 and 970-1060)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 950, 0, 20, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
+            # Hyphen Y=-10
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 940, -10, 40, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
         else:
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h-12, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
-        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 15, 75, 75, LoadPixmap(a_png)))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1140, 0, 640, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        # Away Logo: 1080 (was 1060) -> 20px gap from 1060.
+        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 5, 60, 60, get_scaled_pixmap(a_png, 60, 60)))
         
-        # Dynamic Font/Width for Time (Handle Dates)
-        font_time = 3 # Default Size 20
-        # Check if it's a date (e.g. "Mon 23/04") -> >8 chars
-        # Widen column slightly to 160 and shift start to 1720 to accommodate
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1720, 0, 160, h-12, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_dim, c_sel))
+        # Away Name: 1150 (was 1130), 520 (Reduced for Time move)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        
+        # Time: 1710, 180 (Ends 1890 -> 30px safe margin)
+        font_time = 3 
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1710, 0, 180, h-12, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_dim, c_sel))
 
-        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 780, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
-        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 785, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
+        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1115, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 88, 1880, 2, 0, RT_HALIGN_CENTER, "", 0x303030, 0x303030))
         return res
     except: return []
@@ -579,11 +585,11 @@ def UCLListEntry(entry):
         if a_png and (not os.path.exists(a_png) or os.path.getsize(a_png) == 0): a_png = None
 
         c_text = 0xffffff
-        c_dim = 0xaaaaaa
-        c_accent = 0x00ffff # Cyan
-        c_live = 0xff3333   # Red
-        c_box = 0x051030    # Dark Navy
-        c_sel = c_accent # Cyan
+        c_dim = 0xDDDDDD 
+        c_accent = 0x00ffff 
+        c_live = 0xff3333   
+        c_box = 0x051030    
+        c_sel = c_accent 
         
         c_h_score = c_text
         c_a_score = c_text
@@ -597,54 +603,57 @@ def UCLListEntry(entry):
             c_a_score = c_accent
             c_a_name = c_accent
 
-        c_status = c_dim
+        c_status = 0xAAAAAA
         if status == "LIVE": c_status = c_live
         if status == "FIN": c_status = c_accent
 
         res = [entry]
         h = 90 
 
-        # Dynamic Font for Team Names
+        # Extended Limits matching visual enhancements
         font_h = 2; font_a = 2
-        if len(left_text) > 22: font_h = 0 # Size 26
-        elif len(left_text) > 18: font_h = 1 # Size 28
-        if len(right_text) > 22: font_a = 0 # Size 26
-        elif len(right_text) > 18: font_a = 1 # Size 28
+        if len(left_text) > 27: font_h = 0 
+        elif len(left_text) > 23: font_h = 1 
+        if len(right_text) > 27: font_a = 0 
+        elif len(right_text) > 23: font_a = 1 
 
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 25, 0, 60, h-12, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 150, 0, 640, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
-        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 805, 15, 75, 75, LoadPixmap(h_png)))
+        # New Coordinates: matching SportListEntry MARGINS
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 80, h-12, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 195, 0, 575, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
+        
+        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 780, 5, 60, 60, get_scaled_pixmap(h_png, 60, 60)))
         
         if "-" in score_text:
             parts = score_text.split('-')
-            # Dynamic Font Sizing
             s1 = parts[0].strip()
             s2 = parts[1].strip()
-            font_idx = 2 # Default 34
+            font_idx = 2 
             max_len = max(len(s1), len(s2))
-            if max_len > 8: font_idx = 3 # Small 20
-            elif max_len > 5: font_idx = 0 # Medium 26
+            if max_len > 8: font_idx = 3 
+            elif max_len > 5: font_idx = 0 
 
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 950, 0, 20, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 970, 15, 90, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
+            # Hyphen lifted to -10
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 940, -10, 40, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
         else:
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h-12, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
-        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 15, 75, 75, LoadPixmap(a_png)))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1140, 0, 640, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 5, 60, 60, get_scaled_pixmap(a_png, 60, 60)))
+        # Away Name: 1150, 520
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
         
-        # EPG Indicator (Left of Time, x=1680)
+        # EPG Indicator (x=1670)
         if has_epg:
-             res.append((eListboxPythonMultiContent.TYPE_TEXT, 1680, 0, 40, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "EPG", c_accent, c_sel))
+             res.append((eListboxPythonMultiContent.TYPE_TEXT, 1670, 0, 35, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "EPG", c_accent, c_sel))
 
-        # Dynamic Time (Center Aligned, widen for dates)
+        # Time: 1710, 180
         font_time = 3 
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1720, 0, 160, h, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1710, 0, 180, h, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_dim, c_sel))
 
-        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 780, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
-        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 785, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
+        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1115, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 88, 1880, 2, 0, RT_HALIGN_CENTER, "", 0x22182c82, 0x22182c82))
         return res
     except: return []
@@ -749,7 +758,12 @@ class SportsMonitor:
         self.notification_active = False
         
         self.logo_cache = LogoCacheManager()
+        self.logo_cache = LogoCacheManager()
+        self.last_update = 0
+        self.cache_file = "/tmp/simplysports/cache.json"
         log_message("SportsMonitor initialized", "INFO")
+        
+        self.load_cache()
         
         self.load_config()
         
@@ -889,6 +903,10 @@ class SportsMonitor:
                 d.addCallback(self.parse_single_json, name, url) 
                 d.addErrback(self.handle_error)
             except: pass
+            
+            # Optimization: If we have cached data, signal a "soft" update (True) first
+            if self.cached_events:
+                 for cb in self.callbacks: cb(True)
         else:
             if not self.custom_league_indices:
                 self.status_message = "No Leagues Selected"
@@ -896,6 +914,10 @@ class SportsMonitor:
                 for cb in self.callbacks: cb(True)
                 return
             
+            # Optimization: If we have cached data, signal a "soft" update (True) first
+            if self.cached_events:
+                 for cb in self.callbacks: cb(True)
+
             # Start Batching
             self.status_message = "Loading Batch..."
             self.batch_queue = []
@@ -911,6 +933,36 @@ class SportsMonitor:
                 d.addCallback(readBody)
                 d.addCallback(self.collect_batch_response, name, url)
                 d.addErrback(self.collect_batch_error)
+
+    def save_cache(self):
+        try:
+            cache_dir = os.path.dirname(self.cache_file)
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+            
+            data = {
+                'timestamp': self.last_update,
+                'events': self.cached_events
+            }
+            with open(self.cache_file, 'w') as f:
+                json.dump(data, f)
+        except Exception as e:
+            print("[SportsMonitor] Cache Save Error: ", e)
+
+    def load_cache(self):
+        try:
+            if os.path.exists(self.cache_file):
+                with open(self.cache_file, 'r') as f:
+                    data = json.load(f)
+                    self.last_update = data.get('timestamp', 0)
+                    events = data.get('events', [])
+                    # Quick validation
+                    if isinstance(events, list):
+                        self.cached_events = events
+                        self.status_message = "Restored from Cache"
+        except Exception as e:
+             print("[SportsMonitor] Cache Load Error: ", e)
+             self.cached_events = []
 
     def collect_batch_response(self, body, name, url):
         self.batch_queue.append((body, name, url))
@@ -1105,6 +1157,7 @@ class SportsMonitor:
 
     @profile_function("SportsMonitor")
     def process_events_data(self, data_list, single_league_name="", append_mode=False):
+        self.last_update = time.time()
         new_events = []
         try:
             for item in data_list:
@@ -1250,6 +1303,7 @@ class SportsMonitor:
             unique_list.sort(key=get_sort_key)
             
             self.cached_events = unique_list
+            self.save_cache()
             
             if len(self.cached_events) == 0: self.status_message = "No Matches Found"
             else: self.status_message = "Data Updated"
@@ -3224,23 +3278,24 @@ class SimpleSportsMiniBar2(Screen):
         width = d_size.width(); height = d_size.height()
         
         if width > 1280:
-            bar_h = 40; bar_y = height - bar_h; font_lg = "Regular;26"; font_sm = "Regular;22"; logo_s = 35
-            x_league=30; w_league=250; x_home_name=350; w_home_name=500; x_h_logo=860
-            x_score=920; w_score=140; x_a_logo=1070; x_away_name=1115; w_away_name=500
-            x_status=1630; w_status=100; x_time=1740; w_time=170
+            bar_h = 55; bar_y = height - bar_h + 11; font_lg = "Regular;29"; font_nm = "Regular;34"; font_sm = "Regular;22"; font_sc = "Regular;18"; logo_s = 35
+            x_league=20; w_league=330; x_home_name=360; w_home_name=500; x_h_logo=875
+            x_score=920; w_score=140; x_a_logo=1065; x_away_name=1115; w_away_name=490
+            x_status=1615; w_status=90; x_time=1707; w_time=210
         else:
-            bar_h = 35; bar_y = height - bar_h; font_lg = "Regular;22"; font_sm = "Regular;18"; logo_s = 30
-            x_league=10; w_league=180; x_home_name=230; w_home_name=280; x_h_logo=530
-            x_score=580; w_score=100; x_a_logo=690; x_away_name=740; w_away_name=280
-            x_status=1030; w_status=80; x_time=1120; w_time=150
+            bar_h = 45; bar_y = height - bar_h + 11; font_lg = "Regular;24"; font_nm = "Regular;28"; font_sm = "Regular;18"; font_sc = "Regular;16"; logo_s = 30
+            x_league=0; w_league=230; x_home_name=240; w_home_name=280; x_h_logo=540
+            x_score=580; w_score=100; x_a_logo=685; x_away_name=740; w_away_name=260
+            x_status=1010; w_status=80; x_time=1092; w_time=175
             
         if global_sports_monitor.theme_mode == "ucl":
-            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="#cc0e1e5b" zPosition="0" /><eLabel position="0,0" size="{w},2" backgroundColor="#00ffff" zPosition="1" /><widget name="lbl_league" position="{xl},0" size="{wl},{h}" font="{fl}" foregroundColor="#00ffff" backgroundColor="#cc0e1e5b" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},{h}" font="{fl}" foregroundColor="#ffffff" backgroundColor="#cc0e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="h_logo" position="{xhl},2" size="{ls},{ls}" alphatest="blend" zPosition="2" /><eLabel position="{xs},0" size="{ws},{h}" backgroundColor="#ffffff" zPosition="1" /><widget name="lbl_score" position="{xs},0" size="{ws},{h}" font="{fl}" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},2" size="{ls},{ls}" alphatest="blend" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},{h}" font="{fl}" foregroundColor="#ffffff" backgroundColor="#cc0e1e5b" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_status" position="{xst},0" size="{wst},{h}" font="{fs}" foregroundColor="#ffffff" backgroundColor="#cc0e1e5b" transparent="1" halign="center" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},0" size="{wt},{h}" font="{fs}" foregroundColor="#00ffff" backgroundColor="#cc0e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y, w=width, h=bar_h, fl=font_lg, fs=font_sm, ls=logo_s, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time)
+            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="#c00e1e5b" zPosition="0" /><eLabel position="0,0" size="{w},2" backgroundColor="#00ffff" zPosition="1" /><widget name="lbl_league" position="{xl},0" size="{wl},{h}" font="{fl}" foregroundColor="#00ffff" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},32" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xh},29" size="{wh},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" zPosition="2" /><eLabel position="{xs},0" size="{ws},{h}" backgroundColor="#ffffff" zPosition="1" /><widget name="lbl_score" position="{xs},0" size="{ws},{h}" font="{fl}" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},32" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xa},29" size="{wa},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="lbl_status" position="{xst},0" size="{wst},{h}" font="{fs}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},0" size="{wt},{h}" font="{fs}" foregroundColor="#00ffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y, w=width, h=bar_h, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time)
         else:
-            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="#cc331900" zPosition="0" /><eLabel position="0,0" size="5,{h}" backgroundColor="#E90052" zPosition="1" /><eLabel position="{rend},{h}" size="5,{h}" backgroundColor="#F6B900" zPosition="1" /><widget name="lbl_league" position="{xl},0" size="{wl},{h}" font="{fl}" foregroundColor="#FFD700" backgroundColor="#cc331900" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},{h}" font="{fl}" foregroundColor="#FFFFFF" backgroundColor="#cc331900" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="h_logo" position="{xhl},2" size="{ls},{ls}" alphatest="blend" zPosition="2" /><eLabel position="{xs},0" size="{ws},{h}" backgroundColor="#00FF85" zPosition="1" /><widget name="lbl_score" position="{xs},0" size="{ws},{h}" font="{fl}" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},2" size="{ls},{ls}" alphatest="blend" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},{h}" font="{fl}" foregroundColor="#FFFFFF" backgroundColor="#cc331900" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_status" position="{xst},0" size="{wst},{h}" font="{fs}" foregroundColor="#FFFFFF" backgroundColor="#cc331900" transparent="1" halign="center" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},0" size="{wt},{h}" font="{fs}" foregroundColor="#00FF85" backgroundColor="#cc331900" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y, w=width, h=bar_h, rend=width-5, fl=font_lg, fs=font_sm, ls=logo_s, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time)
+            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="#c0331900" zPosition="0" /><eLabel position="0,0" size="5,{h}" backgroundColor="#E90052" zPosition="1" /><eLabel position="{rend},{h}" size="5,{h}" backgroundColor="#F6B900" zPosition="1" /><widget name="lbl_league" position="{xl},0" size="{wl},{h}" font="{fl}" foregroundColor="#FFD700" backgroundColor="#c0331900" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},32" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="#c0331900" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xh},29" size="{wh},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c0331900" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" zPosition="2" /><eLabel position="{xs},0" size="{ws},{h}" backgroundColor="#00FF85" zPosition="1" /><widget name="lbl_score" position="{xs},0" size="{ws},{h}" font="{fl}" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},32" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="#c0331900" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xa},29" size="{wa},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c0331900" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="lbl_status" position="{xst},0" size="{wst},{h}" font="{fs}" foregroundColor="#FFFFFF" backgroundColor="#c0331900" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},0" size="{wt},{h}" font="{fs}" foregroundColor="#00FF85" backgroundColor="#c0331900" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y-6, w=width, h=bar_h, rend=width-5, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time)
 
         self["lbl_league"] = Label(""); self["lbl_home"] = Label(""); self["lbl_score"] = Label("")
         self["lbl_away"] = Label(""); self["lbl_status"] = Label(""); self["lbl_time"] = Label("")
+        self["lbl_home_sc"] = Label(""); self["lbl_away_sc"] = Label("")
         self["h_logo"] = Pixmap(); self["a_logo"] = Pixmap()
         self["h_logo"].hide(); self["a_logo"].hide()
         self.matches = []; self.current_match_idx = 0
@@ -3293,6 +3348,10 @@ class SimpleSportsMiniBar2(Screen):
                             elif "Short Handed Goal - " in clean: scorer = clean.split("Short Handed Goal - ")[1].split('(')[0].strip()
                             elif "Power Play Goal - " in clean: scorer = clean.split("Power Play Goal - ")[1].split('(')[0].strip()
                         if scorer:
+                            # Add goal time if available
+                            g_time = play.get('clock', {}).get('displayValue', '')
+                            if g_time: scorer = "{} {}".format(scorer, g_time)
+                            
                             t_id = str(play.get('team', {}).get('id', ''))
                             if t_id == str(home_id): h_scorers.append(scorer)
                             elif t_id == str(away_id): a_scorers.append(scorer)
@@ -3301,8 +3360,16 @@ class SimpleSportsMiniBar2(Screen):
             if not lst: return ""
             seen = set(); unique = [x for x in lst if not (x in seen or seen.add(x))]
             final_str = ", ".join(unique)
-            if len(final_str) > 25:
-                short_list = [n.split(' ')[-1] for n in unique]
+            if len(final_str) > 35:
+                # If too long, try shortening names but ALWAYS keep Name + Time
+                short_list = []
+                for n in unique:
+                    parts = n.split(' ')
+                    if len(parts) >= 2:
+                        # Keep last name and time
+                        short_list.append("{} {}".format(parts[-2], parts[-1]))
+                    else:
+                        short_list.append(n)
                 final_str = ", ".join(short_list)
             return final_str
         return format_list(h_scorers), format_list(a_scorers)
@@ -3379,6 +3446,7 @@ class SimpleSportsMiniBar2(Screen):
                 score_str = "VS"; status_str = "SCH"; h_scorers_txt, a_scorers_txt = "", ""
                 if state == 'in':
                     score_str = "{} - {}".format(h_score, a_score); status_str = clock
+                    local_time = "Live"
                     if event_sport_type == SPORT_TYPE_TEAM:  # Only get scorers for team sports
                         h_scorers_txt, a_scorers_txt = self.get_scorers_string(event, h_team_id, a_team_id)
                 elif state == 'post':
@@ -3392,12 +3460,16 @@ class SimpleSportsMiniBar2(Screen):
                 l_color = 0xffffff
                 for key, val in self.league_colors.items():
                     if key in league_name.upper() or key in event.get('shortName', '').upper(): l_color = val; break
-                match_data = {'league': league_name, 'color': l_color, 'home': final_home_txt, 'away': final_away_txt, 'score': score_str, 'status': status_str, 'time': local_time, 'h_url': h_url, 'a_url': a_url, 'h_id': h_id, 'a_id': a_id}
+                match_data = {'league': league_name, 'color': l_color, 'home': final_home_txt, 'away': final_away_txt, 'score': score_str, 'status': status_str, 'time': local_time, 'h_url': h_url, 'a_url': a_url, 'h_id': h_id, 'a_id': a_id,
+                              'home_clean': home, 'away_clean': away, 'h_scorers': h_scorers_txt, 'a_scorers': a_scorers_txt}
             self.matches.append(match_data)
             
         # FIX: EMPTY MATCHES AFTER FILTER
         if not self.matches:
-            self.matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': "No Matches Found", 'away': "Check Filters", 'score': "", 'status': "", 'time': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
+            is_stale = (time.time() - global_sports_monitor.last_update) > 300
+            msg = "Updating Data..." if is_stale else "No Matches Found"
+            sub = "Please Wait" if is_stale else "Check Filters"
+            self.matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': sub, 'score': "", 'status': "", 'time': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
 
         if not self.ticker_timer.isActive(): 
             self.show_next_match()
@@ -3410,8 +3482,22 @@ class SimpleSportsMiniBar2(Screen):
         self["lbl_league"].setText(str(data.get('league', '')))
         try: self["lbl_league"].instance.setForegroundColor(gRGB(data.get('color', 0xffffff)))
         except: pass
-        self["lbl_home"].setText(str(data.get('home', ''))); self["lbl_score"].setText(str(data.get('score', '')))
-        self["lbl_away"].setText(str(data.get('away', ''))); self["lbl_status"].setText(str(data.get('status', '')))
+        # Use separated data if available
+        h_txt = data.get('home_clean') or data.get('home', '')
+        a_txt = data.get('away_clean') or data.get('away', '')
+        h_sc = data.get('h_scorers', '')
+        a_sc = data.get('a_scorers', '')
+        
+        self["lbl_home"].setText(str(h_txt)); self["lbl_score"].setText(str(data.get('score', '')))
+        self["lbl_away"].setText(str(a_txt)); self["lbl_status"].setText(str(data.get('status', '')))
+        
+        # Set scorers if they exist
+        if h_sc: self["lbl_home_sc"].setText("({})".format(h_sc))
+        else: self["lbl_home_sc"].setText("")
+        
+        if a_sc: self["lbl_away_sc"].setText("({})".format(a_sc))
+        else: self["lbl_away_sc"].setText("")
+        
         self["lbl_time"].setText(str(data.get('time', '')))
         
         self.load_logo(data.get('h_url'), data.get('h_id'), "h_logo")
@@ -3451,11 +3537,11 @@ class SimpleSportsMiniBar(Screen):
             except: pass
 
         if global_sports_monitor.theme_mode == "ucl":
-            # Compact MiniBar: 700px wide, right-aligned at x=580, 60px tall, transparent league name
-            self.skin = """<screen position="580,5" size="700,60" title="Sports Ticker" backgroundColor="#00000000" flags="wfNoBorder"><widget name="lbl_league" position="0,0" size="700,16" font="Regular;13" foregroundColor="#00ffff" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="0,16" size="700,44" backgroundColor="#800e1e5b" zPosition="0" /><eLabel position="260,16" size="180,44" backgroundColor="#ffffff" zPosition="1" /><widget name="h_logo" position="5,20" size="36,36" alphatest="blend" zPosition="2" /><widget name="lbl_home" position="42,16" size="210,44" font="Regular;20" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_score" position="260,18" size="180,26" font="Regular;22" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="lbl_status" position="260,44" size="180,14" font="Regular;8" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="lbl_away" position="448,16" size="210,44" font="Regular;20" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="a_logo" position="659,20" size="36,36" alphatest="blend" zPosition="2" /></screen>"""
+            # Compact MiniBar: 770px wide, right-aligned, font adjustments
+            self.skin = """<screen position="580,5" size="770,60" title="Sports Ticker" backgroundColor="#00000000" flags="wfNoBorder"><widget name="lbl_league" position="0,0" size="770,16" font="Regular;13" foregroundColor="#00ffff" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="0,16" size="770,44" backgroundColor="#800e1e5b" zPosition="0" /><eLabel position="295,16" size="180,44" backgroundColor="#ffffff" zPosition="1" /><widget name="h_logo" position="5,20" size="36,36" alphatest="blend" zPosition="2" /><widget name="lbl_home" position="45,16" size="245,44" font="Regular;23" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_score" position="295,16" size="180,30" font="Regular;26" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="lbl_status" position="295,46" size="180,14" font="Regular;8" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="lbl_away" position="483,16" size="245,44" font="Regular;23" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="a_logo" position="734,20" size="36,36" alphatest="blend" zPosition="2" /></screen>"""
         else:
-            # Compact MiniBar: 700px wide, right-aligned at x=580, 60px tall, transparent league name
-            self.skin = """<screen position="580,5" size="700,60" title="Sports Ticker" backgroundColor="#00000000" flags="wfNoBorder"><widget name="lbl_league" position="0,0" size="700,16" font="Regular;13" foregroundColor="#FFFFFF" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="0,16" size="5,44" backgroundColor="#E90052" zPosition="1" /><eLabel position="5,16" size="265,44" backgroundColor="#80190028" zPosition="1" /><widget name="h_logo" position="10,20" size="36,36" alphatest="blend" zPosition="2" /><widget name="lbl_home" position="48,16" size="215,44" font="Regular;20" foregroundColor="#FFFFFF" transparent="1" halign="right" valign="center" zPosition="2" /><eLabel position="270,16" size="160,44" backgroundColor="#00FF85" zPosition="1" /><widget name="lbl_score" position="270,18" size="160,26" font="Regular;22" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="2" /><widget name="lbl_status" position="270,44" size="160,14" font="Regular;8" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="430,16" size="265,44" backgroundColor="#80190028" zPosition="1" /><widget name="lbl_away" position="437,16" size="215,44" font="Regular;20" foregroundColor="#FFFFFF" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="a_logo" position="654,20" size="36,36" alphatest="blend" zPosition="2" /><eLabel position="695,16" size="5,44" backgroundColor="#F6B900" zPosition="1" /></screen>"""
+            # Compact MiniBar: 770px wide, right-aligned, font adjustments
+            self.skin = """<screen position="580,5" size="770,60" title="Sports Ticker" backgroundColor="#00000000" flags="wfNoBorder"><widget name="lbl_league" position="0,0" size="770,16" font="Regular;13" foregroundColor="#FFFFFF" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="0,16" size="5,44" backgroundColor="#E90052" zPosition="1" /><eLabel position="5,16" size="300,44" backgroundColor="#80190028" zPosition="1" /><widget name="h_logo" position="10,20" size="36,36" alphatest="blend" zPosition="2" /><widget name="lbl_home" position="51,16" size="250,44" font="Regular;23" foregroundColor="#FFFFFF" transparent="1" halign="right" valign="center" zPosition="2" /><eLabel position="305,16" size="160,44" backgroundColor="#00FF85" zPosition="1" /><widget name="lbl_score" position="305,16" size="160,30" font="Regular;26" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="2" /><widget name="lbl_status" position="305,46" size="160,14" font="Regular;8" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="465,16" size="300,44" backgroundColor="#80190028" zPosition="1" /><widget name="lbl_away" position="472,16" size="250,44" font="Regular;23" foregroundColor="#FFFFFF" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="a_logo" position="724,20" size="36,36" alphatest="blend" zPosition="2" /><eLabel position="765,16" size="5,44" backgroundColor="#F6B900" zPosition="1" /></screen>"""
 
         self["lbl_league"] = Label("")
         self["lbl_home"] = Label("")
@@ -3596,7 +3682,10 @@ class SimpleSportsMiniBar(Screen):
             
         # Handle Filter Empty
         if not self.matches:
-            self.matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': "No Matches Found", 'away': "Check Filters", 'score': "", 'status': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
+            is_stale = (time.time() - global_sports_monitor.last_update) > 300
+            msg = "Updating Data..." if is_stale else "No Matches Found"
+            sub = "Please Wait" if is_stale else "Check Filters"
+            self.matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': sub, 'score': "", 'status': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
 
         if not self.ticker_timer.isActive(): 
             self.show_next_match()
@@ -3844,9 +3933,10 @@ class SimpleSportsScreen(Screen):
                 if os.path.exists(path_jpg): bg_widget = '<ePixmap position="0,0" size="1920,1080" pixmap="{}" zPosition="-1" alphatest="on" scale="1" />'.format(path_jpg)
             except: pass
             top_widget = '<widget name="top_bar" position="0,0" size="1920,100" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
-            header_widget = '<widget name="header_bg" position="0,120" size="1920,40" backgroundColor="{c_bg}" zPosition="0" />'.format(c_bg=c_bg)
+            header_widget = '<widget name="header_bg" position="0,123" size="1920,34" backgroundColor="{c_bg}" zPosition="0" />'.format(c_bg=c_bg)
             bar_widget = ""; bottom_widget = '<widget name="bottom_bar" position="0,990" size="1920,90" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
             fg_title = "#00ffff"; bg_title = "#050a2e"; fg_list_h = "#ffffff"; fg_list_s = "#00ffff"
+            clock_x = 1710; clock_w = 180; clock_a = "center"
         else: 
             bg_base = "100015"; bar_base = "38003C"
             c_bg = "#" + self.current_alpha + bg_base; c_bar = "#" + self.current_alpha + bar_base
@@ -3856,6 +3946,7 @@ class SimpleSportsScreen(Screen):
             bar_widget = '<widget name="bar_bg" position="0,70" size="1920,40" backgroundColor="{c_bar}" zPosition="0" />'.format(c_bar=c_bar)
             bottom_widget = '<widget name="bottom_bar" position="0,990" size="1920,90" backgroundColor="{c_bg}" zPosition="0" />'.format(c_bg=c_bg)
             fg_title = "#00FF85"; bg_title = "#100015"; fg_list_h = "#FFFFFF"; fg_list_s = "#00FF85"
+            clock_x = 1710; clock_w = 180; clock_a = "center"
 
         self.skin = """
         <screen position="0,0" size="1920,1080" title="SimplySports" flags="wfNoBorder" backgroundColor="#00000000">
@@ -3864,26 +3955,26 @@ class SimpleSportsScreen(Screen):
             <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
             <widget name="key_menu" position="40,30" size="300,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
             <widget name="credit" position="1600,20" size="300,30" font="SimplySportFont;20" foregroundColor="#888888" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
-            <widget name="clock" position="1580,75" size="320,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="#38003C" transparent="1" halign="right" zPosition="2" />
+            <widget name="clock" position="{cx},75" size="{cw},35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="#38003C" transparent="1" halign="{ca}" zPosition="2" />
             {bar}
             <widget name="league_title" position="50,75" size="500,35" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="#38003C" transparent="1" halign="left" zPosition="1" />
             <widget name="list_title" position="0,75" size="1920,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="#38003C" transparent="1" halign="center" zPosition="1" />
             {header}
-            <widget name="head_status" position="15,125" size="80,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
-            <widget name="head_league" position="95,125" size="90,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
-            <widget name="head_home" position="190,125" size="605,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="1" />
-            <widget name="head_score" position="870,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
-            <widget name="head_away" position="1125,125" size="605,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="left" zPosition="1" />
-            <widget name="head_time" position="1720,125" size="160,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
+            <widget name="head_status" position="30,125" size="80,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
+            <widget name="head_league" position="110,125" size="80,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
+            <widget name="head_home" position="195,125" size="575,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="right" zPosition="1" />
+            <widget name="head_score" position="860,125" size="200,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
+            <widget name="head_away" position="1150,125" size="520,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="left" zPosition="1" />
+            <widget name="head_time" position="1710,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="#0e1e5b" transparent="1" halign="center" zPosition="1" />
             <widget name="list" position="0,170" size="1920,800" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
             {bottom}
-            <widget name="key_red" position="40,1005" size="340,60" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="2" halign="center" valign="center" />
-            <widget name="key_green" position="400,1005" size="340,60" font="SimplySportFont;24" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="2" halign="center" valign="center" />
-            <widget name="key_yellow" position="760,1005" size="340,60" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#FFA000" transparent="0" zPosition="2" halign="center" valign="center" />
-            <widget name="key_blue" position="1120,1005" size="340,60" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#42A5F5" transparent="0" zPosition="2" halign="center" valign="center" />
-            <widget name="key_epg" position="1480,1005" size="400,60" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#808080" transparent="0" zPosition="2" halign="center" valign="center" />
+            <widget name="key_red" position="40,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#FFFFFF" backgroundColor="#CC0000" transparent="0" zPosition="2" halign="center" valign="center" />
+            <widget name="key_green" position="400,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="2" halign="center" valign="center" />
+            <widget name="key_yellow" position="760,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#000000" backgroundColor="#FFD700" transparent="0" zPosition="2" halign="center" valign="center" />
+            <widget name="key_blue" position="1120,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#FFFFFF" backgroundColor="#0055AA" transparent="0" zPosition="2" halign="center" valign="center" />
+            <widget name="key_epg" position="1480,1005" size="400,60" font="SimplySportFont;30" foregroundColor="#FFFFFF" backgroundColor="#444444" transparent="0" zPosition="2" halign="center" valign="center" />
         </screen>
-        """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s)
+        """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a)
 
         self["top_bar"] = Label(""); self["header_bg"] = Label(""); self["bottom_bar"] = Label(""); self["main_bg"] = Label(""); self["bar_bg"] = Label("")
         self["top_title"] = Label("SIMPLY SPORTS"); self["league_title"] = Label("LOADING..."); self["list_title"] = Label("")
@@ -4337,7 +4428,8 @@ class SimpleSportsScreen(Screen):
         # ----------------------------------------
 
         if not events:
-            dummy_entry = ("INFO", "", "No Live Games", "", "", "", False, "", None, None, 0, 0)
+            msg = self.monitor.status_message or "No Matches Found"
+            dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0)
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
             else: self["list"].setList([SportListEntry(dummy_entry)])
             self.current_match_ids = []
@@ -4473,7 +4565,8 @@ class SimpleSportsScreen(Screen):
             new_match_ids.append(match_id)
             
         if not list_content: 
-            dummy_entry = ("INFO", "", "No Live Games", "", "", "", False, "", None, None, 0, 0)
+            msg = self.monitor.status_message or "No Matches Found"
+            dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0)
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
             else: self["list"].setList([SportListEntry(dummy_entry)])
             self.current_match_ids = []
