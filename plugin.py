@@ -799,6 +799,7 @@ class SportsMonitor:
                     self.is_custom_mode = bool(data.get("is_custom_mode", False))
                     self.reminders = data.get("reminders", [])
                     self.menu_section = data.get("menu_section", "all")
+                    self.show_in_menu = bool(data.get("show_in_menu", True))
                     if self.active: self.timer.start(60000, False)
             except: self.defaults()
         else: self.defaults()
@@ -806,6 +807,7 @@ class SportsMonitor:
     def defaults(self):
         self.filter_mode = 0; self.theme_mode = "default"; self.transparency = "59"
         self.discovery_mode = 0; self.reminders = []; self.menu_section = "all"
+        self.show_in_menu = True
 
     def save_config(self):
         data = {
@@ -813,7 +815,8 @@ class SportsMonitor:
             "theme_mode": self.theme_mode, "transparency": self.transparency,
             "discovery_mode": self.discovery_mode, "active": self.active,
             "custom_indices": self.custom_league_indices, "is_custom_mode": self.is_custom_mode,
-            "reminders": self.reminders, "menu_section": self.menu_section
+            "reminders": self.reminders, "menu_section": self.menu_section,
+            "show_in_menu": self.show_in_menu
         }
         try:
             with open(CONFIG_FILE, "w") as f: json.dump(data, f)
@@ -3278,12 +3281,12 @@ class SimpleSportsMiniBar2(Screen):
         width = d_size.width(); height = d_size.height()
         
         if width > 1280:
-            bar_h = 65; y_sc = 39; bar_y = height - bar_h + 11; font_lg = "Regular;29"; font_nm = "Regular;34"; font_sm = "Regular;22"; font_sc = "Regular;18"; logo_s = 35
+            bar_h = 65; y_sc = 39; bar_y = height - bar_h + 11; font_lg = "Regular;25"; font_nm = "Regular;34"; font_sm = "Regular;22"; font_sc = "Regular;18"; logo_s = 35
             x_league=20; w_league=363; x_home_name=393; w_home_name=467; x_h_logo=875
             x_score=920; w_score=140; x_a_logo=1065; x_away_name=1115; w_away_name=490
             x_status=1615; w_status=90; x_time=1707; w_time=210
         else:
-            bar_h = 57; y_sc = 33; bar_y = height - bar_h + 11; font_lg = "Regular;24"; font_nm = "Regular;28"; font_sm = "Regular;18"; font_sc = "Regular;16"; logo_s = 30
+            bar_h = 57; y_sc = 33; bar_y = height - bar_h + 11; font_lg = "Regular;21"; font_nm = "Regular;28"; font_sm = "Regular;18"; font_sc = "Regular;16"; logo_s = 30
             x_league=0; w_league=253; x_home_name=263; w_home_name=257; x_h_logo=540
             x_score=580; w_score=100; x_a_logo=685; x_away_name=740; w_away_name=260
             x_status=1010; w_status=80; x_time=1092; w_time=175
@@ -4584,7 +4587,8 @@ class SimpleSportsScreen(Screen):
     # ... (Keep existing Menu, Reminder, and Update methods unchanged) ...
     # [PASTE EXISTING METHODS HERE]
     def open_settings_menu(self):
-        menu_options = [("Check for Updates", "update"), ("Change Interface Theme", "theme"), ("Window Transparency", "transparency")]
+        in_menu_txt = "Yes" if self.monitor.show_in_menu else "No"
+        menu_options = [("Check for Updates", "update"), ("Change Interface Theme", "theme"), ("Window Transparency", "transparency"), ("Show In Main Menu: " + in_menu_txt, "toggle_menu")]
         self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title="Settings & Tools", list=menu_options)
     def settings_menu_callback(self, selection):
         if selection:
@@ -4592,6 +4596,10 @@ class SimpleSportsScreen(Screen):
             if action == "update": self.check_for_updates()
             elif action == "theme": self.open_theme_selector()
             elif action == "transparency": self.open_transparency_selector()
+            elif action == "toggle_menu":
+                self.monitor.show_in_menu = not self.monitor.show_in_menu
+                self.monitor.save_config()
+                self.session.open(MessageBox, "Setting saved.\nYou must Restart GUI for menu changes to take effect.", MessageBox.TYPE_INFO)
     def open_transparency_selector(self):
         t_options = [("Solid (0% Transparent)", "00"), ("Standard (35% Transparent)", "59"), ("90% Transparent", "E6"), ("Fully Transparent (100%)", "FF")]
         self.session.openWithCallback(self.transparency_selected, ChoiceBox, title="Select Transparency", list=t_options)
@@ -5029,7 +5037,7 @@ def menu(menuid, **kwargs):
     return []
 
 def Plugins(**kwargs):
-    return [
+    list = [
         PluginDescriptor(
             name="SimplySports",
             description="Live Sports Scores, Alerts, and EPG by reali22",
@@ -5042,11 +5050,13 @@ def Plugins(**kwargs):
             description="Live Sports Scores, Alerts, and EPG by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
-        ),
-        PluginDescriptor(
+        )
+    ]
+    if global_sports_monitor and global_sports_monitor.show_in_menu:
+        list.append(PluginDescriptor(
             name="SimplySports",
             description="Live Sports Scores, Alerts, and EPG by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
-        )
-    ]
+        ))
+    return list
