@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.5" # Performance and Visual enhancements to the sport monitor and the Notification window
+CURRENT_VERSION = "3.6" # Visual and performance enhancements to all features
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports_logos"
@@ -744,6 +744,7 @@ class SportsMonitor:
         self.status_message = "Initializing..."
         self.notification_queue = []
         self.notification_active = False
+        self.has_changes = True  # Track if data changed since last UI refresh
         
         self.logo_cache = LogoCacheManager()
         self.last_update = 0
@@ -990,7 +991,8 @@ class SportsMonitor:
                 d = self.agent.request(b'GET', url.encode('utf-8'))
                 d.addCallback(readBody)
                 d.addCallback(self.collect_batch_response, name, url)
-                d.addErrback(self.collect_batch_error, url) # Pass URL to clear active_requests
+                d.addErrback(self.collect_batch_error, url) 
+                d.addBoth(lambda x: self.active_requests.discard(url))
 
     def save_cache(self):
         # Optimization: Write Coalescing (Max once every 2 mins)
@@ -1092,22 +1094,42 @@ class SportsMonitor:
         
     def process_queue(self):
         if self.notification_active or not self.notification_queue: return
-        league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team = self.notification_queue.pop(0)
-        self.notification_active = True
-        if self.session: 
-            try:
-                self.session.openWithCallback(
-                    self.on_toast_closed, GoalToast, 
-                    league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team
-                )
-            except RuntimeError as e:
-                print("[SimplySport] Error opening notification: {}".format(e))
+        
+        # FIX: Robustness - Wrap in try/except to ensure notification_active is reset
+        try:
+            item = self.notification_queue.pop(0)
+            league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team = item
+            self.notification_active = True
+            if self.session: 
+                try:
+                    self.session.openWithCallback(
+                        self.on_toast_closed, GoalToast, 
+                        league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team
+                    )
+                except Exception as e:
+                    print("[SimplySport] Error opening notification: {}".format(e))
+                    self.notification_active = False
+                    # Process next after short delay
+                    from twisted.internet import reactor
+                    reactor.callLater(2, self.process_queue)
+            else:
                 self.notification_active = False
-                # Try to process next item after a delay if this one failed
+                # Try next item if session not ready yet
+                if self.notification_queue:
+                    from twisted.internet import reactor
+                    reactor.callLater(5, self.process_queue)
+        except Exception as e:
+            print("[SimplySport] Critical error in process_queue: {}".format(e))
+            self.notification_active = False
+            if self.notification_queue:
                 from twisted.internet import reactor
-                reactor.callLater(5, self.process_queue)
-        else: self.notification_active = False
-    def on_toast_closed(self, *args): self.notification_active = False; self.process_queue()
+                reactor.callLater(2, self.process_queue)
+
+    def on_toast_closed(self, *args):
+        self.notification_active = False
+        # Small delay before next to prevent UI flicker/overlap
+        from twisted.internet import reactor
+        reactor.callLater(0.5, self.process_queue)
 
     def get_sport_type(self, league_name):
         lname = league_name.lower()
@@ -1436,10 +1458,13 @@ class SportsMonitor:
             
             unique_list.sort(key=get_sort_key)
             self.cached_events = unique_list
-            self.save_cache()
             
+            # Only set status message if there's an actual issue (no matches)
+            # Skip "Data Updated" as it's rarely displayed and can interfere with flicker prevention
             if len(self.cached_events) == 0: self.status_message = "No Matches Found"
-            else: self.status_message = "Data Updated"
+            
+            # Set flag for UI to know if it needs to rebuild
+            self.has_changes = has_changes
 
             # --- PROCESS ONLY CHANGED EVENTS used to be full Loop ---
             # But goal checks depend on self.last_states which is stateful.
@@ -3319,19 +3344,35 @@ class GoalToast(Screen):
             try: os.makedirs(self.logo_cache_path)
             except: pass
 
-        # 1.1 REFINEMENT: Format Scorer Time "Player 45'" -> "Player (45')"
-        # Only apply if it looks like a time (ends in ') and isn't already formatted
-        if scorer_text and scorer_text.strip().endswith("'") and "(" not in scorer_text:
+        # FIX: Ensure all inputs are unicode (Py2/3 compatibility)
+        def to_unicode(obj):
+            if obj is None: return u""
             try:
-                parts = scorer_text.rsplit(' ', 1)
+                if isinstance(obj, bytes): return obj.decode('utf-8', 'ignore')
+                return unicode(obj) if 'unicode' in globals() else str(obj)
+            except: 
+                try: return str(obj).decode('utf-8', 'ignore')
+                except: return u""
+
+        league_text = to_unicode(league_text)
+        home_text   = to_unicode(home_text)
+        away_text   = to_unicode(away_text)
+        score_text  = to_unicode(score_text)
+        scorer_text = to_unicode(scorer_text)
+
+        # 1.1 REFINEMENT: Format Scorer Time "Player 45'" -> "Player (45')"
+        if scorer_text and scorer_text.strip().endswith(u"'") and u"(" not in scorer_text:
+            try:
+                parts = scorer_text.rsplit(u' ', 1)
                 if len(parts) == 2:
-                    scorer_text = "{} ({})".format(parts[0], parts[1])
+                    scorer_text = u"{} ({})".format(parts[0], parts[1])
             except: pass
 
         # 2. UX: Dynamic Layout Calculation (Center-Clustered)
-        # Estimate text width (approx px per char)
         def est_width(text, font_size=26):
-            return int(len(str(text)) * (font_size * 0.6)) + 20
+            if not text: return 10
+            try: return int(len(text) * (font_size * 0.6)) + 25
+            except: return 100
 
         w_league = est_width(league_text, 16)
         w_scorer = est_width(scorer_text, 16)
@@ -3339,66 +3380,41 @@ class GoalToast(Screen):
         w_away   = est_width(away_text, 26)
         w_score  = est_width(score_text, 26) + 40 # Padding for score box
         
-        # DYNAMIC LOGO SIZES
-        # Increased to 80px for better visibility
-        h_size = 80
-        a_size = 80
-        
-        # Vertical centering for logos (assuming 100px height center line is 50)
-        # 80px logo means 10px padding top/bottom in a 100px space
-        h_logo_y = 50 - (h_size // 2)
-        a_logo_y = 50 - (a_size // 2)
+        h_size = 75
+        a_size = 75
+        h_logo_y = 60 - (h_size // 2)
+        a_logo_y = 60 - (a_size // 2)
 
-        # Calculate Total "Match Block" Width: [Logo] [Home] [Score] [Away] [Logo]
-        # Spacing: 5px
         match_block_width = h_size + 5 + w_home + 5 + w_score + 5 + w_away + 5 + a_size
-        
-        # Determine Window Width (must fit League/Scorer AND Match Block)
-        # Min width 600, Max 1200
         req_width = max(match_block_width + 40, w_league + w_scorer + 60)
-        # INCREASE WIDTH BY 15% as requested
         req_width = int(req_width * 1.15)
         width = max(600, min(1200, req_width))
         
-        # Calculate Starting X to center the Match Block
-        # Center point
         center_x = width // 2
         start_x = center_x - (match_block_width // 2)
         
-        # Positions
-        # 1. Home Logo
         h_logo_x = start_x
-        # 2. Home Name
         h_name_x = h_logo_x + h_size + 5
-        # 3. Score
         score_x  = h_name_x + w_home + 5
-        # 4. Away Name
         a_name_x = score_x + w_score + 5
-        # 5. Away Logo
         a_logo_x = a_name_x + w_away + 5
         
-        # Vertical positions
         row_y = 25
-        # logo_y is now dynamic (h_logo_y, a_logo_y)
-        
-        # Scorer/League positions (Corners)
-        # Moved 10px left (-25 instead of -15) as requested
         scr_x = width - w_scorer - 25
 
-        # 3. UX: Priority Colors & Highlighting
+        # 3. UX: Priority Colors & Highlighting (Using #00RRGGBB for Opaque in Enigma2)
         colors = {
-            'goal':   '#00FF85', # Green
-            'card':   '#FFFF00', # Yellow
-            'start':  '#00ffff', # Cyan
-            'end':    '#00ffff', # Cyan
-            'default':'#00FF85'
+            'goal':   '#0000FF85',
+            'card':   '#00FFFF00',
+            'start':  '#0000FFFF',
+            'end':    '#0000FFFF',
+            'default':'#0000FF85'
         }
-        border_color = colors.get(event_type, '#00FF85')
+        border_color = colors.get(event_type, '#0000FF85')
         
-        # Highlight scoring team
-        h_color = "#ffffff"
-        a_color = "#ffffff"
-        score_color = "#ffffff"
+        h_color = "#00FFFFFF"
+        a_color = "#00FFFFFF"
+        score_color = "#00FFFFFF"
         
         if event_type == 'goal':
             if scoring_team == 'home': h_color = border_color
@@ -3406,53 +3422,47 @@ class GoalToast(Screen):
         elif event_type in ['start', 'end']:
             score_color = border_color
 
-        # UX: Dynamic Duration
-        total_chars = len(str(league_text)) + len(str(home_text)) + len(str(away_text)) + len(str(scorer_text))
+        # Use safe len() and unicode concatenation
+        total_chars = len(league_text) + len(home_text) + len(away_text) + len(scorer_text)
         self.duration_ms = max(5000, min(12000, int(total_chars * 120 + 4000)))
 
         # 4. SKIN
         if global_sports_monitor.theme_mode == "ucl":
              self.skin = (
-                f'<screen position="center,50" size="{width},100" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">'
-                f'<eLabel position="0,0" size="{width},100" backgroundColor="#0e1e5b" zPosition="0" />'
-                f'<eLabel position="0,0" size="{width},2" backgroundColor="{border_color}" zPosition="2" />'
-                # League (Left) Scorer (Right)
-                f'<widget name="league" position="15,5" size="{w_league+20},20" font="Regular;16" foregroundColor="{border_color}" backgroundColor="#0e1e5b" valign="center" halign="left" transparent="1" zPosition="3" />'
-                f'<widget name="scorer" position="{scr_x},5" size="{w_scorer+20},20" font="Regular;16" foregroundColor="#ffffff" backgroundColor="#0e1e5b" valign="center" halign="right" transparent="1" zPosition="3" />'
-                
-                # Center Cluster
-                f'<widget name="h_logo" position="{h_logo_x},{h_logo_y}" size="{h_size},{h_size}" alphatest="blend" zPosition="4" />'
-                f'<widget name="home" position="{h_name_x},{row_y}" size="{w_home},50" font="Regular;26" foregroundColor="{h_color}" backgroundColor="#0e1e5b" valign="center" halign="right" transparent="1" zPosition="3" />'
-                f'<widget name="score" position="{score_x},{row_y}" size="{w_score},50" font="Regular;26" foregroundColor="{score_color}" backgroundColor="#0e1e5b" valign="center" halign="center" transparent="1" zPosition="3" />'
-                f'<widget name="away" position="{a_name_x},{row_y}" size="{w_away},50" font="Regular;26" foregroundColor="{a_color}" backgroundColor="#0e1e5b" valign="center" halign="left" transparent="1" zPosition="3" />'
-                f'<widget name="a_logo" position="{a_logo_x},{a_logo_y}" size="{a_size},{a_size}" alphatest="blend" zPosition="4" />'
-                f'</screen>'
-            )
+                u'<screen position="center,50" size="{width},100" title="Goal Notification" flags="wfNoBorder" backgroundColor="#000e1e5b">'
+                u'<eLabel position="0,0" size="{width},100" backgroundColor="#000e1e5b" zPosition="0" />'
+                u'<eLabel position="0,0" size="{width},2" backgroundColor="{border_color}" zPosition="2" />'
+                u'<widget name="league" position="15,0" size="{w_league},20" font="Regular;16" foregroundColor="{border_color}" backgroundColor="#000e1e5b" valign="center" halign="left" zPosition="3" />'
+                u'<widget name="scorer" position="{scr_x},0" size="{w_scorer},20" font="Regular;16" foregroundColor="#00FFFFFF" backgroundColor="#000e1e5b" valign="center" halign="right" zPosition="3" />'
+                u'<widget name="h_logo" position="{h_logo_x},{h_logo_y}" size="{h_size},{h_size}" alphatest="blend" zPosition="4" />'
+                u'<widget name="home" position="{h_name_x},{row_y}" size="{w_home},50" font="Regular;28" foregroundColor="{h_color}" backgroundColor="#000e1e5b" valign="center" halign="right" zPosition="3" />'
+                u'<widget name="score" position="{score_x},{row_y}" size="{w_score},50" font="Regular;28" foregroundColor="{score_color}" backgroundColor="#000e1e5b" valign="center" halign="center" zPosition="3" />'
+                u'<widget name="away" position="{a_name_x},{row_y}" size="{w_away},50" font="Regular;28" foregroundColor="{a_color}" backgroundColor="#000e1e5b" valign="center" halign="left" zPosition="3" />'
+                u'<widget name="a_logo" position="{a_logo_x},{a_logo_y}" size="{a_size},{a_size}" alphatest="blend" zPosition="4" />'
+                u'</screen>'
+            ).format(width=width, border_color=border_color, w_league=w_league+20, scr_x=scr_x, w_scorer=w_scorer+20, h_logo_x=h_logo_x, h_logo_y=h_logo_y, h_size=h_size, h_name_x=h_name_x, w_home=w_home, h_color=h_color, score_x=score_x, w_score=w_score, score_color=score_color, a_name_x=a_name_x, w_away=w_away, a_color=a_color, a_logo_x=a_logo_x, a_logo_y=a_logo_y, a_size=a_size, row_y=row_y)
         else:
             self.skin = (
-                f'<screen position="center,50" size="{width},100" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">'
-                f'<eLabel position="0,0" size="{width},20" backgroundColor="#E6000000" zPosition="0" />'
-                f'<widget name="league" position="15,0" size="{w_league+20},20" font="Regular;16" foregroundColor="#FFD700" backgroundColor="#E6000000" valign="center" halign="left" transparent="1" zPosition="3" />'
-                f'<widget name="scorer" position="{scr_x},0" size="{w_scorer+20},20" font="Regular;16" foregroundColor="{border_color}" backgroundColor="#E6000000" valign="center" halign="right" transparent="1" zPosition="3" />'
-                
-                f'<eLabel position="0,20" size="{width},80" backgroundColor="#33190028" zPosition="0" />'
-                # Center Cluster
-                f'<widget name="h_logo" position="{h_logo_x},{h_logo_y}" size="{h_size},{h_size}" alphatest="blend" zPosition="4" />'
-                f'<widget name="home" position="{h_name_x},20" size="{w_home},80" font="Regular;26" foregroundColor="{h_color}" backgroundColor="#33190028" valign="center" halign="right" transparent="1" zPosition="3" />'
-                f'<widget name="score" position="{score_x},20" size="{w_score},80" font="Regular;26" foregroundColor="{score_color}" backgroundColor="#33190028" valign="center" halign="center" transparent="1" zPosition="3" />'
-                f'<widget name="away" position="{a_name_x},20" size="{w_away},80" font="Regular;26" foregroundColor="{a_color}" backgroundColor="#33190028" valign="center" halign="left" transparent="1" zPosition="3" />'
-                f'<widget name="a_logo" position="{a_logo_x},{a_logo_y}" size="{a_size},{a_size}" alphatest="blend" zPosition="4" />'
-                
-                f'<eLabel position="0,98" size="{width},2" backgroundColor="{border_color}" zPosition="2" />'
-                f'</screen>'
-            )
+                u'<screen position="center,50" size="{width},100" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">'
+                u'<eLabel position="0,0" size="{width},20" backgroundColor="#00000000" zPosition="0" />'
+                u'<widget name="league" position="15,0" size="{w_league},20" font="Regular;16" foregroundColor="#00FFD700" backgroundColor="#00000000" valign="center" halign="left" zPosition="3" />'
+                u'<widget name="scorer" position="{scr_x},0" size="{w_scorer},20" font="Regular;16" foregroundColor="#00FFFFFF" backgroundColor="#00000000" valign="center" halign="right" zPosition="3" />'
+                u'<eLabel position="0,20" size="{width},80" backgroundColor="#00190028" zPosition="0" />'
+                u'<widget name="h_logo" position="{h_logo_x},{h_logo_y}" size="{h_size},{h_size}" alphatest="blend" zPosition="4" />'
+                u'<widget name="home" position="{h_name_x},20" size="{w_home},80" font="Regular;28" foregroundColor="{h_color}" backgroundColor="#00190028" valign="center" halign="right" zPosition="3" />'
+                u'<widget name="score" position="{score_x},20" size="{w_score},80" font="Regular;28" foregroundColor="{score_color}" backgroundColor="#00190028" valign="center" halign="center" zPosition="3" />'
+                u'<widget name="away" position="{a_name_x},20" size="{w_away},80" font="Regular;28" foregroundColor="{a_color}" backgroundColor="#00190028" valign="center" halign="left" zPosition="3" />'
+                u'<widget name="a_logo" position="{a_logo_x},{a_logo_y}" size="{a_size},{a_size}" alphatest="blend" zPosition="4" />'
+                u'<eLabel position="0,98" size="{width},2" backgroundColor="{border_color}" zPosition="2" />'
+                u'</screen>'
+            ).format(width=width, border_color=border_color, w_league=w_league+20, scr_x=scr_x, w_scorer=w_scorer+20, h_logo_x=h_logo_x, h_logo_y=h_logo_y, h_size=h_size, h_name_x=h_name_x, w_home=w_home, h_color=h_color, score_x=score_x, w_score=w_score, score_color=score_color, a_name_x=a_name_x, w_away=w_away, a_color=a_color, a_logo_x=a_logo_x, a_logo_y=a_logo_y, a_size=a_size)
 
         Screen.__init__(self, session)
-        self["league"] = Label(str(league_text))
-        self["home"] = Label(str(home_text))
-        self["away"] = Label(str(away_text))
-        self["score"] = Label(str(score_text))
-        self["scorer"] = Label(str(scorer_text))
+        self["league"] = Label(league_text)
+        self["home"] = Label(home_text)
+        self["away"] = Label(away_text)
+        self["score"] = Label(score_text)
+        self["scorer"] = Label(scorer_text)
         
         self["h_logo"] = Pixmap()
         self["a_logo"] = Pixmap()
@@ -3474,6 +3484,7 @@ class GoalToast(Screen):
         # Start position (Off-screen Top)
         self.current_y = -100
         self.target_y = 10
+        self.toast_width = width
         
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
             "ok": self.close, "cancel": self.close, 
@@ -3488,14 +3499,22 @@ class GoalToast(Screen):
         self.anim_timer.start(20, False)
 
     def animate_entry(self):
-        # Simple lerp or fixed step
-        step = 5
-        if self.current_y < self.target_y:
-            self.current_y += step
-            self.instance.move(ePoint(40, self.current_y))
-        else:
+        # FIX: Preserve horizontal centering while animating Y
+        try:
+            step = 10
+            if self.current_y < self.target_y:
+                self.current_y += step
+                from enigma import getDesktop
+                desktop = getDesktop(0)
+                dw = desktop.size().width()
+                # Center X: (DesktopWidth - ToastWidth) / 2
+                center_x = (dw - self.toast_width) // 2
+                self.instance.move(ePoint(center_x, self.current_y))
+            else:
+                self.anim_timer.stop()
+                self.timer.start(self.duration_ms, True)
+        except:
             self.anim_timer.stop()
-            # Start dismissal timer only after animation finishes
             self.timer.start(self.duration_ms, True)
 
     def force_top(self):
@@ -3955,9 +3974,13 @@ class SimpleSportsMiniBar2(Screen):
 
     def parse_json(self):
         events = global_sports_monitor.cached_events
-        self.matches = []
+        new_matches = []
         if not events:
-            self.matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': global_sports_monitor.status_message, 'away': "", 'score': "", 'status': "", 'time': "", 'h_png': None, 'a_png': None})
+            # If we already have matches and an update is in progress, keep old matches to avoid flicker
+            if self.matches and "Loading" in global_sports_monitor.status_message:
+                return
+            msg = global_sports_monitor.status_message or "Loading..."
+            self.matches = [{'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': "", 'score': "", 'status': "", 'time': "", 'h_png': None, 'a_png': None}]
             self.show_next_match()
             return
             
@@ -4022,34 +4045,36 @@ class SimpleSportsMiniBar2(Screen):
                         if team.get('homeAway') == 'home': home, h_score, h_team_id = name, sc, tid
                         else: away, a_score, a_team_id = name, sc, tid
                         
-                score_str = "VS"; status_str = "SCH"; h_scorers_txt, a_scorers_txt = "", ""
+                score_str = "VS"; status_str = "SCH"
+                # OPTIMIZATION: Defer scorer calculation to show_next_match (lazy loading)
                 if state == 'in':
                     score_str = "{} - {}".format(h_score, a_score); status_str = clock
                     local_time = "Live"
-                    if event_sport_type == SPORT_TYPE_TEAM:  # Only get scorers for team sports
-                        h_scorers_txt, a_scorers_txt = self.get_scorers_string(event, h_team_id, a_team_id)
                 elif state == 'post':
                     score_str = "{} - {}".format(h_score, a_score); status_str = "FT"
-                    if event_sport_type == SPORT_TYPE_TEAM:
-                        h_scorers_txt, a_scorers_txt = self.get_scorers_string(event, h_team_id, a_team_id)
-                final_home_txt = home
-                if h_scorers_txt: final_home_txt = "({})  {}".format(h_scorers_txt, home)
-                final_away_txt = away
-                if a_scorers_txt: final_away_txt = "{}  ({})".format(away, a_scorers_txt)
+                    
                 l_color = 0xffffff
                 for key, val in self.league_colors.items():
                     if key in league_name.upper() or key in event.get('shortName', '').upper(): l_color = val; break
-                match_data = {'league': league_name, 'color': l_color, 'home': final_home_txt, 'away': final_away_txt, 'score': score_str, 'status': status_str, 'time': local_time, 'h_url': h_url, 'a_url': a_url, 'h_id': h_id, 'a_id': a_id,
-                              'home_clean': home, 'away_clean': away, 'h_scorers': h_scorers_txt, 'a_scorers': a_scorers_txt}
-            self.matches.append(match_data)
+                    
+                # Store event reference and IDs for lazy scorer loading
+                match_data = {'league': league_name, 'color': l_color, 'home': home, 'away': away, 'score': score_str, 'status': status_str, 'time': local_time, 'h_url': h_url, 'a_url': a_url, 'h_id': h_id, 'a_id': a_id,
+                              'home_clean': home, 'away_clean': away, 'h_scorers': None, 'a_scorers': None, 
+                              'event_ref': event, 'h_team_id': h_team_id, 'a_team_id': a_team_id, 'sport_type': event_sport_type, 'state': state}
+            new_matches.append(match_data)
             
-        # FIX: EMPTY MATCHES AFTER FILTER
-        if not self.matches:
+        # Handle Filter Empty
+        if not new_matches:
+            # If we are currently updating, don't show "No Matches Found" yet if we have old data
+            if self.matches and ("Loading" in global_sports_monitor.status_message or "Processing" in global_sports_monitor.status_message):
+                return
+                
             is_stale = (time.time() - global_sports_monitor.last_update) > 300
             msg = "Updating Data..." if is_stale else "No Matches Found"
             sub = "Please Wait" if is_stale else "Check Filters"
-            self.matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': sub, 'score': "", 'status': "", 'time': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
+            new_matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': sub, 'score': "", 'status': "", 'time': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
 
+        self.matches = new_matches
         if not self.ticker_timer.isActive(): 
             self.show_next_match()
             self.ticker_timer.start(5000)
@@ -4082,8 +4107,18 @@ class SimpleSportsMiniBar2(Screen):
         # Use separated data if available
         h_txt = data.get('home_clean') or data.get('home', '')
         a_txt = data.get('away_clean') or data.get('away', '')
-        h_sc = data.get('h_scorers', '')
-        a_sc = data.get('a_scorers', '')
+        
+        # LAZY SCORER LOADING: Calculate scorers on-demand only for displayed match
+        h_sc = data.get('h_scorers')
+        a_sc = data.get('a_scorers')
+        if h_sc is None and data.get('event_ref') and data.get('sport_type') == SPORT_TYPE_TEAM and data.get('state') in ['in', 'post']:
+            h_sc, a_sc = self.get_scorers_string(data['event_ref'], data.get('h_team_id', '0'), data.get('a_team_id', '0'))
+            data['h_scorers'] = h_sc
+            data['a_scorers'] = a_sc
+        
+        # Ensure strings for display
+        h_sc = h_sc or ''
+        a_sc = a_sc or ''
         
         self["lbl_home"].setText(str(h_txt)); self["lbl_score"].setText(str(data.get('score', '')))
         self["lbl_away"].setText(str(a_txt)); self["lbl_status"].setText(str(data.get('status', '')))
@@ -4198,12 +4233,15 @@ class SimpleSportsMiniBar(Screen):
 
     def parse_json(self):
         events = global_sports_monitor.cached_events
-        self.matches = []
+        new_matches = []
         
         # If Monitor is empty/loading
         if not events:
+            # If we already have matches and an update is in progress, keep old matches to avoid flicker
+            if self.matches and "Loading" in global_sports_monitor.status_message:
+                return
             msg = global_sports_monitor.status_message or "Loading..."
-            self.matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': "", 'score': "", 'status': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
+            self.matches = [{'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': "", 'score': "", 'status': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""}]
             self.show_next_match()
             return
             
@@ -4275,15 +4313,20 @@ class SimpleSportsMiniBar(Screen):
                 elif state == 'post': score_str = "{} - {}".format(h_score, a_score); status_str = "FT"
                 
                 match_data = {'league': league_name, 'home': home, 'away': away, 'score': score_str, 'status': status_str, 'h_url': h_url, 'a_url': a_url, 'h_id': h_id, 'a_id': a_id}
-            self.matches.append(match_data)
+            new_matches.append(match_data)
             
         # Handle Filter Empty
-        if not self.matches:
+        if not new_matches:
+            # If we are currently updating, don't show "No Matches Found" yet if we have old data
+            if self.matches and ("Loading" in global_sports_monitor.status_message or "Processing" in global_sports_monitor.status_message):
+                return
+                
             is_stale = (time.time() - global_sports_monitor.last_update) > 300
             msg = "Updating Data..." if is_stale else "No Matches Found"
             sub = "Please Wait" if is_stale else "Check Filters"
-            self.matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': sub, 'score': "", 'status': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
+            new_matches.append({'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': sub, 'score': "", 'status': "", 'h_url': "", 'a_url': "", 'h_id': "", 'a_id': ""})
 
+        self.matches = new_matches
         if not self.ticker_timer.isActive(): 
             self.show_next_match()
             self.ticker_timer.start(5000)
@@ -4586,7 +4629,7 @@ class SimpleSportsScreen(Screen):
         self["list"].l.setFont(3, gFont("SimplySportFont", 20))
         self["list"].l.setItemHeight(90) 
         self["key_red"] = Label("League List"); self["key_green"] = Label("Mini Bar"); self["key_yellow"] = Label("Live Only"); self["key_blue"] = Label("Goal Alert: OFF")
-        self["key_epg"] = Label("EPG: Channels")
+        self["key_epg"] = Label("Info/EPG: Channels")
         
         # Clock timer
         self.clock_timer = eTimer()
@@ -5012,6 +5055,10 @@ class SimpleSportsScreen(Screen):
 
     @profile_function("SimpleSportsScreen")
     def refresh_ui(self, success):
+        # Guard: Don't refresh UI during loading states
+        if not success:
+            return
+            
         self.update_header()
         events = self.monitor.cached_events
         
@@ -5024,7 +5071,14 @@ class SimpleSportsScreen(Screen):
         new_match_ids = []
         # ----------------------------------------
 
+        # Skip rebuild if no changes and we already have data
+        if not self.monitor.has_changes and self.current_match_ids and events:
+            return
+        
         if not events:
+            # If we already have matches and loading is in progress, keep old list to avoid flicker
+            if self.current_match_ids and ("Loading" in self.monitor.status_message or "Fetching" in self.monitor.status_message):
+                return
             msg = self.monitor.status_message or "No Matches Found"
             dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0)
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
