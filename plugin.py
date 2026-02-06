@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.7" # Goal Alert fix
+CURRENT_VERSION = "3.8" # Video Highlights and bug improvements.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports_logos"
@@ -648,18 +648,23 @@ def InfoListEntry(entry):
     # Entry: (Time, Icon, Text)
     col_text = 0xffffff 
     col_none = None
-    return [
+    
+    # Alignment: Standard left-aligned for all entries
+    text_align = RT_HALIGN_LEFT | RT_VALIGN_CENTER
+
+    res = [
         entry,
-        # 1. Time
-        eListboxPythonMultiContent.TYPE_TEXT,
-        0, 0, 100, 40, 0, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, entry[0], col_text, col_none, 
-        # 2. Emoji
-        eListboxPythonMultiContent.TYPE_TEXT,
-        110, 0, 50, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, entry[1], col_text, col_none,
-        # 3. Text
-        eListboxPythonMultiContent.TYPE_TEXT,
-        170, 0, 800, 40, 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, entry[2], col_text, col_none
+        # 1. Time / Tag (Shifted right to X=140 for overscan protection)
+        (eListboxPythonMultiContent.TYPE_TEXT, 140, 0, 190, 40, 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, entry[0], col_text, col_none)
     ]
+    
+    # 2. Emoji (Shifted to 340)
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 340, 0, 50, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, entry[1], col_text, col_none))
+
+    # 3. Text (Shifted to 400)
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 400, 0, 1200, 40, 0, text_align, entry[2], col_text, col_none))
+    
+    return res
 
 ##def StatsListEntry(label, home_val, away_val, theme_mode):
     #if theme_mode == "ucl":
@@ -682,7 +687,9 @@ def get_scaled_pixmap(path, width, height):
     try:
         from enigma import ePicLoad, eSize
         sc = ePicLoad()
-        sc.setPara((width, height, width, height, 0, 1, "#00000000"))
+        # setPara: (width, height, aspectRatioWidth, aspectRatioHeight, useAlpha, rescaleMode, color)
+        # Use 1, 1 for aspectRatio to maintain aspect ratio during decode
+        sc.setPara((width, height, 1, 1, 0, 1, "#00000000"))
         if sc.startDecode(path, 0, 0, False) == 0:
             ptr = sc.getData()
             return ptr
@@ -1141,11 +1148,11 @@ class SportsMonitor:
         return 'soccer'
     def get_cdn_sport_name(self, league_name):
         lname = league_name.lower()
+        if 'college' in lname or 'ncaa' in lname: return 'ncaa'
         if 'nba' in lname or 'basket' in lname: return 'nba'
         if 'nfl' in lname: return 'nfl'
         if 'mlb' in lname: return 'mlb'
         if 'nhl' in lname: return 'nhl'
-        if 'college' in lname or 'ncaa' in lname: return 'ncaa'
         return 'soccer'
     def get_score_prefix(self, sport, diff):
         if diff < 0: return "GOAL DISALLOWED" 
@@ -1509,9 +1516,9 @@ class SportsMonitor:
                 league_url = event.get('league_url', '')
                 sport_cdn = self.get_cdn_sport_name(league_name)
                 
-                # Skip individual sports
+                # Skip individual sports EXCEPT Tennis (we want flags)
                 event_sport_type = get_sport_type(league_url)
-                if event_sport_type in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_TENNIS, SPORT_TYPE_COMBAT]:
+                if event_sport_type in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]:
                     continue
                 
                 team_h = next((t for t in comps if t.get('homeAway') == 'home'), None)
@@ -1519,20 +1526,37 @@ class SportsMonitor:
                 if not team_h and len(comps) > 0: team_h = comps[0]
                 if not team_a and len(comps) > 1: team_a = comps[1]
 
-                home = team_h.get('team', {}).get('shortDisplayName') or "Home"
-                h_score = int(team_h.get('score', '0'))
-                h_id = team_h.get('team', {}).get('id', '')
-                # INCREASED RES TO 100x100
-                h_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png&w=100&h=100&transparent=true".format(sport_cdn, h_id) if h_id else ""
+                home = "Home"
+                h_id = ""
+                h_logo = ""
+                if team_h:
+                    if 'athlete' in team_h:
+                        ath = team_h.get('athlete', {})
+                        home = ath.get('shortName') or ath.get('displayName') or "Player 1"
+                        h_logo = ath.get('flag', {}).get('href') or ""
+                    else:
+                        home = team_h.get('team', {}).get('shortDisplayName') or "Home"
+                        h_id = team_h.get('team', {}).get('id', '')
+                        if h_id: h_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png&w=100&h=100&transparent=true".format(sport_cdn, h_id)
 
-                away = team_a.get('team', {}).get('shortDisplayName') or "Away"
-                a_score = int(team_a.get('score', '0'))
-                a_id = team_a.get('team', {}).get('id', '')
-                # INCREASED RES TO 100x100
-                a_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png&w=100&h=100&transparent=true".format(sport_cdn, a_id) if a_id else ""
+                away = "Away"
+                a_id = ""
+                a_logo = ""
+                if team_a:
+                    if 'athlete' in team_a:
+                        ath = team_a.get('athlete', {})
+                        away = ath.get('shortName') or ath.get('displayName') or "Player 2"
+                        a_logo = ath.get('flag', {}).get('href') or ""
+                    else:
+                        away = team_a.get('team', {}).get('shortDisplayName') or "Away"
+                        a_id = team_a.get('team', {}).get('id', '')
+                        if a_id: a_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png&w=100&h=100&transparent=true".format(sport_cdn, a_id)
                 
                 event['h_logo_url'] = h_logo
                 event['a_logo_url'] = a_logo
+
+                h_score = int(team_h.get('score', '0')) if team_h else 0
+                a_score = int(team_a.get('score', '0')) if team_a else 0
 
                 # 4. PRE-FETCH LOGOS FOR LIVE MATCHES
                 # Ensure checking logic matches GoalToast (using md5)
@@ -1642,21 +1666,7 @@ if global_sports_monitor is None:
 # ==============================================================================
 # MISSING HELPERS & GAME INFO SCREEN
 # ==============================================================================
-def InfoListEntry(entry):
-    col_text = 0xffffff 
-    col_none = None
-    return [
-        entry,
-        # 1. Time (Centered: 325)
-        eListboxPythonMultiContent.TYPE_TEXT,
-        325, 0, 100, 40, 0, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, entry[0], col_text, col_none, 
-        # 2. Emoji (Centered: 435)
-        eListboxPythonMultiContent.TYPE_TEXT,
-        435, 0, 50, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, entry[1], col_text, col_none,
-        # 3. Text (Centered: 495)
-        eListboxPythonMultiContent.TYPE_TEXT,
-        495, 0, 800, 40, 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, entry[2], col_text, col_none
-    ]
+# Consolidated into line 647
 
 # ==============================================================================
 # ==============================================================================
@@ -1681,12 +1691,10 @@ def EventListEntry(label, home_val, away_val, theme_mode):
     if theme_mode == "ucl": col_label, col_val, col_bg = 0x00ffff, 0xffffff, 0x0e1e5b
     else: col_label, col_val, col_bg = 0x00FF85, 0xFFFFFF, 0x33190028
     
-    # New Wide Layout (Total ~1520px for list) 
-    # Home: 650px (Right Aligned) | Time: 120px (Center) | Away: 650px (Left Aligned)
-    # Center 800 (was 760) -> Shift +40
-    h_x, h_w = 80, 650
-    l_x, l_w = 740, 120
-    a_x, a_w = 870, 650
+    # Wide Layout (Shifted +60 for Consistency)
+    h_x, h_w = 140, 650
+    l_x, l_w = 800, 120
+    a_x, a_w = 930, 650
 
     res = [None]
     # Background line
@@ -2105,6 +2113,269 @@ class TeamStandingScreen(Screen):
 # ==============================================================================
 # GAME INFO SCREEN (UPDATED: "Facebook Style" News Feed)
 # ==============================================================================
+class SimplePlayer(Screen):
+    def __init__(self, session, sref=None, playlist=None):
+        Screen.__init__(self, session)
+        self.session = session
+        self.playlist = playlist
+        self.playlist_index = 0
+        self.is_listening = False
+        self.is_advancing = False
+        self.retry_count = {}
+        
+        # Prefetching Variables
+        self.prefetch_client = None
+        self.buffer_path = "/tmp/ss_buf_A.mp4"
+        self.next_buffer_path = "/tmp/ss_buf_B.mp4"
+        self.current_prefetch_url = ""
+        self.is_prefetching = False
+        
+        # Helper to clean buffers on start (ONLY if not inheriting an active prefetch)
+        if not hasattr(global_sports_monitor, 'active_prefetch_url'):
+            if os.path.exists(self.buffer_path): os.remove(self.buffer_path)
+            if os.path.exists(self.next_buffer_path): os.remove(self.next_buffer_path)
+        
+        # Save current service to restore later
+        self.restore_service = self.session.nav.getCurrentlyPlayingServiceReference()
+        
+        # Prefetch coordination: If GameInfo already started a prefetch, inherit it
+        if hasattr(global_sports_monitor, 'active_prefetch_url'):
+            self.current_prefetch_url = global_sports_monitor.active_prefetch_url
+            # Don't delete buffer A if it's the one being used by active_prefetch
+            print("[SimplySport] SimplePlayer: Inherited prefetch for " + self.current_prefetch_url)
+        
+        # Transparent background for video overlay
+        self.skin = """<screen position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#ff000000">
+            <widget name="video_title" position="50,50" size="1000,60" font="Regular;40" foregroundColor="#ffffff" backgroundColor="#000000" transparent="1" zPosition="1" />
+            <widget name="progress" position="50,120" size="1000,30" font="Regular;24" foregroundColor="#00FF85" backgroundColor="#000000" transparent="1" zPosition="1" />
+            <widget name="hint" position="50,970" size="1820,60" font="Regular;28" foregroundColor="#aaaaaa" backgroundColor="#000000" transparent="1" halign="center" zPosition="1" />
+        </screen>"""
+        self["video_title"] = Label("Loading Stream...")
+        self["progress"] = Label("")
+        self["hint"] = Label("◄► Skip | OK/Exit: Stop")
+        
+        self["actions"] = ActionMap(["OkCancelActions", "InfobarSeekActions", "DirectionActions"], {
+            "cancel": self.close, 
+            "ok": self.close,
+            "seekFwd": self.next_video,      # >> button
+            "seekBack": self.prev_video,     # << button
+            "right": self.next_video,
+            "left": self.prev_video,
+        }, -2)
+        
+        self.sref = sref
+        self.onLayoutFinish.append(self.play)
+
+    def prefetch_next(self, index):
+        return # DISABLED for stability (user request: less aggressive)
+        
+        url, title = self.playlist[index]
+        
+        # Strip User-Agent fragment for downloadPage
+        clean_url = url.split('#')[0]
+        
+        # Only prefetch MP4s (HLS not supported for simple file download)
+        if ".m3u8" in clean_url: return
+        
+        # Determine target buffer (ping-pong)
+        target_path = self.next_buffer_path if self.buffer_path == "/tmp/ss_buf_A.mp4" else "/tmp/ss_buf_A.mp4"
+        
+        # Avoid duplicate requests
+        if self.is_prefetching and self.current_prefetch_url == clean_url: return
+        
+        self.is_prefetching = True
+        self.current_prefetch_url = clean_url
+        
+        print("[SimplySport] Prefetching: " + title)
+        
+        # Use simple downloadPage with Agent for better control? 
+        # Using twisted.web.client.downloadPage for simplicity as used elsewhere
+        from twisted.web.client import downloadPage
+        
+        # NEW: Cancel existing prefetch if active
+        if self.prefetch_client:
+            try: self.prefetch_client.cancel()
+            except: pass
+
+        self.prefetch_client = downloadPage(clean_url.encode('utf-8'), target_path)
+        self.prefetch_client.addCallback(self.prefetch_done, target_path, clean_url)
+        self.prefetch_client.addErrback(self.prefetch_error)
+
+    def prefetch_done(self, path, url, result):
+        print("[SimplySport] Prefetch Complete: " + path)
+        self.is_prefetching = False
+        # Create a marker or just rely on path check in play()
+
+    def prefetch_error(self, failure):
+        print("[SimplySport] Prefetch Error: " + str(failure))
+        self.is_prefetching = False
+
+    def next_video(self):
+        """Skip to next video in playlist"""
+        if not self.playlist or self.is_advancing: return
+        
+        if self.playlist_index < len(self.playlist) - 1:
+            self.is_advancing = True
+            self.playlist_index += 1
+            print("[SimplySport] Manual Skip Forward to index: {}".format(self.playlist_index))
+            from twisted.internet import reactor
+            reactor.callLater(0.5, self.play)
+    
+    def prev_video(self):
+        """Go back to previous video"""
+        if not self.playlist or self.is_advancing: return
+        
+        if self.playlist_index > 0:
+            self.is_advancing = True
+            self.playlist_index -= 1
+            print("[SimplySport] Manual Skip Backward to index: {}".format(self.playlist_index))
+            from twisted.internet import reactor
+            reactor.callLater(0.5, self.play)
+
+    def play(self):
+        try:
+            self.is_advancing = False
+            if self.playlist:
+                if self.playlist_index < len(self.playlist):
+                    url, title = self.playlist[self.playlist_index]
+                    
+                    # Add retry counter check
+                    current_video_key = "{}".format(self.playlist_index)
+                    retries = self.retry_count.get(current_video_key, 0)
+                    
+                    if retries > 2:
+                        print("[SimplySport] Video {} failed after 3 retries, skipping".format(title))
+                        self.retry_count[current_video_key] = 0
+                        if self.playlist_index < len(self.playlist) - 1:
+                            self.playlist_index += 1
+                            from twisted.internet import reactor
+                            reactor.callLater(0.5, self.play)
+                        else:
+                            self.close()
+                        return
+                    
+                    self["video_title"].setText("({}/{}) {}".format(
+                        self.playlist_index + 1, 
+                        len(self.playlist), 
+                        title
+                    ))
+                    self["progress"].setText("Video {}/{}".format(
+                        self.playlist_index + 1, 
+                        len(self.playlist)
+                    ))
+                    
+                    final_url = url
+                    
+                    # Detect stream type
+                    is_hls = ".m3u8" in url.lower()
+                    
+                    # Service type based on content
+                    if is_hls:
+                        # HLS streams use 4097
+                        service_type = "4097"
+                    else:
+                        # MP4/Progressive use 5001 or 4097
+                        service_type = "5001" if ".mp4" in url.lower() else "4097"
+                    
+                    # Construct SREF with proper service type
+                    ref = "{}:0:1:0:0:0:0:0:0:0:{}:{}".format(
+                        service_type,
+                        final_url.replace(":", "%3a"), 
+                        title
+                    )
+                    
+                    print("[SimplySport] Playing [{}]: {}".format(service_type, final_url))
+                    self.session.nav.playService(eServiceReference(ref))
+
+                    # Record start time for grace period
+                    import time
+                    self.start_time = time.time()
+                    
+                    # Listen for EOF
+                    if not self.is_listening:
+                        self.session.nav.event.append(self.on_event)
+                        self.is_listening = True
+                else:
+                    self.close()
+                    return
+            elif self.sref:
+                self.session.nav.playService(self.sref)
+                self["video_title"].setText("")
+        except Exception as e:
+            print("[SimplySport] Play error: {}".format(e))
+            # Increment retry counter
+            current_video_key = "{}".format(self.playlist_index)
+            self.retry_count[current_video_key] = self.retry_count.get(current_video_key, 0) + 1
+            
+            # Retry after delay (2.0s)
+            from twisted.internet import reactor
+            reactor.callLater(2.0, self.play)
+
+    def on_event(self, event):
+        # Enhanced event detection
+        # evEOF = 5, evStopped = 8, evUser = 14
+        if event in [5, 8]:  # EOF or Stopped
+            if self.is_advancing: return
+            
+            # Grace period: Ignore EOF if within first 5 seconds (buffering)
+            import time
+            if (time.time() - self.start_time) < 5:
+                return
+            
+            print("[SimplySport] Video Finished (Event: {})".format(event))
+            
+            # Playlist Logic
+            if self.playlist:
+                self.is_advancing = True
+                self.playlist_index += 1
+                if self.playlist_index < len(self.playlist):
+                    print("[SimplySport] Advancing to index: {}".format(self.playlist_index))
+                    from twisted.internet import reactor
+                    # Increase delay for stability
+                    reactor.callLater(1.2, self.play)
+                else:
+                    # All videos finished
+                    self.close()
+            else:
+                self.close()
+
+    def close(self, *args, **kwargs):
+        # Show completion message if playlist finished normally
+        if hasattr(self, 'playlist') and self.playlist:
+            if self.playlist_index >= len(self.playlist) - 1 and not self.is_advancing:
+                # All videos played successfully
+                try:
+                    from Screens.MessageBox import MessageBox
+                    self.session.open(MessageBox, 
+                        "All highlights played successfully!\n{} videos completed.".format(len(self.playlist)),
+                        MessageBox.TYPE_INFO, 
+                        timeout=3
+                    )
+                except: pass
+        
+        try:
+            if self.is_listening:
+                self.session.nav.event.remove(self.on_event)
+                self.is_listening = False
+        except: pass
+        
+        # Cleanup Buffers
+        try:
+            if hasattr(global_sports_monitor, 'active_prefetch_url'):
+                delattr(global_sports_monitor, 'active_prefetch_url')
+            if os.path.exists("/tmp/ss_buf_A.mp4"): os.remove("/tmp/ss_buf_A.mp4")
+            if os.path.exists("/tmp/ss_buf_B.mp4"): os.remove("/tmp/ss_buf_B.mp4")
+        except: pass
+
+        # Restore previous service
+        if self.restore_service:
+            self.session.nav.playService(self.restore_service)
+        else:
+            self.session.nav.stopService()
+            
+        Screen.close(self, *args, **kwargs)
+
+
 class GameInfoScreen(Screen):
     def __init__(self, session, event_id, league_url=""):
         Screen.__init__(self, session)
@@ -2126,9 +2397,9 @@ class GameInfoScreen(Screen):
             self.summary_url = "https://site.api.espn.com/apis/site/v2/sports/soccer/all/summary?event=" + str(event_id)
 
         # --- SKIN ---
-        # For individual sports (racing, golf, tennis, combat), use a single event header
-        # For team sports, use the traditional two-team vs layout
-        is_individual_sport = self.sport_type in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_TENNIS, SPORT_TYPE_COMBAT]
+        # For individual sports (racing, golf, combat), use a single event header
+        # For team sports and TENNIS, use the traditional two-team vs layout
+        is_individual_sport = self.sport_type in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]
         
         if is_individual_sport:
             # Single event layout - centered title, no team logos in header
@@ -2195,12 +2466,84 @@ class GameInfoScreen(Screen):
         self.items_per_page = 14 # Fill screen (700px / 50px = 14)
         
         self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions"], {
-            "cancel": self.close, "green": self.close, "ok": self.open_standings, "back": self.close,
-            "up": self.page_up, "down": self.page_down, "left": self.page_up, "right": self.page_down
+            "cancel": self.close, "green": self.close, "ok": self.handle_ok, "back": self.close,
+            "up": self["info_list"].up, "down": self["info_list"].down, "left": self.page_up, "right": self.page_down
         }, -2)
         
         self.onLayoutFinish.append(self.start_loading)
-    
+
+    def handle_ok(self):
+        idx = self["info_list"].getSelectedIndex()
+        if idx is None: return
+
+        # Calculate actual index in full_rows based on pagination
+        real_idx = (self.current_page * self.items_per_page) + idx
+        if real_idx < len(self.full_rows):
+            item = self.full_rows[real_idx]
+            # item[0] is the data tuple passed to InfoListEntry/TextListEntry
+            data = item[0]
+            
+            # Check if it's a video entry (Tuple len 4: Label, Icon, Title, URL)
+            if isinstance(data, tuple) and len(data) > 3:
+                if data[0] == "VIDEO":
+                    url = data[3]
+                    title = data[2]
+                    self.play_video(url, title)
+                elif data[0] == "PLAY ALL":
+                    self.play_all_videos()
+            else:
+                # Default behavior: Standings
+                self.open_standings()
+
+    def play_all_videos(self):
+        if not hasattr(self, 'all_videos') or not self.all_videos: return
+        
+        formatted_playlist = []
+        ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        
+        for url, title in self.all_videos:
+            # Clean URL first
+            clean_url = url.strip()
+            
+            # Add headers properly
+            if "#" in clean_url:
+                # Already has fragment, append
+                full_url = "{}&User-Agent={}".format(clean_url, ua)
+            else:
+                # No fragment, add new one
+                full_url = "{}#User-Agent={}".format(clean_url, ua)
+            
+            # Optional: Add referer for ESPN
+            if "espn" in clean_url.lower():
+                full_url += "&Referer=https://www.espn.com/"
+            
+            formatted_playlist.append((full_url, title))
+        
+        self.session.open(SimplePlayer, sref=None, playlist=formatted_playlist)
+
+    def play_video(self, url, title):
+        if not url: return
+        
+        clean_url = url.strip()
+        ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        
+        if "#" in clean_url:
+            full_url = "{}&User-Agent={}".format(clean_url, ua)
+        else:
+            full_url = "{}#User-Agent={}".format(clean_url, ua)
+            
+        if "espn" in clean_url.lower():
+            full_url += "&Referer=https://www.espn.com/"
+            
+        # Use ServiceMP (4097) for stream playback or inherited by SimplePlayer
+        # Note: SimplePlayer will override service_type based on HLS/MP4 detection
+        # Create a basic ref to pass through
+        ref = "4097:0:1:0:0:0:0:0:0:0:{}:{}".format(full_url.replace(":", "%3a"), title)
+        
+        self.session.open(SimplePlayer, eServiceReference(ref))
+
+
+
     def open_standings(self):
         """Open the Team Standing Screen for this league"""
         self.session.openWithCallback(self.standings_callback, TeamStandingScreen, self.league_url, self.league_name)
@@ -2248,8 +2591,12 @@ class GameInfoScreen(Screen):
 
     def logo_ready(self, data, widget_name, tmp_path):
         if self[widget_name].instance:
+            self[widget_name].instance.setScale(1)
             self[widget_name].instance.setPixmapFromFile(tmp_path)
             self[widget_name].show()
+
+    def thumbnail_ready(self, *args, **kwargs): pass
+
 
     def parse_details(self, body):
         try:
@@ -2411,6 +2758,68 @@ class GameInfoScreen(Screen):
             # ==========================================================
             # TEAM SPORTS: FACEBOOK STYLE NEWS FEED (PREVIEW MODE)
             # ==========================================================
+            
+            # --- VIDEO HIGHLIGHTS ---
+            try:
+                videos = data.get('videos', [])
+                if videos:
+                    # Sort Videos: Goals > Highlights > Others
+                    def get_vid_priority(v):
+                        txt = (v.get('headline') or v.get('title') or "").lower()
+                        if "goal" in txt or "score" in txt: return 0
+                        if "highlight" in txt or "summary" in txt or "recap" in txt: return 1
+                        return 2
+                    
+                    videos.sort(key=get_vid_priority)
+
+                    # Generic Header for Videos
+                    self.full_rows.append(TextListEntry("GAME HIGHLIGHTS", self.theme, is_header=True))
+                    self.full_rows.append(TextListEntry("Press OK to play video", self.theme))
+                    
+                    # Track index to insert "Play All" button
+                    insert_idx = len(self.full_rows)
+                    self.all_videos = []
+                    
+                    for vid in videos:
+                        title = vid.get('headline') or vid.get('title') or "Video"
+                        url = ""
+                        
+                        # EPSN often nests links deeply
+                        links = vid.get('links', {})
+                        source = links.get('source', {})
+                        
+                        # Preferred qualities
+                        if 'mezzanine' in source: url = source['mezzanine'].get('href')
+                        elif 'flash' in source: url = source['flash'].get('href')
+                        elif 'hls' in source: url = source['hls'].get('href')
+                        elif 'HD' in links: url = links.get('HD', {}).get('href')
+                        elif 'mobile' in links: url = links.get('mobile', {}).get('href')
+                        
+                        if url:
+                            self.all_videos.append((url, title))
+                            # Duration
+                            dur_txt = "VIDEO"
+                            duration = str(vid.get('duration', ''))
+                            if duration.isdigit():
+                                m = int(duration) // 60
+                                s = int(duration) % 60
+                                dur_txt = "{}:{:02d}".format(m, s)
+                            
+                            # Simplified Icon Handling (No Thumbnails)
+                            icon_display = "▶"
+
+                            payload = ("VIDEO", icon_display, title, url)
+                            self.full_rows.append(InfoListEntry(payload))
+                    
+                    if len(self.all_videos) > 1:
+                         payload = ("PLAY ALL", "▶▶", "    Play All Highlights ({})".format(len(self.all_videos)), "")
+                         self.full_rows.insert(insert_idx, InfoListEntry(payload))
+                         
+                         # STABILIZATION: Removed Early Prefetch. 
+                         # We only download when the player is actually open.
+
+            except: pass
+
             if game_status == 'pre':
                 self["match_title"].setText(league_name if league_name else "PREVIEW")
                 
@@ -2961,6 +3370,7 @@ class GameInfoScreen(Screen):
                 # Head-to-head match display - extract player names
                 player1_name = "Player 1"
                 player2_name = "Player 2"
+                p1 = {}; p2 = {}
                 
                 try:
                     p1 = competitors[0]
@@ -2970,18 +3380,29 @@ class GameInfoScreen(Screen):
                     player2_name = p2.get('athlete', {}).get('displayName') or p2.get('athlete', {}).get('shortDisplayName') or p2.get('team', {}).get('displayName') or p2.get('name', 'Player 2')
                 except: pass
                 
-                match_name = "{} vs {}".format(player1_name, player2_name)
-                
                 self["match_title"].setText(league_name if league_name else "TENNIS MATCH")
-                self["h_name"].setText(match_name)
+                self["h_name"].setText(player1_name)
+                self["a_name"].setText(player2_name)
                 self["stadium_name"].setText("")
+                
+                # Download athlete logos (flags)
+                try:
+                    f1 = p1.get('athlete', {}).get('flag', {}).get('href')
+                    f2 = p2.get('athlete', {}).get('flag', {}).get('href')
+                    if f1: self.download_logo(f1, "h_logo")
+                    if f2: self.download_logo(f2, "a_logo")
+                except: pass
                 
                 # Set scores
                 try:
-                    score1 = competitors[0].get('score', '0')
-                    score2 = competitors[1].get('score', '0')
-                    linescores1 = competitors[0].get('linescores', [])
-                    linescores2 = competitors[1].get('linescores', [])
+                    score1 = p1.get('score', '0')
+                    score2 = p2.get('score', '0')
+                    self["h_score"].setText(str(score1))
+                    self["a_score"].setText(str(score2))
+                    self["h_score"].show(); self["a_score"].show(); self["score_sep"].show()
+                    
+                    linescores1 = p1.get('linescores', [])
+                    linescores2 = p2.get('linescores', [])
                     
                     # Display set scores
                     sets_txt = ""
@@ -2992,9 +3413,6 @@ class GameInfoScreen(Screen):
                     
                     if sets_txt:
                         self["stadium_name"].setText("Sets: " + sets_txt.strip())
-                    else:
-                        # Show match score if no set detail
-                        self["stadium_name"].setText("Score: {} - {}".format(score1, score2))
                 except: pass
                 
             else:
@@ -4007,9 +4425,9 @@ class SimpleSportsMiniBar2(Screen):
             h_url = event.get('h_logo_url', '')
             a_url = event.get('a_logo_url', '')
             try: h_id = h_url.split('500/')[-1].split('.png')[0]
-            except: h_id = '0'
+            except: h_id = hashlib.md5(h_url.encode('utf-8')).hexdigest() if h_url else '0'
             try: a_id = a_url.split('500/')[-1].split('.png')[0]
-            except: a_id = '0'
+            except: a_id = hashlib.md5(a_url.encode('utf-8')).hexdigest() if a_url else '0'
             
             comps = event.get('competitions', [{}])[0].get('competitors', [])
             
@@ -4140,6 +4558,7 @@ class SimpleSportsMiniBar2(Screen):
         if not img_id or img_id == '0': self[widget_name].hide(); return
         file_path = self.logo_path + img_id + ".png"
         if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            self[widget_name].instance.setScale(1)
             self[widget_name].instance.setPixmapFromFile(file_path)
             self[widget_name].show()
         else:
@@ -4149,6 +4568,7 @@ class SimpleSportsMiniBar2(Screen):
 
     def logo_downloaded(self, data, widget_name, file_path):
         if self[widget_name].instance:
+            self[widget_name].instance.setScale(1)
             self[widget_name].instance.setPixmapFromFile(file_path)
             self[widget_name].show()
     def logo_error(self, error): pass
@@ -4268,9 +4688,9 @@ class SimpleSportsMiniBar(Screen):
             h_url = event.get('h_logo_url', '')
             a_url = event.get('a_logo_url', '')
             try: h_id = h_url.split('500/')[-1].split('.png')[0]
-            except: h_id = '0'
+            except: h_id = hashlib.md5(h_url.encode('utf-8')).hexdigest() if h_url else '0'
             try: a_id = a_url.split('500/')[-1].split('.png')[0]
-            except: a_id = '0'
+            except: a_id = hashlib.md5(a_url.encode('utf-8')).hexdigest() if a_url else '0'
 
             comps = event.get('competitions', [{}])[0].get('competitors', [])
             
@@ -4351,6 +4771,7 @@ class SimpleSportsMiniBar(Screen):
         file_path = self.logo_path + img_id + ".png"
         
         if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            self[widget_name].instance.setScale(1)
             self[widget_name].instance.setPixmapFromFile(file_path)
             self[widget_name].show()
         else:
@@ -4361,6 +4782,7 @@ class SimpleSportsMiniBar(Screen):
 
     def logo_downloaded(self, data, widget_name, file_path):
         if self[widget_name].instance:
+            self[widget_name].instance.setScale(1)
             self[widget_name].instance.setPixmapFromFile(file_path)
             self[widget_name].show()
     def logo_error(self, error): pass
@@ -5100,9 +5522,9 @@ class SimpleSportsScreen(Screen):
                 league_prefix = event.get('league_name', '')
                 h_url = event.get('h_logo_url', ''); a_url = event.get('a_logo_url', '')
                 try: h_id = h_url.split('500/')[-1].split('.png')[0]
-                except: h_id = '0'
+                except: h_id = hashlib.md5(h_url.encode('utf-8')).hexdigest() if h_url else '0'
                 try: a_id = a_url.split('500/')[-1].split('.png')[0]
-                except: a_id = '0'
+                except: a_id = hashlib.md5(a_url.encode('utf-8')).hexdigest() if a_url else '0'
                 h_png = self.get_logo_path(h_url, h_id); a_png = self.get_logo_path(a_url, a_id)
                 is_live = False; display_time = local_time; h_score_int = 0; a_score_int = 0
                 
