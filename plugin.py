@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.6" # Visual and performance enhancements to all features
+CURRENT_VERSION = "3.7" # Visual and performance enhancements to the main screen and the mini bars
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports_logos"
