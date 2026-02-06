@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.7" # Visual and performance enhancements to the main screen and the mini bars
+CURRENT_VERSION = "3.7" # Goal Alert fix
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports_logos"
@@ -1089,6 +1089,7 @@ class SportsMonitor:
 
     # queue_notification updated to handle split components
     def queue_notification(self, league, home, away, score, scorer, l_url, h_url, a_url, event_type="default", scoring_team=None):
+        if self.discovery_mode == 0: return
         self.notification_queue.append((league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team))
         self.process_queue()
         
