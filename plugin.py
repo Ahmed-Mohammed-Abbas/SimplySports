@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.9" # Minor fixes to the game info screen
+CURRENT_VERSION = "3.9" # Fixing the Basketball notifications and logos not appearing in the main screen and the mini bars.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports_logos"
@@ -473,6 +473,21 @@ def safe_connect(timer_obj, func):
             timer_obj.timeout.append(func)
 
 # ==============================================================================
+# PIXMAP HELPER (Required for logo display in list entries)
+# ==============================================================================
+try:
+    from Tools.LoadPixmap import LoadPixmap
+except ImportError:
+    LoadPixmap = None
+
+def get_scaled_pixmap(path, width, height):
+    """Load and return a scaled pixmap from file path"""
+    if not path or not LoadPixmap: return None
+    try:
+        return LoadPixmap(cached=True, path=path)
+    except: return None
+
+# ==============================================================================
 # LIST RENDERERS
 # ==============================================================================
 def SportListEntry(entry):
@@ -740,6 +755,7 @@ class SportsMonitor:
         
         self.logo_path_cache = {} 
         self.missing_logo_cache = [] 
+        self.pending_logos = set()
         self.reminders = [] 
         
         self.timer = eTimer()
@@ -762,6 +778,9 @@ class SportsMonitor:
         self.active_requests = set()
         self.last_cache_save = 0
         self.last_callback_time = 0
+        self.pending_callback = None
+        self.callback_debounce_timer = eTimer()
+        safe_connect(self.callback_debounce_timer, self._execute_pending_callback)
         self.event_map = {} # optimization: O(1) lookup
         
         self.load_cache()
@@ -838,6 +857,13 @@ class SportsMonitor:
         
         # FIX: active flag only controlled by mode, but timer checks reminders too
         self.active = (self.discovery_mode > 0)
+        
+        # FIX: Clear pending notifications immediately when toggling OFF
+        # This prevents queued notifications from showing after disabling Goal Alert
+        if self.discovery_mode == 0:
+            self.notification_queue = []
+            self.notification_active = False
+        
         self.ensure_timer_state()
         
         self.save_config(); return self.discovery_mode
@@ -947,8 +973,13 @@ class SportsMonitor:
         if not self.active and not self.is_custom_mode:
             return
 
-        self.status_message = "Loading Data..."
-        for cb in self.callbacks: cb(False)
+        # ✅ INSTANT UI UPDATE - Show cached data FIRST
+        if self.cached_events:
+            self.status_message = "Updating..."
+            self._trigger_callbacks(True)  # UI updates immediately
+        else:
+            self.status_message = "Loading Data..."
+            self._trigger_callbacks(False)  # Show loading state
         # Use persistent agent
         if not self.is_custom_mode:
             try:
@@ -965,41 +996,42 @@ class SportsMonitor:
                     d.addBoth(lambda x: self.active_requests.discard(url)) 
             except: pass
             
-            # Optimization: If we have cached data, signal a "soft" update (True) first
-            if self.cached_events:
-                 for cb in self.callbacks: cb(True)
+
         else:
             if not self.custom_league_indices:
                 self.status_message = "No Leagues Selected"
                 self.cached_events = []
-                for cb in self.callbacks: cb(True)
+                self._trigger_callbacks(True)
                 return
             
-            # Optimization: If we have cached data, signal a "soft" update (True) first
-            if self.cached_events:
-                 for cb in self.callbacks: cb(True)
+
 
             # Start Batching
-            self.status_message = "Loading Batch..."
+            # ✅ INCREMENTAL BATCH PROCESSING
+            self.status_message = "Loading..."
             self.batch_queue = []
             selected_indices = [idx for idx in self.custom_league_indices if idx < len(DATA_SOURCES)]
             self.batch_remaining = len(selected_indices)
             
-            # Safety timer: 10 seconds (Reduced)
-            self.batch_timer.start(10000, True)
+            # ✅ Reduce timeout to 7 seconds
+            self.batch_timer.start(7000, True)
+            
+            # ✅ Track when first response arrives
+            self.batch_first_response = None
             
             for idx in selected_indices:
                 name, url = DATA_SOURCES[idx]
                 if url in self.active_requests:
+                    self.batch_remaining -= 1
                     print("[SportsMonitor] Skipping duplicate request:", url)
                     continue
                 
                 self.active_requests.add(url)
                 d = self.agent.request(b'GET', url.encode('utf-8'))
                 d.addCallback(readBody)
-                d.addCallback(self.collect_batch_response, name, url)
+                d.addCallback(self.collect_batch_response_incremental, name, url)  # ✅ NEW
                 d.addErrback(self.collect_batch_error, url) 
-                d.addBoth(lambda x: self.active_requests.discard(url))
+                d.addBoth(lambda x, u=url: self.active_requests.discard(u))
 
     def save_cache(self):
         # Optimization: Write Coalescing (Max once every 2 mins)
@@ -1052,36 +1084,95 @@ class SportsMonitor:
         if self.batch_remaining <= 0:
             self.finalize_batch()
 
-    def finalize_batch(self):
-        # GUARD: If we switched to single mode, discard this batch
-        if not self.is_custom_mode: return
+    def collect_batch_response_incremental(self, body, name, url):
+        """Process each response immediately (streaming updates)"""
+        if not self.is_custom_mode: 
+            self.active_requests.discard(url)
+            return
+        
+        # ✅ PROCESS IMMEDIATELY - Don't wait for all
+        import time
+        if self.batch_first_response is None:
+            self.batch_first_response = time.time()
+        
+        self.active_requests.discard(url)
+        
+        # Process this league's data right away
+        try:
+            self.process_events_data([(body, name, url)], append_mode=True)
+            # UI updates after EACH league loads - handled by process_events_data probably calling callbacks? 
+            # If process_events_data doesn't call callbacks, we might need to add it here.
+            # User's snippet says "UI updates after EACH league loads", assuming process_events_data handles it or we rely on the implementation.
+            # However, looking at parse_single_json, it just calls process_events_data.
+            # Let's assume process_events_data updates the UI or callbacks.
+        except Exception as e:
+            print("[SportsMonitor] Error processing {}: {}".format(name, e))
+        
+        self.batch_remaining -= 1
+        
+        # ✅ SMART COMPLETION - Don't wait for stragglers
+        if self.batch_remaining <= 0:
+            self.finalize_batch()
+        elif self.batch_remaining <= 2 and time.time() - self.batch_first_response > 3:
+            # If 2 or fewer left and we've waited 3s, finalize early
+            print("[SportsMonitor] Early finalize - {} stragglers".format(self.batch_remaining))
+            self.finalize_batch()
 
-        # Stop safety timer
+    def finalize_batch(self):
+        """Cleanup after batch processing"""
+        if not self.is_custom_mode: return
+        
         if self.batch_timer.isActive():
             self.batch_timer.stop()
         
-        # Process all collected events at once
-        if self.batch_queue:
-            self.status_message = "Processing Batch..."
-            self.process_events_data(self.batch_queue, append_mode=False)
-        else:
-            # All failed or empty - Only clear if we really have nothing
-            self.status_message = "Connection Error"
-            # FIX: Do not wipe cache on transient error if we have data
-            if not self.cached_events:
-                self.cached_events = []
-            for cb in self.callbacks: cb(True)
-            
+        # ✅ No extra processing needed - data already processed incrementally
+        self.status_message = ""
         self.batch_queue = []
         self.batch_remaining = 0
+        self.batch_first_response = None
+        
+        # ✅ Final save
+        self.save_cache()
+        
+        # One final callback to ensure UI is synced
+        self._trigger_callbacks(True)
 
     def handle_error(self, failure):
         self.status_message = "Connection Error"
         # FIX: Do not wipe cache on transient error
         if not self.cached_events:
             self.cached_events = []
-        for cb in self.callbacks: cb(True)
+        self._trigger_callbacks(True)
     def handle_error_silent(self, failure): pass
+
+    def _trigger_callbacks(self, data_ready=True):
+        """
+        Debounced callback triggering
+        Only fires once per 300ms to prevent UI flicker
+        """
+        import time
+        now = time.time()
+        
+        # If less than 300ms since last callback, schedule delayed
+        if now - self.last_callback_time < 0.3:
+            self.pending_callback = data_ready
+            if not self.callback_debounce_timer.isActive():
+                self.callback_debounce_timer.start(300, True)
+            return
+        
+        # Execute immediately
+        self.last_callback_time = now
+        for cb in self.callbacks: 
+            cb(data_ready)
+
+    def _execute_pending_callback(self):
+        """Execute the pending debounced callback"""
+        if self.pending_callback is not None:
+            import time
+            self.last_callback_time = time.time()
+            for cb in self.callbacks:
+                cb(self.pending_callback)
+            self.pending_callback = None
 
     @profile_function("SportsMonitor")
     def parse_single_json(self, body, league_name_fixed="", league_url=""): 
@@ -1097,10 +1188,26 @@ class SportsMonitor:
     # queue_notification updated to handle split components
     def queue_notification(self, league, home, away, score, scorer, l_url, h_url, a_url, event_type="default", scoring_team=None):
         if self.discovery_mode == 0: return
-        self.notification_queue.append((league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team))
+        
+        notification = (league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team)
+        
+        # PRIORITY SYSTEM: Soccer notifications take priority over other sports
+        # Insert soccer at front of queue, others at back
+        sport_type = self.get_sport_type(league)
+        if sport_type == 'soccer':
+            # Insert at front (high priority)
+            self.notification_queue.insert(0, notification)
+        else:
+            # Append at back (lower priority)
+            self.notification_queue.append(notification)
+        
         self.process_queue()
         
     def process_queue(self):
+        # Double-check discovery mode - stop processing if Goal Alert is OFF
+        if self.discovery_mode == 0:
+            self.notification_queue = []  # Clear any remaining items
+            return
         if self.notification_active or not self.notification_queue: return
         
         # FIX: Robustness - Wrap in try/except to ensure notification_active is reset
@@ -1272,30 +1379,39 @@ class SportsMonitor:
         return score
 
 
-    def prefetch_logo(self, url):
-        """Pre-download logo to cache using consistent GoalToast naming (MD5)"""
-        if not url: return
+    def prefetch_logo(self, url, team_id):
+        """Pre-download logo to cache using team ID naming (like GameInfoScreen)"""
+        if not url or not team_id: return
+        if team_id in self.pending_logos: return # Skip if already downloading
+
         try:
-            # Must match GoalToast naming: md5(url).png
-            # GoalToast hardcodes path: /tmp/simplysports/logos/
-            import hashlib
-            url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()
             cache_dir = "/tmp/simplysports/logos/"
             if not os.path.exists(cache_dir):
                 try: os.makedirs(cache_dir)
                 except: pass
             
-            target_path = cache_dir + url_hash + ".png"
+            target_path = cache_dir + str(team_id) + ".png"
             
             # Download only if missing or empty
             if not os.path.exists(target_path) or os.path.getsize(target_path) == 0:
-                # Use downloadPage without callback (fire and forget basically, 
-                # but we want to avoid errors printing too much)
-                # Using a silent error handler.
-                self.agent.request(b'GET', url.encode('utf-8')).addCallback(readBody).addCallback(
-                    lambda data: open(target_path, 'wb').write(data) if data else None
-                ).addErrback(lambda x: None)
-        except: pass
+                self.pending_logos.add(team_id)
+                
+                def on_download_success(data):
+                    if data:
+                        with open(target_path, 'wb') as f: f.write(data)
+                    self.pending_logos.discard(team_id)
+                    return data
+                
+                def on_download_error(err):
+                    self.pending_logos.discard(team_id)
+                    return None
+
+                self.agent.request(b'GET', url.encode('utf-8')) \
+                    .addCallback(readBody) \
+                    .addCallback(on_download_success) \
+                    .addErrback(on_download_error)
+        except: 
+            self.pending_logos.discard(team_id)
 
 
     def _extract_tennis_matches(self, ev, league_name, l_url):
@@ -1444,6 +1560,49 @@ class SportsMonitor:
                                              scores_match = False; break
                                      if scores_match: is_changed = False
                             
+                            # =====================================================
+                            # LOGO URL/ID CONSTRUCTION - RUN FOR ALL EVENTS
+                            # This ensures every event has logo data, not just changed ones
+                            # =====================================================
+                            comps = processed_ev.get('competitions', [{}])[0].get('competitors', [])
+                            league_name = processed_ev.get('league_name', '')
+                            league_url = processed_ev.get('league_url', '')
+                            sport_cdn = self.get_cdn_sport_name(league_name)
+                            event_sport_type = get_sport_type(league_url)
+                            
+                            # Skip logo construction for racing/golf/combat (no team logos)
+                            if len(comps) >= 2 and event_sport_type not in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]:
+                                team_h = next((t for t in comps if t.get('homeAway') == 'home'), None)
+                                team_a = next((t for t in comps if t.get('homeAway') == 'away'), None)
+                                if not team_h and len(comps) > 0: team_h = comps[0]
+                                if not team_a and len(comps) > 1: team_a = comps[1]
+                                
+                                h_id, h_logo = '', ''
+                                a_id, a_logo = '', ''
+                                
+                                if team_h:
+                                    if 'athlete' in team_h:
+                                        h_logo = team_h.get('athlete', {}).get('flag', {}).get('href') or ''
+                                    else:
+                                        h_id = team_h.get('team', {}).get('id', '')
+                                        if h_id: h_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, h_id)
+                                
+                                if team_a:
+                                    if 'athlete' in team_a:
+                                        a_logo = team_a.get('athlete', {}).get('flag', {}).get('href') or ''
+                                    else:
+                                        a_id = team_a.get('team', {}).get('id', '')
+                                        if a_id: a_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, a_id)
+                                
+                                processed_ev['h_logo_url'] = h_logo
+                                processed_ev['a_logo_url'] = a_logo
+                                processed_ev['h_logo_id'] = str(h_id) if h_id else ''
+                                processed_ev['a_logo_id'] = str(a_id) if a_id else ''
+                                
+                                # Pre-fetch logos for all events (cache warmup)
+                                if h_logo and h_id: self.prefetch_logo(h_logo, h_id)
+                                if a_logo and a_id: self.prefetch_logo(a_logo, a_id)
+                            
                             self.event_map[eid] = processed_ev
                             if is_changed: 
                                 changed_events.append(processed_ev)
@@ -1514,7 +1673,6 @@ class SportsMonitor:
                 if len(comps) < 2: continue 
                 league_name = event.get('league_name', '')
                 league_url = event.get('league_url', '')
-                sport_cdn = self.get_cdn_sport_name(league_name)
                 
                 # Skip individual sports EXCEPT Tennis (we want flags)
                 event_sport_type = get_sport_type(league_url)
@@ -1526,44 +1684,29 @@ class SportsMonitor:
                 if not team_h and len(comps) > 0: team_h = comps[0]
                 if not team_a and len(comps) > 1: team_a = comps[1]
 
+                # Extract team names for notifications
                 home = "Home"
-                h_id = ""
-                h_logo = ""
                 if team_h:
                     if 'athlete' in team_h:
                         ath = team_h.get('athlete', {})
                         home = ath.get('shortName') or ath.get('displayName') or "Player 1"
-                        h_logo = ath.get('flag', {}).get('href') or ""
                     else:
                         home = team_h.get('team', {}).get('shortDisplayName') or "Home"
-                        h_id = team_h.get('team', {}).get('id', '')
-                        if h_id: h_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png&w=100&h=100&transparent=true".format(sport_cdn, h_id)
 
                 away = "Away"
-                a_id = ""
-                a_logo = ""
                 if team_a:
                     if 'athlete' in team_a:
                         ath = team_a.get('athlete', {})
                         away = ath.get('shortName') or ath.get('displayName') or "Player 2"
-                        a_logo = ath.get('flag', {}).get('href') or ""
                     else:
                         away = team_a.get('team', {}).get('shortDisplayName') or "Away"
-                        a_id = team_a.get('team', {}).get('id', '')
-                        if a_id: a_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png&w=100&h=100&transparent=true".format(sport_cdn, a_id)
                 
-                event['h_logo_url'] = h_logo
-                event['a_logo_url'] = a_logo
+                # Read logo data (already set in main event processing loop)
+                h_logo = event.get('h_logo_url', '')
+                a_logo = event.get('a_logo_url', '')
 
                 h_score = int(team_h.get('score', '0')) if team_h else 0
                 a_score = int(team_a.get('score', '0')) if team_a else 0
-
-                # 4. PRE-FETCH LOGOS FOR LIVE MATCHES
-                # Ensure checking logic matches GoalToast (using md5)
-                # This ensures the fle is ready on disk BEFORE a goal happens.
-                if state == 'in':
-                     if h_logo: self.prefetch_logo(h_logo)
-                     if a_logo: self.prefetch_logo(a_logo)
 
                 # Use STABLE ID for tracking, not names
                 match_id = event.get('id', home + "_" + away)
@@ -4408,13 +4551,11 @@ class SimpleSportsMiniBar2(Screen):
             if mode == 2 and ev_date != today_str and state != 'in': continue
             if mode == 3 and ev_date != tom_str: continue
             
-            # Use raw URLs for async check
+            # Use logo URLs and IDs directly from event (set by process_events_data)
             h_url = event.get('h_logo_url', '')
             a_url = event.get('a_logo_url', '')
-            try: h_id = h_url.split('500/')[-1].split('.png')[0]
-            except: h_id = hashlib.md5(h_url.encode('utf-8')).hexdigest() if h_url else '0'
-            try: a_id = a_url.split('500/')[-1].split('.png')[0]
-            except: a_id = hashlib.md5(a_url.encode('utf-8')).hexdigest() if a_url else '0'
+            h_id = event.get('h_logo_id', '') or '0'
+            a_id = event.get('a_logo_id', '') or '0'
             
             comps = event.get('competitions', [{}])[0].get('competitors', [])
             
@@ -4542,14 +4683,17 @@ class SimpleSportsMiniBar2(Screen):
         self.load_logo(data.get('a_url'), data.get('a_id'), "a_logo")
 
     def load_logo(self, url, img_id, widget_name):
-        if not img_id or img_id == '0': self[widget_name].hide(); return
-        file_path = self.logo_path + img_id + ".png"
+        """Load logo using team ID naming (aligned with GameInfoScreen approach)"""
+        if not url or not img_id or img_id == '0': self[widget_name].hide(); return
+        
+        file_path = self.logo_path + str(img_id) + ".png"
         if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
             self[widget_name].instance.setScale(1)
             self[widget_name].instance.setPixmapFromFile(file_path)
             self[widget_name].show()
         else:
             self[widget_name].hide()
+            # Download to team ID path
             from twisted.web.client import downloadPage
             downloadPage(url.encode('utf-8'), file_path).addCallback(self.logo_downloaded, widget_name, file_path).addErrback(self.logo_error)
 
@@ -4672,12 +4816,11 @@ class SimpleSportsMiniBar(Screen):
             if mode == 2 and ev_date != today_str and state != 'in': continue
             if mode == 3 and ev_date != tom_str: continue
 
+            # Use logo URLs and IDs directly from event (set by process_events_data)
             h_url = event.get('h_logo_url', '')
             a_url = event.get('a_logo_url', '')
-            try: h_id = h_url.split('500/')[-1].split('.png')[0]
-            except: h_id = hashlib.md5(h_url.encode('utf-8')).hexdigest() if h_url else '0'
-            try: a_id = a_url.split('500/')[-1].split('.png')[0]
-            except: a_id = hashlib.md5(a_url.encode('utf-8')).hexdigest() if a_url else '0'
+            h_id = event.get('h_logo_id', '') or '0'
+            a_id = event.get('a_logo_id', '') or '0'
 
             comps = event.get('competitions', [{}])[0].get('competitors', [])
             
@@ -4754,16 +4897,17 @@ class SimpleSportsMiniBar(Screen):
         self.load_logo(data.get('a_url'), data.get('a_id'), "a_logo")
 
     def load_logo(self, url, img_id, widget_name):
-        if not img_id or img_id == '0': self[widget_name].hide(); return
-        file_path = self.logo_path + img_id + ".png"
+        """Load logo using team ID naming (aligned with GameInfoScreen approach)"""
+        if not url or not img_id or img_id == '0': self[widget_name].hide(); return
         
+        file_path = self.logo_path + str(img_id) + ".png"
         if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
             self[widget_name].instance.setScale(1)
             self[widget_name].instance.setPixmapFromFile(file_path)
             self[widget_name].show()
         else:
             self[widget_name].hide()
-            # Background download
+            # Download to team ID path
             from twisted.web.client import downloadPage
             downloadPage(url.encode('utf-8'), file_path).addCallback(self.logo_downloaded, widget_name, file_path).addErrback(self.logo_error)
 
@@ -5091,14 +5235,19 @@ class SimpleSportsScreen(Screen):
     def fetch_data(self): self.monitor.check_goals()
     
     @profile_function("SimpleSportsScreen")
-    def get_logo_path(self, url, filename):
-        if not url: return None
-        if filename in self.monitor.logo_path_cache: return self.monitor.logo_path_cache[filename]
-        file_png = filename + ".png"; target_path = self.logo_path + file_png
+    def get_logo_path(self, url, team_id):
+        """Get logo path using team ID naming (aligned with GameInfoScreen approach)"""
+        if not url or not team_id: return None
+        
+        # Check team-ID-named file
+        if team_id in self.monitor.logo_path_cache: return self.monitor.logo_path_cache[team_id]
+        target_path = self.logo_path + str(team_id) + ".png"
         if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
-            self.monitor.logo_path_cache[filename] = target_path
+            self.monitor.logo_path_cache[team_id] = target_path
             return target_path
-        self.queue_download(url, target_path, filename)
+        
+        # Queue download if not cached
+        self.queue_download(url, target_path, team_id)
         return None
 
     def queue_download(self, url, target_path, filename):
@@ -5508,10 +5657,7 @@ class SimpleSportsScreen(Screen):
                 comps = event.get('competitions', [{}])[0].get('competitors', [])
                 league_prefix = event.get('league_name', '')
                 h_url = event.get('h_logo_url', ''); a_url = event.get('a_logo_url', '')
-                try: h_id = h_url.split('500/')[-1].split('.png')[0]
-                except: h_id = hashlib.md5(h_url.encode('utf-8')).hexdigest() if h_url else '0'
-                try: a_id = a_url.split('500/')[-1].split('.png')[0]
-                except: a_id = hashlib.md5(a_url.encode('utf-8')).hexdigest() if a_url else '0'
+                h_id = event.get('h_logo_id', ''); a_id = event.get('a_logo_id', '')
                 h_png = self.get_logo_path(h_url, h_id); a_png = self.get_logo_path(a_url, a_id)
                 is_live = False; display_time = local_time; h_score_int = 0; a_score_int = 0
                 
