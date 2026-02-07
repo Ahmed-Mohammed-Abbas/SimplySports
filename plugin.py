@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "3.8" # Video Highlights and bug improvements.
+CURRENT_VERSION = "3.9" # Minor fixes to the game info screen
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports_logos"
@@ -1691,10 +1691,10 @@ def EventListEntry(label, home_val, away_val, theme_mode):
     if theme_mode == "ucl": col_label, col_val, col_bg = 0x00ffff, 0xffffff, 0x0e1e5b
     else: col_label, col_val, col_bg = 0x00FF85, 0xFFFFFF, 0x33190028
     
-    # Wide Layout (Shifted +60 for Consistency)
-    h_x, h_w = 140, 650
-    l_x, l_w = 800, 120
-    a_x, a_w = 930, 650
+    # Centered Layout for 1600px width: Center column at 800
+    l_x, l_w = 740, 120   # Time label centered (740 + 60 = 800 center)
+    h_x, h_w = 90, 640    # Home events on left, right-aligned towards center
+    a_x, a_w = 870, 640   # Away events on right, left-aligned from center
 
     res = [None]
     # Background line
@@ -2340,19 +2340,6 @@ class SimplePlayer(Screen):
                 self.close()
 
     def close(self, *args, **kwargs):
-        # Show completion message if playlist finished normally
-        if hasattr(self, 'playlist') and self.playlist:
-            if self.playlist_index >= len(self.playlist) - 1 and not self.is_advancing:
-                # All videos played successfully
-                try:
-                    from Screens.MessageBox import MessageBox
-                    self.session.open(MessageBox, 
-                        "All highlights played successfully!\n{} videos completed.".format(len(self.playlist)),
-                        MessageBox.TYPE_INFO, 
-                        timeout=3
-                    )
-                except: pass
-        
         try:
             if self.is_listening:
                 self.session.nav.event.remove(self.on_event)
