@@ -43,7 +43,7 @@ try:
 except ImportError:
     twisted_ssl = None
     
-from twisted.web.client import Agent, readBody, getPage, downloadPage
+from twisted.web.client import Agent, readBody, getPage, downloadPage, HTTPConnectionPool
 from twisted.web.http_headers import Headers
 from functools import partial
 from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER, getDesktop, eConsoleAppContainer, gRGB, addFont, eEPGCache, eServiceReference, iServiceInformation, eServiceCenter, ePoint
@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "4.0" # A new code to include Tennis and Mini bar customization.
+CURRENT_VERSION = "4.1" # A new style for the notification toast and the Mini bar1.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports_logos"
@@ -118,6 +118,22 @@ def log_dbg(msg):
         with open(DEBUG_LOG_FILE, "a") as f:
             ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             f.write("[{}] {}\n".format(ts, msg))
+    except:
+        pass
+
+# ==============================================================================
+# DIAGNOSTIC LOGGING (Verbose - for debugging loading issues)
+# ==============================================================================
+DIAG_LOG_FILE = "/tmp/simplysport_diag.log"
+
+def log_diag(msg):
+    """Verbose diagnostic log with millisecond timestamps for tracing API/UI flow."""
+    try:
+        import time as _t
+        ms = int((_t.time() % 1) * 1000)
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        with open(DIAG_LOG_FILE, "a") as f:
+            f.write("[{}.{:03d}] {}\n".format(ts, ms, msg))
     except:
         pass
 
@@ -762,7 +778,8 @@ class SportsMonitor:
         self.goal_flags = {}
         # Track pending goals for scorer details: {match_id: retry_count}
         self.goal_retries = {}
-        self.last_states = {} 
+        self.last_states = {}
+        self.notified_events = set()  # Track fired notifications: {(match_id, event_type)}
         self.filter_mode = 0 
         self.theme_mode = "default"
         self.transparency = "59"
@@ -781,14 +798,19 @@ class SportsMonitor:
         self.status_message = "Initializing..."
         self.notification_queue = []
         self.notification_active = False
+        self.current_toast = None  # Reference to active GoalToast for live updates
+        self.current_toast_match = None  # (home, away) tuple of active toast
         self.has_changes = True  # Track if data changed since last UI refresh
         
         self.logo_cache = LogoCacheManager()
         self.last_update = 0
         self.cache_file = "/tmp/simplysports/cache.json"
         
-        # Optimization: Persistent Agent & Request Management
-        self.agent = Agent(reactor)
+        # Optimization: Persistent Agent with Connection Pool & Request Management
+        self.pool = HTTPConnectionPool(reactor)
+        self.pool.maxPersistentPerHost = 50  # Allow all 67 leagues to connect concurrently
+        self.pool._factory.noisy = False
+        self.agent = Agent(reactor, pool=self.pool)
         self.active_requests = set()
         self.last_cache_save = 0
         self.last_callback_time = 0
@@ -806,13 +828,22 @@ class SportsMonitor:
         # Batching variables
         self.batch_queue = []
         self.batch_remaining = 0
+        self.batch_is_active = False
         self.batch_timer = eTimer()
         safe_connect(self.batch_timer, self.finalize_batch)
         try: self.boot_timer.callback.append(self.check_goals)
         except AttributeError: self.boot_timer.timeout.get().append(self.check_goals)
         self.boot_timer.start(5000, True)
 
-    def set_session(self, session): self.session = session
+    def set_session(self, session):
+        self.session = session
+        # AUTO-START: On first session set (boot via WHERE_SESSIONSTART),
+        # load saved config so monitoring and notifications begin immediately
+        if not getattr(self, '_boot_initialized', False):
+            self._boot_initialized = True
+            try:
+                self.load_config()
+            except: pass
     def register_callback(self, func):
         if func not in self.callbacks: self.callbacks.append(func)
     def unregister_callback(self, func):
@@ -835,7 +866,7 @@ class SportsMonitor:
                     self.menu_section = data.get("menu_section", "all")
                     self.show_in_menu = bool(data.get("show_in_menu", True))
                     self.minibar_color_mode = data.get("minibar_color_mode", "default")
-                    if self.active: self.timer.start(60000, False)
+                    if self.active: self.timer.start(self._get_timer_interval(), False)
                     # FIX: Ensure timer runs if reminders exist, even if active is False
                     self.ensure_timer_state()
             except: self.defaults()
@@ -865,13 +896,17 @@ class SportsMonitor:
         else: self.theme_mode = "default"
         self.save_config(); return self.theme_mode
     def toggle_filter(self):
+        old = self.filter_mode
         self.filter_mode = (self.filter_mode + 1) % 4
+        log_diag("MONITOR.toggle_filter: {} -> {} (0=Live,1=All,2=Today,3=Tomorrow)".format(old, self.filter_mode))
         self.save_config(); return self.filter_mode
     def cycle_discovery_mode(self):
+        old = self.discovery_mode
         self.discovery_mode = (self.discovery_mode + 1) % 3
         
         # FIX: active flag only controlled by mode, but timer checks reminders too
         self.active = (self.discovery_mode > 0)
+        log_diag("MONITOR.cycle_discovery_mode: {} -> {} (0=OFF,1=VISUAL,2=SOUND) active={}".format(old, self.discovery_mode, self.active))
         
         # FIX: Clear pending notifications immediately when toggling OFF
         # This prevents queued notifications from showing after disabling Goal Alert
@@ -885,6 +920,10 @@ class SportsMonitor:
 
     def toggle_activity(self): return self.cycle_discovery_mode()
 
+    def _get_timer_interval(self):
+        """Return timer interval in ms: 180s for custom mode (67 leagues), 60s for single league."""
+        return 180000 if self.is_custom_mode else 60000
+
     def ensure_timer_state(self):
         # Timer should run if: 
         # 1. Active (Discovery Mode ON)
@@ -893,9 +932,12 @@ class SportsMonitor:
         
         if should_run:
             if not self.timer.isActive():
-                self.timer.start(60000, False)
+                self.timer.start(self._get_timer_interval(), False)
                 # If we just started, run a check immediately
                 self.check_goals()
+            else:
+                # Timer already running - update interval if mode changed
+                pass
         else:
             if self.timer.isActive():
                 self.timer.stop()
@@ -914,20 +956,27 @@ class SportsMonitor:
         self.is_custom_mode = False
         
         # FIX: Stop any running batch operations from previous custom mode
+        self.batch_is_active = False
         if self.batch_timer.isActive(): self.batch_timer.stop()
         self.batch_queue = []
         self.active_requests.clear() # Cancel/Ignore pending requests
 
         if index >= 0 and index < len(DATA_SOURCES):
-            self.current_league_index = index; self.last_scores = {}; 
+            self.current_league_index = index; self.last_scores = {}; self.last_states = {}; self.notified_events = set()
             # FIX: Clear cache to remove old events from previous selection
             self.event_map = {}; self.cached_events = []
-            self.save_config(); self.check_goals()
+            self.save_config()
+            # Restart timer with single-league interval (60s)
+            if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
+            self.check_goals()
     def set_custom_leagues(self, indices):
-        self.custom_league_indices = indices; self.is_custom_mode = True; self.last_scores = {}; 
+        self.custom_league_indices = indices; self.is_custom_mode = True; self.last_scores = {}; self.last_states = {}; self.notified_events = set()
         # FIX: Clear cache to remove old events from previous selection
         self.event_map = {}; self.cached_events = []
-        self.save_config(); self.check_goals()
+        self.save_config()
+        # Restart timer with custom-mode interval (180s)
+        if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
+        self.check_goals()
     def add_reminder(self, match_name, trigger_time, league_name, h_logo, a_logo, label, sref=None, h_id=None, a_id=None):
         new_rem = {"match": match_name, "trigger": trigger_time, "league": league_name, "h_logo": h_logo, "a_logo": a_logo, "label": label, "sref": sref}
         for r in self.reminders:
@@ -990,73 +1039,91 @@ class SportsMonitor:
             except: pass
 
     @profile_function("SportsMonitor")
-    def check_goals(self):
+    def check_goals(self, from_ui=False):
+        log_diag("CHECK_GOALS: ENTER from_ui={} active={} is_custom={} discovery_mode={} filter_mode={} cached_events={} batch_remaining={} active_requests={}".format(
+            from_ui, self.active, self.is_custom_mode, self.discovery_mode, self.filter_mode, len(self.cached_events), self.batch_remaining, len(self.active_requests)))
         self.check_reminders()
-        
-        # FIX: GUARD - If not active and not custom mode, do not fetch data
-        # This allows the timer to run solely for reminders without wasting bandwidth
-        if not self.active and not self.is_custom_mode:
+
+        # Guard: When Goal Alert is OFF, only fetch data if explicitly requested by the UI.
+        # Timer-driven calls (for reminders) should NOT trigger data fetching to avoid
+        # resetting batch state and wasting bandwidth.
+        if not self.active and not from_ui:
+            log_diag("CHECK_GOALS: SKIPPED (not active, not from_ui)")
             return
 
-        # ✅ INSTANT UI UPDATE - Show cached data FIRST
-        if self.cached_events:
-            self.status_message = "Updating..."
-            self._trigger_callbacks(True)  # UI updates immediately
-        else:
-            self.status_message = "Loading Data..."
-            self._trigger_callbacks(False)  # Show loading state
+        # Show cached data or loading state - but NOT during an active batch
+        # (batch processing shows data via finalize_batch at the end)
+        if not self.batch_is_active:
+            if self.cached_events:
+                self.status_message = "Updating..."
+                self._trigger_callbacks(True)
+            else:
+                self.status_message = "Loading Data..."
+                self._trigger_callbacks(False)
         # Use persistent agent
         if not self.is_custom_mode:
             try:
                 name, url = DATA_SOURCES[self.current_league_index]
+                log_diag("CHECK_GOALS: SINGLE LEAGUE '{}' url_in_active={}".format(name, url in self.active_requests))
                 if url not in self.active_requests:
                     self.active_requests.add(url)
                     d = self.agent.request(b'GET', url.encode('utf-8'))
                     d.addCallback(readBody)
                     d.addCallback(self.parse_single_json, name, url) 
                     d.addErrback(self.handle_error)
-                    # Cleanup request from active set in callbacks (implicitly handled if logic allows, 
-                    # but for single mode we might rely on simple timeout or next cycle clearing if not robust.
-                    # For now, simplistic approach or add specific cleanup callback)
                     d.addBoth(lambda x: self.active_requests.discard(url)) 
             except: pass
             
 
         else:
             if not self.custom_league_indices:
+                log_diag("CHECK_GOALS: CUSTOM MODE - No leagues selected")
                 self.status_message = "No Leagues Selected"
                 self.cached_events = []
                 self._trigger_callbacks(True)
                 return
             
-
-
-            # Start Batching
-            # ✅ INCREMENTAL BATCH PROCESSING
-            self.status_message = "Loading..."
+            # GUARD: Don't start new batch if one is already running
+            if self.batch_is_active:
+                log_diag("CHECK_GOALS: CUSTOM MODE - SKIPPED (batch already active, remaining={})".format(self.batch_remaining))
+                return
+            
+            # Clear stale data from previous batch
+            self.event_map = {}
+            self.cached_events = []
+            
+            # Mark batch as active
+            self.batch_is_active = True
             self.batch_queue = []
             selected_indices = [idx for idx in self.custom_league_indices if idx < len(DATA_SOURCES)]
             self.batch_remaining = len(selected_indices)
+            log_diag("CHECK_GOALS: CUSTOM MODE - Starting batch for {} leagues".format(len(selected_indices)))
             
-            # ✅ Reduce timeout to 7 seconds
-            self.batch_timer.start(7000, True)
-            
-            # ✅ Track when first response arrives
+            # 10-second safety timer
+            self.batch_timer.start(10000, True)
             self.batch_first_response = None
             
+            fired = 0; skipped = 0
             for idx in selected_indices:
                 name, url = DATA_SOURCES[idx]
                 if url in self.active_requests:
                     self.batch_remaining -= 1
-                    print("[SportsMonitor] Skipping duplicate request:", url)
+                    skipped += 1
                     continue
                 
                 self.active_requests.add(url)
                 d = self.agent.request(b'GET', url.encode('utf-8'))
                 d.addCallback(readBody)
-                d.addCallback(self.collect_batch_response_incremental, name, url)  # ✅ NEW
-                d.addErrback(self.collect_batch_error, url) 
+                d.addCallback(self.collect_batch_response_incremental, name, url)
+                d.addErrback(self.collect_batch_error, url)
                 d.addBoth(lambda x, u=url: self.active_requests.discard(u))
+                
+                # 10-second per-request timeout
+                timeout_call = reactor.callLater(10, d.cancel)
+                d.addBoth(lambda x, tc=timeout_call: tc.cancel() if tc.active() else None)
+                
+                fired += 1
+            log_diag("CHECK_GOALS: CUSTOM MODE - Fired {} requests (10s timeout), skipped {}, batch_remaining={}".format(fired, skipped, self.batch_remaining))
 
     def save_cache(self):
         # Optimization: Write Coalescing (Max once every 2 mins)
@@ -1093,90 +1160,69 @@ class SportsMonitor:
              print("[SportsMonitor] Cache Load Error: ", e)
              self.cached_events = []
 
-    def collect_batch_response(self, body, name, url):
-        # GUARD: If we switched to single mode, discard this batch
-        if not self.is_custom_mode: return
-
-        self.active_requests.discard(url)
-        self.batch_queue.append((body, name, url))
-        self.batch_remaining -= 1
-        if self.batch_remaining <= 0:
-            self.finalize_batch()
-
     def collect_batch_error(self, failure, url=None):
+        """Handle request errors - only fires for network/timeout failures"""
+        if not self.batch_is_active:
+            log_diag("BATCH_ERROR: DROPPED (batch not active) url={}".format(url))
+            if url: self.active_requests.discard(url)
+            return
+        log_diag("BATCH_ERROR: url={} error={} batch_remaining={}".format(url, str(failure)[:100], self.batch_remaining - 1))
         if url: self.active_requests.discard(url)
         self.batch_remaining -= 1
-        if self.batch_remaining <= 0:
+        if self.batch_remaining == 0:
             self.finalize_batch()
 
     def collect_batch_response_incremental(self, body, name, url):
-        """Process each response immediately (streaming updates)"""
-        if not self.is_custom_mode: 
-            self.active_requests.discard(url)
-            return
-        
-        # ✅ PROCESS IMMEDIATELY - Don't wait for all
-        import time
-        
-        # FIX: Guard against stale responses from previous custom selections
-        # If user deselected a league (e.g. Tennis), the request might still return.
-        # We must discard it to prevent "leaking" data into the fresh cache.
-        is_valid_url = False
-        if self.custom_league_indices:
-             for idx in self.custom_league_indices:
-                 if idx < len(DATA_SOURCES) and DATA_SOURCES[idx][1] == url:
-                     is_valid_url = True
-                     break
-        
-        if not is_valid_url:
-             log_dbg("[SportsMonitor] Dropping stale response (deselected): " + name)
-             self.active_requests.discard(url)
-             return
-
-        if self.batch_first_response is None:
-            self.batch_first_response = time.time()
-        
-        self.active_requests.discard(url)
-        
-        # Process this league's data right away
+        """Process each response immediately. MUST NEVER RAISE to prevent double-decrement."""
         try:
-            self.process_events_data([(body, name, url)], append_mode=True)
-            # UI updates after EACH league loads - handled by process_events_data probably calling callbacks? 
-            # If process_events_data doesn't call callbacks, we might need to add it here.
-            # User's snippet says "UI updates after EACH league loads", assuming process_events_data handles it or we rely on the implementation.
-            # However, looking at parse_single_json, it just calls process_events_data.
-            # Let's assume process_events_data updates the UI or callbacks.
+            if not self.batch_is_active or not self.is_custom_mode:
+                self.active_requests.discard(url)
+                return
+            
+            if self.batch_first_response is None:
+                self.batch_first_response = time.time()
+            
+            self.active_requests.discard(url)
+            
+            # Process data
+            try:
+                self.process_events_data([(body, name, url)], append_mode=True)
+            except Exception as e:
+                log_diag("BATCH_RESPONSE: ERROR processing '{}': {}".format(name, e))
+            
+            self.batch_remaining -= 1
+            log_diag("BATCH_RESPONSE: '{}' remaining={}".format(name, self.batch_remaining))
+            
+            if self.batch_remaining == 0:
+                self.finalize_batch()
         except Exception as e:
-            print("[SportsMonitor] Error processing {}: {}".format(name, e))
-        
-        self.batch_remaining -= 1
-        
-        # ✅ SMART COMPLETION - Don't wait for stragglers
-        if self.batch_remaining <= 0:
-            self.finalize_batch()
-        elif self.batch_remaining <= 2 and time.time() - self.batch_first_response > 3:
-            # If 2 or fewer left and we've waited 3s, finalize early
-            print("[SportsMonitor] Early finalize - {} stragglers".format(self.batch_remaining))
-            self.finalize_batch()
+            # Never let exceptions propagate to the deferred chain
+            log_diag("BATCH_RESPONSE: UNEXPECTED ERROR in '{}': {}".format(name, e))
+            self.active_requests.discard(url)
+            self.batch_remaining -= 1
+            if self.batch_remaining == 0:
+                self.finalize_batch()
 
     def finalize_batch(self):
         """Cleanup after batch processing"""
-        if not self.is_custom_mode: return
+        if not self.is_custom_mode:
+            return
         
         if self.batch_timer.isActive():
             self.batch_timer.stop()
         
-        # ✅ No extra processing needed - data already processed incrementally
         self.status_message = ""
         self.batch_queue = []
         self.batch_remaining = 0
         self.batch_first_response = None
         
-        # ✅ Final save
         self.save_cache()
         
-        # One final callback to ensure UI is synced
-        self._trigger_callbacks(True)
+        # Clear active flag BEFORE triggering callbacks
+        self.batch_is_active = False
+        
+        log_diag("FINALIZE_BATCH: DONE cached_events={}".format(len(self.cached_events)))
+        reactor.callLater(0, self._trigger_callbacks, True)
 
     def handle_error(self, failure):
         self.status_message = "Connection Error"
@@ -1227,37 +1273,83 @@ class SportsMonitor:
         self.process_events_data(bodies_list)
 
     # queue_notification updated to handle split components
-    def queue_notification(self, league, home, away, score, scorer, l_url, h_url, a_url, event_type="default", scoring_team=None):
+    def queue_notification(self, league, home, away, score, scorer, l_url, h_url, a_url, event_type="default", scoring_team=None, sound_type=None):
         if self.discovery_mode == 0: return
         
-        notification = (league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team)
-        
-        # PRIORITY SYSTEM: Soccer notifications take priority over other sports
-        # Insert soccer at front of queue, others at back
         sport_type = self.get_sport_type(league)
+        notification = (league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team, sound_type)
+        match_key = (home, away)  # identity key for same match
+        
+        # BASKETBALL MERGE: If same basketball match already in queue, merge scorer text
+        if sport_type == 'basketball' and event_type == 'goal':
+            for i, existing in enumerate(self.notification_queue):
+                ex_match = (existing[1], existing[2])  # home, away
+                ex_league_sport = self.get_sport_type(existing[0])
+                if ex_match == match_key and ex_league_sport == 'basketball' and existing[8] == 'goal':
+                    # Merge: append new scorer text to existing
+                    merged_scorer = u"{}  |  {}".format(existing[4], scorer)
+                    # Update score to latest and merge scorer
+                    self.notification_queue[i] = (
+                        existing[0], existing[1], existing[2], score, merged_scorer,
+                        existing[5], existing[6], existing[7], existing[8], existing[9], existing[10]
+                    )
+                    return  # Merged, no new entry needed
+            
+            # LIVE UPDATE: If current active toast is for the same basketball match, update it
+            if self.notification_active and self.current_toast and self.current_toast_match == match_key:
+                try:
+                    old_scorer = self.current_toast["scorer"].getText()
+                    merged = u"{}  |  {}".format(old_scorer, scorer)
+                    self.current_toast["scorer"].setText(merged)
+                    self.current_toast["score"].setText(score)
+                    # Reset timer to give time to read the update
+                    self.current_toast.timer.stop()
+                    self.current_toast.timer.start(4000, True)
+                except: pass
+                return  # Updated live, no new entry needed
+        
+        # DEDUP: Prevent identical notifications
+        dedup_key = (home, away, score, event_type)
+        for existing in self.notification_queue:
+            existing_key = (existing[1], existing[2], existing[3], existing[8])
+            if existing_key == dedup_key:
+                return
+        
+        # PRIORITY: Soccer first, others after (FIFO within each tier)
         if sport_type == 'soccer':
-            # Insert at front (high priority)
-            self.notification_queue.insert(0, notification)
+            # Insert after any existing soccer entries but before non-soccer
+            insert_pos = 0
+            for i, existing in enumerate(self.notification_queue):
+                if self.get_sport_type(existing[0]) == 'soccer':
+                    insert_pos = i + 1
+                else:
+                    break
+            self.notification_queue.insert(insert_pos, notification)
         else:
-            # Append at back (lower priority)
             self.notification_queue.append(notification)
         
         self.process_queue()
         
     def process_queue(self):
-        # Double-check discovery mode - stop processing if Goal Alert is OFF
         if self.discovery_mode == 0:
-            self.notification_queue = []  # Clear any remaining items
+            self.notification_queue = []
             return
         if self.notification_active or not self.notification_queue: return
         
-        # FIX: Robustness - Wrap in try/except to ensure notification_active is reset
         try:
             item = self.notification_queue.pop(0)
-            league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team = item
+            league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team = item[:10]
+            sound_type = item[10] if len(item) > 10 else None
             self.notification_active = True
+            self.current_toast_match = (home, away)  # Track for live basketball updates
             if self.session: 
                 try:
+                    # SYNC: Play sound RIGHT when toast opens
+                    if sound_type == 'goal' and self.discovery_mode == 2:
+                        self.play_sound()
+                    elif sound_type == 'stend' and self.discovery_mode == 2:
+                        self.play_stend_sound()
+                    
                     self.session.openWithCallback(
                         self.on_toast_closed, GoalToast, 
                         league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team
@@ -1265,27 +1357,29 @@ class SportsMonitor:
                 except Exception as e:
                     print("[SimplySport] Error opening notification: {}".format(e))
                     self.notification_active = False
-                    # Process next after short delay
+                    self.current_toast = None
                     from twisted.internet import reactor
                     reactor.callLater(2, self.process_queue)
             else:
                 self.notification_active = False
-                # Try next item if session not ready yet
+                self.current_toast = None
                 if self.notification_queue:
                     from twisted.internet import reactor
                     reactor.callLater(5, self.process_queue)
         except Exception as e:
             print("[SimplySport] Critical error in process_queue: {}".format(e))
             self.notification_active = False
+            self.current_toast = None
             if self.notification_queue:
                 from twisted.internet import reactor
                 reactor.callLater(2, self.process_queue)
 
     def on_toast_closed(self, *args):
         self.notification_active = False
-        # Small delay before next to prevent UI flicker/overlap
+        self.current_toast = None
+        self.current_toast_match = None
         from twisted.internet import reactor
-        reactor.callLater(0.5, self.process_queue)
+        reactor.callLater(0.3, self.process_queue)
 
     def get_sport_type(self, league_name):
         lname = league_name.lower()
@@ -1892,15 +1986,19 @@ class SportsMonitor:
                     score_fmt = "{}-{}".format(h_score, a_score)
                     
                     if state == 'in' and prev_state == 'pre':
-                        # Queue: league, home, away, score, scorer, l_url, h_url, a_url, type, scoring_team
-                        # OPTIMIZATION: Skip "Match Started" for Tennis to reduce spam/load
-                        event_sport_type = get_sport_type(league_url)
-                        if event_sport_type != SPORT_TYPE_TENNIS:
-                             self.queue_notification(league_name, home, away, score_fmt, "MATCH STARTED", "", h_logo, a_logo, "start", None)
-                             if should_play_stend: self.play_stend_sound()
+                        # DEDUP: Only fire start notification once per match
+                        if (match_id, 'start') not in self.notified_events:
+                            event_sport_type = get_sport_type(league_url)
+                            if event_sport_type != SPORT_TYPE_TENNIS:
+                                 self.notified_events.add((match_id, 'start'))
+                                 stend_sound = 'stend' if should_play_stend else None
+                                 self.queue_notification(league_name, home, away, score_fmt, "MATCH STARTED", "", h_logo, a_logo, "start", None, sound_type=stend_sound)
                     elif state == 'post' and prev_state == 'in':
-                        self.queue_notification(league_name, home, away, score_fmt, "FULL TIME", "", h_logo, a_logo, "end", None)
-                        if should_play_stend: self.play_stend_sound()
+                        # DEDUP: Only fire end notification once per match
+                        if (match_id, 'end') not in self.notified_events:
+                            self.notified_events.add((match_id, 'end'))
+                            stend_sound = 'stend' if should_play_stend else None
+                            self.queue_notification(league_name, home, away, score_fmt, "FULL TIME", "", h_logo, a_logo, "end", None, sound_type=stend_sound)
 
                 self.last_states[match_id] = state
                 if state == 'in':
@@ -1911,7 +2009,6 @@ class SportsMonitor:
                                 diff_h = h_score - prev_h
                                 diff_a = a_score - prev_a
                                 sport_type = self.get_sport_type(league_name)
-                                should_play_sound = False
                                 
                                 # Re-format score display "1-0" NO SPACES
                                 score_display = "{}-{}".format(h_score, a_score)
@@ -1920,12 +2017,10 @@ class SportsMonitor:
                                     # RETRY LOGIC for API LAG
                                     # BASKETBALL SPECIAL HANDLING: No Scorer Name, Visual Only, "Smart Score"
                                     if sport_type == 'basketball':
-                                        should_play_sound = False # Visual only
                                         points = max(diff_h, diff_a)
                                         scorer_text = "+{} POINTS".format(points)
                                     elif sport_type == 'football':
                                         # NFL SPECIAL HANDLING: Contextual Text, Instant Update
-                                        should_play_sound = True
                                         points = max(diff_h, diff_a)
                                         if points == 6: scorer_text = "TOUCHDOWN!"
                                         elif points == 3: scorer_text = "FIELD GOAL"
@@ -1950,30 +2045,31 @@ class SportsMonitor:
                                             if match_id in self.goal_retries: del self.goal_retries[match_id]
 
                                     if diff_h > 0:
-                                        self.queue_notification(league_name, home, away, score_display, scorer_text, "", h_logo, a_logo, "goal", "home")
-                                        if sport_type != 'basketball': should_play_sound = True # Explicit check
+                                        goal_sound = 'goal' if sport_type != 'basketball' else None
+                                        self.queue_notification(league_name, home, away, score_display, scorer_text, "", h_logo, a_logo, "goal", "home", sound_type=goal_sound)
                                         self.goal_flags[match_id] = {'time': time.time(), 'team': 'home'}
                                     
                                     if diff_a > 0:
-                                        self.queue_notification(league_name, home, away, score_display, scorer_text, "", h_logo, a_logo, "goal", "away")
-                                        if sport_type != 'basketball': should_play_sound = True # Explicit check
+                                        goal_sound = 'goal' if sport_type != 'basketball' else None
+                                        self.queue_notification(league_name, home, away, score_display, scorer_text, "", h_logo, a_logo, "goal", "away", sound_type=goal_sound)
                                         self.goal_flags[match_id] = {'time': time.time(), 'team': 'away'}
-                                
-                                if should_play_sound and self.discovery_mode == 2:
-                                    self.play_sound()
                             except: pass
                     # Update score ONLY if we didn't 'continue' above
                     self.last_scores[match_id] = score_str
 
-            # ADAPTIVE POLLING: 15s for Live, 60s for others
-            if self.active:
-                new_interval = 15000 if live_count > 0 else 60000
+            # ADAPTIVE POLLING: 15s for Live, 60s for others (single league only)
+            if self.active and not self.batch_is_active:
+                new_interval = 15000 if live_count > 0 else self._get_timer_interval()
                 self.timer.start(new_interval, False)
 
-            for cb in self.callbacks: cb(True)
+            # Only trigger UI callbacks if NOT in batch mode
+            # (batch mode triggers a single callback in finalize_batch)
+            if not self.batch_is_active:
+                for cb in self.callbacks: cb(True)
         except:
             self.status_message = "JSON Parse Error"
-            for cb in self.callbacks: cb(True)
+            if not self.batch_is_active:
+                for cb in self.callbacks: cb(True)
 
 if global_sports_monitor is None:
     global_sports_monitor = SportsMonitor()
@@ -4361,29 +4457,27 @@ class GameInfoScreen(Screen):
 # ==============================================================================
 class GoalToast(Screen):
     def __init__(self, session, league_text, home_text, away_text, score_text, scorer_text, l_url, h_url, a_url, event_type="default", scoring_team=None):
-        # 1. OPTIMIZATION: Cache Directory
+        # Cache Directory
         self.logo_cache_path = "/tmp/simplysports/logos/"
         if not os.path.exists(self.logo_cache_path):
             try: os.makedirs(self.logo_cache_path)
             except: pass
 
-        # FIX: Ensure all inputs are unicode (Py2/3 compatibility)
-        def to_unicode(obj):
+        # Ensure all inputs are strings
+        def to_str(obj):
             if obj is None: return u""
             try:
                 if isinstance(obj, bytes): return obj.decode('utf-8', 'ignore')
-                return unicode(obj) if 'unicode' in globals() else str(obj)
-            except: 
-                try: return str(obj).decode('utf-8', 'ignore')
-                except: return u""
+                return str(obj)
+            except: return u""
 
-        league_text = to_unicode(league_text)
-        home_text   = to_unicode(home_text)
-        away_text   = to_unicode(away_text)
-        score_text  = to_unicode(score_text)
-        scorer_text = to_unicode(scorer_text)
+        league_text = to_str(league_text)
+        home_text   = to_str(home_text)
+        away_text   = to_str(away_text)
+        score_text  = to_str(score_text)
+        scorer_text = to_str(scorer_text)
 
-        # 1.1 REFINEMENT: Format Scorer Time "Player 45'" -> "Player (45')"
+        # Format Scorer Time "Player 45'" -> "Player (45')"
         if scorer_text and scorer_text.strip().endswith(u"'") and u"(" not in scorer_text:
             try:
                 parts = scorer_text.rsplit(u' ', 1)
@@ -4391,96 +4485,101 @@ class GoalToast(Screen):
                     scorer_text = u"{} ({})".format(parts[0], parts[1])
             except: pass
 
-        # 2. UX: Dynamic Layout Calculation (Center-Clustered)
-        def est_width(text, font_size=26):
-            if not text: return 10
-            try: return int(len(text) * (font_size * 0.6)) + 25
-            except: return 100
+        # ================================================================
+        # UCL BROADCAST-STYLE SCOREBOARD (950 x 120)
+        # Inspired by Champions League TV overlay
+        # ================================================================
+        #                   [ Scorer Name ]          <- above band
+        # [LOGO]  ═══ HOME NAME ══╣ SCORE ╠══ AWAY NAME ═══  [LOGO]
+        #                   [ League Name ]          <- below band
+        # ================================================================
+        # Band: metallic blue strip with 3-tone depth effect
+        # Logos: large (85x85), overlapping band at edges
+        # Score: dark center box inside the band
+        # ================================================================
 
-        w_league = est_width(league_text, 16)
-        w_scorer = est_width(scorer_text, 16)
-        w_home   = est_width(home_text, 26)
-        w_away   = est_width(away_text, 26)
-        w_score  = est_width(score_text, 26) + 40 # Padding for score box
-        
-        h_size = 75
-        a_size = 75
-        h_logo_y = 60 - (h_size // 2)
-        a_logo_y = 60 - (a_size // 2)
-
-        match_block_width = h_size + 5 + w_home + 5 + w_score + 5 + w_away + 5 + a_size
-        req_width = max(match_block_width + 40, w_league + w_scorer + 60)
-        req_width = int(req_width * 1.15)
-        width = max(600, min(1200, req_width))
-        
-        center_x = width // 2
-        start_x = center_x - (match_block_width // 2)
-        
-        h_logo_x = start_x
-        h_name_x = h_logo_x + h_size + 5
-        score_x  = h_name_x + w_home + 5
-        a_name_x = score_x + w_score + 5
-        a_logo_x = a_name_x + w_away + 5
-        
-        row_y = 25
-        scr_x = width - w_scorer - 25
-
-        # 3. UX: Priority Colors & Highlighting (Using #00RRGGBB for Opaque in Enigma2)
-        colors = {
-            'goal':   '#0000FF85',
-            'card':   '#00FFFF00',
-            'start':  '#0000FFFF',
-            'end':    '#0000FFFF',
-            'default':'#0000FF85'
+        # Event-type accent colors (used for bottom band accent)
+        accent_colors = {
+            'goal':   '#0000BB55', 'card':  '#00EECC00',
+            'start':  '#0000AACC', 'end':   '#0000AACC',
+            'default':'#0000BB55'
         }
-        border_color = colors.get(event_type, '#0000FF85')
-        
-        h_color = "#00FFFFFF"
-        a_color = "#00FFFFFF"
-        score_color = "#00FFFFFF"
-        
+        border_color = accent_colors.get(event_type, '#0000BB55')
+
+        # Text highlight colors
+        h_color = "#00FFFFFF"; a_color = "#00FFFFFF"; score_color = "#00FFFFFF"
         if event_type == 'goal':
-            if scoring_team == 'home': h_color = border_color
-            elif scoring_team == 'away': a_color = border_color
+            if scoring_team == 'home': h_color = "#0066FF66"
+            elif scoring_team == 'away': a_color = "#0066FF66"
         elif event_type in ['start', 'end']:
-            score_color = border_color
+            score_color = "#0066DDFF"
 
-        # Use safe len() and unicode concatenation
-        total_chars = len(league_text) + len(home_text) + len(away_text) + len(scorer_text)
-        self.duration_ms = max(5000, min(12000, int(total_chars * 120 + 4000)))
+        self.duration_ms = 5000
 
-        # 4. SKIN
+        # Band metallic colors
+        band_hi  = "#00506888"   # top bright edge (metallic highlight)
+        band_mid = "#002C4060"   # main band body (steel blue)
+        band_lo  = "#00162030"   # bottom dark edge (shadow)
+        center   = "#00142030"   # score center box (darkest)
+
+        # Enigma2: #FF = fully transparent, #00 = fully opaque
+        bg = "#FF000000"         # fully transparent backdrop
+
         if global_sports_monitor.theme_mode == "ucl":
-             self.skin = (
-                u'<screen position="center,50" size="{width},100" title="Goal Notification" flags="wfNoBorder" backgroundColor="#000e1e5b">'
-                u'<eLabel position="0,0" size="{width},100" backgroundColor="#000e1e5b" zPosition="0" />'
-                u'<eLabel position="0,0" size="{width},2" backgroundColor="{border_color}" zPosition="2" />'
-                u'<widget name="league" position="15,0" size="{w_league},20" font="Regular;16" foregroundColor="{border_color}" backgroundColor="#000e1e5b" valign="center" halign="left" zPosition="3" />'
-                u'<widget name="scorer" position="{scr_x},0" size="{w_scorer},20" font="Regular;16" foregroundColor="#00FFFFFF" backgroundColor="#000e1e5b" valign="center" halign="right" zPosition="3" />'
-                u'<widget name="h_logo" position="{h_logo_x},{h_logo_y}" size="{h_size},{h_size}" alphatest="blend" zPosition="4" />'
-                u'<widget name="home" position="{h_name_x},{row_y}" size="{w_home},50" font="Regular;28" foregroundColor="{h_color}" backgroundColor="#000e1e5b" valign="center" halign="right" zPosition="3" />'
-                u'<widget name="score" position="{score_x},{row_y}" size="{w_score},50" font="Regular;28" foregroundColor="{score_color}" backgroundColor="#000e1e5b" valign="center" halign="center" zPosition="3" />'
-                u'<widget name="away" position="{a_name_x},{row_y}" size="{w_away},50" font="Regular;28" foregroundColor="{a_color}" backgroundColor="#000e1e5b" valign="center" halign="left" zPosition="3" />'
-                u'<widget name="a_logo" position="{a_logo_x},{a_logo_y}" size="{a_size},{a_size}" alphatest="blend" zPosition="4" />'
-                u'</screen>'
-            ).format(width=width, border_color=border_color, w_league=w_league+20, scr_x=scr_x, w_scorer=w_scorer+20, h_logo_x=h_logo_x, h_logo_y=h_logo_y, h_size=h_size, h_name_x=h_name_x, w_home=w_home, h_color=h_color, score_x=score_x, w_score=w_score, score_color=score_color, a_name_x=a_name_x, w_away=w_away, a_color=a_color, a_logo_x=a_logo_x, a_logo_y=a_logo_y, a_size=a_size, row_y=row_y)
+            scorer_fg = "#00FFFFFF"
+            league_fg = "#00FFFFFF"
         else:
-            self.skin = (
-                u'<screen position="center,50" size="{width},100" title="Goal Notification" flags="wfNoBorder" backgroundColor="#00000000">'
-                u'<eLabel position="0,0" size="{width},20" backgroundColor="#00000000" zPosition="0" />'
-                u'<widget name="league" position="15,0" size="{w_league},20" font="Regular;16" foregroundColor="#00FFD700" backgroundColor="#00000000" valign="center" halign="left" zPosition="3" />'
-                u'<widget name="scorer" position="{scr_x},0" size="{w_scorer},20" font="Regular;16" foregroundColor="#00FFFFFF" backgroundColor="#00000000" valign="center" halign="right" zPosition="3" />'
-                u'<eLabel position="0,20" size="{width},80" backgroundColor="#00190028" zPosition="0" />'
-                u'<widget name="h_logo" position="{h_logo_x},{h_logo_y}" size="{h_size},{h_size}" alphatest="blend" zPosition="4" />'
-                u'<widget name="home" position="{h_name_x},20" size="{w_home},80" font="Regular;28" foregroundColor="{h_color}" backgroundColor="#00190028" valign="center" halign="right" zPosition="3" />'
-                u'<widget name="score" position="{score_x},20" size="{w_score},80" font="Regular;28" foregroundColor="{score_color}" backgroundColor="#00190028" valign="center" halign="center" zPosition="3" />'
-                u'<widget name="away" position="{a_name_x},20" size="{w_away},80" font="Regular;28" foregroundColor="{a_color}" backgroundColor="#00190028" valign="center" halign="left" zPosition="3" />'
-                u'<widget name="a_logo" position="{a_logo_x},{a_logo_y}" size="{a_size},{a_size}" alphatest="blend" zPosition="4" />'
-                u'<eLabel position="0,98" size="{width},2" backgroundColor="{border_color}" zPosition="2" />'
-                u'</screen>'
-            ).format(width=width, border_color=border_color, w_league=w_league+20, scr_x=scr_x, w_scorer=w_scorer+20, h_logo_x=h_logo_x, h_logo_y=h_logo_y, h_size=h_size, h_name_x=h_name_x, w_home=w_home, h_color=h_color, score_x=score_x, w_score=w_score, score_color=score_color, a_name_x=a_name_x, w_away=w_away, a_color=a_color, a_logo_x=a_logo_x, a_logo_y=a_logo_y, a_size=a_size)
+            scorer_fg = "#00FFFFFF"
+            league_fg = "#00FFFFFF"
+
+        self.skin = (
+            u'<screen position="center,50" size="950,120" title="Goal" flags="wfNoBorder" backgroundColor="{bg}">'
+            # --- DARK BACKDROP ---
+            u'<eLabel position="0,0" size="950,120" backgroundColor="{bg}" zPosition="0" />'
+
+            # --- SCORER TEXT (above band, centered) ---
+            u'<widget name="scorer" position="200,5" size="550,30" font="Regular;21" '
+            u'foregroundColor="{sfg}" backgroundColor="{bg}" transparent="1" valign="center" halign="center" zPosition="3" />'  
+
+            # --- METALLIC BAND (y=40, total band height = 36) ---
+            # Top bright edge (metallic highlight)
+            u'<eLabel position="0,40" size="950,2" backgroundColor="{bhi}" zPosition="2" />'
+            # Main band body (steel blue)
+            u'<eLabel position="0,42" size="950,38" backgroundColor="{bmid}" zPosition="2" />'
+            # Bottom dark edge (shadow)
+            u'<eLabel position="0,80" size="950,2" backgroundColor="{blo}" zPosition="2" />'
+            # Bottom accent line (event color)
+            u'<eLabel position="0,82" size="950,2" backgroundColor="{bc}" zPosition="3" />'
+
+            # --- SCORE CENTER BOX (dark recessed area in band) ---
+            u'<eLabel position="400,42" size="150,38" backgroundColor="{ctr}" zPosition="3" />'
+            u'<widget name="score" position="400,42" size="150,38" font="Regular;26" '
+            u'foregroundColor="{sc}" backgroundColor="{ctr}" valign="center" halign="center" zPosition="4" />'
+
+            # --- TEAM NAMES (inside the band) ---
+            u'<widget name="home" position="100,42" size="290,38" font="Regular;32" '
+            u'foregroundColor="{hc}" backgroundColor="{bmid}" valign="center" halign="right" zPosition="4" />'
+            u'<widget name="away" position="560,42" size="290,38" font="Regular;32" '
+            u'foregroundColor="{ac}" backgroundColor="{bmid}" valign="center" halign="left" zPosition="4" />'
+
+            # --- LARGE LOGOS (overlapping band at edges) ---
+            u'<widget name="h_logo" position="5,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
+            u'<widget name="a_logo" position="860,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
+
+            # --- LEAGUE NAME (below band, centered) ---
+            u'<widget name="league" position="200,90" size="550,28" font="Regular;17" '
+            u'foregroundColor="{lfg}" backgroundColor="{bg}" transparent="1" valign="center" halign="center" zPosition="3" />'
+
+            u'</screen>'
+        ).format(
+            bg=bg, bhi=band_hi, bmid=band_mid, blo=band_lo, bc=border_color,
+            ctr=center, hc=h_color, ac=a_color, sc=score_color,
+            sfg=scorer_fg, lfg=league_fg
+        )
 
         Screen.__init__(self, session)
+        # Register with monitor for live basketball updates
+        global_sports_monitor.current_toast = self
         self["league"] = Label(league_text)
         self["home"] = Label(home_text)
         self["away"] = Label(away_text)
@@ -4507,7 +4606,7 @@ class GoalToast(Screen):
         # Start position (Off-screen Top)
         self.current_y = -100
         self.target_y = 10
-        self.toast_width = width
+        self.toast_width = 950
         
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
             "ok": self.close, "cancel": self.close, 
@@ -4989,7 +5088,7 @@ class SimpleSportsMiniBar2(Screen):
         self.parse_json()
             
     def refresh_data(self): 
-        global_sports_monitor.check_goals()
+        global_sports_monitor.check_goals(from_ui=True)
 
     def get_scorers_string(self, event, home_id, away_id):
         # ... (Same implementation as previously provided) ...
@@ -5245,12 +5344,46 @@ class SimpleSportsMiniBar(Screen):
             try: os.makedirs(self.logo_path)
             except: pass
 
-        if global_sports_monitor.theme_mode == "ucl":
-            # Compact MiniBar: 770px wide, right-aligned, font adjustments
-            self.skin = """<screen position="580,5" size="770,60" title="Sports Ticker" backgroundColor="#00000000" flags="wfNoBorder"><widget name="lbl_league" position="0,0" size="770,16" font="Regular;13" foregroundColor="#00ffff" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="0,16" size="770,44" backgroundColor="#800e1e5b" zPosition="0" /><eLabel position="295,16" size="180,44" backgroundColor="#ffffff" zPosition="1" /><widget name="h_logo" position="5,20" size="36,36" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_home" position="45,16" size="245,44" font="Regular;23" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_score" position="295,16" size="180,30" font="Regular;26" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="lbl_status" position="295,46" size="180,14" font="Regular;8" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="lbl_away" position="483,16" size="245,44" font="Regular;23" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="a_logo" position="734,20" size="36,36" alphatest="blend" scale="1" zPosition="2" /></screen>"""
-        else:
-            # Compact MiniBar: 770px wide, right-aligned, font adjustments
-            self.skin = """<screen position="580,5" size="770,60" title="Sports Ticker" backgroundColor="#00000000" flags="wfNoBorder"><widget name="lbl_league" position="0,0" size="770,16" font="Regular;13" foregroundColor="#FFFFFF" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="0,16" size="5,44" backgroundColor="#E90052" zPosition="1" /><eLabel position="5,16" size="300,44" backgroundColor="#80190028" zPosition="1" /><widget name="h_logo" position="10,20" size="36,36" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_home" position="51,16" size="250,44" font="Regular;23" foregroundColor="#FFFFFF" transparent="1" halign="right" valign="center" zPosition="2" /><eLabel position="305,16" size="160,44" backgroundColor="#00FF85" zPosition="1" /><widget name="lbl_score" position="305,16" size="160,30" font="Regular;26" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="2" /><widget name="lbl_status" position="305,46" size="160,14" font="Regular;8" foregroundColor="#000000" backgroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="3" /><eLabel position="465,16" size="300,44" backgroundColor="#80190028" zPosition="1" /><widget name="lbl_away" position="472,16" size="250,44" font="Regular;23" foregroundColor="#FFFFFF" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="a_logo" position="724,20" size="36,36" alphatest="blend" scale="1" zPosition="2" /><eLabel position="765,16" size="5,44" backgroundColor="#F6B900" zPosition="1" /></screen>"""
+        # UCL Broadcast Band Style (matching GoalToast)
+        # Transparent bg, metallic band, large logos at edges
+        self.skin = (
+            u'<screen position="center,10" size="950,120" title="Sports Ticker" flags="wfNoBorder" backgroundColor="#FF000000">'
+
+            # --- SCORER/STATUS TEXT (above band, centered) ---
+            u'<widget name="lbl_status" position="200,5" size="550,30" font="Regular;21" '
+            u'foregroundColor="#00FFFFFF" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="3" />'
+
+            # --- METALLIC BAND (y=40, total band height = 42) ---
+            # Top bright edge (metallic highlight)
+            u'<eLabel position="0,40" size="950,2" backgroundColor="#00506888" zPosition="2" />'
+            # Main band body (steel blue)
+            u'<eLabel position="0,42" size="950,38" backgroundColor="#002C4060" zPosition="2" />'
+            # Bottom dark edge (shadow)
+            u'<eLabel position="0,80" size="950,2" backgroundColor="#00162030" zPosition="2" />'
+            # Bottom accent line
+            u'<eLabel position="0,82" size="950,2" backgroundColor="#0000BB55" zPosition="3" />'
+
+            # --- SCORE CENTER BOX (dark recessed area in band) ---
+            u'<eLabel position="400,42" size="150,38" backgroundColor="#00142030" zPosition="3" />'
+            u'<widget name="lbl_score" position="400,42" size="150,38" font="Regular;26" '
+            u'foregroundColor="#00FFFFFF" backgroundColor="#00142030" valign="center" halign="center" zPosition="4" />'
+
+            # --- TEAM NAMES (inside the band) ---
+            u'<widget name="lbl_home" position="100,42" size="290,38" font="Regular;32" '
+            u'foregroundColor="#00FFFFFF" backgroundColor="#002C4060" valign="center" halign="right" zPosition="4" />'
+            u'<widget name="lbl_away" position="560,42" size="290,38" font="Regular;32" '
+            u'foregroundColor="#00FFFFFF" backgroundColor="#002C4060" valign="center" halign="left" zPosition="4" />'
+
+            # --- LARGE LOGOS (overlapping band at edges) ---
+            u'<widget name="h_logo" position="5,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
+            u'<widget name="a_logo" position="860,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
+
+            # --- LEAGUE NAME (below band, centered) ---
+            u'<widget name="lbl_league" position="200,90" size="550,28" font="Regular;17" '
+            u'foregroundColor="#00FFFFFF" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="3" />'
+
+            u'</screen>'
+        )
 
         self["lbl_league"] = Label("")
         self["lbl_home"] = Label("")
@@ -5306,7 +5439,7 @@ class SimpleSportsMiniBar(Screen):
         self.parse_json()
             
     def refresh_data(self): 
-        global_sports_monitor.check_goals()
+        global_sports_monitor.check_goals(from_ui=True)
 
     def parse_json(self):
         events = global_sports_monitor.cached_events
@@ -5754,6 +5887,8 @@ class SimpleSportsScreen(Screen):
         except: pass
 
     def start_ui(self):
+        log_diag("SCREEN.start_ui: is_custom={} filter_mode={} discovery_mode={} active={}".format(
+            self.monitor.is_custom_mode, self.monitor.filter_mode, self.monitor.discovery_mode, self.monitor.active))
         self.update_clock()  # Initial clock update
         self.clock_timer.start(1000)  # Update every second
         self.update_header(); self.update_filter_button(); self.fetch_data()
@@ -5783,7 +5918,7 @@ class SimpleSportsScreen(Screen):
         elif mode == 2: self["key_yellow"].setText("Show Tomorrow")
         elif mode == 3: self["key_yellow"].setText("Live Only")
         self.update_header()
-    def fetch_data(self): self.monitor.check_goals()
+    def fetch_data(self): self.monitor.check_goals(from_ui=True)
     
     @profile_function("SimpleSportsScreen")
     def get_logo_path(self, url, team_id):
@@ -6198,8 +6333,11 @@ class SimpleSportsScreen(Screen):
 
     @profile_function("SimpleSportsScreen")
     def refresh_ui(self, success, force_refresh=False):
+        log_diag("REFRESH_UI: success={} force={} filter_mode={} is_custom={} cached_events={} status='{}'".format(
+            success, force_refresh, self.monitor.filter_mode, self.monitor.is_custom_mode, len(self.monitor.cached_events), self.monitor.status_message))
         # Guard: Don't refresh UI during loading states UNLESS forced
         if not success and not force_refresh:
+            log_diag("REFRESH_UI: SKIPPED (not success, not forced)")
             return
             
         self.update_header()
@@ -6216,12 +6354,15 @@ class SimpleSportsScreen(Screen):
 
         # Skip rebuild if no changes and we already have data (unless forced)
         if not force_refresh and not self.monitor.has_changes and self.current_match_ids and events:
+            log_diag("REFRESH_UI: SKIPPED (no changes, has data)")
             return
         
         if not events:
             # If we already have matches and loading is in progress, keep old list to avoid flicker
             if self.current_match_ids and ("Loading" in self.monitor.status_message or "Fetching" in self.monitor.status_message):
+                log_diag("REFRESH_UI: SKIPPED (loading in progress, keeping old data)")
                 return
+            log_diag("REFRESH_UI: No events - showing '{}'".format(self.monitor.status_message or 'No Matches Found'))
             msg = self.monitor.status_message or "No Matches Found"
             dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0)
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
@@ -6605,10 +6746,12 @@ class SimpleSportsScreen(Screen):
     def toggle_discovery(self):
         if time.time() - self.last_key_time < 0.5: return
         self.last_key_time = time.time()
+        log_diag("BUTTON_BLUE: toggle_discovery pressed. is_custom={} filter_mode={}".format(self.monitor.is_custom_mode, self.monitor.filter_mode))
         self.monitor.cycle_discovery_mode(); self.update_header()
     def toggle_filter(self): 
         if time.time() - self.last_key_time < 0.5: return
         self.last_key_time = time.time()
+        log_diag("BUTTON_YELLOW: toggle_filter pressed. is_custom={} discovery_mode={}".format(self.monitor.is_custom_mode, self.monitor.discovery_mode))
         self.monitor.toggle_filter(); self.update_filter_button(); self.refresh_ui(True, force_refresh=True)
     def check_for_updates(self): 
         self["league_title"].setText("CHECKING FOR UPDATES...")
@@ -6927,6 +7070,13 @@ def Plugins(**kwargs):
             description="Live Sports Scores, Alerts, and EPG by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
+        ),
+        # CRITICAL: Set session at boot so background notifications work
+        # without needing to open the plugin screen first
+        PluginDescriptor(
+            name="SimplySports Monitor",
+            where=PluginDescriptor.WHERE_SESSIONSTART,
+            fnc=lambda session, **kwargs: global_sports_monitor.set_session(session)
         )
     ]
     if global_sports_monitor and global_sports_monitor.show_in_menu:
