@@ -80,10 +80,10 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "4.1" # A new style for the notification toast and the Mini bar1.
+CURRENT_VERSION = "4.2" # A new single league screen, League logos, and scoring heat in the main screen.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
-LOGO_CACHE_DIR = "/tmp/simplysports_logos"
+LOGO_CACHE_DIR = "/tmp/simplysports/logos"
 
 # ==============================================================================
 # FONT FALLBACK - Ensures a valid font is available
@@ -521,12 +521,22 @@ def get_scaled_pixmap(path, width, height):
 # ==============================================================================
 def SportListEntry(entry):
     try:
-        if len(entry) >= 12:
+        if len(entry) >= 15:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
+        elif len(entry) >= 14:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg = entry[:14]
+             l_png = ""
+        elif len(entry) >= 13:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
+             c_score_bg = 0x202020; has_epg = entry[12]; l_png = ""
+        elif len(entry) >= 12:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
+             c_score_bg = 0x202020; has_epg = False; l_png = ""
         else: return []
 
         if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
         if a_png and (not os.path.exists(a_png) or os.path.getsize(a_png) == 0): a_png = None
+        if l_png and (not os.path.exists(l_png) or os.path.getsize(l_png) == 0): l_png = None
 
         c_text = 0xffffff
         c_dim = 0xDDDDDD 
@@ -564,7 +574,13 @@ def SportListEntry(entry):
         # New Coordinates (Refined for Request 102)
         # Status: 30, 80 (+10w) | League: 110, 80 (+10w) | Home: 195, 575 (-40w, shifted +20)
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 80, h-12, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+        
+        # Draw League Logo or Fallback Text
+        if l_png:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 125, 20, 50, 50, get_scaled_pixmap(l_png, 50, 50)))
+        else:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+        
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 195, 0, 575, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
         
         # Center Block: Logos pulled out. Y=5.
@@ -581,10 +597,10 @@ def SportListEntry(entry):
             if max_len > 8: font_idx = 3 
             elif max_len > 5: font_idx = 0 
 
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
             # Hyphen Y=-10
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 940, -10, 40, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
         else:
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h-12, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
@@ -598,21 +614,32 @@ def SportListEntry(entry):
         font_time = 3 
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1710, 0, 180, h-12, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_dim, c_sel))
 
-        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 785, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
-        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1115, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
+        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 88, 1880, 2, 0, RT_HALIGN_CENTER, "", 0x303030, 0x303030))
         return res
     except: return []
 
 def UCLListEntry(entry):
     try:
-        if len(entry) >= 12:
+        if len(entry) >= 15:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
+        elif len(entry) >= 14:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg = entry[:14]
+             l_png = ""
+        elif len(entry) >= 13:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
-             has_epg = entry[12] if len(entry) > 12 else False
+             has_epg = entry[12]
+             c_score_bg = 0x051030; l_png = ""
+        elif len(entry) >= 12:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
+             has_epg = False
+             c_score_bg = 0x051030; l_png = ""
         else: return []
 
         if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
         if a_png and (not os.path.exists(a_png) or os.path.getsize(a_png) == 0): a_png = None
+        if l_png and (not os.path.exists(l_png) or os.path.getsize(l_png) == 0): l_png = None
 
         c_text = 0xffffff
         c_dim = 0xDDDDDD 
@@ -649,7 +676,13 @@ def UCLListEntry(entry):
 
         # New Coordinates: matching SportListEntry MARGINS
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 80, h-12, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+        
+        # Draw League Logo or Fallback Text
+        if l_png:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 125, 20, 50, 50, get_scaled_pixmap(l_png, 50, 50)))
+        else:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+            
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 195, 0, 575, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
         
         if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 780, 5, 60, 60, get_scaled_pixmap(h_png, 60, 60)))
@@ -663,10 +696,10 @@ def UCLListEntry(entry):
             if max_len > 8: font_idx = 3 
             elif max_len > 5: font_idx = 0 
 
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
             # Hyphen lifted to -10
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 940, -10, 40, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
         else:
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h-12, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
@@ -682,8 +715,8 @@ def UCLListEntry(entry):
         font_time = 3 
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1710, 0, 180, h, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_dim, c_sel))
 
-        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 785, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
-        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1115, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
+        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 88, 1880, 2, 0, RT_HALIGN_CENTER, "", 0x22182c82, 0x22182c82))
         return res
     except: return []
@@ -741,27 +774,34 @@ def get_scaled_pixmap(path, width, height):
     except: pass
     return LoadPixmap(path)
 
-def SelectionListEntry(name, is_selected, logo_path=None):
-    check_mark = "[x]" if is_selected else "[ ]"
+def SelectionListEntry(name, is_selected, logo_path=None, mode="multi"):
     col_sel = 0x00FF85 if is_selected else 0x9E9E9E
     text_col = 0xFFFFFF if is_selected else 0x9E9E9E
     res = [(name, is_selected)]
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 5, 40, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, check_mark, col_sel, col_sel, None, None))
+    
+    base_x = 15
+    if mode == "multi":
+        check_mark = "[x]" if is_selected else "[ ]"
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, base_x, 5, 40, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, check_mark, col_sel, col_sel, None, None))
+        base_x += 55
+    else:
+        text_col = 0xFFFFFF # Always bright for single mode
     
     # Add logo if available
-    text_x = 70
+    text_x = base_x
     if logo_path and os.path.exists(logo_path) and os.path.getsize(logo_path) > 0:
         try:
             # Resize image to fit 35x35
             pixmap = get_scaled_pixmap(logo_path, 35, 35)
             if pixmap:
-                res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 70, 7, 35, 35, pixmap))
-                text_x = 115  # Shift text after logo
+                res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, base_x, 7, 35, 35, pixmap))
+                text_x = base_x + 45  # Shift text after logo
         except:
             pass
     
     res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, 5, 700 - (text_x - 70), 40, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, name, text_col, text_col, None, None))
     return res
+
 
 # ==============================================================================
 # SPORTS MONITOR (FIXED: Stable Sorting)
@@ -920,8 +960,15 @@ class SportsMonitor:
 
     def toggle_activity(self): return self.cycle_discovery_mode()
 
-    def _get_timer_interval(self):
-        """Return timer interval in ms: 180s for custom mode (67 leagues), 60s for single league."""
+    def _get_timer_interval(self, live_count=0):
+        """Return timer interval in ms based on live games: 
+           Active games: 180s for custom mode (67 leagues), 60s for single league.
+           Idle games (No live matches): 3 mins to save bandwidth."""
+        
+        # SMART IDLE POLLING:
+        if live_count == 0:
+            return 180000 if not self.is_custom_mode else 240000
+            
         return 180000 if self.is_custom_mode else 60000
 
     def ensure_timer_state(self):
@@ -971,6 +1018,13 @@ class SportsMonitor:
             self.check_goals()
     def set_custom_leagues(self, indices):
         self.custom_league_indices = indices; self.is_custom_mode = True; self.last_scores = {}; self.last_states = {}; self.notified_events = set()
+        
+        # FIX: Stop any running batch operations from previous custom mode
+        self.batch_is_active = False
+        if self.batch_timer.isActive(): self.batch_timer.stop()
+        self.batch_queue = []
+        self.active_requests.clear() # Cancel/Ignore pending requests
+
         # FIX: Clear cache to remove old events from previous selection
         self.event_map = {}; self.cached_events = []
         self.save_config()
@@ -1019,16 +1073,20 @@ class SportsMonitor:
 
     def trigger_zap_alert(self, rem):
         if self.session:
-            # Use ZapNotificationScreen instead of MessageBox
-            self.session.openWithCallback(partial(self.zap_confirmation_callback, domain=(rem.get("sref"),)), 
-                ZapNotificationScreen, 
-                rem["match"], 
-                rem["league"], 
-                rem.get("h_logo", ""), 
-                rem.get("a_logo", ""), 
-                rem.get("sref"), 
-                timeout_seconds=30
-            )
+            def _open_zap():
+                # Use ZapNotificationScreen instead of MessageBox
+                self.session.openWithCallback(partial(self.zap_confirmation_callback, domain=(rem.get("sref"),)), 
+                    ZapNotificationScreen, 
+                    rem["match"], 
+                    rem["league"], 
+                    rem.get("h_logo", ""), 
+                    rem.get("a_logo", ""), 
+                    rem.get("sref"), 
+                    timeout_seconds=30
+                )
+            
+            from twisted.internet import reactor
+            reactor.callLater(0, _open_zap)
 
     def zap_confirmation_callback(self, answer, domain=None):
         if answer and domain:
@@ -1106,10 +1164,13 @@ class SportsMonitor:
             fired = 0; skipped = 0
             for idx in selected_indices:
                 name, url = DATA_SOURCES[idx]
-                if url in self.active_requests:
-                    self.batch_remaining -= 1
-                    skipped += 1
-                    continue
+                # FIX: We want a fresh copy. We shouldn't skip if it's already in active_requests
+                # otherwise batch_remaining drops immediately and batch finalizes prematurely
+                # while ghost old requests are still ticking.
+                # if url in self.active_requests:
+                #     self.batch_remaining -= 1
+                #     skipped += 1
+                #     continue
                 
                 self.active_requests.add(url)
                 d = self.agent.request(b'GET', url.encode('utf-8'))
@@ -1166,6 +1227,10 @@ class SportsMonitor:
             log_diag("BATCH_ERROR: DROPPED (batch not active) url={}".format(url))
             if url: self.active_requests.discard(url)
             return
+        # FIX: Ignore ghost requests
+        if url and url not in self.active_requests:
+            log_diag("BATCH_ERROR: DROPPED (ghost deferred) url={}".format(url))
+            return
         log_diag("BATCH_ERROR: url={} error={} batch_remaining={}".format(url, str(failure)[:100], self.batch_remaining - 1))
         if url: self.active_requests.discard(url)
         self.batch_remaining -= 1
@@ -1177,6 +1242,11 @@ class SportsMonitor:
         try:
             if not self.batch_is_active or not self.is_custom_mode:
                 self.active_requests.discard(url)
+                return
+            
+            # FIX: Ignore ghost requests entirely (do not decrement batch_remaining)
+            if url not in self.active_requests:
+                log_diag("BATCH_RESPONSE: DROPPED (ghost deferred) url={}".format(url))
                 return
             
             if self.batch_first_response is None:
@@ -1232,7 +1302,7 @@ class SportsMonitor:
         self._trigger_callbacks(True)
     def handle_error_silent(self, failure): pass
 
-    def _trigger_callbacks(self, data_ready=True):
+    def _trigger_callbacks(self, data_ready=True, force_refresh=False):
         """
         Debounced callback triggering
         Only fires once per 300ms to prevent UI flicker
@@ -1240,6 +1310,11 @@ class SportsMonitor:
         import time
         now = time.time()
         
+        if not hasattr(self, 'pending_force_refresh'):
+            self.pending_force_refresh = False
+        if force_refresh:
+            self.pending_force_refresh = True
+            
         # If less than 300ms since last callback, schedule delayed
         if now - self.last_callback_time < 0.3:
             self.pending_callback = data_ready
@@ -1249,16 +1324,31 @@ class SportsMonitor:
         
         # Execute immediately
         self.last_callback_time = now
+        do_force = self.pending_force_refresh
+        self.pending_force_refresh = False
+        
         for cb in self.callbacks: 
-            cb(data_ready)
+            try:
+                cb(data_ready, force_refresh=do_force)
+            except TypeError:
+                try: cb(data_ready)
+                except: pass
 
     def _execute_pending_callback(self):
         """Execute the pending debounced callback"""
         if self.pending_callback is not None:
             import time
             self.last_callback_time = time.time()
+            data_ready = self.pending_callback
+            do_force = getattr(self, 'pending_force_refresh', False)
+            self.pending_force_refresh = False
+            
             for cb in self.callbacks:
-                cb(self.pending_callback)
+                try:
+                    cb(data_ready, force_refresh=do_force)
+                except TypeError:
+                    try: cb(data_ready)
+                    except: pass
             self.pending_callback = None
 
     @profile_function("SportsMonitor")
@@ -1344,18 +1434,29 @@ class SportsMonitor:
             self.current_toast_match = (home, away)  # Track for live basketball updates
             if self.session: 
                 try:
-                    # SYNC: Play sound RIGHT when toast opens
-                    if sound_type == 'goal' and self.discovery_mode == 2:
-                        self.play_sound()
-                    elif sound_type == 'stend' and self.discovery_mode == 2:
-                        self.play_stend_sound()
+                    def _open_toast():
+                        # SYNC: Play sound RIGHT when toast opens
+                        if sound_type == 'goal' and self.discovery_mode == 2:
+                            self.play_sound()
+                        elif sound_type == 'stend' and self.discovery_mode == 2:
+                            self.play_stend_sound()
+                        
+                        try:
+                            self.session.openWithCallback(
+                                self.on_toast_closed, GoalToast, 
+                                league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team
+                            )
+                        except Exception as e:
+                            print("[SimplySport] Error opening GoalToast: {}".format(e))
+                            self.notification_active = False
+                            self.current_toast = None
+                            from twisted.internet import reactor
+                            reactor.callLater(2, self.process_queue)
                     
-                    self.session.openWithCallback(
-                        self.on_toast_closed, GoalToast, 
-                        league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team
-                    )
+                    from twisted.internet import reactor
+                    reactor.callLater(0, _open_toast)
                 except Exception as e:
-                    print("[SimplySport] Error opening notification: {}".format(e))
+                    print("[SimplySport] Error setting up notification thread: {}".format(e))
                     self.notification_active = False
                     self.current_toast = None
                     from twisted.internet import reactor
@@ -1517,6 +1618,7 @@ class SportsMonitor:
     def prefetch_logo(self, url, team_id):
         """Pre-download logo to cache using team ID naming (like GameInfoScreen)"""
         if not url or not team_id: return
+        if team_id in self.logo_path_cache: return # Skip disk check if already cached in memory
         if team_id in self.pending_logos: return # Skip if already downloading
 
         try:
@@ -1534,6 +1636,7 @@ class SportsMonitor:
                 def on_download_success(data):
                     if data:
                         with open(target_path, 'wb') as f: f.write(data)
+                        self.logo_path_cache[team_id] = target_path # Register globally
                     self.pending_logos.discard(team_id)
                     return data
                 
@@ -1545,6 +1648,8 @@ class SportsMonitor:
                     .addCallback(readBody) \
                     .addCallback(on_download_success) \
                     .addErrback(on_download_error)
+            else:
+                self.logo_path_cache[team_id] = target_path # Register globally so subsequent calls skip os.path.exists
         except: 
             self.pending_logos.discard(team_id)
 
@@ -1852,6 +1957,15 @@ class SportsMonitor:
                                 # Pre-fetch logos for all events (cache warmup)
                                 if h_logo and h_id: self.prefetch_logo(h_logo, h_id)
                                 if a_logo and a_id: self.prefetch_logo(a_logo, a_id)
+                                
+                                # League Logo Extraction & Caching
+                                l_logo = league_obj.get('logos', [{}])[0].get('href', '')
+                                l_id = league_obj.get('id', '')
+                                if l_logo and l_id:
+                                    self.prefetch_logo(l_logo, "league_" + str(l_id))
+                                
+                                processed_ev['l_logo_url'] = l_logo
+                                processed_ev['l_logo_id'] = "league_" + str(l_id) if l_id else ''
                             
                             self.event_map[eid] = processed_ev
                             if is_changed: 
@@ -1894,9 +2008,9 @@ class SportsMonitor:
             
             live_count = 0
             
-            # Cleanup old flags
+            # Cleanup old flags (Increased from 60 to 300 to support 5-minute heat effect)
             now = time.time()
-            keys_to_del = [mid for mid, info in self.goal_flags.items() if now - info['time'] > 60]
+            keys_to_del = [mid for mid, info in self.goal_flags.items() if now - info['time'] > 300]
             for k in keys_to_del: del self.goal_flags[k]
 
             for event in unique_list:
@@ -2057,9 +2171,9 @@ class SportsMonitor:
                     # Update score ONLY if we didn't 'continue' above
                     self.last_scores[match_id] = score_str
 
-            # ADAPTIVE POLLING: 15s for Live, 60s for others (single league only)
+            # ADAPTIVE POLLING: 15s for Live, Smart Idle for others
             if self.active and not self.batch_is_active:
-                new_interval = 15000 if live_count > 0 else self._get_timer_interval()
+                new_interval = 15000 if live_count > 0 else self._get_timer_interval(live_count)
                 self.timer.start(new_interval, False)
 
             # Only trigger UI callbacks if NOT in batch mode
@@ -4809,8 +4923,9 @@ class LeagueSelector(Screen):
         "NBA", "NFL", "MLB", "NHL", "NCAA Football", "NCAA Basketball"
     ]
     
-    def __init__(self, session):
+    def __init__(self, session, mode="multi"):
         Screen.__init__(self, session)
+        self.mode = mode
         if global_sports_monitor.theme_mode == "ucl":
              self.skin = """
             <screen position="center,center" size="950,800" title="Select Leagues" backgroundColor="#00000000" flags="wfNoBorder">
@@ -4846,19 +4961,19 @@ class LeagueSelector(Screen):
             </screen>
             """
         
-        self["header"] = Label("Select Custom Leagues")
+        self["header"] = Label("Select Custom Leagues" if mode == "multi" else "Select League")
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         self["list"].l.setFont(0, gFont("SimplySportFont", 28))
         self["list"].l.setItemHeight(50)
         
         self["key_red"] = Label("Cancel")
-        self["key_green"] = Label("Save")
-        self["info"] = Label("Press OK to Toggle")
+        self["key_green"] = Label("Save" if mode == "multi" else "")
+        self["info"] = Label("Press OK to Toggle" if mode == "multi" else "Press OK to Select")
         
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
-            "cancel": self.close,
-            "red": self.close,
-            "green": self.save,
+            "cancel": self.cancel,
+            "red": self.cancel,
+            "green": self.save if mode == "multi" else self.dummy,
             "ok": self.toggle,
             "up": self["list"].up,
             "down": self["list"].down,
@@ -4872,6 +4987,12 @@ class LeagueSelector(Screen):
             try: os.makedirs(self.logo_path)
             except: pass
         self.onLayoutFinish.append(self.load_list)
+
+    def dummy(self):
+        pass
+
+    def cancel(self):
+        self.close(None)
 
     def get_league_priority(self, league_name):
         """Return priority value for sorting (lower = higher priority)"""
@@ -4925,19 +5046,7 @@ class LeagueSelector(Screen):
         """Generate ESPN logo URL from API endpoint"""
         # ESPN league logos follow pattern: https://a.espncdn.com/i/leaguelogos/{sport}/500/{league_id}.png
         # For common leagues, use known IDs
-        KNOWN_LOGOS = {
-            "eng.1": ("soccer", "23"),   # Premier League
-            "esp.1": ("soccer", "15"),   # La Liga
-            "ita.1": ("soccer", "12"),   # Serie A
-            "ger.1": ("soccer", "10"),   # Bundesliga
-            "fra.1": ("soccer", "9"),    # Ligue 1
-            "uefa.champions": ("soccer", "2"),
-            "uefa.europa": ("soccer", "35"),
-            "nba": ("nba", "500"),
-            "nfl": ("nfl", "500"),
-            "nhl": ("nhl", "500"),
-            "mlb": ("mlb", "500"),
-        }
+        KNOWN_LOGOS = {'sco.tennents': ('soccer', '3959'), 'ufc': ('mma', '3321'), 'mens-college-lacrosse': ('lacrosse', '502'), 'caf.nations': ('soccer', '3908'), 'eng.5': ('soccer', '3917'), 'usa.usl.1': ('soccer', '4002'), 'college-baseball': ('baseball', '14'), 'arg.1': ('soccer', '745'), '267979': ('rugby', '8007'), 'mlb': ('baseball', '10'), '8676': ('cricket', '8676'), 'uru.1': ('soccer', '680'), 'eng.w.1': ('soccer', '8097'), 'ksa.1': ('soccer', '21231'), 'lpga': ('golf', '1107'), 'ita.coppa_italia': ('soccer', '3956'), '270557': ('rugby', '8331'), 'rus.1': ('soccer', '3939'), 'aut.1': ('soccer', '3907'), 'eur': ('golf', '7002'), 'eng.2': ('soccer', '3914'), 'nfl': ('football', '28'), 'per.1': ('soccer', '670'), 'afc.asian.cup': ('soccer', '20219'), 'jpn.1': ('soccer', '750'), 'ned.supercup': ('soccer', '10749'), 'bra.2': ('soccer', '4007'), 'fifa.worldq.caf': ('soccer', '790'), 'irl': ('racing', '2040'), 'fifa.worldq.conmebol': ('soccer', '787'), 'esp.1': ('soccer', '740'), 'eng.3': ('soccer', '3915'), 'aus.w.1': ('soccer', '18992'), 'concacaf.gold': ('soccer', '4004'), 'esp.copa_de_la_reina': ('soccer', '20381'), '164205': ('rugby', '8337'), 'atp': ('tennis', '851'), '8605': ('cricket', '8605'), 'nor.1': ('soccer', '3960'), '242041': ('rugby', '8326'), 'fifa.worldq.uefa': ('soccer', '786'), 'ita.super_cup': ('soccer', '8103'), 'esp.super_cup': ('soccer', '8102'), 'uefa.champions': ('soccer', '775'), 'fra.w.1': ('soccer', '20955'), 'ned.cup': ('soccer', '3957'), 'concacaf.leagues.cup': ('soccer', '19425'), 'gre.1': ('soccer', '3955'), 'conmebol.libertadores': ('soccer', '783'), 'ita.2': ('soccer', '3931'), 'college-football': ('football', '23'), 'bra.1': ('soccer', '630'), 'fifa.friendly': ('soccer', '3922'), 'usa.nwsl': ('soccer', '8301'), 'fifa.friendly.w': ('soccer', '3923'), 'fifa.worldq.concacaf': ('soccer', '788'), 'concacaf.champions': ('soccer', '5699'), 'col.1': ('soccer', '650'), 'sco.1': ('soccer', '735'), 'par.1': ('soccer', '3934'), 'chn.1': ('soccer', '8376'), 'tur.1': ('soccer', '3946'), 'eng.league_cup': ('soccer', '3920'), 'pll': ('lacrosse', '20813'), 'afc.champions': ('soccer', '3902'), '271937': ('rugby', '8329'), '270559': ('rugby', '8005'), 'womens-college-basketball': ('basketball', '54'), 'eng.trophy': ('soccer', '18481'), 'conmebol.sudamericana': ('soccer', '5454'), 'uefa.europa': ('soccer', '776'), 'ger.2': ('soccer', '3927'), 'campeones.cup': ('soccer', '18771'), 'conmebol.america': ('soccer', '780'), 'swe.1': ('soccer', '3945'), 'uefa.super_cup': ('soccer', '5462'), 'ita.1': ('soccer', '730'), 'ger.super_cup': ('soccer', '8101'), 'mex.1': ('soccer', '760'), 'f1': ('racing', '2030'), 'esp.copa_del_rey': ('soccer', '3951'), 'eng.fa': ('soccer', '3918'), 'mens-college-basketball': ('basketball', '41'), 'pga': ('golf', '1106'), 'concacaf.nations.league': ('soccer', '19267'), 'uefa.euro_u21_qual': ('soccer', '20114'), 'aus.1': ('soccer', '3906'), 'fifa.worldq.afc': ('soccer', '789'), 'fra.2': ('soccer', '3926'), 'nhl': ('hockey', '90'), 'esp.w.1': ('soccer', '20956'), 'eng.4': ('soccer', '3916'), 'usa.nwsl.cup': ('soccer', '19868'), 'ger.1': ('soccer', '720'), 'sco.challenge': ('soccer', '5331'), 'sco.4': ('soccer', '3942'), 'fifa.worldq.ofc': ('soccer', '792'), 'ned.1': ('soccer', '725'), 'nba': ('basketball', '46'), 'eng.1': ('soccer', '700'), 'uefa.nations': ('soccer', '2395'), 'sui.1': ('soccer', '3944'), 'fra.coupe_de_la_ligue': ('soccer', '3953'), 'cze.1': ('soccer', '5347'), 'usa.1': ('soccer', '770'), 'nascar-premier': ('racing', '2021'), 'sco.2': ('soccer', '3940'), 'ger.dfb_pokal': ('soccer', '3954'), 'eng.charity': ('soccer', '5329'), 'uefa.wchampions': ('soccer', '19483'), 'uefa.europa.conf': ('soccer', '20296'), 'irl.1': ('soccer', '3930'), 'sco.3': ('soccer', '3941'), 'wnba': ('basketball', '59'), '8604': ('cricket', '8604'), 'bol.1': ('soccer', '620'), 'cyp.1': ('soccer', '5346'), 'wta': ('tennis', '900'), 'sco.cis': ('soccer', '5330'), 'womens-college-lacrosse': ('lacrosse', '503'), 'uefa.euroq': ('soccer', '3947'), 'bel.1': ('soccer', '3901'), 'por.taca.portugal': ('soccer', '20922'), 'eng.w.fa': ('soccer', '20226'), 'rsa.1': ('soccer', '3937'), 'rou.1': ('soccer', '10747'), 'den.1': ('soccer', '3913'), '8674': ('cricket', '8674'), 'ksa.kings.cup': ('soccer', '22057'), 'ned.2': ('soccer', '3933'), 'esp.2': ('soccer', '3921'), 'usa.open': ('soccer', '5337'), 'por.1': ('soccer', '715'), 'ufl': ('football', '37'), 'chi.1': ('soccer', '640'), 'fra.coupe_de_france': ('soccer', '3952'), 'fra.1': ('soccer', '710')}
         for key, (sport, lid) in KNOWN_LOGOS.items():
             if key in api_url:
                 return "https://a.espncdn.com/i/leaguelogos/{}/500/{}.png".format(sport, lid)
@@ -4956,16 +5065,22 @@ class LeagueSelector(Screen):
             name = DATA_SOURCES[original_idx][0]
             is_selected = self.selections[sorted_idx]
             logo_path = self.league_logos.get(sorted_idx, None)
-            list_content.append(SelectionListEntry(name, is_selected, logo_path))
+            list_content.append(SelectionListEntry(name, is_selected, logo_path, mode=self.mode))
         self["list"].setList(list_content)
 
     def toggle(self):
         idx = self["list"].getSelectedIndex()
         if idx is not None and 0 <= idx < len(self.selections):
-            self.selections[idx] = not self.selections[idx]
-            self.refresh_list()
+            if self.mode == "multi":
+                self.selections[idx] = not self.selections[idx]
+                self.refresh_list()
+            else:
+                # Single mode: immediately return the selected original index
+                original_idx = self.sorted_indices[idx]
+                self.close((DATA_SOURCES[original_idx][0], original_idx))
 
     def save(self):
+        if self.mode != "multi": return
         new_indices = []
         for sorted_idx, is_selected in enumerate(self.selections):
             if is_selected:
@@ -5078,7 +5193,8 @@ class SimpleSportsMiniBar2(Screen):
     def start_all_timers(self):
         self.parse_json()
         global_sports_monitor.check_goals()
-        self.refresh_timer.start(60000)
+        import random
+        self.refresh_timer.start(60000 + random.randint(0, 15000))
 
     def on_data_ready(self, success):
         self.parse_json()
@@ -5424,7 +5540,8 @@ class SimpleSportsMiniBar(Screen):
         # 2. Trigger Fetch (Will call on_data_ready when done)
         global_sports_monitor.check_goals()
         # 3. Start periodic refresh
-        self.refresh_timer.start(60000)
+        import random
+        self.refresh_timer.start(60000 + random.randint(0, 15000))
 
     def on_data_ready(self, success):
         # This is called AUTOMATICALLY when Monitor finishes downloading
@@ -5943,7 +6060,7 @@ class SimpleSportsScreen(Screen):
         return None
 
     def queue_download(self, url, target_path, filename):
-        if filename in self.active_downloads: return
+        if filename in self.active_downloads or filename in self.monitor.pending_logos: return
         # Check if recently failed
         if hasattr(self, 'failed_downloads') and filename in self.failed_downloads: return
         
@@ -6181,155 +6298,128 @@ class SimpleSportsScreen(Screen):
             except Exception as e: probe_result = "Error: %s" % str(e)
         # -------------------------------------
         
+        
         unique_services = {}
         for s in self.service_cache:
             unique_services[str(s[0])] = s
 
-        results = []
-        
-        # SEARCH LOGIC: Multi-Point Probe for Accuracy
-        # We search multiple points relative to start time to catch pre-shows, slightly shifted times, etc.
-        # Offsets in seconds: +15m (ideal), +0m (start), +60m (mid-match), -15m (pre-match)
-        search_offsets = [900, 0, 3600, -900]
-        
-        # Determine if we can use "Now" fallback
-        now = int(time.time())
-        use_fallback_now = True
-        
-        # If match is in future (> 6 hours), DISABLE "Now" fallback completely
-        # Searching "Now" for tomorrow's match yields garbage.
-        if match_time_ts > (now + 21600):
-            use_fallback_now = False
+        from twisted.internet import threads
+        import time
 
-        # 2. Get Services
-        unique_services = {}
-        for s in self.service_cache:
-            unique_services[str(s[0])] = s
+        def _bg_search(services, m_time, h_words, a_words, l_words):
+            bg_results = []
+            search_offsets = [900, 0, 3600, -900]
+            now = int(time.time())
+            use_fallback_now = True
+            
+            if m_time > (now + 21600):
+                use_fallback_now = False
 
-        results = []
-        for sref_str, s_info in unique_services.items():
-            sref_raw = s_info[0]
-            ch_name = s_info[1]
-            try:
-                evt = None
-                sref_obj = eServiceReference(sref_raw)
-                
-                # 1. Multi-Point Probe
-                for offset in search_offsets:
-                    probe_time = match_time_ts + offset
-                    candidate = epg.lookupEventTime(sref_obj, probe_time)
-                    if candidate:
-                        evt = candidate
-                        break
-                
-                # 2. Fallback to NOW (Only if allowed and primary failed)
-                if not evt and use_fallback_now:
-                     if abs(match_time_ts - now) < 7200:
-                         evt = epg.lookupEventTime(sref_obj, now)
-                
-                # 3. IPTV Linking (Fallback logic)
-                if not evt and (sref_raw.startswith("4097:") or sref_raw.startswith("5001:")):
-                    parts = sref_raw.split(':')
-                    if len(parts) > 10:
-                        dvb_ref_str = "1:0:1:%s:%s:%s:%s:0:0:0" % (parts[3], parts[4], parts[5], parts[6])
-                        dvb_obj = eServiceReference(dvb_ref_str)
-                        for offset in search_offsets:
-                            probe_time = match_time_ts + offset
-                            evt = epg.lookupEventTime(dvb_obj, probe_time)
-                            if evt: break
-                        if not evt and use_fallback_now and abs(match_time_ts - now) < 7200:
-                            evt = epg.lookupEventTime(dvb_obj, now)
+            for sref_str, s_info in services.items():
+                sref_raw = s_info[0]
+                ch_name = s_info[1]
+                try:
+                    evt = None
+                    sref_obj = eServiceReference(sref_raw)
+                    
+                    for offset in search_offsets:
+                        probe_time = m_time + offset
+                        candidate = epg.lookupEventTime(sref_obj, probe_time)
+                        if candidate:
+                            evt = candidate
+                            break
+                    
+                    if not evt and use_fallback_now:
+                         if abs(m_time - now) < 7200:
+                             evt = epg.lookupEventTime(sref_obj, now)
+                    
+                    if not evt and (sref_raw.startswith("4097:") or sref_raw.startswith("5001:")):
+                        parts = sref_raw.split(':')
+                        if len(parts) > 10:
+                            dvb_ref_str = "1:0:1:%s:%s:%s:%s:0:0:0" % (parts[3], parts[4], parts[5], parts[6])
+                            dvb_obj = eServiceReference(dvb_ref_str)
+                            for offset in search_offsets:
+                                probe_time = m_time + offset
+                                evt = epg.lookupEventTime(dvb_obj, probe_time)
+                                if evt: break
+                            if not evt and use_fallback_now and abs(m_time - now) < 7200:
+                                evt = epg.lookupEventTime(dvb_obj, now)
 
-                if evt:
-                    title = evt.getEventName() or ""
-                    desc = evt.getShortDescription() or ""
-                    ext = evt.getExtendedDescription() or "" # Multi-field Search: Extended Info
-                    
-                    # Combine all fields into a single searchable blob
-                    # Search Priority: Title > Short Desc > Extended Desc > Channel Name
-                    blob = normalize_text(title + " " + desc + " " + ext + " " + ch_name)
-                    
-                    # --- UNIVERSAL SMART SCORING (Granular) ---
-                    STOP_WORDS = ['al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs', 'live', 'hd', 'fhd', '4k', 'uhd']
-                    
-                    def match_sig_score(keywords, text_blob, require_all=True):
-                        sig = [w for w in keywords if w not in STOP_WORDS and len(w) > 1]
-                        if not sig: sig = keywords 
+                    if evt:
+                        title = evt.getEventName() or ""
+                        desc = evt.getShortDescription() or ""
+                        ext = evt.getExtendedDescription() or "" 
                         
-                        found_count = 0
-                        for w in sig:
-                            if w in text_blob: found_count += 1
+                        blob = normalize_text(title + " " + desc + " " + ext + " " + ch_name)
                         
-                        return found_count, len(sig)
+                        STOP_WORDS = ['al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs', 'live', 'hd', 'fhd', '4k', 'uhd']
+                        
+                        def match_sig_score(keywords, text_blob, require_all=True):
+                            sig = [w for w in keywords if w not in STOP_WORDS and len(w) > 1]
+                            if not sig: sig = keywords 
+                            
+                            found_count = 0
+                            for w in sig:
+                                if w in text_blob: found_count += 1
+                            
+                            return found_count, len(sig)
 
-                    # Calculate ratios (0.0 to 1.0)
-                    h_found, h_total = match_sig_score(h_norm, blob)
-                    a_found, a_total = match_sig_score(a_norm, blob) if a_norm else (0, 0)
-                    l_found, l_total = match_sig_score(l_norm, blob)
-                    
-                    h_ratio = h_found / float(h_total) if h_total > 0 else 0.0
-                    a_ratio = a_found / float(a_total) if a_total > 0 else 0.0
-                    l_ratio = l_found / float(l_total) if l_total > 0 else 0.0
-                    
-                    score = 0.0
-                    # Weighted Scoring: Home(40%) + Away(40%) + League(20%)
-                    score += (h_ratio * 40)
-                    score += (a_ratio * 40)
-                    score += (l_ratio * 20)
-                    
-                    # Bonus for COMPLETE matches (Exact Phrase match essentially)
-                    if h_ratio == 1.0: score += 10
-                    if a_ratio == 1.0: score += 10
-                    
-                    # Huge bonus if BOTH teams match perfectly
-                    if h_ratio == 1.0 and (a_ratio == 1.0 or not a_norm):
-                        score += 30
+                        h_found, h_total = match_sig_score(h_words, blob)
+                        a_found, a_total = match_sig_score(a_words, blob) if a_words else (0, 0)
+                        l_found, l_total = match_sig_score(l_words, blob)
                         
-                    # Tie-Breaker: Reward matches with MORE matched words total
-                    # This favors "Man City" (2 words) over "City" (1 word) if both are 100%
-                    score += (h_found + a_found + l_found)
+                        h_ratio = h_found / float(h_total) if h_total > 0 else 0.0
+                        a_ratio = a_found / float(a_total) if a_total > 0 else 0.0
+                        l_ratio = l_found / float(l_total) if l_total > 0 else 0.0
+                        
+                        score = 0.0
+                        score += (h_ratio * 40)
+                        score += (a_ratio * 40)
+                        score += (l_ratio * 20)
+                        
+                        if h_ratio == 1.0: score += 10
+                        if a_ratio == 1.0: score += 10
+                        if h_ratio == 1.0 and (a_ratio == 1.0 or not a_words): score += 30
+                        score += (h_found + a_found + l_found)
 
-                    # --- TIME PROXIMITY BONUS ---
-                    # Prioritize events starting close to match time (Live Coverage)
-                    try:
-                        evt_start = evt.getBeginTime()
-                        diff_min = abs(evt_start - match_time_ts) / 60.0
+                        try:
+                            evt_start = evt.getBeginTime()
+                            diff_min = abs(evt_start - m_time) / 60.0
+                            
+                            if diff_min <= 15: score += 20     
+                            elif diff_min <= 45: score += 10   
+                            elif diff_min <= 90: score += 5    
+                            elif diff_min > 120: score -= 15   
+                        except: diff_min = 999
                         
-                        if diff_min <= 15: score += 20     # Starts within 15 mins (Prime Live Slot)
-                        elif diff_min <= 45: score += 10   # Starts within 45 mins (Pre-show included)
-                        elif diff_min <= 90: score += 5    # Reasonable window
-                        elif diff_min > 120: score -= 15   # >2 hours off (Likely replay or different match)
-                    except: diff_min = 999
-                    
-                    # Filtering Thresholds
-                    # We want at least one team fully matched OR both partially matched good enough
-                    valid_match = False
-                    if h_ratio == 1.0 and (a_ratio == 1.0 or not a_norm): valid_match = True
-                    elif h_ratio >= 0.5 and a_ratio >= 0.5: valid_match = True # Partial on both
-                    elif (h_ratio == 1.0 or a_ratio == 1.0) and l_ratio >= 0.5: valid_match = True # One team + League
-                    
-                    if valid_match and score > 40:
-                        cat_color = 0xffffff
-                        if score >= 100: cat_color = 0x00FF00    # Perfect
-                        elif score >= 80: cat_color = 0xFFFF00   # Good
+                        valid_match = False
+                        if h_ratio == 1.0 and (a_ratio == 1.0 or not a_words): valid_match = True
+                        elif h_ratio >= 0.5 and a_ratio >= 0.5: valid_match = True 
+                        elif (h_ratio == 1.0 or a_ratio == 1.0) and l_ratio >= 0.5: valid_match = True 
                         
-                        sat_pos = get_sat_position(sref_raw)
-                        full_name = ch_name + ((" (" + sat_pos + ")") if sat_pos else "")
-                        # Show score and time diff for transparency
-                        time_info = "T+0" if diff_min < 1 else "T-%d" % int(diff_min) if evt_start < match_time_ts else "T+%d" % int(diff_min)
-                        display_title = "[%d|%s] %s" % (int(score), time_info, title)
-                        results.append((sref_raw, full_name, display_title, cat_color, score))
-            except: pass
+                        if valid_match and score > 40:
+                            cat_color = 0xffffff
+                            if score >= 100: cat_color = 0x00FF00    
+                            elif score >= 80: cat_color = 0xFFFF00   
+                            
+                            sat_pos = get_sat_position(sref_raw)
+                            full_name = ch_name + ((" (" + sat_pos + ")") if sat_pos else "")
+                            time_info = "T+0" if diff_min < 1 else "T-%d" % int(diff_min) if evt_start < m_time else "T+%d" % int(diff_min)
+                            display_title = "[%d|%s] %s" % (int(score), time_info, title)
+                            bg_results.append((sref_raw, full_name, display_title, cat_color, score))
+                except: pass
 
-        # Sort by Score Descending
-        results.sort(key=lambda x: x[4], reverse=True)
-        final_list = [ (r[0], r[1], r[2], r[3]) for r in results[:200] ]
-        
-        
-        if final_list:
-            self.session.open(BroadcastingChannelsScreen, final_list, match_time_ts=match_time_ts)
-        else:
-             self.session.open(MessageBox, "No EPG matches found.\n\nChecked for:\n%s\n%s\nIn League: %s" % (home, away, league), MessageBox.TYPE_INFO)
+            bg_results.sort(key=lambda x: x[4], reverse=True)
+            return [ (r[0], r[1], r[2], r[3]) for r in bg_results[:200] ]
+
+        def _on_search_done(final_list):
+            if final_list:
+                self.session.open(BroadcastingChannelsScreen, final_list, match_time_ts=match_time_ts)
+            else:
+                 self.session.open(MessageBox, "No EPG matches found.\n\nChecked for:\n%s\n%s\nIn League: %s" % (home, away, league), MessageBox.TYPE_INFO)
+
+        # Execute heavy loop in background thread to prevent UI lockup
+        threads.deferToThread(_bg_search, unique_services, match_time_ts, h_norm, a_norm, l_norm).addCallback(_on_search_done)
 
     @profile_function("SimpleSportsScreen")
     def refresh_ui(self, success, force_refresh=False):
@@ -6364,7 +6454,7 @@ class SimpleSportsScreen(Screen):
                 return
             log_diag("REFRESH_UI: No events - showing '{}'".format(self.monitor.status_message or 'No Matches Found'))
             msg = self.monitor.status_message or "No Matches Found"
-            dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0)
+            dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0, False, 0x202020, "")
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
             else: self["list"].setList([SportListEntry(dummy_entry)])
             self.current_match_ids = []
@@ -6400,12 +6490,14 @@ class SimpleSportsScreen(Screen):
                 league_prefix = event.get('league_name', '')
                 h_url = event.get('h_logo_url', ''); a_url = event.get('a_logo_url', '')
                 h_id = event.get('h_logo_id', ''); a_id = event.get('a_logo_id', '')
+                l_url_logo = event.get('l_logo_url', ''); l_logo_id = event.get('l_logo_id', '')
                 h_png = self.get_logo_path(h_url, h_id); a_png = self.get_logo_path(a_url, a_id)
+                l_png = self.get_logo_path(l_url_logo, l_logo_id)
                 is_live = False; display_time = local_time; h_score_int = 0; a_score_int = 0
                 
                 # Match ID Generation for Tracking
                 match_id = ""
-                
+
                 if len(comps) > 2:
                     left_text = event.get('shortName', 'Race'); right_text = "Event"; score_text = ""; goal_side = None
                     if state == 'in': score_text = "LIVE"; is_live = True
@@ -6471,8 +6563,12 @@ class SimpleSportsScreen(Screen):
                     score_text = str(h_score) + " - " + str(a_score) if state in ('in', 'post') else "vs"
                     goal_side = None
                     if state == 'in': is_live = True; display_time = clock
-                    match_id = home + "_" + away
-                    goal_side = self.monitor.goal_flags[match_id]['side'] if match_id in self.monitor.goal_flags else None
+                    
+                    # FIX: Use stable event ID matching SportsMonitor instead of truncated names
+                    match_id_fallback = home + "_" + away
+                    match_id = event.get('id', match_id_fallback)
+                    
+                    goal_side = self.monitor.goal_flags[match_id].get('team') if match_id in self.monitor.goal_flags else None
                 
                 status_short = "SCH"
                 if state == 'in': status_short = "LIVE"
@@ -6480,16 +6576,48 @@ class SimpleSportsScreen(Screen):
                 
                 # Removed redundant late filtering
                 
-                has_epg = self.check_epg_availability(home, away) if state == 'pre' or is_live else False
-                entry_data = (status_short, get_league_abbr(league_prefix), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg)
+                has_epg = False
+                # Check for recent goals to create a 'heat' effect on the score box
+                c_score_bg = 0x202020 if self.monitor.theme_mode != "ucl" else 0x051030
+                if state == 'in' and match_id in self.monitor.goal_flags:
+                    goal_time = self.monitor.goal_flags[match_id].get('time', 0)
+                    time_since_goal = time.time() - goal_time
+                    
+                    if time_since_goal <= 300: # 5 minutes
+                        total_goals = h_score_int + a_score_int
+                        
+                        # Base color and target hot color sets based on total goals
+                        if total_goals >= 5: # Extremely hot (lots of goals)
+                            start_color = [204, 51, 0] # #CC3300 (Deep Red-Orange)
+                        elif total_goals >= 3: # Hot
+                            start_color = [170, 85, 0] # #AA5500 (Orange)
+                        else: # Warm (1-2 goals)
+                            start_color = [136, 34, 0] # #882200 (Dark Orange)
+                            
+                        # Fade progress (0.0 = just scored, 1.0 = 5 minutes ago)
+                        progress = time_since_goal / 300.0
+                        
+                        # Target base color (cool)
+                        end_color = [32, 32, 32] if self.monitor.theme_mode != "ucl" else [5, 16, 48]
+                        
+                        # Interpolate
+                        r = int(start_color[0] + (end_color[0] - start_color[0]) * progress)
+                        g = int(start_color[1] + (end_color[1] - start_color[1]) * progress)
+                        b = int(start_color[2] + (end_color[2] - start_color[2]) * progress)
+                        
+                        # Convert back to hex
+                        c_score_bg = (r << 16) | (g << 8) | b
+                
+                entry_data = (status_short, get_league_abbr(league_prefix), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png)
                 
                 # Store raw data for sorting (include event for excitement calculation)
                 # FIX: Use actual Event ID for tracking so open_game_info works
                 real_match_id = event.get('id', match_id)
                 raw_entries.append((entry_data, real_match_id, is_live, event))
-                
-            except: continue
-        
+            except Exception as e:
+                with open("/tmp/simplysport_render_error.log", "a") as err_log:
+                    err_log.write("Error in refresh_ui loop at %s: %s\n" % (datetime.datetime.now(), str(e)))
+                continue
         # Sort: LIVE matches by excitement (highest first), then FIN, then SCH
         # AND Priority for SOCCER within each group
         def sort_key(item):
@@ -6600,11 +6728,14 @@ class SimpleSportsScreen(Screen):
     def on_selector_closed(self, result=None):
         if result: self.update_header(); self.fetch_data()
     def open_single_league_select(self):
-        options = []
-        for idx, item in enumerate(DATA_SOURCES): options.append((item[0], idx))
-        self.session.openWithCallback(self.single_league_selected, ChoiceBox, title="Select Single League", list=options)
-    def single_league_selected(self, selection):
-        if selection: self.monitor.set_league(selection[1]); self.update_header(); self.fetch_data()
+        self.session.openWithCallback(self.single_league_selected, LeagueSelector, mode="single")
+    def single_league_selected(self, selection=None):
+        if selection:
+            # Handle both ChoiceBox tuple format or our custom format
+            idx = selection[1] if isinstance(selection, tuple) else selection
+            self.monitor.set_league(idx)
+            self.update_header()
+            self.fetch_data()
     def open_mini_bar(self): self.session.openWithCallback(self.mini_bar_callback, SimpleSportsMiniBar)
     def mini_bar_callback(self, result=None):
         if result == "next": 
@@ -6616,8 +6747,8 @@ class SimpleSportsScreen(Screen):
         # Determine if we need to refresh (Filter might have changed in MiniBar)
         self.update_filter_button()
         self.update_header()
-        # Force refresh list with new filter
-        self.refresh_ui(True, force_refresh=True)
+        # Force refresh list with new filter through debounced trigger
+        self.monitor._trigger_callbacks(True, force_refresh=True)
     def open_game_info(self):
         idx = self["list"].getSelectedIndex()
         if idx is None or not self.current_match_ids: return
@@ -6752,7 +6883,7 @@ class SimpleSportsScreen(Screen):
         if time.time() - self.last_key_time < 0.5: return
         self.last_key_time = time.time()
         log_diag("BUTTON_YELLOW: toggle_filter pressed. is_custom={} discovery_mode={}".format(self.monitor.is_custom_mode, self.monitor.discovery_mode))
-        self.monitor.toggle_filter(); self.update_filter_button(); self.refresh_ui(True, force_refresh=True)
+        self.monitor.toggle_filter(); self.update_filter_button(); self.monitor._trigger_callbacks(True, force_refresh=True)
     def check_for_updates(self): 
         self["league_title"].setText("CHECKING FOR UPDATES...")
         url = GITHUB_BASE_URL + "version.txt"
