@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "4.3" # League logos are added to the mini bars and notifications toast. Team Logos missing or wrong logos were fixed. Goal details, such as Penalty or own goal, were added.
+CURRENT_VERSION = "4.4" # A new code to improvements to the main screen, minibars, toast, and gameinfo screen.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports/logos"
@@ -112,12 +112,22 @@ load_fallback_font()
 # DEBUG LOGGING
 # ==============================================================================
 DEBUG_LOG_FILE = "/tmp/simply_sport_debug.log"
+_dbg_counter = 0
 
 def log_dbg(msg):
+    global _dbg_counter
     try:
         with open(DEBUG_LOG_FILE, "a") as f:
             ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             f.write("[{}] {}\n".format(ts, msg))
+        _dbg_counter += 1
+        if _dbg_counter > 50:
+            _dbg_counter = 0
+            with open(DEBUG_LOG_FILE, "r") as f:
+                lines = f.readlines()
+            if len(lines) > 1000:
+                with open(DEBUG_LOG_FILE, "w") as f:
+                    f.writelines(lines[-1000:])
     except:
         pass
 
@@ -125,15 +135,25 @@ def log_dbg(msg):
 # DIAGNOSTIC LOGGING (Verbose - for debugging loading issues)
 # ==============================================================================
 DIAG_LOG_FILE = "/tmp/simplysport_diag.log"
+_diag_counter = 0
 
 def log_diag(msg):
     """Verbose diagnostic log with millisecond timestamps for tracing API/UI flow."""
+    global _diag_counter
     try:
         import time as _t
         ms = int((_t.time() % 1) * 1000)
         ts = datetime.datetime.now().strftime("%H:%M:%S")
         with open(DIAG_LOG_FILE, "a") as f:
             f.write("[{}.{:03d}] {}\n".format(ts, ms, msg))
+        _diag_counter += 1
+        if _diag_counter > 50:
+            _diag_counter = 0
+            with open(DIAG_LOG_FILE, "r") as f:
+                lines = f.readlines()
+            if len(lines) > 1000:
+                with open(DIAG_LOG_FILE, "w") as f:
+                    f.writelines(lines[-1000:])
     except:
         pass
 
@@ -186,8 +206,6 @@ DATA_SOURCES = [
     ("Ligue 1", "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard"),
     ("Ligue 2", "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.2/scoreboard"),
     ("Coupe de France", "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.coupe_de_france/scoreboard"),
-    ("Coupe de la Ligue", "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.coupe_de_la_ligue/scoreboard"),
-    ("Trophee des Champions", "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.trophee_des_champions/scoreboard"),
     ("Premiere Ligue (Women)", "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.w.1/scoreboard"),
     ("Eredivisie", "https://site.api.espn.com/apis/site/v2/sports/soccer/ned.1/scoreboard"),
     ("Eerste Divisie", "https://site.api.espn.com/apis/site/v2/sports/soccer/ned.2/scoreboard"),
@@ -219,8 +237,7 @@ DATA_SOURCES = [
     ("Russian Premier League", "https://site.api.espn.com/apis/site/v2/sports/soccer/rus.1/scoreboard"),
     ("Ukrainian Premier League", "https://site.api.espn.com/apis/site/v2/sports/soccer/ukr.1/scoreboard"),
     ("MLS", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard"),
-    ("USL Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.2/scoreboard"),
-    ("USL League One", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.usl.1/scoreboard"),
+    ("USL Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.usl.1/scoreboard"),
     ("NWSL", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.nwsl/scoreboard"),
     ("NWSL Challenge Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.nwsl.cup/scoreboard"),
     ("U.S. Open Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.open/scoreboard"),
@@ -318,6 +335,66 @@ DATA_SOURCES = [
     ("Peruvian Primera", "https://site.api.espn.com/apis/site/v2/sports/soccer/per.1/scoreboard"),
     ("Bolivian Primera", "https://site.api.espn.com/apis/site/v2/sports/soccer/bol.1/scoreboard"),
     ("Cypriot First Division", "https://site.api.espn.com/apis/site/v2/sports/soccer/cyp.1/scoreboard"),
+    ("FIFA World Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard"),
+    ("FIFA Women's World Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.wwc/scoreboard"),
+    ("FIFA Under-20 World Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world.u20/scoreboard"),
+    ("FIFA Under-17 World Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world.u17/scoreboard"),
+    ("FIFA Under-17 Women's World Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.wworld.u17/scoreboard"),
+    ("FIFA Club World Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.cwc/scoreboard"),
+    ("Under-21 International Friendly", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.friendly_u21/scoreboard"),
+    ("International U20 Friendly", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.u20.friendly/scoreboard"),
+    ("SheBelieves Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.shebelieves/scoreboard"),
+    ("FIFA Women's Champions Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.w.champions_cup/scoreboard"),
+    ("FIFA Intercontinental Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.intercontinental_cup/scoreboard"),
+    ("Men's Olympic Soccer Tournament", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.olympics/scoreboard"),
+    ("Women's Olympic Soccer Tournament", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.w.olympics/scoreboard"),
+    ("World Cup Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worldq/scoreboard"),
+    ("FIFA Women's World Cup Qualifying - Playoff", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.wwcq.ply/scoreboard"),
+    ("FIFA Women's World Cup Qualifying - UEFA", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.wworldq.uefa/scoreboard"),
+    ("UEFA Champions League Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions_qual/scoreboard"),
+    ("UEFA Europa League Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.europa_qual/scoreboard"),
+    ("UEFA Conference League Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.europa.conf_qual/scoreboard"),
+    ("UEFA European Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.euro/scoreboard"),
+    ("UEFA Women's European Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.weuro/scoreboard"),
+    ("UEFA European Under-21 Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.euro_u21/scoreboard"),
+    ("UEFA European Under-19 Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.euro.u19/scoreboard"),
+    ("UEFA Women's Nations League", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.w.nations/scoreboard"),
+    ("Premier League Asia Trophy", "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.asia_trophy/scoreboard"),
+    ("English Women's FA Community Shield", "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.w.charity/scoreboard"),
+    ("Trofeo Joan Gamper", "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.joan_gamper/scoreboard"),
+    ("German Bundesliga Promotion/Relegation Playoff", "https://site.api.espn.com/apis/site/v2/sports/soccer/ger.playoff.relegation/scoreboard"),
+    ("German Bundesliga 2 Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/ger.2.promotion.relegation/scoreboard"),
+    ("French Trophee des Champions", "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.super_cup/scoreboard"),
+    ("Dutch Tweede Divisie", "https://site.api.espn.com/apis/site/v2/sports/soccer/ned.3/scoreboard"),
+    ("Dutch Vrouwen Eredivisie", "https://site.api.espn.com/apis/site/v2/sports/soccer/ned.w.1/scoreboard"),
+    ("Dutch KNVB Beker Vrouwen", "https://site.api.espn.com/apis/site/v2/sports/soccer/ned.w.knvb_cup/scoreboard"),
+    ("NWSL X Liga MX Femenil Summer Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.nwsl.summer.cup/scoreboard"),
+    ("USL League One", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.usl.l1/scoreboard"),
+    ("USL Super League", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.w.usl.1/scoreboard"),
+    ("NCAA Men's Soccer", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.ncaa.m.1/scoreboard"),
+    ("NCAA Women's Soccer", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.ncaa.w.1/scoreboard"),
+    ("Concacaf W Gold Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.w.gold/scoreboard"),
+    ("Concacaf W Champions Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.w.champions_cup/scoreboard"),
+    ("Northern Super League (Canada)", "https://site.api.espn.com/apis/site/v2/sports/soccer/can.w.nsl/scoreboard"),
+    ("Mexican Liga de Expansion MX", "https://site.api.espn.com/apis/site/v2/sports/soccer/mex.2/scoreboard"),
+    ("Mexican Campeon de Campeones", "https://site.api.espn.com/apis/site/v2/sports/soccer/mex.campeon/scoreboard"),
+    ("Mexican Supercopa MX", "https://site.api.espn.com/apis/site/v2/sports/soccer/mex.supercopa/scoreboard"),
+    ("CONMEBOL Recopa", "https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.recopa/scoreboard"),
+    ("Copa America Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.america_qual/scoreboard"),
+    ("Copa America Femenina", "https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.america.femenina/scoreboard"),
+    ("CONMEBOL-UEFA Cup of Champions", "https://site.api.espn.com/apis/site/v2/sports/soccer/global.finalissima/scoreboard"),
+    ("Copa Argentina", "https://site.api.espn.com/apis/site/v2/sports/soccer/arg.copa/scoreboard"),
+    ("Copa do Brasil", "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard"),
+    ("Africa Cup of Nations Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/caf.nations_qual/scoreboard"),
+    ("CAF Champions League", "https://site.api.espn.com/apis/site/v2/sports/soccer/caf.champions/scoreboard"),
+    ("CAF Confederation Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/caf.confed/scoreboard"),
+    ("Nigerian Professional League", "https://site.api.espn.com/apis/site/v2/sports/soccer/nga.1/scoreboard"),
+    ("Ghanaian Premier League", "https://site.api.espn.com/apis/site/v2/sports/soccer/gha.1/scoreboard"),
+    ("AFC Champions League Two", "https://site.api.espn.com/apis/site/v2/sports/soccer/afc.cup/scoreboard"),
+    ("Thai League 1", "https://site.api.espn.com/apis/site/v2/sports/soccer/tha.1/scoreboard"),
+    ("Malaysian Super League", "https://site.api.espn.com/apis/site/v2/sports/soccer/mys.1/scoreboard"),
+    ("Indonesian Super League", "https://site.api.espn.com/apis/site/v2/sports/soccer/idn.1/scoreboard"),
+    ("Singaporean Premier League", "https://site.api.espn.com/apis/site/v2/sports/soccer/sgp.1/scoreboard"),
 ]
 
 # ==============================================================================
@@ -437,6 +514,262 @@ def get_sport_type_display_name(sport_type):
         SPORT_TYPE_COMBAT: "Fight"
     }
     return names.get(sport_type, "Event")
+
+# ==============================================================================
+# UNIFIED MATCH SNAPSHOT BUILDER
+# ==============================================================================
+def build_match_snapshot(event):
+    """
+    Convert a raw ESPN event dict into a normalized, display-ready MatchSnapshot.
+    Called once per event after process_events_data().
+    All UI classes read from this -- never parse raw ESPN dicts themselves.
+    """
+    status      = event.get('status', {})
+    s_type      = status.get('type', {})
+    state       = s_type.get('state', 'pre')
+    
+    # --- Status Flags ---
+    is_postponed  = (s_type.get('name') == 'STATUS_POSTPONED' or
+                     'postponed' in s_type.get('description', '').lower())
+    is_suspended  = (s_type.get('name') in ['STATUS_SUSPENDED', 'STATUS_DELAYED'] or
+                     'suspended' in s_type.get('description', '').lower() or
+                     'resume'    in s_type.get('description', '').lower() or
+                     'delay'     in s_type.get('description', '').lower())
+    
+    # --- Status Short Label (Single Definition) ---
+    if is_postponed:              status_short = 'PPD'
+    elif is_suspended:            status_short = 'SUSP'
+    elif state == 'in':           status_short = 'LIVE'
+    elif state == 'post':         status_short = 'FIN'
+    else:                         status_short = 'SCH'
+    
+    # --- Clock (Multi-Sport Support) ---
+    raw_clock    = status.get('displayClock', '')
+    short_detail = s_type.get('shortDetail', '') or s_type.get('description', '')
+    league_url   = event.get('league_url', '')
+    
+    if 'soccer' in league_url:
+        # Soccer: show minute mark "45'"
+        if raw_clock and ":" in raw_clock:
+            clock_display = raw_clock.split(':')[0] + "'"
+        else:
+            clock_display = raw_clock or ''
+    else:
+        # American sports / basketball / hockey / baseball:
+        # Use ESPN's own human-readable detail ("2nd Qtr 2:34", "Halftime", etc.)
+        clock_display = short_detail or raw_clock or ''
+    
+    # --- Team / Player Names & Scores ---
+    sport_type   = get_sport_type(league_url)
+    comps        = event.get('competitions', [{}])[0].get('competitors', [])
+    
+    h_name = 'Home'; a_name = 'Away'
+    h_name_short = 'Home'; a_name_short = 'Away'
+    h_score_str = '0'; a_score_str = '0'
+    h_score_int = 0;  a_score_int = 0
+    h_team_id = ''; a_team_id = ''
+    
+    if len(comps) >= 2:
+        # Identify home/away -- handles missing homeAway tags
+        if sport_type == SPORT_TYPE_TENNIS:
+            team_h, team_a = comps[0], comps[1]
+        else:
+            team_h = next((c for c in comps if c.get('homeAway') == 'home'), comps[0])
+            team_a = next((c for c in comps if c.get('homeAway') == 'away'),
+                         comps[1] if len(comps) > 1 else {})
+        
+        # Extract names
+        if sport_type in [SPORT_TYPE_TENNIS, SPORT_TYPE_COMBAT]:
+            ath_h = team_h.get('athlete', {})
+            ath_a = team_a.get('athlete', {})
+            h_name       = ath_h.get('displayName') or ath_h.get('shortName') or 'Player 1'
+            a_name       = ath_a.get('displayName') or ath_a.get('shortName') or 'Player 2'
+            h_name_short = ath_h.get('shortName') or h_name
+            a_name_short = ath_a.get('shortName') or a_name
+            h_team_id    = str(ath_h.get('id', ''))
+            a_team_id    = str(ath_a.get('id', ''))
+        else:
+            t_h = team_h.get('team', {}); t_a = team_a.get('team', {})
+            h_name       = t_h.get('displayName', 'Home')
+            a_name       = t_a.get('displayName', 'Away')
+            h_name_short = t_h.get('shortDisplayName') or t_h.get('abbreviation') or h_name
+            a_name_short = t_a.get('shortDisplayName') or t_a.get('abbreviation') or a_name
+            h_team_id    = str(t_h.get('id', ''))
+            a_team_id    = str(t_a.get('id', ''))
+        
+        # Extract scores
+        if sport_type == SPORT_TYPE_TENNIS:
+            h_score_str, a_score_str = calculate_tennis_scores(comps, state)
+        else:
+            h_score_str = str(team_h.get('score', '0') or '0')
+            a_score_str = str(team_a.get('score', '0') or '0')
+        
+        try:   h_score_int = int(h_score_str)
+        except: h_score_int = 0
+        try:   a_score_int = int(a_score_str)
+        except: a_score_int = 0
+    
+    # --- Score Display String (Single Definition) ---
+    if is_postponed:
+        score_str = 'P - P'
+    elif state in ('in', 'post') or is_suspended:
+        score_str = '{} - {}'.format(h_score_str, a_score_str)
+    else:
+        score_str = 'VS'
+    
+    # --- Time Display String (Single Definition) ---
+    if state == 'in' and not is_suspended:
+        time_str = clock_display or 'LIVE'
+    elif state == 'post':
+        time_str = get_local_time_str(event.get('date', ''))
+    else:
+        time_str = get_local_time_str(event.get('date', ''))
+    
+    # --- Red Card Counting (from scoreboard details) ---
+    h_red_cards = 0
+    a_red_cards = 0
+    if state in ('in', 'post') and len(comps) >= 2:
+        try:
+            details = event.get('competitions', [{}])[0].get('details', [])
+            for play in details:
+                is_rc = play.get('redCard', False)
+                text_desc = play.get('type', {}).get('text', '').lower()
+                if is_rc or ('card' in text_desc and 'red' in text_desc):
+                    t_id = str(play.get('team', {}).get('id', ''))
+                    if t_id == h_team_id:
+                        h_red_cards += 1
+                    elif t_id == a_team_id:
+                        a_red_cards += 1
+        except:
+            pass
+    
+    return {
+        # Identity
+        'event_id':      str(event.get('id', '')),
+        'league_name':   event.get('league_name', ''),
+        'league_url':    league_url,
+        'sport_type':    sport_type,
+        'date':          event.get('date', ''),
+        
+        # State
+        'state':         state,
+        'status_short':  status_short,
+        'is_live':       state == 'in' and not is_suspended,
+        'is_postponed':  is_postponed,
+        'is_suspended':  is_suspended,
+        'clock':         clock_display,
+        'period':        status.get('period', 0),
+        
+        # Teams
+        'h_name':        h_name,
+        'a_name':        a_name,
+        'h_name_short':  h_name_short,
+        'a_name_short':  a_name_short,
+        'h_team_id':     h_team_id,
+        'a_team_id':     a_team_id,
+        
+        # Scores
+        'h_score_str':   h_score_str,
+        'a_score_str':   a_score_str,
+        'h_score_int':   h_score_int,
+        'a_score_int':   a_score_int,
+        'score_str':     score_str,     # "2 - 1" or "VS" or "P - P"
+        'time_str':      time_str,      # "45'" or "FT" or "20:30"
+        
+        # Logos (already set by process_events_data)
+        'h_logo_url':    event.get('h_logo_url', ''),
+        'a_logo_url':    event.get('a_logo_url', ''),
+        'l_logo_url':    event.get('l_logo_url', ''),
+        'h_logo_id':     event.get('h_logo_id', ''),
+        'a_logo_id':     event.get('a_logo_id', ''),
+        'l_logo_id':     event.get('l_logo_id', ''),
+        
+        # Red Cards
+        'h_red_cards':   h_red_cards,
+        'a_red_cards':   a_red_cards,
+        
+        # Raw event reference (for GameInfoScreen detail requests only)
+        'raw_event':     event,
+    }
+
+def snapshot_passes_filter(snap, filter_mode):
+    """Shared filter for all UI screens. filter_mode: 0=Live, 1=All, 2=Today, 3=Tomorrow"""
+    state    = snap['state']
+    ev_date  = snap['date'][:10] if snap['date'] else ''
+    now      = datetime.datetime.now()
+    today    = now.strftime("%Y-%m-%d")
+    # Calculate tomorrow: add 86400 seconds (1 day) to avoid needing timedelta import
+    import calendar as _cal
+    tomorrow_ts = _cal.timegm(now.timetuple()) + 86400
+    tomorrow = datetime.datetime.utcfromtimestamp(tomorrow_ts).strftime("%Y-%m-%d")
+    
+    if filter_mode == 0 and state != 'in':      return False
+    if filter_mode == 2 and ev_date != today and state != 'in': return False
+    if filter_mode == 3 and ev_date != tomorrow: return False
+    return True
+
+# ==============================================================================
+# UNIFIED LOGO LOADER
+# ==============================================================================
+def load_logo_to_widget(screen, widget_name, url, img_id=None, on_loaded=None):
+    """
+    Single shared logo loader used by ALL screens.
+    Uses ID-based filename. Falls back to URL hash.
+    Checks file cache first, then downloads asynchronously.
+    """
+    if not url:
+        try: screen[widget_name].hide()
+        except: pass
+        return
+    
+    if not img_id or img_id in ('0', ''):
+        img_id = hashlib.md5(url.encode('utf-8')).hexdigest()[:12]
+    
+    cache_dir = LOGO_CACHE_DIR + "/"
+    file_path = cache_dir + str(img_id) + ".png"
+    
+    # Serve from disk cache (100-byte minimum to reject corrupt files)
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
+        try:
+            ptr = GLOBAL_PIXMAP_CACHE.get(file_path)
+            if not ptr and LoadPixmap:
+                ptr = LoadPixmap(cached=True, path=file_path)
+                if ptr: GLOBAL_PIXMAP_CACHE[file_path] = ptr
+            if ptr:
+                if screen[widget_name].instance:
+                    screen[widget_name].instance.setPixmap(ptr)
+                    screen[widget_name].instance.setScale(1)
+            elif screen[widget_name].instance:
+                screen[widget_name].instance.setPixmapFromFile(file_path)
+                screen[widget_name].instance.setScale(1)
+            screen[widget_name].show()
+            if on_loaded: on_loaded()
+        except: pass
+        return
+    
+    # Download asynchronously
+    def _on_done(data):
+        try:
+            if not (os.path.exists(file_path) and os.path.getsize(file_path) > 100):
+                return
+            ptr = None
+            if LoadPixmap:
+                ptr = LoadPixmap(cached=True, path=file_path)
+                if ptr: GLOBAL_PIXMAP_CACHE[file_path] = ptr
+            if ptr:
+                if screen[widget_name].instance:
+                    screen[widget_name].instance.setPixmap(ptr)
+                    screen[widget_name].instance.setScale(1)
+            elif screen[widget_name].instance:
+                screen[widget_name].instance.setPixmapFromFile(file_path)
+                screen[widget_name].instance.setScale(1)
+            screen[widget_name].show()
+            if on_loaded: on_loaded()
+        except: pass
+    
+    try: screen[widget_name].hide()
+    except: pass
+    downloadPage(url.encode('utf-8'), file_path).addCallback(_on_done).addErrback(lambda e: None)
 
 # ==============================================================================
 # LOGO CACHE MANAGER (OPTIMIZED: Non-Blocking)
@@ -559,17 +892,20 @@ def get_scaled_pixmap(path, width, height):
 # ==============================================================================
 def SportListEntry(entry):
     try:
-        if len(entry) >= 15:
+        if len(entry) >= 17:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards = entry[:17]
+        elif len(entry) >= 15:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
+             h_red_cards = 0; a_red_cards = 0
         elif len(entry) >= 14:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg = entry[:14]
-             l_png = ""
+             l_png = ""; h_red_cards = 0; a_red_cards = 0
         elif len(entry) >= 13:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
-             c_score_bg = 0x202020; has_epg = entry[12]; l_png = ""
+             c_score_bg = 0x202020; has_epg = entry[12]; l_png = ""; h_red_cards = 0; a_red_cards = 0
         elif len(entry) >= 12:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
-             c_score_bg = 0x202020; has_epg = False; l_png = ""
+             c_score_bg = 0x202020; has_epg = False; l_png = ""; h_red_cards = 0; a_red_cards = 0
         else: return []
 
         if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
@@ -654,25 +990,224 @@ def SportListEntry(entry):
 
         if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
         elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+
+        # Red Card Indicators (image or text fallback)
+        if h_red_cards > 0 or a_red_cards > 0:
+            rc_img = None
+            try:
+                rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+                if os.path.exists(rc_path):
+                    rc_img = get_scaled_pixmap(rc_path, 16, 22)
+            except: pass
+            if h_red_cards > 0:
+                if rc_img:
+                    for i in range(h_red_cards):
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 842, 34 + 24 * i, 16, 22, rc_img))
+                else:
+                    rc_txt = "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards)
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+            if a_red_cards > 0:
+                if rc_img:
+                    for i in range(a_red_cards):
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1062, 34 + 24 * i, 16, 22, rc_img))
+                else:
+                    rc_txt = "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards)
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 88, 1880, 2, 0, RT_HALIGN_CENTER, "", 0x303030, 0x303030))
         return res
     except: return []
 
-def UCLListEntry(entry):
+def RacingListEntry(entry, theme_mode="default"):
+    """Racing header row: event name + date/time + status, aligned with SportListEntry columns."""
     try:
         if len(entry) >= 15:
+            status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
+        elif len(entry) >= 14:
+            status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg = entry[:14]
+            l_png = ""
+        else: return []
+
+        if l_png and (not os.path.exists(l_png) or os.path.getsize(l_png) == 0): l_png = None
+
+        c_text = 0xffffff
+        c_dim = 0xAAAAAA
+        c_accent = 0x00FF85
+        c_live = 0xe74c3c
+        c_gold = 0xFFD700
+        
+        if theme_mode == "ucl":
+            c_bg = 0x051030
+            c_accent = 0x00ffff
+            c_gold = 0x00ffff
+        else:
+            c_bg = 0x100015
+
+        c_status = 0xAAAAAA
+        if status == "LIVE": c_status = c_live
+        elif status == "FIN": c_status = c_accent
+
+        res = [entry]
+        h = 90
+
+        # Left accent bar only
+        bar_color = c_live if status == "LIVE" else c_accent if status == "FIN" else c_gold
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 4, h, 0, RT_HALIGN_CENTER, "", bar_color, bar_color))
+
+        # Status badge (aligned at x=15)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 0, 70, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_accent))
+
+        # League Logo (at x=95)
+        if l_png:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 95, 20, 50, 50, get_scaled_pixmap(l_png, 50, 50)))
+
+        # Event Name (at x=160, large font, gold for header)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 160, 5, 1100, 45, 2, RT_HALIGN_LEFT|RT_VALIGN_CENTER, left_text, c_gold, c_accent))
+
+        # Track/Venue below event name (smaller font)
+        if right_text and right_text != 'Event':
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 160, 48, 900, 32, 3, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_dim, c_accent))
+
+        # Date/Time on the right
+        display_t = time_str
+        if status == "FIN": display_t = "FINISHED"
+        elif status == "LIVE": display_t = "IN PROGRESS"
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1500, 0, 390, h, 1, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, display_t, c_status, c_accent))
+
+        # Bottom separator line
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 87, 1890, 3, 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
+        return res
+    except: return []
+
+def RacingDriverRow(rank, driver_name, country, is_winner=False, team_logo=None, theme_mode="default"):
+    """Single driver row in the main screen racing list, with optional team logo."""
+    try:
+        c_text = 0xffffff
+        c_dim = 0xBBBBBB
+        c_accent = 0x00FF85
+        c_gold = 0xFFD700
+        c_winner = 0xFFD700
+        
+        if theme_mode == "ucl":
+            c_bg = 0x051030
+            c_accent = 0x00ffff
+            c_gold = 0x00ffff
+            c_winner = 0x00ffff
+            c_sel = c_accent
+        else:
+            c_bg = 0x111118
+            c_sel = c_accent
+
+        name_color = c_winner if is_winner else c_text
+        rank_color = c_gold if is_winner else c_accent
+
+        # Dummy entry_data tuple so MenuList doesn't crash
+        entry_data = ("DRV", "", driver_name, "", country, "", None, False, None, None, 0, 0, False, c_bg, "")
+        res = [entry_data]
+        h = 90
+
+        # Rank position (at x=15, aligned with status column)
+        rank_txt = u"P{}".format(rank)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 0, 70, h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rank_txt, rank_color, c_sel))
+
+        # Team logo (at x=95, aligned with league logo in header)
+        if team_logo and os.path.exists(team_logo) and os.path.getsize(team_logo) > 0:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 95, 20, 50, 50, get_scaled_pixmap(team_logo, 50, 50)))
+
+        # Driver name (at x=160, aligned with event name in header)
+        name_x = 160
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, name_x, 0, 700, h, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, driver_name, name_color, c_sel))
+
+        # Winner badge next to name
+        if is_winner:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 870, 0, 120, h, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, "WINNER", c_gold, c_sel))
+
+        # Country (at x=1050)
+        if country:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 1050, 0, 300, h, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, country, c_dim, c_sel))
+
+        # Bottom separator (thin, subtle)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 95, 88, 1800, 2, 0, RT_HALIGN_CENTER, "", 0x252530, 0x252530))
+        return res
+    except: return []
+
+def RacingSessionRow(session_type, session_status, broadcast, time_str, theme_mode="default"):
+    """Session sub-header row: [FP1] Final • Apple TV • Thu 10:30 AM"""
+    try:
+        c_accent = 0x00FF85
+        c_live = 0xe74c3c
+        c_dim = 0x888888
+        c_text = 0xffffff
+        c_gold = 0xFFD700
+        
+        if theme_mode == "ucl":
+            c_bg = 0x051030
+            c_accent = 0x00ffff
+            c_gold = 0x00ffff
+        else:
+            c_bg = 0x0a0a0a
+
+        # Session type display names
+        session_labels = {
+            'FP1': 'Practice 1', 'FP2': 'Practice 2', 'FP3': 'Practice 3',
+            'Qual': 'Qualifying', 'Race': 'Race', 'SQ': 'Sprint Qualifying',
+            'Sprint': 'Sprint Race'
+        }
+        label = session_labels.get(session_type, session_type)
+
+        # Status coloring
+        if session_status == 'LIVE':
+            status_color = c_live
+        elif session_status == 'FIN':
+            status_color = c_accent
+        else:
+            status_color = c_dim
+
+        # Build info string
+        info_parts = []
+        if session_status: info_parts.append(session_status)
+        if broadcast: info_parts.append(broadcast)
+        if time_str: info_parts.append(time_str)
+        info_text = "  |  ".join(info_parts) if info_parts else ""
+
+        entry_data = ("SES", "", label, "", info_text, "", None, False, None, None, 0, 0, False, c_bg, "")
+        res = [entry_data]
+        h = 90
+
+        # Session type badge with accent bar
+        badge_color = c_gold if session_type == 'Race' else c_live if session_type == 'Qual' else c_accent
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 6, h, 0, RT_HALIGN_CENTER, "", badge_color, badge_color))
+
+        # Session label (at x=55)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 55, 0, 280, h, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, label, c_text, c_accent))
+
+        # Status + Broadcast + Time info (at x=350)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 350, 0, 1200, h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, info_text, status_color, c_accent))
+
+        # Bottom separator
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 55, 88, 1840, 2, 0, RT_HALIGN_CENTER, "", 0x1a1a2e, 0x1a1a2e))
+        return res
+    except: return []
+
+
+def UCLListEntry(entry):
+    try:
+        if len(entry) >= 17:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards = entry[:17]
+        elif len(entry) >= 15:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
+             h_red_cards = 0; a_red_cards = 0
         elif len(entry) >= 14:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg = entry[:14]
-             l_png = ""
+             l_png = ""; h_red_cards = 0; a_red_cards = 0
         elif len(entry) >= 13:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
              has_epg = entry[12]
-             c_score_bg = 0x051030; l_png = ""
+             c_score_bg = 0x051030; l_png = ""; h_red_cards = 0; a_red_cards = 0
         elif len(entry) >= 12:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
              has_epg = False
-             c_score_bg = 0x051030; l_png = ""
+             c_score_bg = 0x051030; l_png = ""; h_red_cards = 0; a_red_cards = 0
         else: return []
 
         if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
@@ -755,6 +1290,30 @@ def UCLListEntry(entry):
 
         if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
         elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+
+        # Red Card Indicators (image or text fallback)
+        if h_red_cards > 0 or a_red_cards > 0:
+            rc_img = None
+            try:
+                rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+                if os.path.exists(rc_path):
+                    rc_img = get_scaled_pixmap(rc_path, 16, 22)
+            except: pass
+            if h_red_cards > 0:
+                if rc_img:
+                    for i in range(h_red_cards):
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 842, 34 + 24 * i, 16, 22, rc_img))
+                else:
+                    rc_txt = "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards)
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+            if a_red_cards > 0:
+                if rc_img:
+                    for i in range(a_red_cards):
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1062, 34 + 24 * i, 16, 22, rc_img))
+                else:
+                    rc_txt = "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards)
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 88, 1880, 2, 0, RT_HALIGN_CENTER, "", 0x22182c82, 0x22182c82))
         return res
     except: return []
@@ -856,14 +1415,14 @@ class SportsMonitor:
     @profile_function("SportsMonitor")
     def __init__(self):
         self.active = False
+        self._boot_initialized = False # Track initial boot sequence
         self.discovery_mode = 0  
         self.current_league_index = 0
         self.custom_league_indices = []
         self.is_custom_mode = False
         self.last_scores = {}
+        self.last_red_cards = {}
         self.goal_flags = {}
-        # Track pending goals for scorer details: {match_id: retry_count}
-        self.goal_retries = {}
         self.last_states = {}
         self.notified_events = set()  # Track fired notifications: {(match_id, event_type)}
         self.filter_mode = 0 
@@ -880,6 +1439,7 @@ class SportsMonitor:
             
         self.session = None
         self.cached_events = [] 
+        self.match_snapshots = {}  # Unified snapshots for all UI consumers
         self.callbacks = []
         self.status_message = "Initializing..."
         self.notification_queue = []
@@ -887,6 +1447,13 @@ class SportsMonitor:
         self.current_toast = None  # Reference to active GoalToast for live updates
         self.current_toast_match = None  # (home, away) tuple of active toast
         self.has_changes = True  # Track if data changed since last UI refresh
+        
+        # Batching variables
+        self.batch_queue = []
+        self.batch_remaining = 0
+        self.batch_is_active = False
+        self.batch_timer = eTimer()
+        safe_connect(self.batch_timer, self.finalize_batch)
         
         self.logo_cache = LogoCacheManager()
         self.last_update = 0
@@ -904,6 +1471,7 @@ class SportsMonitor:
         self.callback_debounce_timer = eTimer()
         safe_connect(self.callback_debounce_timer, self._execute_pending_callback)
         self.event_map = {} # optimization: O(1) lookup
+        self.live_summary_timer = None  # Timer for direct summary fetches for live American 
         
         self.load_cache()
         
@@ -911,16 +1479,11 @@ class SportsMonitor:
         
         self.boot_timer = eTimer()
         
-        # Batching variables
-        self.batch_queue = []
-        self.batch_remaining = 0
-        self.batch_is_active = False
-        self.batch_seen_ids = set() # Track IDs seen in current batch (reap-and-replace)
-        self.batch_timer = eTimer()
-        safe_connect(self.batch_timer, self.finalize_batch)
         try: self.boot_timer.callback.append(self.check_goals)
         except AttributeError: self.boot_timer.timeout.get().append(self.check_goals)
         self.boot_timer.start(5000, True)
+        
+        self._boot_initialized = True # Mark initialization complete
 
     def set_session(self, session):
         self.session = session
@@ -932,9 +1495,13 @@ class SportsMonitor:
                 self.load_config()
             except: pass
     def register_callback(self, func):
-        if func not in self.callbacks: self.callbacks.append(func)
+        if func not in self.callbacks: 
+            self.callbacks.append(func)
+            self.ensure_timer_state() # Ensure timer starts if it was idle
     def unregister_callback(self, func):
-        if func in self.callbacks: self.callbacks.remove(func)
+        if func in self.callbacks: 
+            self.callbacks.remove(func)
+            self.ensure_timer_state() # Allow idle shutdown if all UIs closed
 
     def load_config(self):
         if os.path.exists(CONFIG_FILE):
@@ -953,10 +1520,15 @@ class SportsMonitor:
                     self.menu_section = data.get("menu_section", "all")
                     self.show_in_menu = bool(data.get("show_in_menu", True))
                     self.minibar_color_mode = data.get("minibar_color_mode", "default")
-                    if self.active: self.timer.start(self._get_timer_interval(), False)
-                    # FIX: Ensure timer runs if reminders exist, even if active is False
-                    self.ensure_timer_state()
-            except: self.defaults()
+                    
+                    # FIX: Ensure timer state is set correctly (handles active and reminders)
+                    try:
+                        self.ensure_timer_state()
+                    except Exception as e:
+                        log_dbg("ensure_timer_state error during load_config: " + str(e))
+            except Exception as e:
+                log_dbg("load_config ERROR: " + str(e))
+                self.defaults()
         else: self.defaults()
 
     def defaults(self):
@@ -1002,20 +1574,22 @@ class SportsMonitor:
             self.notification_active = False
         
         self.ensure_timer_state()
-        
-        self.save_config(); return self.discovery_mode
+        self.save_config()
+        self._trigger_callbacks(True) # Ensure immediate UI update (button label)
+        return self.discovery_mode
 
     def toggle_activity(self): return self.cycle_discovery_mode()
 
     def _get_timer_interval(self, live_count=0):
-        """Return timer interval in ms based on live games: 
-           Live/Upcoming games: 60s (1 min) for all modes.
-           Idle games (Recent finished or future matches): 300s (5 mins) to save bandwidth."""
+        """Return timer interval in ms: 
+           Fixed at 60s (1 min) for all active states to sync with notifications."""
         
-        if live_count > 0:
-            return 60000 # 1 minute for Live or "About to start" games
+        # UI is active or Background-Live: 60s (1 min)
+        if len(self.callbacks) > 0 or live_count > 0:
+            return 60000 
             
-        return 300000 # 5 minutes for Idle (All pre/post)
+        # Idle background: 300s (5 mins)
+        return 300000
 
     def ensure_timer_state(self):
         # Timer should run if: 
@@ -1025,13 +1599,17 @@ class SportsMonitor:
         should_run = self.active or (len(self.reminders) > 0) or (len(self.callbacks) > 0)
         
         if should_run:
+            new_interval = self._get_timer_interval()
             if not self.timer.isActive():
-                self.timer.start(self._get_timer_interval(), False)
+                # ENSURE: single_shot=False (2nd param) to repeat automatically
+                self.timer.start(new_interval, False)
                 # If we just started, run a check immediately
                 self.check_goals()
             else:
-                # Timer already running - update interval if mode changed
-                pass
+                # Timer already running - refresh interval ONLY if it changed (e.g. Screen opened)
+                if getattr(self, '_last_interval', None) != new_interval:
+                    self.timer.start(new_interval, False)
+            self._last_interval = new_interval
         else:
             if self.timer.isActive():
                 self.timer.stop()
@@ -1056,7 +1634,7 @@ class SportsMonitor:
         self.active_requests.clear() # Cancel/Ignore pending requests
 
         if index >= 0 and index < len(DATA_SOURCES):
-            self.current_league_index = index; self.last_scores = {}; self.last_states = {}; self.notified_events = set()
+            self.current_league_index = index; self.last_scores = {}; self.last_red_cards = {}; self.last_states = {}; self.notified_events = set()
             # FIX: Clear cache to remove old events from previous selection
             self.event_map = {}; self.cached_events = []
             self.save_config()
@@ -1064,7 +1642,7 @@ class SportsMonitor:
             if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
             self.check_goals()
     def set_custom_leagues(self, indices):
-        self.custom_league_indices = indices; self.is_custom_mode = True; self.last_scores = {}; self.last_states = {}; self.notified_events = set()
+        self.custom_league_indices = indices; self.is_custom_mode = True; self.last_scores = {}; self.last_red_cards = {}; self.last_states = {}; self.notified_events = set()
         
         # FIX: Stop any running batch operations from previous custom mode
         self.batch_is_active = False
@@ -1112,7 +1690,8 @@ class SportsMonitor:
                     self.trigger_zap_alert(rem)
                 else:
                     # Standard Notification
-                    self.queue_notification(rem["league"], rem["match"], "", rem["label"], "Reminder", "", rem["h_logo"], rem["a_logo"], h_id=getattr(rem, 'h_id', None), a_id=getattr(rem, 'a_id', None))
+                    self.queue_notification(rem.get("match", rem.get("eid", "")), rem["label"], "Reminder", 
+                        event_type="reminder")
                     self.play_stend_sound()
                 reminders_triggered = True
             else: active_reminders.append(rem)
@@ -1132,7 +1711,6 @@ class SportsMonitor:
                     timeout_seconds=30
                 )
             
-            from twisted.internet import reactor
             reactor.callLater(0, _open_zap)
 
     def zap_confirmation_callback(self, answer, domain=None):
@@ -1142,6 +1720,7 @@ class SportsMonitor:
                 from enigma import eServiceReference
                 self.session.nav.playService(eServiceReference(sref))
             except: pass
+
 
     @profile_function("SportsMonitor")
     def check_goals(self, from_ui=False):
@@ -1160,10 +1739,7 @@ class SportsMonitor:
         # Show cached data or loading state - but NOT during an active batch
         # (batch processing shows data via finalize_batch at the end)
         if not self.batch_is_active:
-            if self.cached_events:
-                self.status_message = "Updating..."
-                self._trigger_callbacks(True)
-            else:
+            if not self.cached_events:
                 self.status_message = "Loading Data..."
                 self._trigger_callbacks(False)
         # Use persistent agent
@@ -1188,15 +1764,6 @@ class SportsMonitor:
                 self.cached_events = []
                 self._trigger_callbacks(True)
                 return
-            
-            # GUARD: Don't start new batch if one is already running
-            if self.batch_is_active:
-                log_diag("CHECK_GOALS: CUSTOM MODE - SKIPPED (batch already active, remaining={})".format(self.batch_remaining))
-                return
-            
-            # REAP-AND-REPLACE: Do NOT clear maps/events here. 
-            # We track IDs seen in THIS batch and remove others in finalize_batch.
-            self.batch_seen_ids = set()
             
             # Mark batch as active
             self.batch_is_active = True
@@ -1264,6 +1831,14 @@ class SportsMonitor:
                     # Quick validation
                     if isinstance(events, list):
                         self.cached_events = events
+                        self.match_snapshots = {}
+                        self.event_map = {}
+                        for ev in self.cached_events:
+                            eid = ev.get('id')
+                            if eid:
+                                str_eid = str(eid)
+                                self.match_snapshots[str_eid] = build_match_snapshot(ev)
+                                self.event_map[str_eid] = ev
                         self.status_message = "Restored from Cache"
         except Exception as e:
              print("[SportsMonitor] Cache Load Error: ", e)
@@ -1282,7 +1857,7 @@ class SportsMonitor:
         log_diag("BATCH_ERROR: url={} error={} batch_remaining={}".format(url, str(failure)[:100], self.batch_remaining - 1))
         if url: self.active_requests.discard(url)
         self.batch_remaining -= 1
-        if self.batch_remaining == 0:
+        if self.batch_remaining <= 0:
             self.finalize_batch()
 
     def collect_batch_response_incremental(self, body, name, url):
@@ -1311,54 +1886,41 @@ class SportsMonitor:
             self.batch_remaining -= 1
             log_diag("BATCH_RESPONSE: '{}' remaining={}".format(name, self.batch_remaining))
             
-            if self.batch_remaining == 0:
+            if self.batch_remaining <= 0:
                 self.finalize_batch()
         except Exception as e:
             # Never let exceptions propagate to the deferred chain
             log_diag("BATCH_RESPONSE: UNEXPECTED ERROR in '{}': {}".format(name, e))
             self.active_requests.discard(url)
             self.batch_remaining -= 1
-            if self.batch_remaining == 0:
+            if self.batch_remaining <= 0:
                 self.finalize_batch()
 
     def finalize_batch(self):
         """Cleanup after batch processing"""
+        if not self.batch_is_active:
+            return
+        
+        # Mark as inactive immediately to prevent double-firing
+        self.batch_is_active = False
+        
         if not self.is_custom_mode:
             return
         
         if self.batch_timer.isActive():
             self.batch_timer.stop()
         
-        # REAP STALE CUSTOM EVENTS: Remove matches not seen in this batch
-        if self.is_custom_mode and self.batch_seen_ids:
-            initial_count = len(self.event_map)
-            keys_to_remove = [mid for mid in self.event_map if mid not in self.batch_seen_ids]
-            for mid in keys_to_remove:
-                if mid in self.event_map: del self.event_map[mid]
-            log_diag("FINALIZE_BATCH: Reaped {} stale events ({} -> {})".format(len(keys_to_remove), initial_count, len(self.event_map)))
-            
-            # Rebuild and sort one last time with reaped map
-            def get_sort_key_final(ev):
-                status = ev.get('status', {})
-                state = status.get('type', {}).get('state', 'pre')
-                sp = 0 if state == 'post' else (1 if state == 'pre' else 2)
-                l_url = ev.get('league_url', '')
-                soccer_p = 1 if 'soccer' in l_url else 0
-                return (sp, soccer_p, ev.get('date', ''), ev.get('league_name', ''), ev.get('id', ''))
-            
-            self.cached_events = list(self.event_map.values())
-            self.cached_events.sort(key=get_sort_key_final)
+        # REAPING: Removed global reaping logic. 
+        # Stability fix: Reaping is now league-specific in _run_lazy_process_events_data
+        # to prevent matches from disappearing if one league request fails.
+        # Stability fix: Reaping is now handled during incremental processing.
 
         self.status_message = ""
         self.batch_queue = []
         self.batch_remaining = 0
-        self.batch_seen_ids = set()
         self.batch_first_response = None
         
         self.save_cache()
-        
-        # Clear active flag BEFORE triggering callbacks
-        self.batch_is_active = False
         
         log_diag("FINALIZE_BATCH: DONE cached_events={}".format(len(self.cached_events)))
         
@@ -1380,16 +1942,108 @@ class SportsMonitor:
                             live_count += 1
                 except: pass
 
-        if self.active:
-            self.timer.start(self._get_timer_interval(live_count), False)
+        # FIX: Restart timer even if self.active is False, as long as UI is open or reminders exist
+        should_run = self.active or (len(self.reminders) > 0) or (len(self.callbacks) > 0)
+        if should_run:
+            new_interval = self._get_timer_interval(live_count)
+            log_diag("FINALIZE_BATCH: Restarting timer in {}ms (active={} callbacks={} reminders={})".format(
+                new_interval, self.active, len(self.callbacks), len(self.reminders)))
+            self.timer.start(new_interval, False)
+
+        # Ensure direct summary fetches are active if live matches exist
+        if live_count > 0:
+            reactor.callLater(0.5, self.fetch_live_summaries)  # small delay lets lazy processor finish first
 
         reactor.callLater(0, self._trigger_callbacks, True)
 
+    def fetch_live_summaries(self):
+        """For each live non-soccer match, fetch the ESPN summary API directly
+        (same endpoint GameInfo uses) and patch the score/status into event_map."""
+        from twisted.web.client import getPage
+        live_found = 0
+        try:
+            for eid, ev in list(self.event_map.items()):
+                if ev.get('status', {}).get('type', {}).get('state', '') != 'in':
+                    continue
+                league_url = ev.get('league_url', '')
+                if 'soccer' in league_url:
+                    continue  # Soccer scoreboard is already accurate; no need
+                
+                # Build summary URL exactly as GameInfo does
+                base_url = league_url.split('?')[0]
+                sport = ''; league_slug = ''
+                for i, part in enumerate(base_url.rstrip('/').split('/')):
+                    if part == 'sports' and i + 2 < len(base_url.rstrip('/').split('/')):
+                        parts = base_url.rstrip('/').split('/')
+                        sport = parts[i+1]; league_slug = parts[i+2]; break
+                if not sport or not league_slug or league_slug == 'scoreboard':
+                    continue
+                
+                summary_url = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(
+                    sport, league_slug, eid)
+                d = getPage(summary_url.encode('utf-8'))
+                d.addCallback(self.on_live_summary, str(eid))
+                d.addErrback(lambda e, i=eid: log_diag("on_live_summary FETCH_ERR eid={} {}".format(i, str(e)[:80])))
+                live_found += 1
+        except Exception as e:
+            log_diag("fetch_live_summaries ERROR: " + str(e))
+        
+        # Reschedule if there are still live matches
+        if self.live_summary_timer and self.live_summary_timer.active():
+            self.live_summary_timer.cancel()
+        if live_found > 0:
+            self.live_summary_timer = reactor.callLater(30, self.fetch_live_summaries)
+        else:
+            self.live_summary_timer = None
+
+    def on_live_summary(self, body, eid):
+        """Parse the summary API response and patch fresh score/status into event_map."""
+        try:
+            data = json.loads(body)
+            # Summary API structure: header.competitions[0].competitors[].score
+            # and header.competitions[0].status  -- same as what GameInfo's parse_details reads
+            header = data.get('header', {})
+            if not header: return
+            hdr_comp = header.get('competitions', [{}])[0]
+            new_competitors = hdr_comp.get('competitors', [])
+            new_status = hdr_comp.get('status', {})
+            if not new_competitors: return
+            
+            ev = self.event_map.get(eid)
+            if not ev: return
+            
+            # Patch scores onto the existing event's competitor entries (preserves logos, names, etc.)
+            ev_competitors = ev.get('competitions', [{}])[0].get('competitors', [])
+            for nc in new_competitors:
+                ha = nc.get('homeAway', '')
+                score = nc.get('score', None)
+                if ha and score is not None:
+                    for ec in ev_competitors:
+                        if ec.get('homeAway') == ha:
+                            ec['score'] = score
+                            break
+            
+            # Patch status (clock, period, state)
+            if new_status:
+                ev['status'] = new_status
+                if ev.get('competitions'):
+                    ev['competitions'][0]['status'] = new_status
+            
+            # Rebuild snapshot so main screen and mini bars read fresh data
+            self.match_snapshots[eid] = build_match_snapshot(ev)
+            
+            # Update cached_events entry reference
+            for i, ce in enumerate(self.cached_events):
+                if str(ce.get('id', '')) == eid:
+                    self.cached_events[i] = ev
+                    break
+            
+            self._trigger_callbacks(True)
+        except Exception as e:
+            log_diag("on_live_summary PARSE_ERR eid={} {}".format(eid, str(e)[:100]))
+
     def handle_error(self, failure):
         self.status_message = "Connection Error"
-        # FIX: Do not wipe cache on transient error
-        if not self.cached_events:
-            self.cached_events = []
         self._trigger_callbacks(True)
     def handle_error_silent(self, failure): pass
 
@@ -1398,7 +2052,6 @@ class SportsMonitor:
         Debounced callback triggering
         Only fires once per 300ms to prevent UI flicker
         """
-        import time
         now = time.time()
         
         if not hasattr(self, 'pending_force_refresh'):
@@ -1428,7 +2081,6 @@ class SportsMonitor:
     def _execute_pending_callback(self):
         """Execute the pending debounced callback"""
         if self.pending_callback is not None:
-            import time
             self.last_callback_time = time.time()
             data_ready = self.pending_callback
             do_force = getattr(self, 'pending_force_refresh', False)
@@ -1445,6 +2097,7 @@ class SportsMonitor:
     @profile_function("SportsMonitor")
     def parse_single_json(self, body, league_name_fixed="", league_url=""): 
         self.process_events_data([(body, league_name_fixed, league_url)], append_mode=False)
+        reactor.callLater(0.5, self.fetch_live_summaries)
         
     @profile_function("SportsMonitor")
     def parse_incremental_json(self, body, league_name_fixed, league_url):
@@ -1454,31 +2107,32 @@ class SportsMonitor:
         self.process_events_data(bodies_list)
 
     # queue_notification updated to handle split components and IDs
-    def queue_notification(self, league, home, away, score, scorer, l_url, h_url, a_url, event_type="default", scoring_team=None, sound_type=None, h_id=None, a_id=None, l_id=None):
+    def queue_notification(self, match_id, score, scorer, event_type="default", scoring_team=None, sound_type=None):
         if self.discovery_mode == 0: return
+        match_id = str(match_id)
+        snap = self.match_snapshots.get(match_id)
+        if not snap: return
         
-        sport_type = self.get_sport_type(league)
-        notification = (league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team, sound_type, h_id, a_id, l_id)
-        match_key = (home, away)  # identity key for same match
+        sport_type = snap['sport_type']
+        notification = (match_id, score, scorer, event_type, scoring_team, sound_type)
         
         # BASKETBALL MERGE: If same basketball match already in queue, merge scorer text
         if sport_type == 'basketball' and event_type == 'goal':
             for i, existing in enumerate(self.notification_queue):
-                ex_match = (existing[1], existing[2])  # home, away
-                ex_league_sport = self.get_sport_type(existing[0])
-                if ex_match == match_key and ex_league_sport == 'basketball' and existing[8] == 'goal':
+                ex_match_id = existing[0]
+                ex_event_type = existing[3]
+                if ex_match_id == match_id and ex_event_type == 'goal':
                     # Merge: append new scorer text to existing
-                    merged_scorer = u"{}  |  {}".format(existing[4], scorer)
+                    merged_scorer = u"{}  |  {}".format(existing[2], scorer)
                     # Update score to latest and merge scorer
                     self.notification_queue[i] = (
-                        existing[0], existing[1], existing[2], score, merged_scorer,
-                        existing[5], existing[6], existing[7], existing[8], existing[9], existing[10],
-                        existing[11], existing[12], existing[13]
+                        match_id, score, merged_scorer,
+                        existing[3], existing[4], existing[5]
                     )
                     return  # Merged, no new entry needed
             
             # LIVE UPDATE: If current active toast is for the same basketball match, update it
-            if self.notification_active and self.current_toast and self.current_toast_match == match_key:
+            if self.notification_active and self.current_toast and self.current_toast_match == match_id:
                 try:
                     old_scorer = self.current_toast["scorer"].getText()
                     merged = u"{}  |  {}".format(old_scorer, scorer)
@@ -1491,9 +2145,9 @@ class SportsMonitor:
                 return  # Updated live, no new entry needed
         
         # DEDUP: Prevent identical notifications
-        dedup_key = (home, away, score, event_type)
+        dedup_key = (match_id, score, event_type)
         for existing in self.notification_queue:
-            existing_key = (existing[1], existing[2], existing[3], existing[8])
+            existing_key = (existing[0], existing[1], existing[3])
             if existing_key == dedup_key:
                 return
         
@@ -1502,7 +2156,8 @@ class SportsMonitor:
             # Insert after any existing soccer entries but before non-soccer
             insert_pos = 0
             for i, existing in enumerate(self.notification_queue):
-                if self.get_sport_type(existing[0]) == 'soccer':
+                ex_snap = self.match_snapshots.get(str(existing[0]))
+                if ex_snap and ex_snap['sport_type'] == 'soccer':
                     insert_pos = i + 1
                 else:
                     break
@@ -1520,10 +2175,11 @@ class SportsMonitor:
         
         try:
             item = self.notification_queue.pop(0)
-            league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team = item[:10]
-            sound_type = item[10] if len(item) > 10 else None
+            # Simplified item: (match_id, score, scorer, event_type, scoring_team, sound_type)
+            match_id, score, scorer, event_type, scoring_team, sound_type = item[:6]
             self.notification_active = True
-            self.current_toast_match = (home, away)  # Track for live basketball updates
+            self.current_toast_match = match_id
+            
             if self.session: 
                 try:
                     def _open_toast():
@@ -1534,50 +2190,43 @@ class SportsMonitor:
                             self.play_stend_sound()
                         
                         try:
-                            # Safely extract IDs if present in notification tuple (expanded to 14 elements)
-                            h_id = item[11] if len(item) > 11 else None
-                            a_id = item[12] if len(item) > 12 else None
-                            l_id = item[13] if len(item) > 13 else None
-
                             self.session.openWithCallback(
                                 self.on_toast_closed, GoalToast, 
-                                league, home, away, score, scorer, l_url, h_url, a_url, event_type, scoring_team,
-                                h_id=h_id, a_id=a_id, l_id=l_id
+                                match_id, score, scorer, event_type, scoring_team
                             )
                         except Exception as e:
                             print("[SimplySport] Error opening GoalToast: {}".format(e))
+                            # RE-QUEUE: Don't lose notification on screen stack error
+                            self.notification_queue.insert(0, item)
                             self.notification_active = False
                             self.current_toast = None
-                            from twisted.internet import reactor
                             reactor.callLater(2, self.process_queue)
                     
-                    from twisted.internet import reactor
                     reactor.callLater(0, _open_toast)
                 except Exception as e:
                     print("[SimplySport] Error setting up notification thread: {}".format(e))
+                    self.notification_queue.insert(0, item)
                     self.notification_active = False
                     self.current_toast = None
-                    from twisted.internet import reactor
                     reactor.callLater(2, self.process_queue)
             else:
+                # No session yet - wait and retry
+                self.notification_queue.insert(0, item)
                 self.notification_active = False
                 self.current_toast = None
-                if self.notification_queue:
-                    from twisted.internet import reactor
-                    reactor.callLater(5, self.process_queue)
+                reactor.callLater(5, self.process_queue)
         except Exception as e:
             print("[SimplySport] Critical error in process_queue: {}".format(e))
+            if 'item' in locals():
+                self.notification_queue.insert(0, item)
             self.notification_active = False
             self.current_toast = None
-            if self.notification_queue:
-                from twisted.internet import reactor
-                reactor.callLater(2, self.process_queue)
+            reactor.callLater(2, self.process_queue)
 
     def on_toast_closed(self, *args):
         self.notification_active = False
         self.current_toast = None
         self.current_toast_match = None
-        from twisted.internet import reactor
         reactor.callLater(0.3, self.process_queue)
 
     def get_sport_type(self, league_name):
@@ -1606,12 +2255,18 @@ class SportsMonitor:
             # 1. Get Actual Total Score
             comps = event.get('competitions', [{}])[0].get('competitors', [])
             if len(comps) >= 2:
-                s1 = int(comps[0].get('score', '0'))
-                s2 = int(comps[1].get('score', '0'))
-                total_score = s1 + s2
+                try:
+                    s1 = int(comps[0].get('score', '0') or '0')
+                    s2 = int(comps[1].get('score', '0') or '0')
+                    total_score = s1 + s2
+                except (ValueError, TypeError):
+                    return ""
             else: return ""
 
             details = event.get('competitions', [{}])[0].get('details', [])
+            
+            # --- REMOVED: Red cards are handled as discrete notifications in evaluate_goals ---
+
             if details:
                 # 2. Find all scoring plays
                 scoring_plays = []
@@ -1622,22 +2277,30 @@ class SportsMonitor:
                         scoring_plays.append(play)
 
                 # 3. Check for Stale Data (API Lag)
-                # If we have fewer scoring details than actual goals, the latest goal detail is missing.
                 if len(scoring_plays) < total_score:
                     if allow_pending: return None # Signal to wait
-                    return "Goal!" 
+                    return "Goal!"
 
                 # 4. Get Latest Scorer
                 if scoring_plays:
                     last_play = scoring_plays[-1]
                     clock = last_play.get('clock', {}).get('displayValue', '')
+                    
+                    # Extract Goal Type (Penalty, Own Goal, or regular Goal)
+                    text_desc = last_play.get('type', {}).get('text', '').lower()
+                    goal_type = "(G)"
+                    if "penalty" in text_desc:
+                        goal_type = "(P)"
+                    elif "own" in text_desc:
+                        goal_type = "(O)"
+
                     athletes = last_play.get('athletesInvolved', [])
                     if not athletes: athletes = last_play.get('participants', [])
                     
                     if athletes:
                         p_name = athletes[0].get('displayName') or athletes[0].get('shortName')
-                        # Format: "Haaland 45'"
-                        return "{} {}".format(p_name, clock)
+                        # Format: "Haaland (G) 45'"
+                        return "{} {} {}".format(p_name, goal_type, clock)
                     else: 
                         return "Goal {}".format(clock)
         except: pass
@@ -1894,8 +2557,198 @@ class SportsMonitor:
             
         return matches
 
+    def evaluate_goals(self):
+        """Evaluate all cached events for goal/start/end/red-card notifications.
+        Runs synchronously — NOT inside the cancellable lazy processor.
+        Safe to call from CDN path or after lazy processing completes."""
+        try:
+            if not self.active or not self.session:
+                return
+
+            # Cleanup old goal flags (5-minute heat effect)
+            now = time.time()
+            keys_to_del = [mid for mid, info in self.goal_flags.items() if now - info['time'] > 300]
+            for k in keys_to_del: del self.goal_flags[k]
+
+            for event in self.cached_events:
+                status = event.get('status', {})
+                state = status.get('type', {}).get('state', 'pre')
+                comps = event.get('competitions', [{}])[0].get('competitors', [])
+                league_name = event.get('league_name', '')
+                league_url = event.get('league_url', '')
+
+                event_sport_type = get_sport_type(league_url)
+
+                # === RACING: Start/Finish notifications only ===
+                if event_sport_type == SPORT_TYPE_RACING:
+                    race_name = event.get('shortName', '') or event.get('name', league_name)
+                    match_id = event.get('id', race_name)
+                    l_logo = event.get('l_logo_url', '')
+                    l_id = event.get('l_logo_id', '')
+
+                    prev_state = self.last_states.get(match_id)
+                    if prev_state:
+                        if state == 'in' and prev_state == 'pre':
+                            if (match_id, 'start') not in self.notified_events:
+                                self.notified_events.add((match_id, 'start'))
+                                self.queue_notification(match_id, "", "RACE STARTING", event_type="start")
+                        elif state == 'post' and prev_state == 'in':
+                            if (match_id, 'end') not in self.notified_events:
+                                self.notified_events.add((match_id, 'end'))
+                                self.queue_notification(match_id, "", "RACE FINISHED", event_type="end")
+                    self.last_states[match_id] = state
+                    continue
+
+                if len(comps) < 2: continue
+
+                # Skip individual sports EXCEPT Tennis and Racing (Racing handled above)
+                if event_sport_type in [SPORT_TYPE_GOLF]:
+                    continue
+
+                # Read names, scores, logos from snapshot
+                snap = self.match_snapshots.get(str(event.get('id', '')))
+                if not snap: continue
+
+                home   = snap['h_name_short']
+                away   = snap['a_name_short']
+                h_logo = snap['h_logo_url']
+                a_logo = snap['a_logo_url']
+                h_id   = snap['h_logo_id']
+                a_id   = snap['a_logo_id']
+                l_logo = snap['l_logo_url']
+                l_id   = snap['l_logo_id']
+                h_score = snap['h_score_int']
+                a_score = snap['a_score_int']
+                match_id = snap['event_id']
+                score_str = str(h_score) + "-" + str(a_score)
+
+                prev_state = self.last_states.get(match_id)
+                if prev_state:
+                    should_play_stend = (self.discovery_mode == 2 and self.get_sport_type(league_name) == 'soccer')
+
+                    # Ensure score string is "1-0" not "1 - 0"
+                    score_fmt = "{}-{}".format(h_score, a_score)
+
+                    if state == 'in' and prev_state == 'pre':
+                        # DEDUP: Only fire start notification once per match
+                        if (match_id, 'start') not in self.notified_events:
+                            if event_sport_type != SPORT_TYPE_TENNIS:
+                                 self.notified_events.add((match_id, 'start'))
+                                 stend_sound = 'stend' if should_play_stend else None
+                                 self.queue_notification(match_id, score_fmt, "MATCH STARTED", event_type="start", sound_type=stend_sound)
+                    elif state == 'post' and prev_state == 'in':
+                        # DEDUP: Only fire end notification once per match
+                        if (match_id, 'end') not in self.notified_events:
+                            self.notified_events.add((match_id, 'end'))
+                            stend_sound = 'stend' if should_play_stend else None
+                            self.queue_notification(match_id, score_fmt, "FULL TIME", event_type="end", sound_type=stend_sound)
+
+                self.last_states[match_id] = state
+                if state == 'in':
+                    if match_id in self.last_scores:
+                        if self.last_scores[match_id] != score_str:
+                            try:
+                                prev_h, prev_a = map(int, self.last_scores[match_id].split('-'))
+                                diff_h = h_score - prev_h
+                                diff_a = a_score - prev_a
+                                sport_type = self.get_sport_type(league_name)
+
+                                # Re-format score display "1-0" NO SPACES
+                                score_display = "{}-{}".format(h_score, a_score)
+
+                                if diff_h > 0 or diff_a > 0:
+                                    # BASKETBALL SPECIAL HANDLING
+                                    if sport_type == 'basketball':
+                                        points = max(diff_h, diff_a)
+                                        scorer_text = "+{} POINTS".format(points)
+                                    elif sport_type == 'football':
+                                        # NFL SPECIAL HANDLING
+                                        points = max(diff_h, diff_a)
+                                        if points == 6: scorer_text = "TOUCHDOWN!"
+                                        elif points == 3: scorer_text = "FIELD GOAL"
+                                        elif points == 1: scorer_text = "EXTRA POINT"
+                                        elif points == 2: scorer_text = "SAFETY / 2PT"
+                                        else: scorer_text = "SCORE (+{})".format(points)
+                                    else:
+                                        # SYNC: Remove goal_retries delay. Fire notification IMMEDIATELY.
+                                        scorer_text = self.get_scorer_text(event, allow_pending=True)
+                                        if scorer_text is None:
+                                            # Fallback to generic "Goal!" immediately if scorer info is stale
+                                            scorer_text = self.get_scorer_text(event, allow_pending=False) or "Goal!"
+
+                                    if diff_h > 0:
+                                        goal_sound = 'goal' if sport_type != 'basketball' else None
+                                        self.queue_notification(match_id, score_display, scorer_text, event_type="goal", scoring_team="home", sound_type=goal_sound)
+                                        self.goal_flags[match_id] = {'time': time.time(), 'team': 'home'}
+
+                                    if diff_a > 0:
+                                        goal_sound = 'goal' if sport_type != 'basketball' else None
+                                        self.queue_notification(match_id, score_display, scorer_text, event_type="goal", scoring_team="away", sound_type=goal_sound)
+                                        self.goal_flags[match_id] = {'time': time.time(), 'team': 'away'}
+                            except: pass
+                    # Update score ONLY if we didn't 'continue' above
+                    self.last_scores[match_id] = score_str
+
+                    # --- RED CARD NOTIFICATIONS ---
+                    if state == 'in':
+                        h_rc   = snap.get('h_red_cards', 0)
+                        a_rc   = snap.get('a_red_cards', 0)
+                        rc_str = "{}-{}".format(h_rc, a_rc)
+
+                        if match_id in self.last_red_cards:
+                            if self.last_red_cards[match_id] != rc_str:
+                                try:
+                                    prev_h_rc, prev_a_rc = map(int, self.last_red_cards[match_id].split('-'))
+                                    diff_h_rc = h_rc - prev_h_rc
+                                    diff_a_rc = a_rc - prev_a_rc
+
+                                    if diff_h_rc > 0 or diff_a_rc > 0:
+                                        # Get the latest red-carded player name
+                                        rc_player_name = "Red card"
+                                        details = event.get('competitions', [{}])[0].get('details', [])
+                                        if details:
+                                            for play in reversed(details):
+                                                is_rc = play.get('redCard', False)
+                                                text_desc = play.get('type', {}).get('text', '').lower()
+                                                if is_rc or ('card' in text_desc and 'red' in text_desc):
+                                                    ath = play.get('athletesInvolved', [])
+                                                    if not ath: ath = play.get('participants', [])
+                                                    if ath:
+                                                        rc_player_name = ath[0].get('displayName') or ath[0].get('shortName', 'Red card')
+                                                    break
+
+                                        # Red Card Sound & Notification
+                                        if diff_h_rc > 0:
+                                            self.queue_notification(match_id, score_display, rc_player_name, event_type="red_card", scoring_team="home", sound_type="stend")
+                                        if diff_a_rc > 0:
+                                            self.queue_notification(match_id, score_display, rc_player_name, event_type="red_card", scoring_team="away", sound_type="stend")
+                                except: pass
+                        self.last_red_cards[match_id] = rc_str
+        except Exception as e:
+            print("[SimplySport] Error in evaluate_goals: {}".format(e))
+
     @profile_function("SportsMonitor")
     def process_events_data(self, data_list, single_league_name="", append_mode=False):
+        if hasattr(self, 'lazy_processor') and self.lazy_processor and self.lazy_processor.active():
+            self.lazy_processor.cancel()
+        self.lazy_gen = self._run_lazy_process_events_data(data_list, single_league_name, append_mode)
+        self.do_lazy_process()
+
+    def do_lazy_process(self):
+        try:
+            next(self.lazy_gen)
+            from twisted.internet import reactor
+            self.lazy_processor = reactor.callLater(0.01, self.do_lazy_process)
+        except StopIteration:
+            self.lazy_processor = None
+            # Notifications already evaluated in _run_lazy_process_events_data
+            # Just trigger final UI callbacks
+            self._trigger_callbacks(True)
+        except Exception as e:
+            print("[SimplySport] Error in background lazy UI sync:", e)
+            self.lazy_processor = None
+
+    def _run_lazy_process_events_data(self, data_list, single_league_name="", append_mode=False):
         self.last_update = time.time()
         
         # Optimization: Clear map if not appending (fresh load)
@@ -1916,10 +2769,14 @@ class SportsMonitor:
                     if l_name: league_name = l_name
                     else: league_name = league_obj.get('name') or league_obj.get('shortName') or ""
                     events = data.get('events', [])
+                    league_seen_ids = set()
                     
                     sport_type = get_sport_type(l_url)
                     
-                    for ev in events:
+                    for i, ev in enumerate(events):
+                        # Yield Enigma2 processor control every 5 events
+                        if i > 0 and i % 5 == 0: yield
+                        
                         ev['league_name'] = league_name
                         ev['league_url'] = l_url
                         
@@ -1934,26 +2791,52 @@ class SportsMonitor:
                             eid = processed_ev.get('id')
                             if not eid: continue
                             
-                            # Check for changes
+                            eid_str = str(eid)
+                            league_seen_ids.add(eid)
+                            status_type_state = processed_ev.get('status', {}).get('type', {}).get('state', '')
+                            
+                            # Check for changes using fresh scoreboard data vs stored state
                             old_ev = self.event_map.get(eid)
                             
-                            # Simple change detection: status or score or clock
-                            # For robust diffing, we might need deep compare, but status/score is usually enough
                             is_changed = True
                             if old_ev:
-                                old_status = old_ev.get('status', {}).get('type', {}).get('state')
-                                new_status = processed_ev.get('status', {}).get('type', {}).get('state')
+                                # Status & Meta comparison
+                                old_status = old_ev.get('status', {})
+                                new_status = processed_ev.get('status', {})
                                 
-                                old_comps = old_ev.get('competitions', [{}])[0].get('competitors', [])
-                                new_comps = processed_ev.get('competitions', [{}])[0].get('competitors', [])
+                                old_type = old_status.get('type', {})
+                                new_type = new_status.get('type', {})
                                 
-                                if old_status == new_status and len(old_comps) == len(new_comps):
-                                     # Check scores
-                                     scores_match = True
-                                     for i in range(len(old_comps)):
-                                         if old_comps[i].get('score') != new_comps[i].get('score'):
-                                             scores_match = False; break
-                                     if scores_match: is_changed = False
+                                # 1. Check basic state (pre, in, post)
+                                if old_type.get('state') != new_type.get('state'):
+                                    is_changed = True
+                                # 2. Check Detailed status (PPD, Suspended, etc)
+                                elif old_type.get('name') != new_type.get('name'):
+                                    is_changed = True
+                                # 3. Check Clock and Period (IMPORTANT for real-time updates)
+                                elif old_status.get('displayClock') != new_status.get('displayClock'):
+                                    is_changed = True
+                                elif old_status.get('period') != new_status.get('period'):
+                                    is_changed = True
+                                else:
+                                    # 4. Check Competitors & Scores
+                                    old_comps = old_ev.get('competitions', [{}])[0].get('competitors', [])
+                                    new_comps = processed_ev.get('competitions', [{}])[0].get('competitors', [])
+                                    
+                                    if len(old_comps) != len(new_comps):
+                                        is_changed = True
+                                    else:
+                                        scores_match = True
+                                        for i in range(len(old_comps)):
+                                            if old_comps[i].get('score') != new_comps[i].get('score'):
+                                                scores_match = False; break
+                                        if scores_match: 
+                                            is_changed = False
+                                            # Special case for Racing: ALWAYS trigger UI refresh because they have no score tracking pre-race
+                                            event_sport_type_early = get_sport_type(processed_ev.get('league_url', ''))
+                                            if event_sport_type_early == SPORT_TYPE_RACING:
+                                                is_changed = True
+
                             
                             # =====================================================
                             # LOGO URL/ID CONSTRUCTION - RUN FOR ALL EVENTS
@@ -1965,8 +2848,8 @@ class SportsMonitor:
                             sport_cdn = self.get_cdn_sport_name(league_name)
                             event_sport_type = get_sport_type(league_url)
                             
-                            # Skip logo construction for racing/golf/combat (no team logos)
-                            if len(comps) >= 2 and event_sport_type not in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]:
+                            # Skip logo construction for golf/combat (no team logos)
+                            if len(comps) >= 2 and event_sport_type not in [SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]:
                                 if event_sport_type == SPORT_TYPE_TENNIS:
                                     # Fix: Tennis flags reversed. Force index 0=Home, 1=Away to match MiniBar
                                     team_h = comps[0]
@@ -2069,11 +2952,19 @@ class SportsMonitor:
                                 processed_ev['l_logo_id'] = "league_" + str(l_id) if l_id else ''
                             
                             self.event_map[eid] = processed_ev
-                            if append_mode: self.batch_seen_ids.add(eid)
                             if is_changed: 
                                 changed_events.append(processed_ev)
                                 has_changes = True
                                 
+                    # REAPING Stability Fix: Remove entries for THIS specific league that were not in this response.
+                    # This prevents matches from appearing/disappearing if unrelated requests fail/timeout.
+                    reap_keys = [mid for mid, ex_ev in self.event_map.items() 
+                                 if ex_ev.get('league_name') == league_name 
+                                 and ex_ev.get('league_url') == l_url
+                                 and mid not in league_seen_ids]
+                    for rk in reap_keys:
+                        if rk in self.event_map: del self.event_map[rk]
+                    if reap_keys: has_changes = True
                 except: pass
             
             # Rebuild cached_events from map
@@ -2099,23 +2990,34 @@ class SportsMonitor:
             unique_list.sort(key=get_sort_key)
             self.cached_events = unique_list
             
+            # Build normalized snapshots for all UI consumers
+            self.match_snapshots = {}
+            for ev in self.cached_events:
+                eid = ev.get('id')
+                if eid:
+                    self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+            
+            # TRIGGER: Evaluate goals IMMEDIATELY after snapshots are built
+            # This ensures notifications fire at the exact same time as UI updates
+            self.evaluate_goals()
+            
+            log_dbg("SNAPSHOTS: Built {} snapshots from {} events".format(len(self.match_snapshots), len(self.cached_events)))
+            
             # Only set status message if there's an actual issue (no matches)
             if len(self.cached_events) == 0: self.status_message = "No Matches Found"
             
             # Set flag for UI to know if it needs to rebuild
+            if len(unique_list) != len(self.cached_events):
+                has_changes = True
             self.has_changes = has_changes
 
-            # Determine loop for notifications
-            loop_events = changed_events if changed_events else unique_list
-            
             live_count = 0
-            
-            # Cleanup old flags (Increased from 60 to 300 to support 5-minute heat effect)
-            now = time.time()
-            keys_to_del = [mid for mid, info in self.goal_flags.items() if now - info['time'] > 300]
-            for k in keys_to_del: del self.goal_flags[k]
 
-            for event in unique_list:
+            now = time.time()
+            for i, event in enumerate(unique_list):
+                # Yield Enigma2 processor control every 10 parsed events
+                if i > 0 and i % 10 == 0: yield
+
                 status = event.get('status', {})
                 state = status.get('type', {}).get('state', 'pre')
                 if state == 'in':
@@ -2125,179 +3027,20 @@ class SportsMonitor:
                     try:
                         m_date = event.get('date', '')
                         if m_date:
-                            # Use dateutil if available, else simple check
                             from dateutil.parser import parse
                             m_ts = time.mktime(parse(m_date).timetuple())
                             if 0 <= (m_ts - now) <= 900: # 900s = 15m
                                 live_count += 1
                     except: pass
-                
-                # OPTIMIZATION: If event didn't change, we don't need to check for goals/notifications
-                # unless we want to ensure eventual consistency. 
-                # Strict check: id in changed_events
-                # But 'changed_events' contains full objects.
-                # Let's map IDs for fast lookup
-                # (Note: For very first run, everything is changed)
-                
-            # Process notifications only for changed events (or all if first run/append)
-            # Actually, `last_states` handles the "diff" logic for notifications natively.
-            # So passing all events is fine, but iterating 200 events is cheap in Python usually.
-            # The real cost was the parsing above.
-            # We will stick to iterating `changed_events` for the heavy logic if possible, 
-            # BUT `process_queue` etc need to run.
-            # Let's keep the loop over `changed_events` for notifications to save cycles.
             
-            for event in changed_events:
-                status = event.get('status', {})
-                state = status.get('type', {}).get('state', 'pre')
-                comps = event.get('competitions', [{}])[0].get('competitors', [])
-                if len(comps) < 2: continue 
-                league_name = event.get('league_name', '')
-                league_url = event.get('league_url', '')
-                
-                # Skip individual sports EXCEPT Tennis (we want flags)
-                event_sport_type = get_sport_type(league_url)
-                if event_sport_type in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]:
-                    continue
-                
-                # Fix: Tennis flags reversed. Force index 0=Home, 1=Away to match process_events_data/MiniBar
-                if event_sport_type == SPORT_TYPE_TENNIS:
-                    team_h = comps[0]
-                    team_a = comps[1]
-                else:
-                    team_h = next((t for t in comps if t.get('homeAway') == 'home'), None)
-                    team_a = next((t for t in comps if t.get('homeAway') == 'away'), None)
-                    if not team_h and len(comps) > 0: team_h = comps[0]
-                    if not team_a and len(comps) > 1: team_a = comps[1]
-
-                # Extract team names for notifications
-                home = "Home"
-                if team_h:
-                    if 'athlete' in team_h:
-                        ath = team_h.get('athlete', {})
-                        home = ath.get('shortName') or ath.get('displayName') or "Player 1"
-                    else:
-                        home = team_h.get('team', {}).get('shortDisplayName') or "Home"
-
-                away = "Away"
-                if team_a:
-                    if 'athlete' in team_a:
-                        ath = team_a.get('athlete', {})
-                        away = ath.get('shortName') or ath.get('displayName') or "Player 2"
-                    else:
-                        away = team_a.get('team', {}).get('shortDisplayName') or "Away"
-                
-                # Read logo data (already set in main event processing loop)
-                h_logo = event.get('h_logo_url', '')
-                a_logo = event.get('a_logo_url', '')
-                h_id   = event.get('h_logo_id', '')
-                a_id   = event.get('a_logo_id', '')
-                l_logo = event.get('l_logo_url', '')
-                l_id   = event.get('l_logo_id', '')
-
-                # FIX: For Tennis, use Sets Won (calculated) instead of points/games
-                if event_sport_type == SPORT_TYPE_TENNIS:
-                    # Calculate sets won
-                    ts1, ts2 = calculate_tennis_scores(comps, state)
-                    # For notifications, we want the Sets count
-                    h_score = int(ts1)
-                    a_score = int(ts2)
-                else:
-                    h_score = int(team_h.get('score', '0')) if team_h else 0
-                    a_score = int(team_a.get('score', '0')) if team_a else 0
-
-                # Use STABLE ID for tracking, not names
-                match_id = event.get('id', home + "_" + away)
-                score_str = str(h_score) + "-" + str(a_score)
-
-                prev_state = self.last_states.get(match_id)
-                if self.active and self.session and prev_state:
-                    should_play_stend = (self.discovery_mode == 2 and self.get_sport_type(league_name) == 'soccer')
-                    
-                    # Ensure score string is "1-0" not "1 - 0"
-                    score_fmt = "{}-{}".format(h_score, a_score)
-                    
-                    if state == 'in' and prev_state == 'pre':
-                        # DEDUP: Only fire start notification once per match
-                        if (match_id, 'start') not in self.notified_events:
-                            event_sport_type = get_sport_type(league_url)
-                            if event_sport_type != SPORT_TYPE_TENNIS:
-                                 self.notified_events.add((match_id, 'start'))
-                                 stend_sound = 'stend' if should_play_stend else None
-                                 self.queue_notification(league_name, home, away, score_fmt, "MATCH STARTED", l_logo, h_logo, a_logo, "start", None, sound_type=stend_sound, h_id=h_id, a_id=a_id, l_id=l_id)
-                    elif state == 'post' and prev_state == 'in':
-                        # DEDUP: Only fire end notification once per match
-                        if (match_id, 'end') not in self.notified_events:
-                            self.notified_events.add((match_id, 'end'))
-                            stend_sound = 'stend' if should_play_stend else None
-                            self.queue_notification(league_name, home, away, score_fmt, "FULL TIME", l_logo, h_logo, a_logo, "end", None, sound_type=stend_sound, h_id=h_id, a_id=a_id, l_id=l_id)
-
-                self.last_states[match_id] = state
-                if state == 'in':
-                    if match_id in self.last_scores:
-                        if self.last_scores[match_id] != score_str:
-                            try:
-                                prev_h, prev_a = map(int, self.last_scores[match_id].split('-'))
-                                diff_h = h_score - prev_h
-                                diff_a = a_score - prev_a
-                                sport_type = self.get_sport_type(league_name)
-                                
-                                # Re-format score display "1-0" NO SPACES
-                                score_display = "{}-{}".format(h_score, a_score)
-                                
-                                if diff_h > 0 or diff_a > 0:
-                                    # RETRY LOGIC for API LAG
-                                    # BASKETBALL SPECIAL HANDLING: No Scorer Name, Visual Only, "Smart Score"
-                                    if sport_type == 'basketball':
-                                        points = max(diff_h, diff_a)
-                                        scorer_text = "+{} POINTS".format(points)
-                                    elif sport_type == 'football':
-                                        # NFL SPECIAL HANDLING: Contextual Text, Instant Update
-                                        points = max(diff_h, diff_a)
-                                        if points == 6: scorer_text = "TOUCHDOWN!"
-                                        elif points == 3: scorer_text = "FIELD GOAL"
-                                        elif points == 1: scorer_text = "EXTRA POINT"
-                                        elif points == 2: scorer_text = "SAFETY / 2PT"
-                                        else: scorer_text = "SCORE (+{})".format(points)
-                                    else:
-                                        scorer_text = self.get_scorer_text(event, allow_pending=True)
-                                        
-                                        if scorer_text is None:
-                                            # Data is stale, wait for next cycle
-                                            retries = self.goal_retries.get(match_id, 0)
-                                            if retries < 4: # Wait up to ~1 min (4 * 15s)
-                                                self.goal_retries[match_id] = retries + 1
-                                                continue # SKIP notification & SKIP updating last_scores
-                                            else:
-                                                # Max retries reached, fallback to "Goal"
-                                                scorer_text = self.get_scorer_text(event, allow_pending=False)
-                                                if match_id in self.goal_retries: del self.goal_retries[match_id]
-                                        else:
-                                            # Success, clear retry
-                                            if match_id in self.goal_retries: del self.goal_retries[match_id]
-
-                                    if diff_h > 0:
-                                        goal_sound = 'goal' if sport_type != 'basketball' else None
-                                        self.queue_notification(league_name, home, away, score_display, scorer_text, l_logo, h_logo, a_logo, "goal", "home", sound_type=goal_sound, h_id=h_id, a_id=a_id, l_id=l_id)
-                                        self.goal_flags[match_id] = {'time': time.time(), 'team': 'home'}
-                                    
-                                    if diff_a > 0:
-                                        goal_sound = 'goal' if sport_type != 'basketball' else None
-                                        self.queue_notification(league_name, home, away, score_display, scorer_text, l_logo, h_logo, a_logo, "goal", "away", sound_type=goal_sound, h_id=h_id, a_id=a_id, l_id=l_id)
-                                        self.goal_flags[match_id] = {'time': time.time(), 'team': 'away'}
-                            except: pass
-                    # Update score ONLY if we didn't 'continue' above
-                    self.last_scores[match_id] = score_str
-
             # ADAPTIVE POLLING: 60s for Live/Near-start, 300s for Idle
-            if self.active and not self.batch_is_active:
+            # FIX: Ensure timer restarts if UI is active (callbacks) or reminders exist
+            should_run = self.active or (len(self.callbacks) > 0) or (len(self.reminders) > 0)
+            if should_run and not self.batch_is_active:
                 new_interval = self._get_timer_interval(live_count)
+                log_diag("LAZY_PROCESS: Restarting timer in {}ms (active={} callbacks={} reminders={})".format(
+                    new_interval, self.active, len(self.callbacks), len(self.reminders)))
                 self.timer.start(new_interval, False)
-
-            # Only trigger UI callbacks if NOT in batch mode
-            # (batch mode triggers a single callback in finalize_batch)
-            if not self.batch_is_active:
-                for cb in self.callbacks: cb(True)
         except:
             self.status_message = "JSON Parse Error"
             if not self.batch_is_active:
@@ -2320,22 +3063,29 @@ if global_sports_monitor is None:
 # ==============================================================================
 def StatsListEntry(label, home_val, away_val, theme_mode):
     """3-Column Layout: [ HOME ] [ LABEL/TIME ] [ AWAY ]"""
-    if theme_mode == "ucl": col_label, col_val, col_bg = 0x00ffff, 0xffffff, 0x0e1e5b
-    else: col_label, col_val, col_bg = 0x00FF85, 0xFFFFFF, 0x33190028
+    if theme_mode == "ucl":
+        col_label, col_val, col_bg, col_sel = 0x00ffff, 0xffffff, 0x0e1e5b, 0x182c82
+    else:
+        col_label, col_val, col_bg, col_sel = 0x00FF85, 0xFFFFFF, 0x33190028, 0x444444
+        
     # Layout: Centered Block. Total width ~1320px
     # Home (400) | Label (520) | Away (400)
     h_x, h_w = 140, 400; l_x, l_w = 540, 520; a_x, a_w = 1060, 400
     res = [None]
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 48, 1400, 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label).upper(), col_label, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_val, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_val, 0xFFFFFF))
+    # Highlight full row when selected
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 48, 1400, 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label).upper(), col_label, col_label, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_val, col_val, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_val, col_val, col_bg, col_sel))
     return res
 
-def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=None):
+def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=None, payload=None):
     """3-Column Layout for Events (Goals/Cards/Subs) - Optimized for 1600px Width"""
-    if theme_mode == "ucl": col_label, col_val, col_bg = 0x00ffff, 0xffffff, 0x0e1e5b
-    else: col_label, col_val, col_bg = 0x00FF85, 0xFFFFFF, 0x33190028
+    if theme_mode == "ucl":
+        col_label, col_val, col_bg, col_sel = 0x00ffff, 0xffffff, 0x0e1e5b, 0x182c82
+    else:
+        col_label, col_val, col_bg, col_sel = 0x00FF85, 0xFFFFFF, 0x33190028, 0x444444
     
     # Use custom colors if provided, otherwise default
     col_h = h_color if h_color is not None else col_val
@@ -2346,15 +3096,18 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
     h_x, h_w = 90, 640    # Home events on left, right-aligned towards center
     a_x, a_w = 870, 640   # Away events on right, left-aligned from center
 
-    res = [None]
-    # Background line
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1550, 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+    res = [payload]
+    # Full Row Highlight (base)
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    # Background line separator
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1550, 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    
     # Time/Label (Center)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label), col_label, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label), col_label, col_label, col_bg, col_sel))
     # Home Event (Right)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_h, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_h, col_h, col_bg, col_sel))
     # Away Event (Left)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_a, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_a, col_a, col_bg, col_sel))
     return res
 
 def RosterListEntry(home_player, away_player, theme_mode):
@@ -2388,19 +3141,26 @@ def TextListEntry(text, theme_mode, align="center", is_header=False):
     if theme_mode == "ucl": 
         col_text = 0x00ffff if is_header else 0xffffff
         col_bg = 0x0e1e5b if is_header else None
+        col_sel = 0x182c82
     else: 
         col_text = 0x00FF85 if is_header else 0xFFFFFF
         col_bg = 0x33190028 if is_header else None
+        col_sel = 0x444444
+        
+    bg_actual = col_bg if col_bg is not None else 0x00000000
     
     flags = RT_HALIGN_CENTER | RT_VALIGN_CENTER
     if align == "left": flags = RT_HALIGN_LEFT | RT_VALIGN_CENTER
     
     res = [None]
+    # Highlight full row when selected
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", bg_actual, bg_actual, bg_actual, col_sel))
+    
     # Background line if header
     if is_header:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, bg_actual, col_sel))
     
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, flags, str(text), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, flags, str(text), col_text, col_text, bg_actual, col_sel))
     return res
 
 def wrap_text(text, max_chars=70):
@@ -2463,6 +3223,40 @@ def StandingTableEntry(pos, team, played, won, draw, lost, gd, pts, theme_mode, 
     res.append((eListboxPythonMultiContent.TYPE_TEXT, 1020, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(lost), col_dim if not is_header else col_text, 0xFFFFFF))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, 1100, 0, 100, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(gd), col_dim if not is_header else col_text, 0xFFFFFF))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, 1220, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pts), col_text, 0xFFFFFF))
+    return res
+
+def RacingStandingEntry(rank, driver, country, pts, theme_mode, is_header=False):
+    """Racing Championship Table Row: Rank | Driver | Country | Points"""
+    if theme_mode == "ucl":
+        col_text = 0x00ffff if is_header else 0xffffff
+        col_accent = 0xffd700
+        col_bg = 0x0e1e5b if is_header else None
+        col_dim = 0x888888
+    else:
+        col_text = 0x00FF85 if is_header else 0xffffff
+        col_accent = 0xffd700
+        col_bg = 0x28002C if is_header else None
+        col_dim = 0x888888
+    
+    # Highlight top 3 positions
+    try:
+        if not is_header and int(rank) <= 3:
+            col_text = col_accent
+    except: pass
+    
+    res = [None]
+    # Separator line
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 48, 1140, 2, 0, RT_HALIGN_CENTER, "", col_dim, col_dim, 1))
+    # Background for header
+    if is_header:
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 0, 1140, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+    
+    # Racing columns: Rank(80) | Driver(550) | Country(250) | Points(120)
+    # Start X offset: 280, Total Width ~1000
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 280, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(rank), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 370, 0, 550, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(driver), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 930, 0, 250, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(country), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1200, 0, 120, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pts), col_text, 0xFFFFFF))
     return res
 
 # ==============================================================================
@@ -2562,202 +3356,441 @@ class TeamStandingScreen(Screen):
     
     def fetch_standings(self):
         self["loading"].show()
-        # Build standings URL from league URL using ESPN API pattern
-        # Example: site.api.espn.com/apis/v2/sports/football/nfl/standings
+
+        url = (self.league_url or '').lower()
+
+        # Sports with no ESPN standings endpoint — show message immediately
+        NO_STANDINGS_SPORTS = ('tennis', 'golf', 'mma', 'boxing')
+        for ns in NO_STANDINGS_SPORTS:
+            if ns in url:
+                self["loading"].hide()
+                label = ns.upper() if ns != 'mma' else 'MMA / Boxing'
+                self.standings_rows = [
+                    StandingTableEntry("-", "{} does not have league standings.".format(label),
+                                       "-", "-", "-", "-", "-", "-", self.theme)
+                ]
+                self.current_page = 0
+                self.update_display()
+                return
+
+        # Build standings URL from the league scoreboard URL
+        # Pattern: .../sports/{sport}/{league}/scoreboard  →  .../sports/{sport}/{league}/standings
+        # Some sport-only URLs (e.g. boxing) have no league slug - handled above.
         standings_url = ""
-        
-        if self.league_url:
-            # Extract sport and league from URL
-            # Pattern: .../sports/{sport}/{league}/scoreboard
-            try:
-                parts = self.league_url.split('/')
-                sport_idx = -1
-                for i, p in enumerate(parts):
-                    if p == 'sports' and i + 2 < len(parts):
-                        sport_idx = i
-                        break
-                
-                if sport_idx >= 0:
-                    sport = parts[sport_idx + 1]
-                    league = parts[sport_idx + 2].split('?')[0]
-                    standings_url = "https://site.api.espn.com/apis/v2/sports/{}/{}/standings".format(sport, league)
-            except:
-                pass
-        
+        try:
+            parts = self.league_url.split('/')
+            sport_idx = -1
+            for i, p in enumerate(parts):
+                if p == 'sports' and i + 1 < len(parts):
+                    sport_idx = i
+                    break
+
+            if sport_idx >= 0:
+                sport = parts[sport_idx + 1]
+                # parts[sport_idx + 2] could be the league slug OR 'scoreboard' for sport-only URLs
+                if sport_idx + 2 < len(parts):
+                    candidate = parts[sport_idx + 2].split('?')[0]
+                    if candidate and candidate != 'scoreboard':
+                        league = candidate
+                        standings_url = "https://site.api.espn.com/apis/v2/sports/{}/{}/standings".format(sport, league)
+                    else:
+                        # No league slug — no standings endpoint available
+                        standings_url = ""
+        except Exception as e:
+            log_dbg("fetch_standings URL build error: " + str(e))
+
         if not standings_url:
-            # Fallback - try to extract from league name
-            standings_url = "https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings"
-        
+            self["loading"].hide()
+            self.standings_rows = [
+                StandingTableEntry("-", "No standings available for this league.", "-", "-", "-", "-", "-", "-", self.theme)
+            ]
+            self.current_page = 0
+            self.update_display()
+            return
+
+        log_dbg("fetch_standings URL: " + standings_url)
+
         from twisted.web.client import Agent, readBody
         from twisted.internet import reactor
+        self._standings_url = standings_url
         agent = Agent(reactor)
         d = agent.request(b'GET', standings_url.encode('utf-8'))
         d.addCallback(self.on_response)
         d.addErrback(self.on_error)
-    
+
     def on_response(self, response):
         from twisted.web.client import readBody
+        status = response.code
+        log_dbg("standings HTTP status: " + str(status))
+        if status != 200:
+            self["loading"].setText("Standings unavailable (HTTP {})".format(status))
+            return
         d = readBody(response)
         d.addCallback(self.parse_standings)
         d.addErrback(self.on_error)
-    
+
     def on_error(self, error):
+        log_dbg("standings fetch error: " + str(error))
         self["loading"].setText("Failed to load standings")
     
     def parse_standings(self, body):
         try:
+            # Log raw body prefix for debugging
+            try:
+                body_str = body if isinstance(body, str) else body.decode('utf-8', errors='replace')
+                log_dbg("standings body[0:600]: " + body_str[:600])
+            except: pass
+
             data = json.loads(body)
+        except Exception as e:
+            log_dbg("standings JSON parse error: " + str(e))
+            self["loading"].setText("Error parsing standings data")
+            return
+
+        try:
             self["loading"].hide()
-            
-            # Helper to clean number strings
+            log_dbg("standings type: " + str(type(data).__name__))
+            log_dbg("standings keys: " + str(list(data.keys()) if isinstance(data, dict) else str(data)[:200]))
+
+            # ----------------------------------------------------------------
+            # HELPERS
+            # ----------------------------------------------------------------
             def clean_num(val):
                 try:
-                    f = float(val)
-                    if f == int(f): return str(int(f))
-                    return str(val)
+                    f = float(str(val))
+                    return str(int(f)) if f == int(f) else str(val)
                 except: return str(val)
 
-            # Helper to parse a list of entries and return sorted list
-            def parse_entries(entry_list):
-                parsed = []
-                for entry in entry_list:
-                    try:
-                        team_data = entry.get('team', {})
-                        team_name = team_data.get('displayName', '') or team_data.get('shortDisplayName', '') or team_data.get('name', 'Unknown')
-                        
-                        stats = entry.get('stats', [])
-                        stats_map = {}
-                        for stat in stats:
-                            stat_name = stat.get('name', '') or stat.get('abbreviation', '')
-                            stats_map[stat_name.lower()] = stat.get('value', stat.get('displayValue', '0'))
-                        
-                        # Get explicit rank if available, else 999
-                        rank_val = 999
-                        try: rank_val = int(stats_map.get('rank', stats_map.get('position', 999)))
-                        except: pass
+            def clean_pct(val):
+                try: return "{:.3f}".format(float(str(val)))
+                except: return str(val)
 
-                        # Get win pct for sorting
-                        win_pct = 0.0
-                        try: win_pct = float(stats_map.get('winpercent', stats_map.get('pct', 0)))
-                        except: pass
-                        
-                        # Also get wins for tie-breaking
-                        wins = 0
-                        try: wins = int(stats_map.get('wins', stats_map.get('w', 0)))
-                        except: pass
+            def build_stats_map(stats):
+                m = {}
+                for stat in (stats or []):
+                    # Use 'name' key first, fall back to 'abbreviation'
+                    key = (stat.get('name') or stat.get('abbreviation') or '').lower()
+                    if key:
+                        # Prefer numeric 'value' for sorting; keep 'displayValue' for display
+                        m[key] = stat.get('displayValue', stat.get('value', ''))
+                        m[key + '__val'] = stat.get('value', stat.get('displayValue', 0))
+                return m
 
-                        pos = str(rank_val)
-                        played = clean_num(stats_map.get('gamesplayed', stats_map.get('played', stats_map.get('p', '-'))))
-                        won = clean_num(stats_map.get('wins', stats_map.get('w', '-')))
-                        draw = clean_num(stats_map.get('ties', stats_map.get('draws', stats_map.get('d', '-'))))
-                        lost = clean_num(stats_map.get('losses', stats_map.get('l', '-')))
-                        gd = clean_num(stats_map.get('pointdifferential', stats_map.get('goaldifference', stats_map.get('gd', '-'))))
-                        pts = clean_num(stats_map.get('points', stats_map.get('pts', '-')))
-                        
-                        # Fallback for position
-                        if pos == '999':
-                            pos = stats_map.get('playoffseeed', stats_map.get('overall rank', '-'))
+            def sget(m, *keys):
+                """Get first matching key from stats map (display value)."""
+                for k in keys:
+                    v = m.get(k)
+                    if v is not None and str(v) not in ('', 'None'): return str(v)
+                return '-'
 
-                        parsed.append({
-                            'pos': pos, 'team': team_name, 'p': played, 'w': won, 'd': draw, 'l': lost, 'gd': gd, 'pts': pts,
-                            'sort_rank': rank_val, 'sort_pct': win_pct, 'sort_wins': wins, 'raw': entry
-                        })
-                    except: continue
-                
-                # Sort by Rank Ascending (if valid rank exists), otherwise by Win% Descending
-                parsed.sort(key=lambda x: x['sort_rank'] if x['sort_rank'] != 999 else (-x['sort_pct'], -x['sort_wins']))
-                return parsed
+            def sort_keys(m):
+                rank = 999
+                try: rank = int(float(str(m.get('rank', m.get('position', m.get('playoffseed', 999))))))
+                except: pass
+                pct = 0.0
+                try: pct = float(str(m.get('winpercent', m.get('pct', m.get('winningpct', m.get('pointspercentage', 0))))))
+                except: pass
+                pts = 0.0
+                try: pts = float(str(m.get('points__val', m.get('points', 0))))
+                except: pass
+                wins = 0
+                try: wins = int(float(str(m.get('wins__val', m.get('wins', m.get('w', 0))))))
+                except: pass
+                return rank, pct, pts, wins
 
-            # Clear existing rows
+            # ----------------------------------------------------------------
+            # RECURSIVE ENTRY COLLECTOR
+            # Walks the entire JSON tree, collecting all arrays of entries that
+            # contain dicts with a 'team' key (standard ESPN standings entries).
+            # Returns list of (group_label, [entry, ...]) tuples in order found.
+            # ----------------------------------------------------------------
+            def collect_entry_groups(node, label="", depth=0):
+                groups = []
+                if depth > 10: return groups
+                if isinstance(node, dict):
+                    # If this node has a 'standings' sub-object with 'entries'
+                    standing_sub = node.get('standings')
+                    if isinstance(standing_sub, dict):
+                        entries = standing_sub.get('entries', [])
+                        team_entries = [e for e in entries if isinstance(e, dict) and 'team' in e]
+                        if team_entries:
+                            lbl = node.get('name', label) or label
+                            groups.append((lbl, team_entries))
+                            return groups  # Don't descend further — children are sub-groups
+
+                    # If this node directly has 'entries'
+                    direct = node.get('entries', [])
+                    if direct:
+                        team_entries = [e for e in direct if isinstance(e, dict) and 'team' in e]
+                        if team_entries:
+                            lbl = node.get('name', label) or label
+                            groups.append((lbl, team_entries))
+                            return groups
+
+                    # Recurse into 'children'
+                    for child in node.get('children', []):
+                        child_label = child.get('name', '') if isinstance(child, dict) else ''
+                        groups.extend(collect_entry_groups(child, child_label, depth + 1))
+
+                    # Recurse into 'standings' as a list
+                    standings_list = node.get('standings', [])
+                    if isinstance(standings_list, list):
+                        for item in standings_list:
+                            groups.extend(collect_entry_groups(item, label, depth + 1))
+
+                elif isinstance(node, list):
+                    for item in node:
+                        groups.extend(collect_entry_groups(item, label, depth + 1))
+
+                return groups
+
+            # ----------------------------------------------------------------
+            # RACING — athlete-based entries (no 'team' key)
+            # ----------------------------------------------------------------
+            def collect_racing_entries(node, depth=0):
+                entries = []
+                if depth > 8: return entries
+                if isinstance(node, dict):
+                    sub_entries = (node.get('standings', {}) or {}).get('entries', [])
+                    if not sub_entries: sub_entries = node.get('entries', [])
+                    ath_entries = [e for e in sub_entries if isinstance(e, dict) and 'athlete' in e]
+                    if ath_entries:
+                        entries.extend(ath_entries)
+                    else:
+                        for child in node.get('children', []):
+                            entries.extend(collect_racing_entries(child, depth + 1))
+                elif isinstance(node, list):
+                    for item in node:
+                        entries.extend(collect_racing_entries(item, depth + 1))
+                return entries
+
+            # ----------------------------------------------------------------
+            # ENTRY PARSER — soccer/standard  (P W D L GD PTS)
+            # ----------------------------------------------------------------
+            def parse_soccer_entry(entry):
+                team_data = entry.get('team', {})
+                team_name = (team_data.get('displayName') or team_data.get('shortDisplayName') or
+                             team_data.get('name') or 'Unknown')
+                m = build_stats_map(entry.get('stats', []))
+                rank, pct, pts_f, wins = sort_keys(m)
+                pos = str(rank) if rank != 999 else sget(m, 'playoffseed', 'rank')
+                return {
+                    'pos': pos,
+                    'team': team_name,
+                    'p':   clean_num(sget(m, 'gamesplayed', 'played', 'p')),
+                    'w':   clean_num(sget(m, 'wins', 'w')),
+                    'd':   clean_num(sget(m, 'ties', 'draws', 'd')),
+                    'l':   clean_num(sget(m, 'losses', 'l')),
+                    'gd':  clean_num(sget(m, 'pointdifferential', 'goaldifference', 'gd')),
+                    'pts': clean_num(sget(m, 'points', 'pts')),
+                    '_rank': rank, '_pct': pct, '_wins': wins,
+                }
+
+            def parse_american_entry(entry, sport_type):
+                team_data = entry.get('team', {})
+                team_name = (team_data.get('displayName') or team_data.get('shortDisplayName') or
+                             team_data.get('name') or 'Unknown')
+                m = build_stats_map(entry.get('stats', []))
+                rank, pct, pts_f, wins = sort_keys(m)
+                pos = str(rank) if rank != 999 else '-'
+                w = sget(m, 'wins', 'w')
+                l = sget(m, 'losses', 'l')
+                if sport_type == 'football':
+                    return {'pos': pos, 'team': team_name, 'p': w, 'w': l,
+                            'd': sget(m, 'ties', 't'), 'l': clean_pct(sget(m, 'winpercent', 'pct')),
+                            'gd': '', 'pts': '', '_rank': rank, '_pct': pct, '_wins': wins}
+                elif sport_type == 'baseball':
+                    return {'pos': pos, 'team': team_name, 'p': w, 'w': l,
+                            'd': clean_pct(sget(m, 'winpercent', 'pct')),
+                            'l': sget(m, 'gamesbehind', 'gb'),
+                            'gd': '', 'pts': '', '_rank': rank, '_pct': pct, '_wins': wins}
+                elif sport_type == 'hockey':
+                    return {'pos': pos, 'team': team_name, 'p': w, 'w': l,
+                            'd': sget(m, 'otlosses', 'overtimelosses', 'ot'),
+                            'l': sget(m, 'points', 'pts'),
+                            'gd': '', 'pts': '', '_rank': rank, '_pct': pct, '_wins': wins}
+                else:
+                    return {'pos': pos, 'team': team_name, 'p': w, 'w': l,
+                            'd': '-', 'l': '-', 'gd': '-', 'pts': '-',
+                            '_rank': rank, '_pct': pct, '_wins': wins}
+
+            def sort_entries(entries_list):
+                entries_list.sort(key=lambda x: x['_rank'] if x['_rank'] != 999 else (-x['_pct'], -x['_wins']))
+
+            def add_group_to_rows(lbl, parsed, hdr_cols):
+                if lbl:
+                    self.standings_rows.append(StandingTableEntry("", lbl.upper(), "", "", "", "", "", "", self.theme, is_header=True))
+                self.standings_rows.append(StandingTableEntry(*hdr_cols, **{'theme_mode': self.theme, 'is_header': True}))
+                for item in parsed:
+                    self.standings_rows.append(StandingTableEntry(
+                        item['pos'], item['team'], item['p'], item['w'],
+                        item['d'], item['l'], item['gd'], item['pts'], self.theme))
+                self.standings_rows.append(StandingTableEntry("", "", "", "", "", "", "", "", self.theme))
+
+            # ----------------------------------------------------------------
+            # SPORT TYPE DETECTION
+            # ----------------------------------------------------------------
+            lurl = (self.league_url or '').lower()
+            is_racing    = 'racing'     in lurl
+            is_football  = 'football'   in lurl
+            is_baseball  = 'baseball'   in lurl
+            is_hockey    = 'hockey'     in lurl
+            is_basketball = ('basketball' in lurl or 'nba' in lurl or 'wnba' in lurl
+                             or 'euroleague' in lurl)
+            is_rugby     = 'rugby'      in lurl
+            is_cricket   = 'cricket'    in lurl
+            is_lacrosse  = 'lacrosse'   in lurl
+
             self.standings_rows = []
 
-            # --- NBA SPECIAL HANDLING ---
-            # NBA data usually comes as 'children' (Conferences) -> 'standings' -> 'entries'
-            is_nba = False
-            if self.league_url: 
-                 if "nba" in self.league_url.lower() or "basketball" in self.league_url.lower():
-                     is_nba = True # Broader check for basketball leagues behaving like NBA
-            
-            children = data.get('children', [])
-            
-            # If we have children structure and it's likely NBA-like
-            if is_nba and children:
-                all_entries_flat = []
-                
-                # 1. Gather all data
-                for child in children:
-                    conf_name = child.get('name', 'Conference').upper()
-                    standings_node = child.get('standings', {})
-                    entries = standings_node.get('entries', [])
-                    if not entries: entries = child.get('entries', [])
-                    
-                    parsed_conf = parse_entries(entries)
-                    
-                    # Add to master list
-                    all_entries_flat.extend(parsed_conf)
-                    
-                    # Store for conference display
-                    child['parsed_entries'] = parsed_conf
-                    child['conf_name'] = conf_name
-                
-                # 2. OVERALL TABLE (Only if we successfully parsed entries)
-                if all_entries_flat:
+            # ================================================================
+            # RACING
+            # ================================================================
+            if is_racing:
+                all_entries = collect_racing_entries(data)
+                log_dbg("racing entries found: " + str(len(all_entries)))
+                if all_entries:
+                    self.standings_rows.append(RacingStandingEntry("RK", "DRIVER", "COUNTRY", "PTS", self.theme, is_header=True))
+                    for entry in all_entries:
+                        athlete = entry.get('athlete', {})
+                        driver_name = athlete.get('displayName') or athlete.get('name') or 'Unknown'
+                        country = athlete.get('flag', {}).get('alt', '')
+                        rank_val = '-'; pts_val = '-'
+                        for stat in entry.get('stats', []):
+                            if stat.get('name') == 'rank': rank_val = stat.get('displayValue', '-')
+                            elif stat.get('name') == 'championshipPts': pts_val = stat.get('displayValue', '-')
+                        self.standings_rows.append(RacingStandingEntry(str(rank_val), driver_name, country, str(pts_val), self.theme))
+
+            # ================================================================
+            # AMERICAN FOOTBALL (NFL / NCAA Football / UFL)
+            # ================================================================
+            elif is_football:
+                hdr = ("#", "TEAM", "W", "L", "T", "PCT", "", "")
+                groups = collect_entry_groups(data)
+                log_dbg("football groups found: " + str(len(groups)))
+                for lbl, raw_entries in groups:
+                    parsed = [parse_american_entry(e, 'football') for e in raw_entries]
+                    sort_entries(parsed)
+                    add_group_to_rows(lbl, parsed, hdr)
+
+            # ================================================================
+            # BASEBALL (MLB / NCAA Baseball)
+            # ================================================================
+            elif is_baseball:
+                hdr = ("#", "TEAM", "W", "L", "PCT", "GB", "", "")
+                groups = collect_entry_groups(data)
+                log_dbg("baseball groups found: " + str(len(groups)))
+                for lbl, raw_entries in groups:
+                    parsed = [parse_american_entry(e, 'baseball') for e in raw_entries]
+                    sort_entries(parsed)
+                    add_group_to_rows(lbl, parsed, hdr)
+
+            # ================================================================
+            # HOCKEY (NHL)
+            # ================================================================
+            elif is_hockey:
+                hdr = ("#", "TEAM", "W", "L", "OT", "PTS", "", "")
+                groups = collect_entry_groups(data)
+                log_dbg("hockey groups found: " + str(len(groups)))
+                for lbl, raw_entries in groups:
+                    parsed = [parse_american_entry(e, 'hockey') for e in raw_entries]
+                    sort_entries(parsed)
+                    add_group_to_rows(lbl, parsed, hdr)
+
+            # ================================================================
+            # BASKETBALL / RUGBY / LACROSSE  (W D L GD PTS)
+            # ================================================================
+            elif is_basketball or is_rugby or is_lacrosse:
+                hdr = ("#", "TEAM", "GP", "W", "D", "L", "DIFF", "PTS")
+                groups = collect_entry_groups(data)
+                log_dbg("basket/rugby/lacrosse groups found: " + str(len(groups)))
+                # If multiple groups, also show an overall table
+                if len(groups) > 1:
+                    all_flat = []
+                    for lbl, raw_entries in groups:
+                        all_flat.extend([parse_soccer_entry(e) for e in raw_entries])
+                    all_flat.sort(key=lambda x: (-x['_pct'], -x['_wins']))
                     self.standings_rows.append(StandingTableEntry("", "OVERALL STANDINGS", "", "", "", "", "", "", self.theme, is_header=True))
-                    self.standings_rows.append(StandingTableEntry("#", "TEAM", "P", "W", "D", "L", "GD", "PTS", self.theme, is_header=True))
-                    
-                    # Re-sort flat list by win pct descending for overall
-                    all_entries_flat.sort(key=lambda x: (-x['sort_pct'], -x['sort_wins']))
-                    
-                    for idx, item in enumerate(all_entries_flat):
-                        rank = str(idx + 1)
-                        self.standings_rows.append(StandingTableEntry(rank, item['team'], item['p'], item['w'], item['d'], item['l'], item['gd'], item['pts'], self.theme))
-                    
-                    self.standings_rows.append(StandingTableEntry("", "", "", "", "", "", "", "", self.theme)) # Spacer
+                    self.standings_rows.append(StandingTableEntry(hdr[0], hdr[1], hdr[2], hdr[3], hdr[4], hdr[5], hdr[6], hdr[7], self.theme, is_header=True))
+                    for idx, item in enumerate(all_flat):
+                        self.standings_rows.append(StandingTableEntry(str(idx + 1), item['team'], item['p'], item['w'], item['d'], item['l'], item['gd'], item['pts'], self.theme))
+                    self.standings_rows.append(StandingTableEntry("", "", "", "", "", "", "", "", self.theme))
+                for lbl, raw_entries in groups:
+                    parsed = [parse_soccer_entry(e) for e in raw_entries]
+                    sort_entries(parsed)
+                    add_group_to_rows(lbl, parsed, hdr)
 
-                # 3. CONFERENCES
-                for child in children:
-                    if 'parsed_entries' not in child: continue
-                    conf_name = child.get('conf_name', 'CONFERENCE')
-                    entries = child['parsed_entries']
-                    
-                    self.standings_rows.append(StandingTableEntry("", conf_name, "", "", "", "", "", "", self.theme, is_header=True))
-                    self.standings_rows.append(StandingTableEntry("#", "TEAM", "P", "W", "D", "L", "GD", "PTS", self.theme, is_header=True))
-                    
-                    for item in entries:
+            # ================================================================
+            # CRICKET
+            # ================================================================
+            elif is_cricket:
+                hdr = ("#", "TEAM", "W", "L", "NR", "PTS", "NRR", "")
+                groups = collect_entry_groups(data)
+                log_dbg("cricket groups found: " + str(len(groups)))
+                for lbl, raw_entries in groups:
+                    if lbl:
+                        self.standings_rows.append(StandingTableEntry("", lbl.upper(), "", "", "", "", "", "", self.theme, is_header=True))
+                    self.standings_rows.append(StandingTableEntry(hdr[0], hdr[1], hdr[2], hdr[3], hdr[4], hdr[5], hdr[6], hdr[7], self.theme, is_header=True))
+                    parsed_cricket = []
+                    for entry in raw_entries:
+                        try:
+                            team_data = entry.get('team', {})
+                            team_name = team_data.get('displayName') or team_data.get('name') or 'Unknown'
+                            m = build_stats_map(entry.get('stats', []))
+                            rank, _, _, _ = sort_keys(m)
+                            nrr = sget(m, 'netrunrate', 'nrr')
+                            try: nrr = "{:+.3f}".format(float(nrr))
+                            except: pass
+                            pos = str(rank) if rank != 999 else '-'
+                            parsed_cricket.append({
+                                'pos': pos, 'team': team_name,
+                                'p':   sget(m, 'wins', 'w'),
+                                'w':   sget(m, 'losses', 'l'),
+                                'd':   sget(m, 'noresult', 'nr'),
+                                'l':   sget(m, 'points', 'pts'),
+                                'gd':  nrr, 'pts': '', '_rank': rank
+                            })
+                        except: continue
+                    parsed_cricket.sort(key=lambda x: x['_rank'] if x['_rank'] != 999 else 999)
+                    for item in parsed_cricket:
                         self.standings_rows.append(StandingTableEntry(item['pos'], item['team'], item['p'], item['w'], item['d'], item['l'], item['gd'], item['pts'], self.theme))
-                    
-                    self.standings_rows.append(StandingTableEntry("", "", "", "", "", "", "", "", self.theme)) # Spacer
+                    self.standings_rows.append(StandingTableEntry("", "", "", "", "", "", "", "", self.theme))
 
+            # ================================================================
+            # SOCCER / STANDARD  (P W D L GD PTS)
+            # ================================================================
             else:
-                # --- STANDARD / SOCCER HANDLING ---
-                raw_entries = []
-                standings_data = data.get('standings', [])
-                if isinstance(standings_data, list):
-                     for group in standings_data:
-                        if isinstance(group, dict):
-                            raw_entries.extend(group.get('entries', []))
-                
-                if not raw_entries:
-                    raw_entries = data.get('entries', [])
-                    if not raw_entries and children:
-                        # flatten children if not NBA but has children
-                        for child in children:
-                            raw_entries.extend(child.get('standings', {}).get('entries', []))
-                
-                parsed = parse_entries(raw_entries)
-                
-                self.standings_rows.append(StandingTableEntry("#", "TEAM", "P", "W", "D", "L", "GD", "PTS", self.theme, is_header=True))
-                
-                for item in parsed:
-                     self.standings_rows.append(StandingTableEntry(item['pos'], item['team'], item['p'], item['w'], item['d'], item['l'], item['gd'], item['pts'], self.theme))
+                hdr = ("#", "TEAM", "P", "W", "D", "L", "GD", "PTS")
+                groups = collect_entry_groups(data)
+                log_dbg("soccer groups found: " + str(len(groups)))
+                if len(groups) > 1:
+                    # Multi-group league (e.g. Copa Libertadores group stage) — show each
+                    for lbl, raw_entries in groups:
+                        parsed = [parse_soccer_entry(e) for e in raw_entries]
+                        sort_entries(parsed)
+                        add_group_to_rows(lbl, parsed, hdr)
+                elif groups:
+                    lbl, raw_entries = groups[0]
+                    parsed = [parse_soccer_entry(e) for e in raw_entries]
+                    sort_entries(parsed)
+                    # Single group — just the header row, no sub-label
+                    self.standings_rows.append(StandingTableEntry(hdr[0], hdr[1], hdr[2], hdr[3], hdr[4], hdr[5], hdr[6], hdr[7], self.theme, is_header=True))
+                    for item in parsed:
+                        self.standings_rows.append(StandingTableEntry(item['pos'], item['team'], item['p'], item['w'], item['d'], item['l'], item['gd'], item['pts'], self.theme))
 
-            if len(self.standings_rows) <= 1:
+            # ================================================================
+            # FALLBACK
+            # ================================================================
+            if not self.standings_rows:
+                log_dbg("standings: no rows produced for " + str(self.league_url))
                 self.standings_rows.append(StandingTableEntry("-", "No standings data available", "-", "-", "-", "-", "-", "-", self.theme))
-            
+
             self.current_page = 0
             self.update_display()
-            
+
         except Exception as e:
+            import traceback
+            log_dbg("parse_standings exception: " + str(e) + " | " + traceback.format_exc()[-300:])
             self["loading"].setText("Error: " + str(e))
 
 # ==============================================================================
@@ -3013,6 +4046,182 @@ class SimplePlayer(Screen):
         Screen.close(self, *args, **kwargs)
 
 
+class RacingDriverInfoScreen(Screen):
+    def __init__(self, session, driver_data, league_url, event_data):
+        Screen.__init__(self, session)
+        
+        self.driver_data = driver_data
+        self.league_url = league_url
+        self.event_data = event_data
+        
+        athlete = driver_data.get('athlete', {})
+        self.d_name = athlete.get('displayName', '') or athlete.get('shortName', 'Driver')
+        self.d_country = athlete.get('flag', {}).get('alt', '')
+        self.d_flag = athlete.get('flag', {}).get('href', '')
+        self.d_id = athlete.get('id', '')
+        self.t_id = driver_data.get('team', {}).get('id', '')
+        self.team_name = driver_data.get('team', {}).get('displayName', '')
+        self.rank = driver_data.get('order', '')
+        self.points = driver_data.get('score', '')
+        self.stats_url = ''
+        
+        self.skin = (
+            u'<screen position="center,center" size="1200,800" title="Driver Profile">'
+            u'<widget name="title" position="20,20" size="1160,50" font="Regular;36" foregroundColor="#00FF85" backgroundColor="#000000" transparent="1" halign="center" valign="center" zPosition="1" />'
+            u'<widget name="subtitle" position="20,70" size="1160,30" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#000000" transparent="1" halign="center" valign="center" zPosition="1" />'
+            u'<widget name="list" position="20,130" size="1160,650" itemHeight="60" scrollbarMode="showOnDemand" zPosition="2" backgroundColor="#000000" transparent="1" />'
+            u'</screen>'
+        )
+        
+        self["title"] = Label(self.d_name)
+        subtitle_txt = "Position: " + str(self.rank)
+        if self.points: subtitle_txt += "  |  Points: " + str(self.points)
+        if self.team_name: subtitle_txt += "  |  Team: " + str(self.team_name)
+        self["subtitle"] = Label(subtitle_txt)
+        
+        self.theme = {
+            "bg": 0x000000, "sel_bg": 0x000000,
+            "text": 0xFFFFFF, "dim": 0xBBBBBB, "accent": 0x00FF85,
+            "font": "Regular", "size_base": 24, "size_small": 18
+        }
+        
+        self.full_rows = []
+        self["list"] = MenuList([], enableWrapAround=True)
+        self["list"].l.setItemHeight(60)
+        
+        self["actions"] = ActionMap(["OkCancelActions"], {
+            "ok": self.close, "cancel": self.close
+        }, -1)
+        
+        self.onLayoutFinish.append(self.start_fetch)
+
+    def start_fetch(self):
+        self.full_rows.append(TextListEntry("API DATA LOADING...", self.theme, is_header=True))
+        self.update_list()
+        
+        is_core = "sports.core.api" in self.league_url
+        if is_core and self.d_id:
+            a_url = self.league_url + "/athletes/" + str(self.d_id)
+            from twisted.web.client import getPage
+            getPage(a_url.encode('utf-8')).addCallback(self.on_athlete).addErrback(self.on_error)
+        elif self.d_id:
+            league = "f1"
+            if "nascar" in self.league_url: league = "nascar"
+            elif "irl" in self.league_url: league = "irl"
+            a_url = "https://site.api.espn.com/apis/common/v3/sports/racing/" + league + "/athletes/" + str(self.d_id)
+            from twisted.web.client import getPage
+            getPage(a_url.encode('utf-8')).addCallback(self.on_athlete_site).addErrback(self.on_error)
+        else:
+            self.full_rows = [TextListEntry("Basic Competitor Info", self.theme, is_header=True)]
+            if self.team_name: self.full_rows.append(TextListEntry("Team: " + str(self.team_name), self.theme))
+            if self.d_country: self.full_rows.append(TextListEntry("Country: " + str(self.d_country), self.theme))
+            self.full_rows.append(TextListEntry("Detailed API profile unavailable.", self.theme))
+            self.update_list()
+
+    def on_athlete(self, body):
+        import json
+        self.full_rows = []
+        try:
+            data = json.loads(body.decode('utf-8', errors='ignore'))
+            self.full_rows.append(TextListEntry(u"\U0001F464 DRIVER BIO", self.theme, is_header=True))
+            
+            f_name = data.get('firstName', '')
+            l_name = data.get('lastName', '')
+            if f_name and l_name: self.full_rows.append(TextListEntry("Full Name: " + f_name + " " + l_name, self.theme))
+            
+            dob = data.get('dateOfBirth', '')
+            if dob: self.full_rows.append(TextListEntry("Date of Birth: " + dob[:10], self.theme))
+            
+            b_place = data.get('birthPlace', {})
+            b_str = []
+            if b_place.get('city'): b_str.append(b_place['city'])
+            if b_place.get('state'): b_str.append(b_place['state'])
+            if b_place.get('country'): b_str.append(b_place['country'])
+            if b_str: self.full_rows.append(TextListEntry("Birth Place: " + ", ".join(b_str), self.theme))
+            
+            w = data.get('weight', 0)
+            h = data.get('height', 0)
+            if w: self.full_rows.append(TextListEntry("Weight: " + str(w) + " lbs", self.theme))
+            if h: self.full_rows.append(TextListEntry("Height: " + str(h) + " inches", self.theme))
+            
+            cz = data.get('citizenship', '')
+            if cz: self.full_rows.append(TextListEntry("Citizenship: " + cz, self.theme))
+            
+            stats_ref = data.get('statistics', {}).get('$ref', '')
+            if stats_ref:
+                self.stats_url = stats_ref
+                from twisted.web.client import getPage
+                getPage(stats_ref.encode('utf-8')).addCallback(self.on_stats).addErrback(self.on_error)
+            else:
+                self.update_list()
+        except:
+            self.full_rows.append(TextListEntry("Could not parse driver profile.", self.theme))
+            self.update_list()
+
+    def on_athlete_site(self, body):
+        import json
+        self.full_rows = []
+        try:
+            data = json.loads(body.decode('utf-8', errors='ignore')).get('athlete', {})
+            self.full_rows.append(TextListEntry(u"\U0001F464 DRIVER BIO", self.theme, is_header=True))
+            
+            f_name = data.get('firstName', '')
+            l_name = data.get('lastName', '')
+            if f_name and l_name: self.full_rows.append(TextListEntry("Full Name: " + f_name + " " + l_name, self.theme))
+            
+            dob = data.get('displayDOB', '')
+            if dob: self.full_rows.append(TextListEntry("Date of Birth: " + dob, self.theme))
+            
+            b_place = data.get('displayBirthPlace', '')
+            if b_place: self.full_rows.append(TextListEntry("Birth Place: " + b_place, self.theme))
+            
+            w = data.get('displayWeight', '')
+            h = data.get('displayHeight', '')
+            if w: self.full_rows.append(TextListEntry("Weight: " + w, self.theme))
+            if h: self.full_rows.append(TextListEntry("Height: " + h, self.theme))
+            
+            stats = data.get('stats', {}).get('summary', {})
+            if stats:
+                self.full_rows.append(TextListEntry("", self.theme))
+                self.full_rows.append(TextListEntry(u"\U0001F3C6 STATISTICS (CURRENT SEASON)", self.theme, is_header=True))
+                # Just add a dummy line, the stats object structure is complex in site API, let's keep it simple
+                self.full_rows.append(TextListEntry("Stats available. View online for full details.", self.theme))
+            
+            self.update_list()
+        except:
+            self.full_rows.append(TextListEntry("Could not parse driver profile from site.", self.theme))
+            self.update_list()
+
+    def on_stats(self, body):
+        import json
+        try:
+            data = json.loads(body.decode('utf-8', errors='ignore'))
+            self.full_rows.append(TextListEntry("", self.theme))
+            self.full_rows.append(TextListEntry(u"\U0001F3C6 STATISTICS (CURRENT SEASON)", self.theme, is_header=True))
+            
+            splits = data.get('splits', {}).get('categories', [])
+            for cat in splits:
+                c_name = cat.get('displayName', cat.get('name', ''))
+                stats = cat.get('stats', [])
+                if stats:
+                    self.full_rows.append(TextListEntry(c_name + ":", self.theme, is_header=True))
+                    for st in stats:
+                        lbl = st.get('displayName', st.get('name', ''))
+                        val = st.get('displayValue', '')
+                        if lbl and val:
+                            self.full_rows.append(TextListEntry(lbl + ": " + val, self.theme))
+            self.update_list()
+        except:
+            self.update_list()
+
+    def on_error(self, error):
+        self.update_list()
+
+    def update_list(self):
+        self["list"].l.setList(self.full_rows)
+
+
+
 class GameInfoScreen(Screen):
     def __init__(self, session, event_id, league_url="", event_data=None):
         Screen.__init__(self, session)
@@ -3027,6 +4236,9 @@ class GameInfoScreen(Screen):
         self.full_rows = []      
         self.current_page = 0    
         self.items_per_page = 10 
+        self.odds_data = []      # Populated by parse_odds from core API
+        self.h_team_name = "Home" # Will be set when parsing data
+        self.a_team_name = "Away" # Will be set when parsing data
         
         base_url = league_url.split('?')[0]
         
@@ -3070,7 +4282,53 @@ class GameInfoScreen(Screen):
             if "scoreboard" in base_url:
                 self.summary_url = base_url.replace("scoreboard", "summary") + "?event=" + str(event_id)
             else:
-                self.summary_url = "https://site.api.espn.com/apis/site/v2/sports/soccer/all/summary?event=" + str(event_id)
+                # Fix: Extract sport/league from URL structure instead of invalid 'all' slug
+                sport = 'soccer'
+                league = 'eng.1' # Default fallback
+                parts = base_url.split('/')
+                for i, p in enumerate(parts):
+                    if p == 'sports' and i + 2 < len(parts):
+                        sport = parts[i+1]
+                        league = parts[i+2]
+                        break
+                self.summary_url = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(sport, league, event_id)
+
+        # Core API odds endpoint (richer data with multiple providers)
+        self.odds_url = ""
+        self.cdn_url = ""
+        try:
+            if league_url and event_id:
+                url_parts = base_url.rstrip('/').split('/')
+                # URL like: .../sports/{sport}/{league}/scoreboard
+                # Find sport and league from URL structure
+                sport = ''
+                league = ''
+                for i, part in enumerate(url_parts):
+                    if part == 'sports' and i + 2 < len(url_parts):
+                        sport = url_parts[i + 1]
+                        league = url_parts[i + 2]
+                        break
+                if sport and league and league != 'scoreboard':
+                    # Fix: Extract actual competition ID. In tournaments, it can differ from event_id.
+                    competition_id = event_id
+                    if self.fallback_event_data:
+                        try:
+                            comps = self.fallback_event_data.get('competitions', [{}])
+                            if comps:
+                                competition_id = str(comps[0].get('id', event_id))
+                        except: pass
+                    
+                    self.odds_url = "https://sports.core.api.espn.com/v2/sports/{}/leagues/{}/events/{}/competitions/{}/odds".format(
+                        sport, league, event_id, competition_id)
+                    self.live_status_url = "https://sports.core.api.espn.com/v2/sports/{}/leagues/{}/events/{}/competitions/{}/status".format(
+                        sport, league, event_id, competition_id)
+                    
+                    # CDN Boxscore Endpoint (Faster for Live Games)
+                    # Example: https://cdn.espn.com/core/football/nfl/boxscore?xhr=1&gameId=4000000
+                    # This API endpoint is identical to /summary but caches/updates faster than site.api.espn.com
+                    self.cdn_url = "https://cdn.espn.com/core/{}/{}/boxscore?xhr=1&gameId={}".format(
+                        sport, league, event_id)
+        except: pass
 
         # --- SKIN ---
         # For individual sports (racing, golf, combat), use a single event header
@@ -3193,17 +4451,35 @@ class GameInfoScreen(Screen):
             # item[0] is the data tuple passed to InfoListEntry/TextListEntry
             data = item[0]
             
-            # Check if it's a video entry (Tuple len 4: Label, Icon, Title, URL)
-            if isinstance(data, tuple) and len(data) > 3:
-                if data[0] == "VIDEO":
+            # Check if it's a tuple for VIDEO or PLAYER
+            if isinstance(data, tuple) and len(data) > 0:
+                if data[0] == "VIDEO" and len(data) > 3:
                     url = data[3]
                     title = data[2]
                     self.play_video(url, title)
+                    return
                 elif data[0] == "PLAY ALL":
                     self.play_all_videos()
-            else:
-                # Default behavior: Standings
-                self.open_standings()
+                    return
+                elif data[0] == "PLAYER" and len(data) > 2:
+                    ath_id = data[1]
+                    clean_name = data[2].replace("[Goal]", "").replace("[YC]", "").replace("[RC]", "").replace("[OG]", "").replace("[Pen]", "").strip()
+                    if "(A:" in clean_name: clean_name = clean_name.split("(A:")[0].strip()
+                    
+                    sport = "soccer"
+                    league = "eng.1"
+                    try:
+                        if "v2/sports/" in self.summary_url:
+                            parts = self.summary_url.split("v2/sports/")[1].split("/")
+                            sport = parts[0]
+                            league = parts[1]
+                    except: pass
+                    
+                    self.session.open(AthleteProfileScreen, ath_id, clean_name, sport, league)
+                    return
+            
+            # Default behavior: Standings
+            self.open_standings()
 
     def play_all_videos(self):
         if not hasattr(self, 'all_videos') or not self.all_videos: return
@@ -3287,21 +4563,159 @@ class GameInfoScreen(Screen):
         if self.current_page > 0: self.current_page -= 1; self.update_display()
 
     def start_loading(self):
+        # PHASE 5: Pre-populate header from snapshot (instant, no HTTP wait)
+        snap = global_sports_monitor.match_snapshots.get(str(self.event_id))
+        if snap:
+            try:
+                self["h_name"].setText(snap['h_name'])
+                self["a_name"].setText(snap['a_name'])
+                self["h_score"].setText(snap['h_score_str'])
+                self["a_score"].setText(snap['a_score_str'])
+                load_logo_to_widget(self, "h_logo", snap['h_logo_url'], snap['h_logo_id'])
+                load_logo_to_widget(self, "a_logo", snap['a_logo_url'], snap['a_logo_id'])
+                # Set match title for individual sports
+                if snap['sport_type'] in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]:
+                    self["match_title"].setText(snap['league_name'])
+                    self["h_name"].setText(snap['h_name'])
+                self.league_name = snap['league_name']
+            except: pass
+
         if not self.summary_url and self.fallback_event_data:
              self.use_fallback_data()
              return
 
         from twisted.web.client import getPage
-        if self.summary_url:
+        
+        is_live = False
+        if snap:
+            is_live = snap.get('status', '') in ['in', 'IN_PROGRESS', 'STATUS_IN_PROGRESS']
+            if not is_live: is_live = snap.get('state', '') == 'in'
+            
+        if self.cdn_url and is_live:
+            # OPTIMIZATION: Use high-speed CDN endpoint for live matches (avoids 60s ESPN latency)
+            getPage(self.cdn_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_cdn)
+        elif self.summary_url:
             getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
         else:
             self.error_details(None)
+            
+        if self.summary_url or self.cdn_url:
+            # Fire odds fetch in parallel (fire-and-forget, non-blocking)
+            if self.odds_url:
+                getPage(self.odds_url.encode('utf-8')).addCallback(self.parse_odds).addErrback(lambda e: None)
+            # Fire live status fetch for instant score/clock update while summary loads
+            if hasattr(self, 'live_status_url') and self.live_status_url and is_live:
+                getPage(self.live_status_url.encode('utf-8')).addCallback(self.parse_live_status).addErrback(lambda e: None)
+
+    def error_cdn(self, error):
+        """Fallback to standard summary API if the CDN Live Boxscore request fails"""
+        print("[SimplySport] CDN Boxscore fetch failed. Falling back to primary summary endpoint.")
+        from twisted.web.client import getPage
+        if self.summary_url:
+            getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
+        else:
+            self.error_details(error)
 
     def error_details(self, error):
         if self.fallback_event_data:
             self.use_fallback_data()
         else:
             self["loading"].setText("Error loading details.")
+
+    def parse_odds(self, body):
+        """Parse core API odds response (multi-provider: Bet365, ESPN BET, etc)"""
+        try:
+            import json
+            data = json.loads(body)
+            items = data.get('items', [])
+            parsed = []
+            for item in items:
+                provider = item.get('provider', {})
+                pname = provider.get('name', 'Unknown')
+                # Skip live odds provider (redundant with ESPN BET)
+                if 'Live' in pname:
+                    continue
+                
+                entry = {'provider': pname}
+                
+                # Home/Away/Draw moneyLine
+                h_odds = item.get('homeTeamOdds', {})
+                a_odds = item.get('awayTeamOdds', {})
+                d_odds = item.get('drawOdds', {})
+                
+                # Try fractional from bettingOdds first (Bet365), then from current/close
+                betting = item.get('bettingOdds', {}).get('teamOdds', {})
+                if betting:
+                    h_ml = betting.get('preMatchFullTimeResultHome', {}).get('value', '')
+                    a_ml = betting.get('preMatchFullTimeResultAway', {}).get('value', '')
+                    d_ml = betting.get('preMatchFullTimeResultDraw', {}).get('value', '')
+                    entry['home_ml'] = str(h_ml) if h_ml else ''
+                    entry['away_ml'] = str(a_ml) if a_ml else ''
+                    entry['draw_ml'] = str(d_ml) if d_ml else ''
+                else:
+                    # Use current moneyLine (American format)
+                    cur_h = h_odds.get('current', {}).get('moneyLine', {})
+                    cur_a = a_odds.get('current', {}).get('moneyLine', {})
+                    h_disp = cur_h.get('alternateDisplayValue', '') if isinstance(cur_h, dict) else ''
+                    a_disp = cur_a.get('alternateDisplayValue', '') if isinstance(cur_a, dict) else ''
+                    if not h_disp and h_odds.get('moneyLine') is not None:
+                        ml = h_odds['moneyLine']
+                        h_disp = ('+' + str(ml)) if ml > 0 else str(ml) if ml != 0 else 'EVEN'
+                    if not a_disp and a_odds.get('moneyLine') is not None:
+                        ml = a_odds['moneyLine']
+                        a_disp = ('+' + str(ml)) if ml > 0 else str(ml) if ml != 0 else 'EVEN'
+                    d_ml_val = d_odds.get('moneyLine')
+                    d_disp = ''
+                    if d_ml_val is not None and d_ml_val != 0:
+                        d_disp = ('+' + str(int(d_ml_val))) if d_ml_val > 0 else str(int(d_ml_val))
+                    entry['home_ml'] = h_disp
+                    entry['away_ml'] = a_disp
+                    entry['draw_ml'] = d_disp
+                
+                # Spread
+                spread = item.get('spread')
+                if spread is not None:
+                    entry['spread'] = str(spread)
+                    h_sp = h_odds.get('spreadOdds')
+                    a_sp = a_odds.get('spreadOdds')
+                    entry['spread_detail'] = item.get('details', '')
+                    if h_sp is not None:
+                        entry['home_spread_odds'] = ('+' + str(int(h_sp))) if h_sp > 0 else str(int(h_sp))
+                    if a_sp is not None:
+                        entry['away_spread_odds'] = ('+' + str(int(a_sp))) if a_sp > 0 else str(int(a_sp))
+                
+                # Over/Under
+                ou = item.get('overUnder')
+                if ou is not None:
+                    entry['over_under'] = str(ou)
+                    oo = item.get('overOdds')
+                    uo = item.get('underOdds')
+                    if oo is not None:
+                        entry['over_odds'] = ('+' + str(int(oo))) if oo > 0 else str(int(oo))
+                    if uo is not None:
+                        entry['under_odds'] = ('+' + str(int(uo))) if uo > 0 else str(int(uo))
+                
+                parsed.append(entry)
+            
+            self.odds_data = parsed
+        except:
+            pass
+
+    def parse_live_status(self, body):
+        """Fast-path: update header clock/period from core API status (arrives before /summary)"""
+        try:
+            import json
+            data = json.loads(body)
+            display_clock = data.get('displayClock', '')
+            status_type = data.get('type', {})
+            detail = status_type.get('detail', '') or status_type.get('shortDetail', '')
+            
+            if display_clock or detail:
+                clock_txt = detail if detail else display_clock
+                title = self.league_name if self.league_name else "LIVE"
+                self["match_title"].setText("{} - {}".format(title, clock_txt))
+        except:
+            pass
 
     def use_fallback_data(self):
         if not self.fallback_event_data:
@@ -3327,14 +4741,93 @@ class GameInfoScreen(Screen):
             
             # Status
             status = data.get('status', {})
-            state = status.get('type', {}).get('state', '')
-            detail = status.get('type', {}).get('detail', '')
+            status_type = status.get('type', {})
+            state = status_type.get('state', '')
+            detail = status_type.get('detail', '')
+            is_postponed = status_type.get('name') == 'STATUS_POSTPONED' or 'postponed' in status_type.get('description', '').lower()
+            is_suspended = status_type.get('name') in ['STATUS_SUSPENDED', 'STATUS_DELAYED'] or 'suspended' in status_type.get('description', '').lower() or 'resume' in status_type.get('description', '').lower() or 'delay' in status_type.get('description', '').lower()
             
             # Competitors - check top-level AND inside competitions (tennis uses competitions[0].competitors)
             comps = data.get('competitors', [])
             if not comps:
                 comps = data.get('competitions', [{}])[0].get('competitors', [])
             h_team = {}; a_team = {}
+            
+            # Racing: build driver standings from scoreboard data (summary API often unavailable)
+            is_individual = self.sport_type in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]
+            if is_individual and self.sport_type == SPORT_TYPE_RACING:
+                event_name = data.get('shortName', '') or data.get('name', '') or league
+                self["h_name"].setText(str(event_name))
+                self["a_name"].setText("")
+                self["h_score"].setText(""); self["a_score"].setText("")
+                try: self["score_sep"].hide()
+                except: pass
+                
+                # Venue
+                venue = data.get('competitions', [{}])[0].get('venue', {})
+                v_text = venue.get('fullName', '')
+                v_city = venue.get('address', {}).get('city', '')
+                if v_city and v_city not in v_text: v_text += ", " + v_city
+                if v_text: self["stadium_name"].setText(str(v_text))
+                
+                # Status
+                race_status = data.get('status', {}).get('type', {})
+                state = race_status.get('state', 'pre')
+                status_txt = "Scheduled"
+                if is_postponed: status_txt = "Postponed"
+                elif is_suspended: status_txt = "Suspended / To be resumed"
+                elif state == 'in': status_txt = "LIVE - In Progress"
+                elif state == 'post': status_txt = "Finished"
+                self.full_rows.append(TextListEntry("STATUS: " + status_txt, self.theme, is_header=True))
+                
+                # Broadcast
+                try:
+                    broadcasts = data.get('competitions', [{}])[0].get('broadcasts', [])
+                    if broadcasts:
+                        channels = []
+                        for b in broadcasts:
+                            channels.extend(b.get('names', []))
+                        if channels:
+                            self.full_rows.append(TextListEntry("BROADCAST: " + ", ".join(channels), self.theme))
+                except: pass
+                self.full_rows.append(TextListEntry("", self.theme))
+                
+                # Driver Standings from scoreboard competitors
+                competitors = data.get('competitions', [{}])[0].get('competitors', [])
+                if competitors:
+                    if state == 'post':
+                        self.full_rows.append(TextListEntry("RACE RESULTS", self.theme, is_header=True))
+                    elif state == 'in':
+                        self.full_rows.append(TextListEntry("LIVE STANDINGS", self.theme, is_header=True))
+                    else:
+                        self.full_rows.append(TextListEntry("DRIVER GRID", self.theme, is_header=True))
+                    
+                    for i, driver in enumerate(competitors[:30]):
+                        rank = driver.get('order', i + 1)
+                        athlete = driver.get('athlete', {})
+                        driver_name = athlete.get('displayName', '') or athlete.get('shortName', 'Driver')
+                        flag_info = athlete.get('flag', {})
+                        country = flag_info.get('alt', '')
+                        is_winner = driver.get('winner', False)
+                        
+                        line = u"P{} - {}".format(rank, driver_name)
+                        if country:
+                            line += u" ({})".format(country)
+                        if is_winner:
+                            line += u" [WINNER]"
+                        
+                        self.full_rows.append(TextListEntry(line, self.theme))
+                else:
+                    self.full_rows.append(TextListEntry("No driver data available.", self.theme))
+                
+                self.update_display()
+                return
+            elif is_individual:
+                event_name = data.get('shortName', '') or data.get('name', '') or league
+                self["h_name"].setText(str(event_name))
+                self["a_name"].setText("")
+                self["h_score"].setText(""); self["a_score"].setText("")
+                return
             
             # Fix: Tennis flags/names reversed in GameInfo. Force index 0=Home, 1=Away to match Main Screen
             if self.sport_type == SPORT_TYPE_TENNIS and len(comps) >= 2:
@@ -3482,35 +4975,10 @@ class GameInfoScreen(Screen):
             print("[SimplySport] Fallback Error: ", e)
 
     def download_logo(self, url, widget_name, img_id=None):
+        """Delegate to shared logo loader (supports HQ URL upgrade for detail screen)"""
         if url and url.startswith("http"):
             hq_url = url.replace("40&h=40", "500&h=500")
-            
-            # Use unique path based on img_id to avoid Enigma2 caching stale files by path
-            if img_id:
-                cache_dir = "/tmp/simplysports/logos/"
-                if not os.path.exists(cache_dir):
-                    try: os.makedirs(cache_dir)
-                    except: pass
-                target_path = os.path.join(cache_dir, str(img_id) + ".png")
-            else:
-                target_path = "/tmp/ss_big_{}.png".format(widget_name)
-
-            from twisted.web.client import downloadPage
-            downloadPage(hq_url.encode('utf-8'), target_path).addCallback(self.logo_ready, widget_name, target_path)
-
-    def logo_ready(self, data, widget_name, tmp_path):
-        if self[widget_name].instance:
-            self[widget_name].instance.setScale(1)
-            ptr = GLOBAL_PIXMAP_CACHE.get(tmp_path)
-            if not ptr:
-                if LoadPixmap:
-                    ptr = LoadPixmap(cached=True, path=tmp_path)
-                    if ptr: GLOBAL_PIXMAP_CACHE[tmp_path] = ptr
-            if ptr:
-                self[widget_name].instance.setPixmap(ptr)
-            else:
-                self[widget_name].instance.setPixmapFromFile(tmp_path)
-            self[widget_name].show()
+            load_logo_to_widget(self, widget_name, hq_url, img_id)
 
     def thumbnail_ready(self, *args, **kwargs): pass
 
@@ -3524,7 +4992,10 @@ class GameInfoScreen(Screen):
             # --- HEADER ---
             header_comps = data.get('header', {}).get('competitions', [{}])[0].get('competitors', [])
             boxscore_teams = data.get('boxscore', {}).get('teams', [])
-            game_status = data.get('header', {}).get('competitions', [{}])[0].get('status', {}).get('type', {}).get('state', 'pre')
+            status_type = data.get('header', {}).get('competitions', [{}])[0].get('status', {}).get('type', {})
+            game_status = status_type.get('state', 'pre')
+            is_postponed = status_type.get('name') == 'STATUS_POSTPONED' or 'postponed' in status_type.get('description', '').lower()
+            is_suspended = status_type.get('name') in ['STATUS_SUSPENDED', 'STATUS_DELAYED'] or 'suspended' in status_type.get('description', '').lower() or 'resume' in status_type.get('description', '').lower() or 'delay' in status_type.get('description', '').lower()
 
             # --- STADIUM ---
             try:
@@ -3532,29 +5003,45 @@ class GameInfoScreen(Screen):
                 v_name = venue.get('fullName', '')
                 addr = venue.get('address', {})
                 v_city = addr.get('city', '')
-                loc_txt = v_name
-                if v_city: loc_txt += " - " + v_city
+                
+                capacity = venue.get('capacity', 0)
+                attendance = data.get('gameInfo', {}).get('attendance', 0)
+                
+                parts = [v_name]
+                if v_city: parts.append(v_city)
+                if attendance: parts.append("Att: {:,}".format(attendance))
+                elif capacity: parts.append("Cap: {:,}".format(capacity))
+                
+                loc_txt = " - ".join(x for x in parts if x)
                 self["stadium_name"].setText(loc_txt)
             except: self["stadium_name"].setText("")
 
             # --- TEAMS ---
             home_team = {}; away_team = {}
-            if header_comps:
-                home_team = next((t for t in header_comps if t.get('homeAway') == 'home'), {})
-                away_team = next((t for t in header_comps if t.get('homeAway') == 'away'), {})
+            
+            # Racing/Individual sports: skip standard h/a header, parse_racing_event sets these
+            is_individual_detail = self.sport_type in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]
+            if not is_individual_detail:
+                if header_comps:
+                    home_team = next((t for t in header_comps if t.get('homeAway') == 'home'), {})
+                    away_team = next((t for t in header_comps if t.get('homeAway') == 'away'), {})
 
-            if boxscore_teams:
-                h_id = home_team.get('id'); a_id = away_team.get('id')
-                if h_id: h_box = next((t for t in boxscore_teams if t.get('team', {}).get('id') == h_id), {})
-                else: h_box = boxscore_teams[0] if len(boxscore_teams) > 0 else {}
-                if a_id: a_box = next((t for t in boxscore_teams if t.get('team', {}).get('id') == a_id), {})
-                else: a_box = boxscore_teams[1] if len(boxscore_teams) > 1 else {}
-                if h_box: home_team.update(h_box)
-                if a_box: away_team.update(a_box)
+                if boxscore_teams:
+                    h_id = home_team.get('id'); a_id = away_team.get('id')
+                    if h_id: h_box = next((t for t in boxscore_teams if t.get('team', {}).get('id') == h_id), {})
+                    else: h_box = boxscore_teams[0] if len(boxscore_teams) > 0 else {}
+                    if a_id: a_box = next((t for t in boxscore_teams if t.get('team', {}).get('id') == a_id), {})
+                    else: a_box = boxscore_teams[1] if len(boxscore_teams) > 1 else {}
+                    if h_box: home_team.update(h_box)
+                    if a_box: away_team.update(a_box)
 
-            def get_name(t): return t.get('team', {}).get('shortDisplayName') or t.get('team', {}).get('displayName') or "Team"
-            self["h_name"].setText(get_name(home_team))
-            self["a_name"].setText(get_name(away_team))
+                def get_name(t): return t.get('team', {}).get('shortDisplayName') or t.get('team', {}).get('displayName') or "Team"
+                self["h_name"].setText(get_name(home_team))
+                self["a_name"].setText(get_name(away_team))
+                self.h_team_name = get_name(home_team)
+                self.a_team_name = get_name(away_team)
+            else:
+                def get_name(t): return t.get('team', {}).get('shortDisplayName') or t.get('team', {}).get('displayName') or "Team"
             self["h_score"].setText(str(home_team.get('score', '0')))
             self["a_score"].setText(str(away_team.get('score', '0')))
 
@@ -3684,109 +5171,177 @@ class GameInfoScreen(Screen):
                 self.parse_rugby_event(data, league_name, game_status)
                 return
 
-            # ==========================================================
-            # TEAM SPORTS: FACEBOOK STYLE NEWS FEED (PREVIEW MODE)
-            # ==========================================================
+            # Init Lazy Loader for Team Sports
+            self.lazy_data = data
+            self.lazy_home_team = home_team
+            self.lazy_away_team = away_team
+            self.lazy_boxscore_teams = boxscore_teams
+            self.lazy_game_status = game_status
             
-            # --- VIDEO HIGHLIGHTS ---
+            self.lazy_gen = self._run_lazy_parser()
+            self.do_lazy_load()
+
+        except Exception as e:
+            self.full_rows.append(TextListEntry("Error: " + str(e), self.theme))
+            self.update_display()
+            self["loading"].hide()
+            print("[SimplySport] Data Error: ", e)
+
+    def do_lazy_load(self):
+        if not hasattr(self, 'lazy_gen'): return
+        try:
+            next(self.lazy_gen)
+            from twisted.internet import reactor
+            reactor.callLater(0.01, self.do_lazy_load)
+        except StopIteration:
+            pass
+        except Exception as e:
+            print("[SimplySport] Lazy Load Error: ", e)
+
+    def _run_lazy_parser(self):
+        data = self.lazy_data
+        home_team = self.lazy_home_team
+        away_team = self.lazy_away_team
+        boxscore_teams = self.lazy_boxscore_teams
+        game_status = self.lazy_game_status
+        league_name = getattr(self, 'league_name', '')
+        h_id = str(home_team.get('id', ''))
+        a_id = str(away_team.get('id', ''))
+        # ==========================================================
+        # TEAM SPORTS: FACEBOOK STYLE NEWS FEED (PREVIEW MODE)
+        # ==========================================================
+        
+        # --- VIDEO HIGHLIGHTS ---
+        try:
+            videos = data.get('videos', [])
+            if videos:
+                # Sort Videos: Goals > Highlights > Others
+                def get_vid_priority(v):
+                    txt = (v.get('headline') or v.get('title') or "").lower()
+                    if "goal" in txt or "score" in txt: return 0
+                    if "highlight" in txt or "summary" in txt or "recap" in txt: return 1
+                    return 2
+                
+                videos.sort(key=get_vid_priority)
+
+                # Generic Header for Videos
+                self.full_rows.append(TextListEntry("GAME HIGHLIGHTS", self.theme, is_header=True))
+                self.full_rows.append(TextListEntry("Press OK to play video", self.theme))
+                
+                # Track index to insert "Play All" button
+                insert_idx = len(self.full_rows)
+                self.all_videos = []
+                
+                for vid in videos:
+                    title = vid.get('headline') or vid.get('title') or "Video"
+                    url = ""
+                    
+                    # EPSN often nests links deeply
+                    links = vid.get('links', {})
+                    source = links.get('source', {})
+                    
+                    # Preferred qualities
+                    if 'mezzanine' in source: url = source['mezzanine'].get('href')
+                    elif 'flash' in source: url = source['flash'].get('href')
+                    elif 'hls' in source: url = source['hls'].get('href')
+                    elif 'HD' in links: url = links.get('HD', {}).get('href')
+                    elif 'mobile' in links: url = links.get('mobile', {}).get('href')
+                    
+                    if url:
+                        self.all_videos.append((url, title))
+                        # Duration
+                        dur_txt = "VIDEO"
+                        duration = str(vid.get('duration', ''))
+                        if duration.isdigit():
+                            m = int(duration) // 60
+                            s = int(duration) % 60
+                            dur_txt = "{}:{:02d}".format(m, s)
+                        
+                        # Simplified Icon Handling (No Thumbnails)
+                        icon_display = "▶"
+
+                        payload = ("VIDEO", icon_display, title, url)
+                        self.full_rows.append(InfoListEntry(payload))
+                
+                if len(self.all_videos) > 1:
+                     payload = ("PLAY ALL", "▶▶", "    Play All Highlights ({})".format(len(self.all_videos)), "")
+                     self.full_rows.insert(insert_idx, InfoListEntry(payload))
+                     
+                     # STABILIZATION: Removed Early Prefetch. 
+                     # We only download when the player is actually open.
+
+        except: pass
+
+        if game_status == 'pre':
+            self["match_title"].setText(league_name if league_name else "PREVIEW")
+            
+            # 1. Prediction (FB Style Post) - ROBUST & SOCCER ENABLED
             try:
-                videos = data.get('videos', [])
-                if videos:
-                    # Sort Videos: Goals > Highlights > Others
-                    def get_vid_priority(v):
-                        txt = (v.get('headline') or v.get('title') or "").lower()
-                        if "goal" in txt or "score" in txt: return 0
-                        if "highlight" in txt or "summary" in txt or "recap" in txt: return 1
-                        return 2
+                predictor = data.get('predictor', {})
+                if predictor:
+                    h_team_pred = predictor.get('homeTeam', {}) or {}
+                    a_team_pred = predictor.get('awayTeam', {}) or {}
                     
-                    videos.sort(key=get_vid_priority)
-
-                    # Generic Header for Videos
-                    self.full_rows.append(TextListEntry("GAME HIGHLIGHTS", self.theme, is_header=True))
-                    self.full_rows.append(TextListEntry("Press OK to play video", self.theme))
+                    # Try standard key 'gameProjection', fallback to 'chanceToWin' if available
+                    h_prob = h_team_pred.get('gameProjection') or h_team_pred.get('chanceToWin') or '0'
+                    a_prob = a_team_pred.get('gameProjection') or a_team_pred.get('chanceToWin') or '0'
                     
-                    # Track index to insert "Play All" button
-                    insert_idx = len(self.full_rows)
-                    self.all_videos = []
+                    # Ensure string and clean percent logic
+                    h_val = float(h_prob) if h_prob else 0.0
+                    a_val = float(a_prob) if a_prob else 0.0
                     
-                    for vid in videos:
-                        title = vid.get('headline') or vid.get('title') or "Video"
-                        url = ""
+                    if h_val > 0 or a_val > 0:
+                        # Post Header
+                        self.full_rows.append(TextListEntry("GAME PREDICTION", self.theme, is_header=True))
                         
-                        # EPSN often nests links deeply
-                        links = vid.get('links', {})
-                        source = links.get('source', {})
+                        # Calc Draw if not provided (Soccer often needs this)
+                        draw_val = max(0.0, 100.0 - h_val - a_val)
                         
-                        # Preferred qualities
-                        if 'mezzanine' in source: url = source['mezzanine'].get('href')
-                        elif 'flash' in source: url = source['flash'].get('href')
-                        elif 'hls' in source: url = source['hls'].get('href')
-                        elif 'HD' in links: url = links.get('HD', {}).get('href')
-                        elif 'mobile' in links: url = links.get('mobile', {}).get('href')
-                        
-                        if url:
-                            self.all_videos.append((url, title))
-                            # Duration
-                            dur_txt = "VIDEO"
-                            duration = str(vid.get('duration', ''))
-                            if duration.isdigit():
-                                m = int(duration) // 60
-                                s = int(duration) % 60
-                                dur_txt = "{}:{:02d}".format(m, s)
+                        # Formatting
+                        if draw_val > 0.1:
+                            txt = "{}: {:.1f}%  |  Draw: {:.1f}%  |  {}: {:.1f}%".format(self.h_team_name, h_val, draw_val, self.a_team_name, a_val)
+                        else:
+                            txt = "{}: {:.1f}%  |  {}: {:.1f}%".format(self.h_team_name, h_val, self.a_team_name, a_val)
                             
-                            # Simplified Icon Handling (No Thumbnails)
-                            icon_display = "▶"
-
-                            payload = ("VIDEO", icon_display, title, url)
-                            self.full_rows.append(InfoListEntry(payload))
-                    
-                    if len(self.all_videos) > 1:
-                         payload = ("PLAY ALL", "▶▶", "    Play All Highlights ({})".format(len(self.all_videos)), "")
-                         self.full_rows.insert(insert_idx, InfoListEntry(payload))
-                         
-                         # STABILIZATION: Removed Early Prefetch. 
-                         # We only download when the player is actually open.
+                        self.full_rows.append(TextListEntry(txt, self.theme))
+                        # Post Footer
 
             except: pass
 
-            if game_status == 'pre':
-                self["match_title"].setText(league_name if league_name else "PREVIEW")
-                
-                # 1. Prediction (FB Style Post) - ROBUST & SOCCER ENABLED
-                try:
-                    predictor = data.get('predictor', {})
-                    if predictor:
-                        h_team_pred = predictor.get('homeTeam', {}) or {}
-                        a_team_pred = predictor.get('awayTeam', {}) or {}
-                        
-                        # Try standard key 'gameProjection', fallback to 'chanceToWin' if available
-                        h_prob = h_team_pred.get('gameProjection') or h_team_pred.get('chanceToWin') or '0'
-                        a_prob = a_team_pred.get('gameProjection') or a_team_pred.get('chanceToWin') or '0'
-                        
-                        # Ensure string and clean percent logic
-                        h_val = float(h_prob) if h_prob else 0.0
-                        a_val = float(a_prob) if a_prob else 0.0
-                        
-                        if h_val > 0 or a_val > 0:
-                            # Post Header
-                            self.full_rows.append(TextListEntry("GAME PREDICTION", self.theme, is_header=True))
-                            
-                            # Calc Draw if not provided (Soccer often needs this)
-                            draw_val = max(0.0, 100.0 - h_val - a_val)
-                            
-                            # Formatting
-                            if draw_val > 0.1: # Show draw if significant
-                                txt = "Home Win: {:.1f}%  |  Draw: {:.1f}%  |  Away Win: {:.1f}%".format(h_val, draw_val, a_val)
+            # 2. Betting Odds (from Core API or pickcenter fallback)
+            self.current_page = 0; self.update_display(); yield
+            try:
+                if self.odds_data:
+                    self.full_rows.append(TextListEntry("BETTING ODDS", self.theme, is_header=True))
+                    for od in self.odds_data:
+                        prov = od.get('provider', 'Odds')
+                        h_ml = od.get('home_ml', '')
+                        a_ml = od.get('away_ml', '')
+                        d_ml = od.get('draw_ml', '')
+                        if h_ml or a_ml:
+                            if d_ml:
+                                ml_txt = "{}: {} {}  |  Draw {}  |  {} {}".format(prov, self.h_team_name, h_ml, d_ml, self.a_team_name, a_ml)
                             else:
-                                txt = "Home Win: {:.1f}%  |  Away Win: {:.1f}%".format(h_val, a_val)
-                                
-                            self.full_rows.append(TextListEntry(txt, self.theme))
-                            # Post Footer
-
-                except: pass
-
-                # 2. Betting (FB Style Post)
-                try:
+                                ml_txt = "{}: {} {}  |  {} {}".format(prov, self.h_team_name, h_ml, self.a_team_name, a_ml)
+                            self.full_rows.append(TextListEntry(ml_txt, self.theme))
+                        sp = od.get('spread')
+                        ou = od.get('over_under')
+                        if sp is not None or ou is not None:
+                            parts = []
+                            if sp is not None:
+                                sp_odds = od.get('home_spread_odds', '')
+                                parts.append("Spread: {} ({})".format(sp, sp_odds) if sp_odds else "Spread: {}".format(sp))
+                            if ou is not None:
+                                oo = od.get('over_odds', '')
+                                uo = od.get('under_odds', '')
+                                ou_str = "O/U: {}".format(ou)
+                                if oo and uo:
+                                    ou_str += " ({}/{})".format(oo, uo)
+                                parts.append(ou_str)
+                            if parts:
+                                self.full_rows.append(TextListEntry("    " + "  |  ".join(parts), self.theme))
+                    self.full_rows.append(TextListEntry("", self.theme))
+                else:
                     odds = data.get('pickcenter', [])
                     if odds:
                         self.full_rows.append(TextListEntry("BETTING INSIGHTS", self.theme, is_header=True))
@@ -3797,340 +5352,360 @@ class GameInfoScreen(Screen):
                             txt = "{}: Spread {} | O/U {}".format(provider, details, ou)
                             self.full_rows.append(TextListEntry(txt, self.theme))
                         self.full_rows.append(TextListEntry("", self.theme))
-                except: pass
+            except: pass
 
-                # 3. News Feed (The Main FB Look)
-                try:
-                    news_items = data.get('news', {}).get('articles', [])
-                    if not news_items: news_items = data.get('articles', [])
-                    
-                    if news_items:
-                        self.full_rows.append(TextListEntry("LATEST NEWS", self.theme, is_header=True))
-                        count = 0
-                        import random
-                        for article in news_items:
-                            if count >= 5: break
-                            headline = article.get('headline', '')
-                            desc = article.get('description', '')
-                            published = article.get('published', 'Just now')
-                            # Clean time if it's full ISO
-                            if "T" in published: published = "2 hrs ago" 
-                            
-                            if headline:
-                                # Row 1: Headline as wrapped paragraph
-                                headline_lines = wrap_text(headline, max_chars=130)
-                                for line in headline_lines:
-                                    self.full_rows.append(TextListEntry(line, self.theme, align="left"))
-                                
-                                # Row 2: Description as wrapped paragraph (if available)
-                                if desc:
-                                    desc_lines = wrap_text(desc, max_chars=130)
-                                    for line in desc_lines:
-                                        self.full_rows.append(TextListEntry(line, self.theme, align="left"))
-                                
-                                # Divider/Spacer between posts
-                                self.full_rows.append(TextListEntry("", self.theme)) 
-                                count += 1
-                except: pass
+            # 3. News Feed (The Main FB Look)
+            self.current_page = 0; self.update_display(); yield
+            try:
+                news_items = data.get('news', {}).get('articles', [])
+                if not news_items: news_items = data.get('articles', [])
                 
-                # 4. Standings
-                try:
-                    standings = data.get('standings', {}).get('entries', [])
-                    if standings:
-                        self.full_rows.append(TextListEntry("LEAGUE TABLE", self.theme, is_header=True))
-                        for entry in standings:
-                            tid = entry.get('team', {}).get('id')
-                            if tid == h_id or tid == a_id:
-                                t_name = entry.get('team', {}).get('displayName', '')
-                                stats = entry.get('stats', [])
-                                rec = next((s['displayValue'] for s in stats if s.get('name') == 'rank'), '-')
-                                form = next((s['displayValue'] for s in stats if s.get('abbreviation') == 'L10'), '-')
-                                txt = "{}: Rank #{} | Form: {}".format(t_name, rec, form)
-                                self.full_rows.append(TextListEntry(txt, self.theme, align="left"))
+                if news_items:
+                    self.full_rows.append(TextListEntry("LATEST NEWS", self.theme, is_header=True))
+                    count = 0
+                    import random
+                    for article in news_items:
+                        if count >= 5: break
+                        headline = article.get('headline', '')
+                        desc = article.get('description', '')
+                        published = article.get('published', 'Just now')
+                        # Clean time if it's full ISO
+                        if "T" in published: published = "2 hrs ago" 
+                        
+                        if headline:
+                            # Row 1: Headline as wrapped paragraph
+                            headline_lines = wrap_text(headline, max_chars=130)
+                            for line in headline_lines:
+                                self.full_rows.append(TextListEntry(line, self.theme, align="left"))
+                            
+                            # Row 2: Description as wrapped paragraph (if available)
+                            if desc:
+                                desc_lines = wrap_text(desc, max_chars=130)
+                                for line in desc_lines:
+                                    self.full_rows.append(TextListEntry(line, self.theme, align="left"))
+                            
+                            # Divider/Spacer between posts
+                            self.full_rows.append(TextListEntry("", self.theme)) 
+                            count += 1
+            except: pass
+            
+
+
+            if not self.full_rows:
+                self.full_rows.append(TextListEntry("No Preview Data Available", self.theme))
+
+        # ==========================================================
+        # MODE B: LIVE/POST GAME (STATS MODE - Unchanged)
+        # ==========================================================
+        else:
+            self["match_title"].setText(league_name if league_name else "DETAILS")
+            
+            # 0. Prediction (Live Win Probability - Added for Live Games too)
+            try:
+                predictor = data.get('predictor', {}) or data.get('winprobability', []) # sometimes separate list
+                # If it's the standard predictor object
+                if isinstance(predictor, dict) and predictor:
+                    h_team_pred = predictor.get('homeTeam', {}) or {}
+                    a_team_pred = predictor.get('awayTeam', {}) or {}
+                    h_prob = h_team_pred.get('gameProjection') or h_team_pred.get('chanceToWin')
+                    a_prob = a_team_pred.get('gameProjection') or a_team_pred.get('chanceToWin')
+                    
+                    if h_prob:
+                        h_val = float(h_prob); a_val = float(a_prob) if a_prob else 0.0
+                        self.full_rows.append(TextListEntry("WIN PROBABILITY", self.theme, is_header=True))
+                        draw_val = max(0.0, 100.0 - h_val - a_val)
+                        if draw_val > 0.1:
+                            txt = "{}: {:.1f}%  |  Draw: {:.1f}%  |  {}: {:.1f}%".format(self.h_team_name, h_val, draw_val, self.a_team_name, a_val)
+                        else:
+                            txt = "{}: {:.1f}%  |  {}: {:.1f}%".format(self.h_team_name, h_val, self.a_team_name, a_val)
+                        self.full_rows.append(TextListEntry(txt, self.theme))
                         self.full_rows.append(TextListEntry("", self.theme))
-                except: pass
+            except: pass
 
-                if not self.full_rows:
-                    self.full_rows.append(TextListEntry("No Preview Data Available", self.theme))
+            # 1. Timeline
+            details = []
+            comps_data = data.get('competitions', [{}])[0]
+            if 'details' in comps_data: details = comps_data['details']
+            elif 'details' in data.get('header', {}).get('competitions', [{}])[0]:
+                details = data.get('header', {}).get('competitions', [{}])[0]['details']
 
-            # ==========================================================
-            # MODE B: LIVE/POST GAME (STATS MODE - Unchanged)
-            # ==========================================================
-            else:
-                self["match_title"].setText(league_name if league_name else "DETAILS")
-                
-                # 0. Prediction (Live Win Probability - Added for Live Games too)
-                try:
-                    predictor = data.get('predictor', {}) or data.get('winprobability', []) # sometimes separate list
-                    # If it's the standard predictor object
-                    if isinstance(predictor, dict) and predictor:
-                        h_team_pred = predictor.get('homeTeam', {}) or {}
-                        a_team_pred = predictor.get('awayTeam', {}) or {}
-                        h_prob = h_team_pred.get('gameProjection') or h_team_pred.get('chanceToWin')
-                        a_prob = a_team_pred.get('gameProjection') or a_team_pred.get('chanceToWin')
-                        
-                        if h_prob:
-                            h_val = float(h_prob); a_val = float(a_prob) if a_prob else 0.0
-                            self.full_rows.append(TextListEntry("LIVE WIN PROBABILITY", self.theme, is_header=True))
-                            draw_val = max(0.0, 100.0 - h_val - a_val)
-                            if draw_val > 0.1:
-                                txt = "Home: {:.1f}%  |  Draw: {:.1f}%  |  Away: {:.1f}%".format(h_val, draw_val, a_val)
-                            else:
-                                txt = "Home: {:.1f}%  |  Away: {:.1f}%".format(h_val, a_val)
-                            self.full_rows.append(TextListEntry(txt, self.theme))
-                            self.full_rows.append(TextListEntry("", self.theme))
-                except: pass
-
-                # 1. Timeline
-                details = []
-                comps_data = data.get('competitions', [{}])[0]
-                if 'details' in comps_data: details = comps_data['details']
-                elif 'details' in data.get('header', {}).get('competitions', [{}])[0]:
-                    details = data.get('header', {}).get('competitions', [{}])[0]['details']
-
-                if details:
-                    self.full_rows.append(EventListEntry("TIME", "HOME EVENTS", "AWAY EVENTS", self.theme))
-                    goals_found = False
-                    for play in details:
-                        text_desc = play.get('type', {}).get('text', '').lower()
-                        
-                        # API Boolean Flags (High Priority)
-                        is_og = play.get('ownGoal', False)
-                        is_pk = play.get('penaltyKick', False)
-                        is_yc = play.get('yellowCard', False)
-                        is_rc = play.get('redCard', False)
-
-                        # Detect scoring plays: use flags first, fallback to text matching for other sports
-                        is_score = play.get('scoringPlay', False) or is_og or is_pk or any(x in text_desc for x in ["goal", "touchdown", "power play", "short-handed", "even strength", "empty net"])
-                        is_card = is_yc or is_rc or "card" in text_desc
-                        is_sub = "substitution" in text_desc
-                        
-                        if is_score or is_card or is_sub:
-                            goals_found = True
-                            clock = play.get('clock', {}).get('displayValue', '')
-                            
-                            # Get main athlete (scorer/recipient/sub)
-                            scorer = ""
-                            assist = ""
-                            sub_out = ""
-                            athletes = play.get('athletesInvolved', [])
-                            
-                            if athletes:
-                                scorer = athletes[0].get('displayName') or athletes[0].get('shortName') or ''
-                                if is_score and len(athletes) > 1:
-                                    assist = athletes[1].get('displayName') or athletes[1].get('shortName') or ''
-                                if is_sub and len(athletes) > 1:
-                                    sub_out = athletes[1].get('displayName') or athletes[1].get('shortName') or ''
-                            elif play.get('participants'):
-                                participants = play['participants']
-                                if participants:
-                                    p = participants[0].get('athlete', {})
-                                    scorer = p.get('displayName') or p.get('shortName') or ''
-                                    if is_score and len(participants) > 1:
-                                        p2 = participants[1].get('athlete', {})
-                                        assist = p2.get('displayName') or p2.get('shortName') or ''
-                                    if is_sub and len(participants) > 1:
-                                        p2 = participants[1].get('athlete', {})
-                                        sub_out = p2.get('displayName') or p2.get('shortName') or ''
-                            else:
-                                txt = play.get('type', {}).get('text', '')
-                                if " - " in txt: scorer = txt.split(" - ")[-1].strip()
-                                elif "Goal" in txt: scorer = txt.replace("Goal", "").strip()
-                            
-                            if not scorer: scorer = "Event"
-                            
-                            # Build display text with type badges and colors
-                            evt_color = None  # None = default white
-                            
-                            if is_rc or (is_card and "red" in text_desc):
-                                scorer = "[RC] " + scorer
-                                evt_color = 0xFF3333  # Red
-                            elif is_yc or (is_card and "yellow" in text_desc):
-                                scorer = "[YC] " + scorer
-                                evt_color = 0xFFD700  # Gold/Yellow
-                            elif is_sub:
-                                if sub_out:
-                                    scorer = u"[Sub] {} \u2190 {}".format(scorer, sub_out)
-                                else:
-                                    scorer = "[Sub] " + scorer
-                                evt_color = 0xAAAAAA  # Grey for subs
-                            elif is_score:
-                                # Detect goal type from flags or text fallback
-                                if is_pk or "penalty" in text_desc:
-                                    scorer = "[Pen] " + scorer
-                                elif is_og or "own goal" in text_desc:
-                                    scorer = "[OG] " + scorer
-                                else:
-                                    scorer = "[Goal] " + scorer
-                                if assist:
-                                    scorer += u" (A: {})".format(assist)
-                            
-                            t_id = str(play.get('team', {}).get('id', ''))
-                            h_id_root = str(home_team.get('id', 'h'))
-                            
-                            home_evt = ""
-                            away_evt = ""
-                            h_evt_color = None
-                            a_evt_color = None
-                            if t_id == h_id_root:
-                                home_evt = scorer
-                                h_evt_color = evt_color
-                            else:
-                                away_evt = scorer
-                                a_evt_color = evt_color
-                            
-                            # Append to list with per-event colors
-                            self.full_rows.append(EventListEntry(clock, home_evt, away_evt, self.theme, h_color=h_evt_color, a_color=a_evt_color))
+            if details:
+                self.full_rows.append(EventListEntry("TIME", "HOME EVENTS", "AWAY EVENTS", self.theme))
+                goals_found = False
+                for play in details:
+                    text_desc = play.get('type', {}).get('text', '').lower()
                     
-                    if not goals_found:
-                        self.full_rows.append(StatsListEntry("-", "No Events", "", self.theme))
+                    # API Boolean Flags (High Priority)
+                    is_og = play.get('ownGoal', False)
+                    is_pk = play.get('penaltyKick', False)
+                    is_yc = play.get('yellowCard', False)
+                    is_rc = play.get('redCard', False)
+
+                    # Detect scoring plays: use flags first, fallback to text matching for other sports
+                    is_score = play.get('scoringPlay', False) or is_og or is_pk or any(x in text_desc for x in ["goal", "touchdown", "power play", "short-handed", "even strength", "empty net"])
+                    is_card = is_yc or is_rc or "card" in text_desc
+                    is_sub = "substitution" in text_desc
+                    
+                    if is_score or is_card or is_sub:
+                        goals_found = True
+                        clock = play.get('clock', {}).get('displayValue', '')
+                        
+                        # Get main athlete (scorer/recipient/sub)
+                        scorer = ""
+                        assist = ""
+                        sub_out = ""
+                        ath_id = ""
+                        athletes = play.get('athletesInvolved', [])
+                        
+                        if athletes:
+                            scorer = athletes[0].get('displayName') or athletes[0].get('shortName') or ''
+                            ath_id = str(athletes[0].get('id', ''))
+                            if is_score and len(athletes) > 1:
+                                assist = athletes[1].get('displayName') or athletes[1].get('shortName') or ''
+                            if is_sub and len(athletes) > 1:
+                                sub_out = athletes[1].get('displayName') or athletes[1].get('shortName') or ''
+                        elif play.get('participants'):
+                            participants = play['participants']
+                            if participants:
+                                p = participants[0].get('athlete', {})
+                                scorer = p.get('displayName') or p.get('shortName') or ''
+                                ath_id = str(p.get('id', ''))
+                                if is_score and len(participants) > 1:
+                                    p2 = participants[1].get('athlete', {})
+                                    assist = p2.get('displayName') or p2.get('shortName') or ''
+                                if is_sub and len(participants) > 1:
+                                    p2 = participants[1].get('athlete', {})
+                                    sub_out = p2.get('displayName') or p2.get('shortName') or ''
+                        else:
+                            txt = play.get('type', {}).get('text', '')
+                            if " - " in txt: scorer = txt.split(" - ")[-1].strip()
+                            elif "Goal" in txt: scorer = txt.replace("Goal", "").strip()
+                        
+                        if not scorer: scorer = "Event"
+                        
+                        # Build display text with type badges and colors
+                        evt_color = None  # None = default white
+                        
+                        if is_rc or (is_card and "red" in text_desc):
+                            scorer = "[RC] " + scorer
+                            evt_color = 0xFF3333  # Red
+                        elif is_yc or (is_card and "yellow" in text_desc):
+                            scorer = "[YC] " + scorer
+                            evt_color = 0xFFD700  # Gold/Yellow
+                        elif is_sub:
+                            if sub_out:
+                                scorer = u"[Sub] {} \u2190 {}".format(scorer, sub_out)
+                            else:
+                                scorer = "[Sub] " + scorer
+                            evt_color = 0xAAAAAA  # Grey for subs
+                        elif is_score:
+                            # Detect goal type from flags or text fallback
+                            if is_pk or "penalty" in text_desc:
+                                scorer = "[Pen] " + scorer
+                            elif is_og or "own goal" in text_desc:
+                                scorer = "[OG] " + scorer
+                            else:
+                                scorer = "[Goal] " + scorer
+                            if assist:
+                                scorer += u" (A: {})".format(assist)
+                        
+                        t_id = str(play.get('team', {}).get('id', ''))
+                        h_id_root = str(home_team.get('id', 'h'))
+                        
+                        home_evt = ""
+                        away_evt = ""
+                        h_evt_color = None
+                        a_evt_color = None
+                        if t_id == h_id_root:
+                            home_evt = scorer
+                            h_evt_color = evt_color
+                        else:
+                            away_evt = scorer
+                            a_evt_color = evt_color
+                        
+                        
+                        payload = None
+                        if ath_id:
+                            payload = ("PLAYER", ath_id, scorer)
+                        
+                        # Append to list with per-event colors
+                        self.full_rows.append(EventListEntry(clock, home_evt, away_evt, self.theme, h_color=h_evt_color, a_color=a_evt_color, payload=payload))
                 
-                # 2. Stats
-                if boxscore_teams:
+                if not goals_found:
+                    self.full_rows.append(StatsListEntry("-", "No Events", "", self.theme))
+            
+            # 2. Stats
+            if boxscore_teams:
+                self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                self.full_rows.append(StatsListEntry("STATS", "HOME", "AWAY", self.theme))
+                h_stats_list = []; a_stats_list = []
+                if 'statistics' in home_team: h_stats_list = home_team['statistics']
+                if 'statistics' in away_team: a_stats_list = away_team['statistics']
+                a_map = {s['label']: s['displayValue'] for s in a_stats_list}
+                for stat in h_stats_list:
+                    lbl = stat['label']; h_val = stat['displayValue']; a_val = a_map.get(lbl, "-")
+                    self.full_rows.append(StatsListEntry(lbl, h_val, a_val, self.theme))
+
+            # 3. Formations
+            try:
+                h_formation = home_team.get('formation', '') or home_team.get('team', {}).get('formation', '')
+                a_formation = away_team.get('formation', '') or away_team.get('team', {}).get('formation', '')
+                if h_formation or a_formation:
                     self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                    self.full_rows.append(StatsListEntry("STATS", "HOME", "AWAY", self.theme))
-                    h_stats_list = []; a_stats_list = []
-                    if 'statistics' in home_team: h_stats_list = home_team['statistics']
-                    if 'statistics' in away_team: a_stats_list = away_team['statistics']
-                    a_map = {s['label']: s['displayValue'] for s in a_stats_list}
-                    for stat in h_stats_list:
-                        lbl = stat['label']; h_val = stat['displayValue']; a_val = a_map.get(lbl, "-")
-                        self.full_rows.append(StatsListEntry(lbl, h_val, a_val, self.theme))
+                    self.full_rows.append(StatsListEntry("FORMATION", str(h_formation) if h_formation else "-", str(a_formation) if a_formation else "-", self.theme))
+            except: pass
 
-                # 3. Formations
-                try:
-                    h_formation = home_team.get('formation', '') or home_team.get('team', {}).get('formation', '')
-                    a_formation = away_team.get('formation', '') or away_team.get('team', {}).get('formation', '')
-                    if h_formation or a_formation:
-                        self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                        self.full_rows.append(StatsListEntry("FORMATION", str(h_formation) if h_formation else "-", str(a_formation) if a_formation else "-", self.theme))
-                except: pass
-
-                # 4. Lineups / Rosters
-                boxscore = data.get('boxscore', {})
-                players_data = boxscore.get('players', [])
-                rosters = data.get('rosters', [])
-                
-                # Try boxscore players first
-                h_roster = []; a_roster = []
-                if players_data:
-                    for team_p in players_data:
-                        t_id = str(team_p.get('team', {}).get('id', ''))
-                        team_list = []
-                        stats_groups = team_p.get('statistics', [])
-                        for group in stats_groups:
-                            grp_name = group.get('name', 'players').upper()
-                            team_list.append(u"\u2022 {} \u2022".format(grp_name))
-                            for ath in group.get('athletes', []):
-                                name = ath.get('athlete', {}).get('displayName') or ath.get('athlete', {}).get('shortName')
-                                jersey = ath.get('jersey', '')
-                                position = ath.get('athlete', {}).get('position', {}).get('abbreviation', '')
-                                if name: 
-                                    p_str = "#{} {} ({})".format(jersey, name, position) if jersey and position else ("#{} {}".format(jersey, name) if jersey else name)
-                                    team_list.append(p_str)
-                        if t_id == str(home_team.get('id')): h_roster = team_list
-                        elif t_id == str(away_team.get('id')): a_roster = team_list
-                
-                # Try rosters if boxscore players empty
-                if not h_roster and not a_roster and rosters:
-                    for team_r in rosters:
-                        t_id = str(team_r.get('team', {}).get('id', ''))
-                        team_list = []
-                        for entry in team_r.get('roster', []):
-                            name = entry.get('athlete', {}).get('displayName') or entry.get('athlete', {}).get('shortName') or ''
-                            jersey = entry.get('jersey', '')
-                            position = entry.get('position', {}).get('abbreviation', '')
-                            starter = entry.get('starter', False)
-                            if name:
-                                prefix = u"\u2605 " if starter else "  "
-                                p_str = "{}#{} {} ({})".format(prefix, jersey, name, position) if jersey and position else "{}{}".format(prefix, name)
+            # 4. Lineups / Rosters
+            boxscore = data.get('boxscore', {})
+            players_data = boxscore.get('players', [])
+            rosters = data.get('rosters', [])
+            
+            # Try boxscore players first
+            h_roster = []; a_roster = []
+            if players_data:
+                for team_p in players_data:
+                    t_id = str(team_p.get('team', {}).get('id', ''))
+                    team_list = []
+                    stats_groups = team_p.get('statistics', [])
+                    for group in stats_groups:
+                        grp_name = group.get('name', 'players').upper()
+                        team_list.append(u"\u2022 {} \u2022".format(grp_name))
+                        for ath in group.get('athletes', []):
+                            name = ath.get('athlete', {}).get('displayName') or ath.get('athlete', {}).get('shortName')
+                            jersey = ath.get('jersey', '')
+                            position = ath.get('athlete', {}).get('position', {}).get('abbreviation', '')
+                            if name: 
+                                p_str = "#{} {} ({})".format(jersey, name, position) if jersey and position else ("#{} {}".format(jersey, name) if jersey else name)
                                 team_list.append(p_str)
-                        if t_id == str(home_team.get('id')): h_roster = team_list
-                        elif t_id == str(away_team.get('id')): a_roster = team_list
-                
-                if h_roster or a_roster:
+                    if t_id == str(home_team.get('id')): h_roster = team_list
+                    elif t_id == str(away_team.get('id')): a_roster = team_list
+            
+            # Try rosters if boxscore players empty
+            if not h_roster and not a_roster and rosters:
+                for team_r in rosters:
+                    t_id = str(team_r.get('team', {}).get('id', ''))
+                    team_list = []
+                    for entry in team_r.get('roster', []):
+                        name = entry.get('athlete', {}).get('displayName') or entry.get('athlete', {}).get('shortName') or ''
+                        jersey = entry.get('jersey', '')
+                        position = entry.get('position', {}).get('abbreviation', '')
+                        starter = entry.get('starter', False)
+                        if name:
+                            prefix = u"\u2605 " if starter else "  "
+                            p_str = "{}#{} {} ({})".format(prefix, jersey, name, position) if jersey and position else "{}{}".format(prefix, name)
+                            team_list.append(p_str)
+                    if t_id == str(home_team.get('id')): h_roster = team_list
+                    elif t_id == str(away_team.get('id')): a_roster = team_list
+            
+            if h_roster or a_roster:
+                self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                self.full_rows.append(StatsListEntry("LINEUPS", "HOME", "AWAY", self.theme))
+                max_len = max(len(h_roster), len(a_roster))
+                for i in range(max_len):
+                    h_p = h_roster[i] if i < len(h_roster) else ""
+                    a_p = a_roster[i] if i < len(a_roster) else ""
+                    self.full_rows.append(RosterListEntry(h_p, a_p, self.theme))
+
+            # 5. Match Officials
+            try:
+                game_info = data.get('gameInfo', {})
+                officials = game_info.get('officials', [])
+                if officials:
                     self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                    self.full_rows.append(StatsListEntry("LINEUPS", "HOME", "AWAY", self.theme))
-                    max_len = max(len(h_roster), len(a_roster))
-                    for i in range(max_len):
-                        h_p = h_roster[i] if i < len(h_roster) else ""
-                        a_p = a_roster[i] if i < len(a_roster) else ""
-                        self.full_rows.append(RosterListEntry(h_p, a_p, self.theme))
+                    self.full_rows.append(TextListEntry("MATCH OFFICIALS", self.theme, is_header=True))
+                    for official in officials:
+                        name = official.get('displayName', '') or official.get('fullName', '')
+                        position = official.get('position', {}).get('displayName', '') or official.get('type', '')
+                        if name:
+                            off_txt = u"\u2022 {}: {}".format(position, name) if position else u"\u2022 {}".format(name)
+                            self.full_rows.append(TextListEntry(off_txt, self.theme, align="left"))
+            except: pass
 
-                # 5. Match Officials
-                try:
-                    game_info = data.get('gameInfo', {})
-                    officials = game_info.get('officials', [])
-                    if officials:
-                        self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                        self.full_rows.append(TextListEntry("MATCH OFFICIALS", self.theme, is_header=True))
-                        for official in officials:
-                            name = official.get('displayName', '') or official.get('fullName', '')
-                            position = official.get('position', {}).get('displayName', '') or official.get('type', '')
-                            if name:
-                                off_txt = u"\u2022 {}: {}".format(position, name) if position else u"\u2022 {}".format(name)
-                                self.full_rows.append(TextListEntry(off_txt, self.theme, align="left"))
-                except: pass
+            # 6. Game Notes / Key Facts
+            try:
+                key_events = data.get('keyEvents', [])
+                if key_events:
+                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                    self.full_rows.append(TextListEntry("KEY MOMENTS", self.theme, is_header=True))
+                    for event in key_events[:8]:
+                        clock = event.get('clock', {}).get('displayValue', '')
+                        evt_type = event.get('type', {}).get('text', '')
+                        evt_text = event.get('text', '') or evt_type
+                        if evt_text:
+                            key_txt = u"\u23F1 {} - {}".format(clock, evt_text) if clock else u"\u2022 {}".format(evt_text)
+                            wrapped = wrap_text(key_txt, max_chars=130)
+                            for line in wrapped:
+                                self.full_rows.append(TextListEntry(line, self.theme, align="left"))
+            except: pass
 
-                # 6. Game Notes / Key Facts
-                try:
-                    key_events = data.get('keyEvents', [])
-                    if key_events:
-                        self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                        self.full_rows.append(TextListEntry("KEY MOMENTS", self.theme, is_header=True))
-                        for event in key_events[:8]:
-                            clock = event.get('clock', {}).get('displayValue', '')
-                            evt_type = event.get('type', {}).get('text', '')
-                            evt_text = event.get('text', '') or evt_type
-                            if evt_text:
-                                key_txt = u"\u23F1 {} - {}".format(clock, evt_text) if clock else u"\u2022 {}".format(evt_text)
-                                wrapped = wrap_text(key_txt, max_chars=130)
-                                for line in wrapped:
-                                    self.full_rows.append(TextListEntry(line, self.theme, align="left"))
-                except: pass
+            # 7. Head-to-Head / Previous Meetings
+            try:
+                h2h = data.get('headToHead', [])
+                if h2h:
+                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                    self.full_rows.append(TextListEntry("HEAD TO HEAD", self.theme, is_header=True))
+                    for meeting in h2h[:5]:
+                        date = meeting.get('date', '')[:10] if meeting.get('date') else ''
+                        home_t = meeting.get('homeTeam', {}).get('displayName', 'Home')
+                        away_t = meeting.get('awayTeam', {}).get('displayName', 'Away')
+                        h_s = meeting.get('homeTeam', {}).get('score', '0')
+                        a_s = meeting.get('awayTeam', {}).get('score', '0')
+                        h2h_txt = "{}: {} {} - {} {}".format(date, home_t, h_s, a_s, away_t)
+                        self.full_rows.append(TextListEntry(h2h_txt, self.theme, align="left"))
+            except: pass
 
-                # 7. Head-to-Head / Previous Meetings
-                try:
-                    h2h = data.get('headToHead', [])
-                    if h2h:
-                        self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                        self.full_rows.append(TextListEntry("HEAD TO HEAD", self.theme, is_header=True))
-                        for meeting in h2h[:5]:
-                            date = meeting.get('date', '')[:10] if meeting.get('date') else ''
-                            home_t = meeting.get('homeTeam', {}).get('displayName', 'Home')
-                            away_t = meeting.get('awayTeam', {}).get('displayName', 'Away')
-                            h_s = meeting.get('homeTeam', {}).get('score', '0')
-                            a_s = meeting.get('awayTeam', {}).get('score', '0')
-                            h2h_txt = "{}: {} {} - {} {}".format(date, home_t, h_s, a_s, away_t)
-                            self.full_rows.append(TextListEntry(h2h_txt, self.theme, align="left"))
-                except: pass
+            # 8. News / Articles (for live/post match)
+            try:
+                news_items = data.get('news', {}).get('articles', [])
+                if not news_items: news_items = data.get('articles', [])
+                if news_items:
+                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                    self.full_rows.append(TextListEntry("MATCH NEWS", self.theme, is_header=True))
+                    count = 0
+                    for article in news_items:
+                        if count >= 3: break
+                        headline = article.get('headline', '')
+                        if headline:
+                            wrapped = wrap_text(headline, max_chars=130)
+                            for line in wrapped:
+                                self.full_rows.append(TextListEntry(line, self.theme, align="left"))
+                            self.full_rows.append(TextListEntry("", self.theme))
+                            count += 1
+            except: pass
 
-                # 8. News / Articles (for live/post match)
-                try:
-                    news_items = data.get('news', {}).get('articles', [])
-                    if not news_items: news_items = data.get('articles', [])
-                    if news_items:
-                        self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                        self.full_rows.append(TextListEntry("MATCH NEWS", self.theme, is_header=True))
-                        count = 0
-                        for article in news_items:
-                            if count >= 3: break
-                            headline = article.get('headline', '')
-                            if headline:
-                                wrapped = wrap_text(headline, max_chars=130)
-                                for line in wrapped:
-                                    self.full_rows.append(TextListEntry(line, self.theme, align="left"))
-                                self.full_rows.append(TextListEntry("", self.theme))
-                                count += 1
-                except: pass
+        # --- COMMON: STANDINGS & BROADCASTS ---
+        try:
+            broadcasts = data.get('header', {}).get('competitions', [{}])[0].get('broadcasts', [])
+            if broadcasts:
+                b_list = []
+                for b in broadcasts:
+                    net = b.get('media', {}).get('shortName') or b.get('market', {}).get('type')
+                    if net and net not in b_list: b_list.append(net)
+                if b_list:
+                    self.full_rows.append(TextListEntry("BROADCASTS", self.theme, is_header=True))
+                    self.full_rows.append(TextListEntry("📺 " + ", ".join(b_list), self.theme))
+                    self.full_rows.append(TextListEntry("", self.theme))
+        except: pass
 
-            self.current_page = 0
-            self.update_display()
+        try:
+            standings = data.get('standings', {}).get('entries', [])
+            if standings:
+                self.full_rows.append(TextListEntry("LEAGUE TABLE", self.theme, is_header=True))
+                for entry in standings:
+                    tid = entry.get('team', {}).get('id')
+                    if tid == h_id or tid == a_id:
+                        t_name = entry.get('team', {}).get('displayName', '')
+                        stats = entry.get('stats', [])
+                        rec = next((s['displayValue'] for s in stats if s.get('name') == 'rank'), '-')
+                        form = next((s['displayValue'] for s in stats if s.get('abbreviation') == 'L10'), '-')
+                        txt = "{}: Rank #{} | Form: {}".format(t_name, rec, form)
+                        self.full_rows.append(TextListEntry(txt, self.theme, align="left"))
+                self.full_rows.append(TextListEntry("", self.theme))
+        except: pass
 
-        except Exception as e:
-            self["loading"].setText("Data Error: " + str(e))
-            self["loading"].show()
-
+        self.current_page = 0
+        self.update_display()
+        
     # ==========================================================
     # RACING EVENTS (F1, NASCAR, IndyCar)
     # ==========================================================
@@ -4145,12 +5720,21 @@ class GameInfoScreen(Screen):
             self["h_name"].setText(event_name)
             self["stadium_name"].setText("")
             
-            # Try to get venue/track info
+            # --- CIRCUIT / VENUE INFO ---
             try:
                 venue = data.get('gameInfo', {}).get('venue', {})
                 track_name = venue.get('fullName', '') or venue.get('name', '')
-                if track_name:
-                    self["stadium_name"].setText(track_name)
+                addr = venue.get('address', {})
+                city = addr.get('city', '')
+                country = addr.get('country', '')
+                capacity = venue.get('capacity', 0)
+                
+                parts = [track_name]
+                if city: parts.append(city)
+                if country: parts.append(country)
+                loc_txt = " - ".join(x for x in parts if x)
+                if loc_txt:
+                    self["stadium_name"].setText(loc_txt)
             except: pass
             
             # Download series logo if available
@@ -4162,50 +5746,104 @@ class GameInfoScreen(Screen):
                     self.download_logo(logo_url, "h_logo", self.sport_type + "_league_" + str(l_id) if l_id else None)
             except: pass
             
-            # Status section
+            # --- STATUS ---
             status_txt = "Scheduled"
-            if game_status == 'in': status_txt = "LIVE - In Progress"
+            if is_postponed: status_txt = "Postponed"
+            elif is_suspended: status_txt = "Suspended / To be resumed"
+            elif game_status == 'in': status_txt = "LIVE - In Progress"
             elif game_status == 'post': status_txt = "Finished"
-            self.full_rows.append(TextListEntry(u"\U0001F3C1 STATUS: " + status_txt, self.theme, is_header=True))
+            self.full_rows.append(TextListEntry("STATUS: " + status_txt, self.theme, is_header=True))
+            
+            # Circuit capacity
+            try:
+                if capacity:
+                    self.full_rows.append(TextListEntry("Circuit Capacity: {:,}".format(capacity), self.theme))
+            except: pass
             self.full_rows.append(TextListEntry("", self.theme))
             
-            # Driver Standings / Results
+            # --- DRIVER STANDINGS / RESULTS ---
             try:
                 competitors = header.get('competitions', [{}])[0].get('competitors', [])
                 if competitors:
                     if game_status == 'post':
-                        self.full_rows.append(TextListEntry(u"\U0001F3C6 RACE RESULTS", self.theme, is_header=True))
+                        self.full_rows.append(TextListEntry("RACE RESULTS", self.theme, is_header=True))
+                    elif game_status == 'in':
+                        self.full_rows.append(TextListEntry("LIVE STANDINGS", self.theme, is_header=True))
                     else:
-                        self.full_rows.append(TextListEntry(u"\U0001F3CE DRIVER STANDINGS", self.theme, is_header=True))
+                        self.full_rows.append(TextListEntry("DRIVER GRID", self.theme, is_header=True))
                     
-                    for i, driver in enumerate(competitors[:20]):
+                    for i, driver in enumerate(competitors[:25]):
                         rank = driver.get('rank', i + 1)
-                        name = driver.get('athlete', {}).get('displayName', '') or driver.get('team', {}).get('displayName', 'Driver')
+                        
+                        # Driver name
+                        athlete = driver.get('athlete', {})
+                        driver_name = athlete.get('displayName', '') or athlete.get('shortName', '')
+                        
+                        # Team / Constructor name
+                        team_info = driver.get('team', {})
+                        team_name = team_info.get('displayName', '') or team_info.get('abbreviation', '')
+                        
+                        # Vehicle number
+                        vehicle_num = driver.get('vehicleNumber', '') or athlete.get('jersey', '')
+                        
+                        # Points
                         points = driver.get('points', driver.get('score', ''))
-                        status = driver.get('status', '')
                         
-                        driver_txt = u"#{} {}".format(rank, name)
-                        if points: driver_txt += " - {} pts".format(points)
-                        if status and status.lower() not in ['active', 'running']: driver_txt += " ({})".format(status)
+                        # Status (DNF, DNS, Retired, etc.)
+                        d_status = driver.get('status', '')
                         
-                        self.full_rows.append(TextListEntry(driver_txt, self.theme, align="left"))
+                        if not driver_name:
+                            driver_name = team_name or 'Driver'
+                        
+                        # Build display line: #1 [Car#44] M. Verstappen (Red Bull) - 26 pts
+                        line = u"#{} ".format(rank)
+                        if vehicle_num:
+                            line += u"[Car#{}] ".format(vehicle_num)
+                        line += driver_name
+                        if team_name and team_name != driver_name:
+                            line += u" ({})".format(team_name)
+                        if points:
+                            line += u" - {} pts".format(points)
+                        if d_status and d_status.lower() not in ['active', 'running', '']:
+                            line += u" [{}]".format(d_status.upper())
+                        
+                        self.full_rows.append(TextListEntry(line, self.theme, align="left"))
+                    
+                    self.full_rows.append(TextListEntry("", self.theme))
             except: 
                 self.full_rows.append(TextListEntry("No driver data available", self.theme))
             
-            # Race Schedule Info
+            # --- RACE SCHEDULE / SESSIONS ---
             try:
                 schedule = data.get('schedule', [])
                 if schedule:
+                    self.full_rows.append(TextListEntry("RACE WEEKEND SCHEDULE", self.theme, is_header=True))
+                    for sess in schedule[:8]:
+                        name = sess.get('name', 'Session')
+                        time_str = get_local_time_str(sess.get('date', ''))
+                        sess_status = sess.get('status', {}).get('type', {}).get('state', '')
+                        tag = ""
+                        if sess_status == 'in': tag = " [LIVE]"
+                        elif sess_status == 'post': tag = " [Completed]"
+                        self.full_rows.append(TextListEntry("{}: {}{}".format(name, time_str, tag), self.theme, align="left"))
                     self.full_rows.append(TextListEntry("", self.theme))
-                    self.full_rows.append(TextListEntry(u"\U0001F4C5 SCHEDULE", self.theme, is_header=True))
-                    for event in schedule[:5]:
-                        name = event.get('name', 'Session')
-                        date = event.get('date', '')[:10] if event.get('date') else ''
-                        time_str = get_local_time_str(event.get('date', ''))
-                        self.full_rows.append(TextListEntry("{}: {}".format(name, time_str), self.theme, align="left"))
+            except: pass
+
+            # --- BROADCASTS ---
+            try:
+                broadcasts = header.get('competitions', [{}])[0].get('broadcasts', [])
+                if broadcasts:
+                    b_list = []
+                    for b in broadcasts:
+                        net = b.get('media', {}).get('shortName') or b.get('market', {}).get('type')
+                        if net and net not in b_list: b_list.append(net)
+                    if b_list:
+                        self.full_rows.append(TextListEntry("BROADCASTS", self.theme, is_header=True))
+                        self.full_rows.append(TextListEntry(", ".join(b_list), self.theme))
+                        self.full_rows.append(TextListEntry("", self.theme))
             except: pass
             
-            # News
+            # --- NEWS ---
             self._add_news_section(data)
             
         except Exception as e:
@@ -4246,7 +5884,9 @@ class GameInfoScreen(Screen):
             
             # Status
             status_txt = "Scheduled"
-            if game_status == 'in': status_txt = "LIVE - Round in Progress"
+            if is_postponed: status_txt = "Postponed"
+            elif is_suspended: status_txt = "Suspended / To be resumed"
+            elif game_status == 'in': status_txt = "LIVE - Round in Progress"
             elif game_status == 'post': status_txt = "Tournament Complete"
             self.full_rows.append(TextListEntry(u"\u26F3 STATUS: " + status_txt, self.theme, is_header=True))
             self.full_rows.append(TextListEntry("", self.theme))
@@ -4434,7 +6074,9 @@ class GameInfoScreen(Screen):
             
             # Status - display in header widget AND in list
             status_txt = "Scheduled"
-            if game_status == 'in': status_txt = "LIVE - In Progress"
+            if is_postponed: status_txt = "Postponed"
+            elif is_suspended: status_txt = "Suspended / To be resumed"
+            elif game_status == 'in': status_txt = "LIVE - In Progress"
             elif game_status == 'post': status_txt = "Completed"
             self["start_time_label"].setText(status_txt)
             self.full_rows.append(TextListEntry(u"\U0001F3BE STATUS: " + status_txt, self.theme, is_header=True))
@@ -4523,7 +6165,9 @@ class GameInfoScreen(Screen):
             
             # Status
             status_txt = "Scheduled"
-            if game_status == 'in': status_txt = "LIVE - In Progress"
+            if is_postponed: status_txt = "Postponed"
+            elif is_suspended: status_txt = "Suspended / To be resumed"
+            elif game_status == 'in': status_txt = "LIVE - In Progress"
             elif game_status == 'post': status_txt = "Event Complete"
             self.full_rows.append(TextListEntry(u"\U0001F94A STATUS: " + status_txt, self.theme, is_header=True))
             self.full_rows.append(TextListEntry("", self.theme))
@@ -4765,12 +6409,27 @@ class GameInfoScreen(Screen):
 # GOAL TOAST
 # ==============================================================================
 class GoalToast(Screen):
-    def __init__(self, session, league_text, home_text, away_text, score_text, scorer_text, l_url, h_url, a_url, event_type="default", scoring_team=None, h_id=None, a_id=None, l_id=None):
-        # Cache Directory
-        self.logo_cache_path = "/tmp/simplysports/logos/"
-        if not os.path.exists(self.logo_cache_path):
-            try: os.makedirs(self.logo_cache_path)
-            except: pass
+    def __init__(self, session, match_id, score_text, scorer_text, event_type="default", scoring_team=None):
+        self.event_type = event_type
+        
+        # 1. RETRIEVE DATA FROM UNIFIED SNAPSHOT
+        snap = global_sports_monitor.match_snapshots.get(str(match_id))
+        if snap:
+            league_text = snap['league_name']
+            home_text   = snap['h_name']
+            away_text   = snap['a_name']
+            self.l_url  = snap['l_logo_url']
+            self.h_url  = snap['h_logo_url']
+            self.a_url  = snap['a_logo_url']
+            self.l_id   = snap['l_logo_id']
+            self.h_id   = snap['h_logo_id']
+            self.a_id   = snap['a_logo_id']
+        else:
+            # Fallback (should not happen in normal flow)
+            league_text = "Match Update"
+            home_text = "Home"; away_text = "Away"
+            self.l_url = self.h_url = self.a_url = ""
+            self.l_id = self.h_id = self.a_id = None
 
         # Ensure all inputs are strings
         def to_str(obj):
@@ -4809,9 +6468,11 @@ class GoalToast(Screen):
 
         # Event-type accent colors (used for bottom band accent)
         accent_colors = {
-            'goal':   '#0000BB55', 'card':  '#00EECC00',
-            'start':  '#0000AACC', 'end':   '#0000AACC',
-            'default':'#0000BB55'
+            'goal':     '#0000BB55', 
+            'red_card': '#00EECC00',
+            'start':    '#0000AACC', 
+            'end':      '#0000AACC',
+            'default':  '#0000BB55'
         }
         border_color = accent_colors.get(event_type, '#0000BB55')
 
@@ -4822,6 +6483,10 @@ class GoalToast(Screen):
             elif scoring_team == 'away': a_color = "#0066FF66"
         elif event_type in ['start', 'end']:
             score_color = "#0066DDFF"
+        elif event_type == 'red_card':
+            if scoring_team == 'home': h_color = "#00FF3333"
+            elif scoring_team == 'away': a_color = "#00FF3333"
+            score_color = "#00FF3333"
 
         self.duration_ms = 5000
 
@@ -4846,9 +6511,10 @@ class GoalToast(Screen):
             # --- DARK BACKDROP ---
             u'<eLabel position="0,0" size="950,120" backgroundColor="{bg}" zPosition="0" />'
 
-            # --- SCORER TEXT (above band, centered) ---
+            # --- SCORER TEXT + RED CARD IMAGE (above band, centered) ---
             u'<widget name="scorer" position="200,5" size="550,30" font="Regular;21" '
             u'foregroundColor="{sfg}" backgroundColor="{bg}" transparent="1" valign="center" halign="center" zPosition="3" />'  
+            u'<widget name="rc_img" position="375,10" size="18,18" alphatest="blend" scale="1" zPosition="4" />'
 
             # --- METALLIC BAND (y=40, total band height = 36) ---
             # Top bright edge (metallic highlight)
@@ -4899,16 +6565,11 @@ class GoalToast(Screen):
         self["score"] = Label(score_text)
         self["scorer"] = Label(scorer_text)
         
+        self["rc_img"] = Pixmap()
         self["h_logo"] = Pixmap()
         self["a_logo"] = Pixmap()
         self["l_logo"] = Pixmap()
         
-        self.h_url = h_url
-        self.a_url = a_url
-        self.l_url = l_url
-        self.h_id = h_id
-        self.a_id = a_id
-        self.l_id = l_id
         self.onLayoutFinish.append(self.load_logos)
 
         # 5. UX: Cleanup Timer (Dynamic Duration)
@@ -4942,6 +6603,13 @@ class GoalToast(Screen):
         }, -1)
         
         self.onLayoutFinish.append(self.start_animation)
+        self.onClose.append(self._stop_timers)
+
+    def _stop_timers(self):
+        try:
+            if self.anim_timer.isActive(): self.anim_timer.stop()
+            if self.timer.isActive(): self.timer.stop()
+        except: pass
 
     def start_animation(self):
         self.force_top()
@@ -4956,10 +6624,12 @@ class GoalToast(Screen):
                 self.instance.move(ePoint(self.center_x, self.current_y))
             else:
                 self.anim_timer.stop()
-                self.timer.start(self.duration_ms, True)
+                if not self.timer.isActive():
+                    self.timer.start(self.duration_ms, True)
         except:
             self.anim_timer.stop()
-            self.timer.start(self.duration_ms, True)
+            if not self.timer.isActive():
+                self.timer.start(self.duration_ms, True)
 
     def force_top(self):
         try: self.instance.setZPosition(10)
@@ -4969,61 +6639,22 @@ class GoalToast(Screen):
         self.load_image(self.h_url, "h_logo", self.h_id)
         self.load_image(self.a_url, "a_logo", self.a_id)
         self.load_image(self.l_url, "l_logo", self.l_id)
+        self["rc_img"].hide()
+        # Attempt to load and display red card icon
+        if "rc_img" in self and hasattr(self, "event_type") and self.event_type == 'red_card':
+            try:
+                rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+                if os.path.exists(rc_path) and LoadPixmap:
+                    rc_pixmap = LoadPixmap(cached=True, path=rc_path)
+                    if rc_pixmap:
+                        self["rc_img"].instance.setPixmap(rc_pixmap)
+                        self["rc_img"].instance.setScale(1)
+                        self["rc_img"].show()
+            except: pass
 
     def load_image(self, url, widget_name, img_id=None):
-        if not url:
-            self[widget_name].hide()
-            return
-
-        try:
-            target_path = ""
-            if img_id:
-                # Prioritize ID-based filename (Unified Cache)
-                path = self.logo_cache_path + str(img_id) + ".png"
-                if os.path.exists(path) and os.path.getsize(path) > 100:
-                    target_path = path
-
-            if not target_path:
-                # Fallback to URL-based hash
-                url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()
-                target_path = self.logo_cache_path + url_hash + ".png"
-            
-            # Use 100 bytes as minimum for a valid PNG (prevents 1-byte corrupt files from being hits)
-            if os.path.exists(target_path) and os.path.getsize(target_path) > 100:
-                if self[widget_name].instance:
-                    ptr = GLOBAL_PIXMAP_CACHE.get(target_path)
-                    if not ptr:
-                        if LoadPixmap:
-                            ptr = LoadPixmap(cached=True, path=target_path)
-                            if ptr: GLOBAL_PIXMAP_CACHE[target_path] = ptr
-                    if ptr:
-                        self[widget_name].instance.setPixmap(ptr)
-                    else:
-                        self[widget_name].instance.setPixmapFromFile(target_path)
-                    self[widget_name].instance.setScale(1) # Robustness
-                    self[widget_name].show()
-            else:
-                downloadPage(url.encode('utf-8'), target_path).addCallback(
-                    self.image_downloaded, widget_name, target_path
-                ).addErrback(self.image_error)
-        except:
-             self[widget_name].hide()
-
-    def image_downloaded(self, data, widget_name, target_path):
-        if self[widget_name].instance:
-            ptr = GLOBAL_PIXMAP_CACHE.get(target_path)
-            if not ptr:
-                if LoadPixmap:
-                    ptr = LoadPixmap(cached=True, path=target_path)
-                    if ptr: GLOBAL_PIXMAP_CACHE[target_path] = ptr
-            if ptr:
-                self[widget_name].instance.setPixmap(ptr)
-            else:
-                self[widget_name].instance.setPixmapFromFile(target_path)
-            self[widget_name].instance.setScale(1) # Robustness
-            self[widget_name].show()
-
-    def image_error(self, error): pass
+        """Delegate to shared logo loader"""
+        load_logo_to_widget(self, widget_name, url, img_id)
 
 # ==============================================================================
 # ZAP NOTIFICATION SCREEN (Interactive)
@@ -5107,45 +6738,8 @@ class ZapNotificationScreen(Screen):
         self.load_image(self.a_url, "a_logo")
 
     def load_image(self, url, widget_name):
-        if not url: return
-        try:
-            import hashlib
-            url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()
-            target_path = self.logo_cache_path + url_hash + ".png"
-            
-            # Use 100 bytes minimum
-            if os.path.exists(target_path) and os.path.getsize(target_path) > 100:
-                if self[widget_name].instance:
-                    ptr = GLOBAL_PIXMAP_CACHE.get(target_path)
-                    if not ptr:
-                        if LoadPixmap:
-                            ptr = LoadPixmap(cached=True, path=target_path)
-                            if ptr: GLOBAL_PIXMAP_CACHE[target_path] = ptr
-                    if ptr:
-                        self[widget_name].instance.setPixmap(ptr)
-                    # Removed else: self[widget_name].instance.setPixmapFromFile(target_path)
-                    self[widget_name].instance.setScale(1) 
-                    self[widget_name].show()
-            else:
-                downloadPage(url.encode('utf-8'), target_path).addCallback(
-                    self.image_downloaded, widget_name, target_path
-                ).addErrback(self.image_error)
-        except: pass
-
-    def image_downloaded(self, data, widget_name, target_path):
-        if self[widget_name].instance:
-            ptr = GLOBAL_PIXMAP_CACHE.get(target_path)
-            if not ptr:
-                if LoadPixmap:
-                    ptr = LoadPixmap(cached=True, path=target_path)
-                    if ptr: GLOBAL_PIXMAP_CACHE[target_path] = ptr
-            if ptr:
-                self[widget_name].instance.setPixmap(ptr)
-            # Removed else: self[widget_name].instance.setPixmapFromFile(target_path)
-            self[widget_name].instance.setScale(1)
-            self[widget_name].show()
-
-    def image_error(self, error): pass
+        """Delegate to shared logo loader"""
+        load_logo_to_widget(self, widget_name, url)
 
     def ok(self):
         self.close(True)
@@ -5250,23 +6844,64 @@ class LeagueSelector(Screen):
                 return i
         return 1000  # Non-major leagues go last
 
+    # Sport group ordering (lower = higher in the list)
+    SPORT_GROUP_ORDER = {
+        'soccer': 0, 'basketball': 1, 'football': 2, 'hockey': 3,
+        'baseball': 4, 'racing': 5, 'tennis': 6, 'rugby': 7,
+        'rugby-league': 8, 'cricket': 9, 'golf': 10,
+        'boxing': 11, 'mma': 12, 'lacrosse': 13
+    }
+
+    def _get_sport_from_url(self, url):
+        """Extract sport name from API URL for grouping."""
+        try:
+            parts = url.split('/sports/')
+            if len(parts) > 1:
+                return parts[1].split('/')[0]
+        except: pass
+        return 'other'
+
+    def _is_women_league(self, name, url):
+        """Check if league is a women's league from name or URL."""
+        name_lower = name.lower()
+        url_lower = url.lower()
+        women_markers = ["women", "woman", "wnba", ".w.", ".w/", "wsl", "nwsl", "wchampions"]
+        for m in women_markers:
+            if m in name_lower or m in url_lower:
+                return True
+        return False
+
     def load_list(self):
         current_indices = global_sports_monitor.custom_league_indices
         
-        # Create list of (original_idx, name, is_selected, priority) for sorting
+        # Create list of (original_idx, name, is_selected, priority, sport, is_women) for sorting
         league_items = []
         for i in range(len(DATA_SOURCES)):
             name = DATA_SOURCES[i][0]
+            url = DATA_SOURCES[i][1]
+            # In multi mode: filter out racing leagues (they only work in single-league)
+            if self.mode == "multi" and get_sport_type(url) == SPORT_TYPE_RACING:
+                continue
             is_selected = i in current_indices
             priority = self.get_league_priority(name)
-            league_items.append((i, name, is_selected, priority))
+            sport = self._get_sport_from_url(url)
+            is_women = self._is_women_league(name, url)
+            league_items.append((i, name, is_selected, priority, sport, is_women))
         
-        # Sort by priority (major leagues first), then by name
-        league_items.sort(key=lambda x: (x[3], x[1]))
+        # Sort: sport group order → women last within group → major leagues first → alphabetical
+        league_items.sort(key=lambda x: (
+            self.SPORT_GROUP_ORDER.get(x[4], 99),  # Sport group order
+            1 if x[5] else 0,                       # Women's leagues at end of group
+            x[3],                                   # Priority (major leagues first)
+            x[1]                                    # Alphabetical name
+        ))
         
         # Store sorted order
         self.sorted_indices = [item[0] for item in league_items]
         self.selections = [item[2] for item in league_items]
+        # Store sport info for group headers
+        self._league_sports = [item[4] for item in league_items]
+        self._league_women = [item[5] for item in league_items]
         
         self.download_league_logos()
         self.refresh_list()
@@ -5456,25 +7091,81 @@ class LeagueSelector(Screen):
     def logo_error(self, error):
         pass
 
+    # Display names for sport groups
+    SPORT_DISPLAY_NAMES = {
+        'soccer': 'SOCCER', 'basketball': 'BASKETBALL', 'football': 'AMERICAN FOOTBALL',
+        'hockey': 'ICE HOCKEY', 'baseball': 'BASEBALL', 'racing': 'RACING',
+        'tennis': 'TENNIS', 'rugby': 'RUGBY UNION', 'rugby-league': 'RUGBY LEAGUE',
+        'cricket': 'CRICKET', 'golf': 'GOLF', 'boxing': 'BOXING',
+        'mma': 'MMA', 'lacrosse': 'LACROSSE'
+    }
+
     def refresh_list(self):
         list_content = []
+        # Map from list index -> sorted_idx (skipping headers for toggle)
+        self._list_to_sorted = []
+        current_sport = None
+        
+        theme = global_sports_monitor.theme_mode
+        c_header_bg = 0x0e1e5b if theme == 'ucl' else 0x2a0030
+        c_header_fg = 0x00ffff if theme == 'ucl' else 0x00FF85
+        
         for sorted_idx, original_idx in enumerate(self.sorted_indices):
+            # Insert sport group header when sport changes
+            sport = self._league_sports[sorted_idx] if hasattr(self, '_league_sports') else None
+            if sport and sport != current_sport:
+                current_sport = sport
+                sport_label = self.SPORT_DISPLAY_NAMES.get(sport, sport.upper())
+                # Check if this group also starts women's section
+                is_women_start = self._league_women[sorted_idx] if hasattr(self, '_league_women') else False
+                if is_women_start:
+                    sport_label += u" (WOMEN)"
+                # Create header entry (non-selectable)
+                header = [('__GROUP__', False)]
+                header.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 890, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, "", c_header_bg, c_header_bg, None, None))
+                header.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 0, 860, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, u"\u25B6 " + sport_label, c_header_fg, c_header_fg, None, None))
+                header.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 46, 860, 4, 0, RT_HALIGN_LEFT, "", c_header_fg, c_header_fg, None, None))
+                list_content.append(header)
+                self._list_to_sorted.append(-1)  # -1 = header, not selectable
+            elif sport == current_sport and hasattr(self, '_league_women'):
+                # Check for women transition within same sport
+                is_women = self._league_women[sorted_idx]
+                prev_women = self._league_women[sorted_idx - 1] if sorted_idx > 0 else False
+                if is_women and not prev_women:
+                    sport_label = self.SPORT_DISPLAY_NAMES.get(sport, sport.upper()) + u" (WOMEN)"
+                    header = [('__GROUP__', False)]
+                    header.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 890, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, "", c_header_bg, c_header_bg, None, None))
+                    header.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 0, 860, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, u"\u25B6 " + sport_label, c_header_fg, c_header_fg, None, None))
+                    header.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 46, 860, 4, 0, RT_HALIGN_LEFT, "", c_header_fg, c_header_fg, None, None))
+                    list_content.append(header)
+                    self._list_to_sorted.append(-1)
+            
             name = DATA_SOURCES[original_idx][0]
             is_selected = self.selections[sorted_idx]
             logo_path = self.league_logos.get(sorted_idx, None)
             list_content.append(SelectionListEntry(name, is_selected, logo_path, mode=self.mode))
+            self._list_to_sorted.append(sorted_idx)
         self["list"].setList(list_content)
 
     def toggle(self):
-        idx = self["list"].getSelectedIndex()
-        if idx is not None and 0 <= idx < len(self.selections):
-            if self.mode == "multi":
-                self.selections[idx] = not self.selections[idx]
-                self.refresh_list()
-            else:
-                # Single mode: immediately return the selected original index
-                original_idx = self.sorted_indices[idx]
-                self.close((DATA_SOURCES[original_idx][0], original_idx))
+        list_idx = self["list"].getSelectedIndex()
+        if list_idx is None: return
+        # Map list index to sorted index (skip group headers)
+        if not hasattr(self, '_list_to_sorted') or list_idx >= len(self._list_to_sorted):
+            return
+        sorted_idx = self._list_to_sorted[list_idx]
+        if sorted_idx < 0: return  # Group header, skip
+        
+        if self.mode == "multi":
+            self.selections[sorted_idx] = not self.selections[sorted_idx]
+            self.refresh_list()
+            # Restore cursor position after refresh
+            try: self["list"].moveToIndex(list_idx)
+            except: pass
+        else:
+            # Single mode: immediately return the selected original index
+            original_idx = self.sorted_indices[sorted_idx]
+            self.close((DATA_SOURCES[original_idx][0], original_idx))
 
     def save(self):
         if self.mode != "multi": return
@@ -5492,14 +7183,223 @@ class LeagueSelector(Screen):
             self.close(True)
 
 # ==============================================================================
+# RACING MINI BAR (Bottom) - Driver Standings Ticker
+# ==============================================================================
+class RacingMiniBar(Screen):
+    """Bottom bar that shows driver standings for a selected racing event."""
+    def __init__(self, session, event_data):
+        Screen.__init__(self, session)
+        self.event_data = event_data
+        
+        d_size = getDesktop(0).size()
+        width = d_size.width(); height = d_size.height()
+        
+        if width > 1280:
+            bar_h = 65; bar_y = height - bar_h + 11
+            font_lg = "Regular;25"; font_nm = "Regular;30"; font_sm = "Regular;22"
+        else:
+            bar_h = 57; bar_y = height - bar_h + 11
+            font_lg = "Regular;21"; font_nm = "Regular;26"; font_sm = "Regular;18"
+        
+        self.skin = """<screen position="0,{y}" size="{w},{h}" title="Racing Standings" backgroundColor="#40000000" flags="wfNoBorder">
+            <eLabel position="0,0" size="{w},{h}" backgroundColor="#c0111111" zPosition="0" />
+            <eLabel position="0,0" size="5,{h}" backgroundColor="#E90052" zPosition="1" />
+            <eLabel position="{rend},0" size="5,{h}" backgroundColor="#F6B900" zPosition="1" />
+            <widget name="lbl_league" position="15,0" size="250,{h}" font="{fl}" foregroundColor="#FFD700" transparent="1" halign="left" valign="center" zPosition="2" />
+            <widget name="lbl_rank" position="270,0" size="60,{h}" font="{fn}" foregroundColor="#00FF85" transparent="1" halign="center" valign="center" zPosition="2" />
+            <widget name="lbl_driver" position="335,0" size="600,{h}" font="{fn}" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="2" />
+            <widget name="lbl_team" position="940,0" size="250,{h}" font="{fs}" foregroundColor="#cccccc" transparent="1" halign="left" valign="center" zPosition="2" />
+            <widget name="lbl_points" position="1200,0" size="200,{h}" font="{fn}" foregroundColor="#FFD700" transparent="1" halign="right" valign="center" zPosition="2" />
+            <widget name="lbl_status" position="1410,0" size="200,{h}" font="{fs}" foregroundColor="#aaaaaa" transparent="1" halign="right" valign="center" zPosition="2" />
+        </screen>""".format(y=bar_y-6, w=width, h=bar_h, rend=width-5, fl=font_lg, fn=font_nm, fs=font_sm)
+        
+        self["lbl_league"] = Label("")
+        self["lbl_session"] = Label("") # New session label
+        self["lbl_rank"] = Label("")
+        self["lbl_driver"] = Label("")
+        self["lbl_team"] = Label("")
+        self["lbl_points"] = Label("")
+        self["lbl_status"] = Label("")
+        
+        self.drivers = []
+        self.current_idx = 0
+        
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
+            "cancel": self.close,
+            "green": self.close,
+        }, -1)
+        
+        self.ticker_timer = eTimer()
+        safe_connect(self.ticker_timer, self.show_next_driver)
+        self.onLayoutFinish.append(self.start_fetch)
+        self.onClose.append(self.cleanup)
+    
+    def cleanup(self):
+        if self.ticker_timer.isActive():
+            self.ticker_timer.stop()
+    
+    def start_fetch(self):
+        """Build summary URL and fetch event data for driver standings."""
+        event_id = self.event_data.get('id', '')
+        league_name = self.event_data.get('league_name', '')
+        league_url = ''
+        for item in DATA_SOURCES:
+            if item[0] == league_name:
+                league_url = item[1]
+                break
+        
+        if not league_url or not event_id:
+            self.show_from_scoreboard_data()
+            return
+        
+        # Build summary URL
+        if "scoreboard" in league_url:
+            summary_url = league_url.replace("scoreboard", "summary") + "?event=" + str(event_id)
+        else:
+            summary_url = league_url + "/summary?event=" + str(event_id)
+        
+        self["lbl_league"].setText(league_name)
+        self["lbl_driver"].setText("Loading standings...")
+        
+        try:
+            from twisted.web.client import getPage
+            getPage(summary_url.encode('utf-8')).addCallback(self.on_data).addErrback(self.on_error)
+        except:
+            self.show_from_scoreboard_data()
+    
+    def show_from_scoreboard_data(self):
+        """Fallback: parse driver data from the scoreboard event data directly."""
+        league_name = self.event_data.get('league_name', '')
+        self["lbl_league"].setText(league_name)
+        
+        all_comps = self.event_data.get('competitions', [])
+        self.drivers = []
+        
+        session_labels = {'FP1': 'Practice 1', 'FP2': 'Practice 2', 'FP3': 'Practice 3', 'Qual': 'Qualifying', 'Race': 'Race', 'SQ': 'Sprint Qual', 'Sprint': 'Sprint'}
+
+        for comp_idx, comp in enumerate(all_comps):
+            sess_type = comp.get('type', {}).get('abbreviation', 'S{}'.format(comp_idx+1))
+            sess_name = session_labels.get(sess_type, sess_type)
+            sess_state = comp.get('status', {}).get('type', {}).get('state', '')
+            
+            # Usually only show live or finished session results
+            if sess_state not in ('in', 'post'): continue
+            
+            comps_list = comp.get('competitors', [])
+            for i, c in enumerate(comps_list):
+                athlete = c.get('athlete', {})
+                name = athlete.get('displayName', '') or c.get('team', {}).get('displayName', 'Driver')
+                country = athlete.get('flag', {}).get('alt', '')
+                team = c.get('team', {}).get('displayName', '')
+                rank = c.get('order', i + 1)
+                is_winner = c.get('winner', False)
+                score = c.get('score', '')
+                
+                display_name = name
+                if country: display_name += u" ({})".format(country)
+                
+                status_txt = 'WINNER' if is_winner else ''
+                self.drivers.append({
+                    'session': sess_name,
+                    'rank': rank, 
+                    'name': display_name, 
+                    'team': team, 
+                    'points': str(score) if score else '', 
+                    'status': status_txt
+                })
+        
+        if not self.drivers:
+            self["lbl_driver"].setText("No driver data available")
+        else:
+            self.current_idx = -1
+            self.show_next_driver()
+            self.ticker_timer.start(4000)
+    
+    def on_error(self, error):
+        self.show_from_scoreboard_data()
+    
+    def on_data(self, body):
+        """Parse summary API response for driver/competitor standings."""
+        try:
+            json_str = body.decode('utf-8', errors='ignore')
+            data = json.loads(json_str)
+            
+            header = data.get('header', {})
+            league_name = header.get('league', {}).get('name', '') or self.event_data.get('league_name', '')
+            self["lbl_league"].setText(league_name)
+            
+            all_comps = data.get('competitions', []) or header.get('competitions', [])
+            self.drivers = []
+            session_labels = {'FP1': 'Practice 1', 'FP2': 'Practice 2', 'FP3': 'Practice 3', 'Qual': 'Qualifying', 'Race': 'Race', 'SQ': 'Sprint Qual', 'Sprint': 'Sprint'}
+
+            for comp_idx, comp in enumerate(all_comps):
+                sess_type = comp.get('type', {}).get('abbreviation', 'S{}'.format(comp_idx+1))
+                sess_name = session_labels.get(sess_type, sess_type)
+                sess_state = comp.get('status', {}).get('type', {}).get('state', '')
+                
+                # Standings usually make sense for LIVE or FINISHED
+                if sess_state not in ('in', 'post'): continue
+                
+                competitors = comp.get('competitors', [])
+                for i, driver in enumerate(competitors):
+                    rank = driver.get('rank', driver.get('order', i + 1))
+                    athlete = driver.get('athlete', {})
+                    driver_name = athlete.get('displayName', '') or athlete.get('shortName', '')
+                    team_info = driver.get('team', {})
+                    team_name = team_info.get('displayName', '') or team_info.get('abbreviation', '')
+                    vehicle_num = driver.get('vehicleNumber', '') or athlete.get('jersey', '')
+                    points = driver.get('points', driver.get('score', ''))
+                    d_status = driver.get('status', '')
+                    
+                    if not driver_name: driver_name = team_name or 'Driver'
+                    
+                    display_name = driver_name
+                    if vehicle_num: display_name = "[#{}] {}".format(vehicle_num, driver_name)
+                    
+                    status_txt = ''
+                    if d_status and d_status.lower() not in ['active', 'running', '']:
+                        status_txt = d_status.upper()
+                    
+                    self.drivers.append({
+                        'session': sess_name,
+                        'rank': rank,
+                        'name': display_name,
+                        'team': team_name if team_name != driver_name else '',
+                        'points': str(points) + ' pts' if points else '',
+                        'status': status_txt
+                    })
+            
+            if not self.drivers:
+                self.show_from_scoreboard_data()
+            else:
+                self.current_idx = -1
+                self.show_next_driver()
+                self.ticker_timer.start(4000)
+        except Exception as e:
+            self.show_from_scoreboard_data()
+    
+    def show_next_driver(self):
+        if not self.drivers: return
+        self.current_idx = (self.current_idx + 1) % len(self.drivers)
+        d = self.drivers[self.current_idx]
+        
+        # We can repurpose league label OR we update both
+        # Let's show "League | Session" in the league label area to save space
+        league_name = self.event_data.get('league_name', 'Racing')
+        self["lbl_league"].setText("{} | {}".format(league_name, d.get('session', '')))
+        
+        self["lbl_rank"].setText("P{}".format(d['rank']))
+        self["lbl_driver"].setText(str(d['name']))
+        self["lbl_team"].setText(str(d['team']))
+        self["lbl_points"].setText(str(d['points']))
+        self["lbl_status"].setText(str(d['status']))
+
+# ==============================================================================
 # MINI BAR 2 (Bottom) - FIXED: Callback Synchronization
 # ==============================================================================
 class SimpleSportsMiniBar2(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
-        
-        # 1. Register
-        global_sports_monitor.register_callback(self.on_data_ready)
         
         self.logo_path = "/tmp/simplysports/logos/"
         if not os.path.exists(self.logo_path):
@@ -5514,14 +7414,18 @@ class SimpleSportsMiniBar2(Screen):
             x_l_logo=15; y_l_logo=10; x_league=55; w_league=328; x_home_name=393; w_home_name=467; x_h_logo=875
             x_score=920; w_score=140; x_a_logo=1065; x_away_name=1115; w_away_name=490
             x_status=1615; w_status=90; x_time=1707; w_time=210
+            x_h_sc = 543; w_h_sc = 317; x_a_sc = 1115; w_a_sc = 340
+            x_h_rc = 393; x_h_rctxt = 415; x_a_rc = 1455; x_a_rctxt = 1475
         else:
             bar_h = 57; y_sc = 33; bar_y = height - bar_h + 11; font_lg = "Regular;21"; font_nm = "Regular;28"; font_sm = "Regular;18"; font_sc = "Regular;16"; logo_s = 30
             x_l_logo=5; y_l_logo=8; x_league=40; w_league=213; x_home_name=263; w_home_name=257; x_h_logo=540
             x_score=580; w_score=100; x_a_logo=685; x_away_name=740; w_away_name=260
             x_status=1010; w_status=80; x_time=1092; w_time=175
+            x_h_sc = 363; w_h_sc = 157; x_a_sc = 740; w_a_sc = 160
+            x_h_rc = 263; x_h_rctxt = 283; x_a_rc = 905; x_a_rctxt = 925
             
         if global_sports_monitor.theme_mode == "ucl":
-            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="#c00e1e5b" zPosition="0" /><eLabel position="0,0" size="{w},2" backgroundColor="#00ffff" zPosition="1" /><widget name="l_logo" position="{xll},{yll}" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_league" position="{xl},0" size="{wl},{h}" font="{fl}" foregroundColor="#00ffff" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},44" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xh},{ysc}" size="{wh},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><eLabel position="{xs},0" size="{ws},{h}" backgroundColor="#ffffff" zPosition="1" /><widget name="lbl_score" position="{xs},0" size="{ws},{h}" font="{fl}" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},44" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xa},{ysc}" size="{wa},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="lbl_status" position="{xst},0" size="{wst},{h}" font="{fs}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},0" size="{wt},{h}" font="{fs}" foregroundColor="#00ffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y, w=width, h=bar_h, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xll=x_l_logo, yll=y_l_logo, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time, ysc=y_sc-2)
+            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="#c00e1e5b" zPosition="0" /><eLabel position="0,0" size="{w},2" backgroundColor="#00ffff" zPosition="1" /><widget name="l_logo" position="{xll},{yll}" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_league" position="{xl},-5" size="{wl},{h}" font="{fl}" foregroundColor="#00ffff" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},44" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xhsc},{ysc}" size="{whsc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_sc_rc" position="{xhrc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="h_sc_rctxt" position="{xhtxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><eLabel position="{xs},-5" size="{ws},{h}" backgroundColor="#ffffff" zPosition="1" /><widget name="lbl_score" position="{xs},-5" size="{ws},{h}" font="{fl}" foregroundColor="#0e1e5b" backgroundColor="#ffffff" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},44" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xasc},{ysc}" size="{wasc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="a_sc_rc" position="{xarc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="a_sc_rctxt" position="{xatxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="#c00e1e5b" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="lbl_status" position="{xst},-5" size="{wst},{h}" font="{fs}" foregroundColor="#ffffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},-5" size="{wt},{h}" font="{fs}" foregroundColor="#00ffff" backgroundColor="#c00e1e5b" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y, w=width, h=bar_h, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xll=x_l_logo, yll=y_l_logo, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time, ysc=y_sc-2, xhsc=x_h_sc, whsc=w_h_sc, xasc=x_a_sc, wasc=w_a_sc, xhrc=x_h_rc, xhtxt=x_h_rctxt, xarc=x_a_rc, xatxt=x_a_rctxt, rcs=18)
         else:
             # DEFINE COLORS BASED ON SELECTED MODE
             mode = global_sports_monitor.minibar_color_mode
@@ -5569,18 +7473,29 @@ class SimpleSportsMiniBar2(Screen):
                 c_text_lg = "#dbf000"   # Lime
                 c_text_tm = "#ffffff"   # White
 
-            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="{bg}" zPosition="0" /><eLabel position="0,0" size="5,{h}" backgroundColor="{sl}" zPosition="1" /><eLabel position="{rend},{h}" size="5,{h}" backgroundColor="{sr}" zPosition="1" /><widget name="l_logo" position="{xll},{yll}" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_league" position="{xl},0" size="{wl},{h}" font="{fl}" foregroundColor="{tlg}" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},38" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xh},{ysc}" size="{wh},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="{bg}" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><eLabel position="{xs},0" size="{ws},{h}" backgroundColor="{sbg}" zPosition="1" /><widget name="lbl_score" position="{xs},0" size="{ws},{h}" font="{fl}" foregroundColor="{sfg}" backgroundColor="{sbg}" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},38" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xa},{ysc}" size="{wa},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="{bg}" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="lbl_status" position="{xst},0" size="{wst},{h}" font="{fs}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},0" size="{wt},{h}" font="{fs}" foregroundColor="{ttm}" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y-6, w=width, h=bar_h, rend=width-5, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xll=x_l_logo, yll=y_l_logo, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time, ysc=y_sc, bg=c_bg_main, sl=c_strip_l, sr=c_strip_r, sbg=c_score_bg, sfg=c_score_fg, tlg=c_text_lg, ttm=c_text_tm)
+            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="{bg}" zPosition="0" /><eLabel position="0,0" size="5,{h}" backgroundColor="{sl}" zPosition="1" /><eLabel position="{rend},{h}" size="5,{h}" backgroundColor="{sr}" zPosition="1" /><widget name="l_logo" position="{xll},{yll}" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_league" position="{xl},-5" size="{wl},{h}" font="{fl}" foregroundColor="{tlg}" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},38" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xhsc},{ysc}" size="{whsc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="{bg}" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_sc_rc" position="{xhrc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="h_sc_rctxt" position="{xhtxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><eLabel position="{xs},-5" size="{ws},{h}" backgroundColor="{sbg}" zPosition="1" /><widget name="lbl_score" position="{xs},-5" size="{ws},{h}" font="{fl}" foregroundColor="{sfg}" backgroundColor="{sbg}" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},38" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xasc},{ysc}" size="{wasc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="{bg}" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="a_sc_rc" position="{xarc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="a_sc_rctxt" position="{xatxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="lbl_status" position="{xst},-5" size="{wst},{h}" font="{fs}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},-5" size="{wt},{h}" font="{fs}" foregroundColor="{ttm}" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y-6, w=width, h=bar_h, rend=width-5, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xll=x_l_logo, yll=y_l_logo, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time, ysc=y_sc, bg=c_bg_main, sl=c_strip_l, sr=c_strip_r, sbg=c_score_bg, sfg=c_score_fg, tlg=c_text_lg, ttm=c_text_tm, xhsc=x_h_sc, whsc=w_h_sc, xasc=x_a_sc, wasc=w_a_sc, xhrc=x_h_rc, xhtxt=x_h_rctxt, xarc=x_a_rc, xatxt=x_a_rctxt, rcs=18)
 
         self["lbl_league"] = Label(""); self["lbl_home"] = Label(""); self["lbl_score"] = Label("")
         self["lbl_away"] = Label(""); self["lbl_status"] = Label(""); self["lbl_time"] = Label("")
         self["lbl_home_sc"] = Label(""); self["lbl_away_sc"] = Label("")
         self["h_logo"] = Pixmap(); self["a_logo"] = Pixmap(); self["l_logo"] = Pixmap()
+        self["h_sc_rc"] = Pixmap(); self["a_sc_rc"] = Pixmap()
+        self["h_sc_rctxt"] = Label(""); self["a_sc_rctxt"] = Label("")
         self["h_logo"].hide(); self["a_logo"].hide(); self["l_logo"].hide()
+        self["h_sc_rc"].hide(); self["a_sc_rc"].hide()
+        self["h_sc_rctxt"].hide(); self["a_sc_rctxt"].hide()
         self.matches = []; self.current_match_idx = 0
+        self.rc_pixmap = None
+        try:
+            rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+            if os.path.exists(rc_path) and LoadPixmap:
+                self.rc_pixmap = LoadPixmap(cached=True, path=rc_path)
+        except: pass
         self.league_colors = {"ENG": 0x00ff85, "ESP": 0xff4b4b, "ITA": 0x008fd7, "GER": 0xd3010c, "FRA": 0xdae025, "UCL": 0x00ffff, "UEL": 0xff8800, "NBA": 0xC9082A, "NFL": 0x013369}
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {"cancel": self.close, "green": self.close, "yellow": self.toggle_filter_mini}, -1)
         self.ticker_timer = eTimer(); safe_connect(self.ticker_timer, self.show_next_match)
         self.refresh_timer = eTimer(); safe_connect(self.refresh_timer, self.refresh_data)
+        global_sports_monitor.register_callback(self.on_data_ready)
         self.onLayoutFinish.append(self.start_all_timers)
         self.onClose.append(self.cleanup)
 
@@ -5591,9 +7506,13 @@ class SimpleSportsMiniBar2(Screen):
         self.parse_json()
         global_sports_monitor.check_goals()
         import random
-        self.refresh_timer.start(60000 + random.randint(0, 15000))
+        # ENSURE: single_shot=False (2nd param) for repeating update
+        self.refresh_timer.start(60000 + random.randint(0, 15000), False)
+        # Also ensure ticker timer is running if matches exist
+        if self.matches and not self.ticker_timer.isActive():
+            self.ticker_timer.start(5000, False)
 
-    def on_data_ready(self, success):
+    def on_data_ready(self, success, force_refresh=False):
         self.parse_json()
 
     def toggle_filter_mini(self): 
@@ -5604,15 +7523,28 @@ class SimpleSportsMiniBar2(Screen):
         global_sports_monitor.check_goals(from_ui=True)
 
     def get_scorers_string(self, event, home_id, away_id):
-        # ... (Same implementation as previously provided) ...
-        # Copied for completeness
         h_scorers = []; a_scorers = []
+        h_rcs = []; a_rcs = []
         try:
             details = event.get('competitions', [{}])[0].get('details', [])
             if not details: details = event.get('header', {}).get('competitions', [{}])[0].get('details', [])
             if details:
                 for play in details:
                     text_desc = play.get('type', {}).get('text', '').lower()
+                    
+                    is_rc = play.get('redCard', False)
+                    if is_rc or ('card' in text_desc and 'red' in text_desc):
+                        rc_ath = play.get('athletesInvolved', [])
+                        if not rc_ath: rc_ath = play.get('participants', [])
+                        if rc_ath:
+                            rc_name = rc_ath[0].get('displayName') or rc_ath[0].get('shortName', '')
+                            if rc_name:
+                                t_id = str(play.get('team', {}).get('id', ''))
+                                if t_id == str(home_id): 
+                                    if rc_name not in h_rcs: h_rcs.append(rc_name)
+                                elif t_id == str(away_id):
+                                    if rc_name not in a_rcs: a_rcs.append(rc_name)
+
                     is_scoring = play.get('scoringPlay', False) or "goal" in text_desc or "score" in text_desc or "touchdown" in text_desc
                     if is_scoring and "disallowed" not in text_desc:
                         scorer = ""
@@ -5620,38 +7552,57 @@ class SimpleSportsMiniBar2(Screen):
                         if athletes: scorer = athletes[0].get('shortName') or athletes[0].get('displayName')
                         elif play.get('participants'): scorer = play['participants'][0].get('athlete', {}).get('shortName')
                         if not scorer:
-                            clean = play.get('type', {}).get('text', '')
-                            # NHL Specific: "Goal - Name" or just "Name" in some fields
-                            if "Goal - " in clean: scorer = clean.split("Goal - ")[1].split('(')[0].strip()
-                            elif "Gamewinner - " in clean: scorer = clean.split("Gamewinner - ")[1].split('(')[0].strip()
-                            elif "Short Handed Goal - " in clean: scorer = clean.split("Short Handed Goal - ")[1].split('(')[0].strip()
-                            elif "Power Play Goal - " in clean: scorer = clean.split("Power Play Goal - ")[1].split('(')[0].strip()
-                        if scorer:
-                            # Add goal time if available
-                            g_time = play.get('clock', {}).get('displayValue', '')
-                            if g_time: scorer = "{} {}".format(scorer, g_time)
+                            full_text = play.get('text', '')
+                            if full_text:
+                                if "Goal by " in full_text: scorer = full_text.split("Goal by ")[1].split("-")[0].strip()
+                                elif "Own Goal by " in full_text: scorer = full_text.split("Own Goal by ")[1].split("-")[0].strip()
+                                elif " Goal " in full_text or " Goal" in full_text: scorer = full_text.split(" Goal")[0].strip()
+                                elif " Penalty " in full_text or " Penalty" in full_text: scorer = full_text.split(" Penalty")[0].strip()
                             
-                            t_id = str(play.get('team', {}).get('id', ''))
-                            if t_id == str(home_id): h_scorers.append(scorer)
-                            elif t_id == str(away_id): a_scorers.append(scorer)
+                            if not scorer:
+                                clean = play.get('type', {}).get('text', '')
+                                if "Goal - " in clean: scorer = clean.split("Goal - ")[1].split('(')[0].strip()
+                                elif "Gamewinner - " in clean: scorer = clean.split("Gamewinner - ")[1].split('(')[0].strip()
+                                elif "Short Handed Goal - " in clean: scorer = clean.split("Short Handed Goal - ")[1].split('(')[0].strip()
+                                elif "Power Play Goal - " in clean: scorer = clean.split("Power Play Goal - ")[1].split('(')[0].strip()
+                        if scorer: scorer = scorer.strip()
+                        if not scorer:
+                            scorer = "Goal"
+                            
+                        # (G) is redundant, only show (P)enalty or (O)wn Goal
+                        g_type = ""
+                        if "penalty" in text_desc: g_type = " (P)"
+                        elif "own" in text_desc: g_type = " (O)"
+
+                        g_time = play.get('clock', {}).get('displayValue', '')
+                        if g_time: 
+                            scorer = "{}{}{} {}".format(scorer, g_type, "", g_time).replace("  ", " ")
+                        else: 
+                            scorer = "{}{}".format(scorer, g_type)
+                            
+                        t_id = str(play.get('team', {}).get('id', ''))
+                        if t_id == str(home_id): h_scorers.append(scorer)
+                        elif t_id == str(away_id): a_scorers.append(scorer)
         except: pass
-        def format_list(lst):
-            if not lst: return ""
+        def format_list(lst, rc_lst):
+            if not lst and not rc_lst: return ""
             seen = set(); unique = [x for x in lst if not (x in seen or seen.add(x))]
             final_str = ", ".join(unique)
             if len(final_str) > 35:
-                # If too long, try shortening names but ALWAYS keep Name + Time
                 short_list = []
                 for n in unique:
                     parts = n.split(' ')
                     if len(parts) >= 2:
-                        # Keep last name and time
                         short_list.append("{} {}".format(parts[-2], parts[-1]))
                     else:
                         short_list.append(n)
                 final_str = ", ".join(short_list)
+            if rc_lst:
+                rc_str = ", ".join(rc_lst)
+                if final_str: final_str += " |RC| " + rc_str
+                else: final_str = " |RC| " + rc_str
             return final_str
-        return format_list(h_scorers), format_list(a_scorers)
+        return format_list(h_scorers, h_rcs), format_list(a_scorers, a_rcs)
 
     def parse_json(self):
         events = global_sports_monitor.cached_events
@@ -5661,87 +7612,58 @@ class SimpleSportsMiniBar2(Screen):
             if self.matches and "Loading" in global_sports_monitor.status_message:
                 return
             msg = global_sports_monitor.status_message or "Loading..."
-            self.matches = [{'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': "", 'score': "", 'status': "", 'time': "", 'h_png': None, 'a_png': None}]
+            self.matches = [{'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': "", 'score': "", 'status': "", 'time': "", 'h_url': "", 'a_url': "", 'l_url': "", 'h_id': "", 'a_id': "", 'l_id': ""}]
             self.show_next_match()
             return
             
-        now = datetime.datetime.now()
-        today_str = now.strftime("%Y-%m-%d"); tom_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-        
-        # LOGO CHECKING
-        tmp_path = "/tmp/simplysports/logos/"
-        
+        mode = global_sports_monitor.filter_mode
+
         for event in events:
-            status = event.get('status', {}); state = status.get('type', {}).get('state', 'pre')
-            clock = status.get('displayClock', '00:00')
-            if ":" in clock: clock = clock.split(':')[0] + "'"
-            local_time = get_local_time_str(event.get('date', ''))
-            league_name = event.get('league_name', '')
-            mode = global_sports_monitor.filter_mode; ev_date = event.get('date', '')[:10]
-            if mode == 0 and state != 'in': continue
-            # Fix: Always show LIVE matches in "Today" view, even if UTC date was yesterday
-            if mode == 2 and ev_date != today_str and state != 'in': continue
-            if mode == 3 and ev_date != tom_str: continue
-            
-            # Use logo URLs and IDs directly from event (set by process_events_data)
-            h_url = event.get('h_logo_url', '')
-            a_url = event.get('a_logo_url', '')
-            l_url = event.get('l_logo_url', '')
-            h_id = event.get('h_logo_id', '') or '0'
-            a_id = event.get('a_logo_id', '') or '0'
-            l_id = event.get('l_logo_id', '') or '0'
-            
+            snap = global_sports_monitor.match_snapshots.get(str(event.get('id', '')))
+            if not snap: continue
+            if not snapshot_passes_filter(snap, mode): continue
+
+            # Racing events (>2 competitors) -- use event shortName
             comps = event.get('competitions', [{}])[0].get('competitors', [])
-            
-            # Detect sport type for proper name extraction
-            league_url = event.get('league_url', '')
-            event_sport_type = get_sport_type(league_url)
-            
             if len(comps) > 2:
-                race = event.get('shortName', 'Event'); venue = event.get('competitions', [{}])[0].get('venue', {}).get('fullName', '')
-                match_data = {'league': league_name, 'color': 0xffffff, 'home': race, 'away': venue, 'score': "VS", 'status': "SCH", 'time': local_time, 'h_url': h_url, 'a_url': a_url, 'l_url': l_url, 'h_id': h_id, 'a_id': a_id, 'l_id': l_id}
+                race = event.get('shortName', 'Event')
+                venue = event.get('competitions', [{}])[0].get('venue', {}).get('fullName', '')
+                match_data = {'league': snap['league_name'], 'color': 0xffffff, 'home': race, 'away': venue,
+                              'score': "VS", 'status': snap['status_short'], 'time': snap['time_str'],
+                              'h_url': snap['h_logo_url'], 'a_url': snap['a_logo_url'], 'l_url': snap['l_logo_url'],
+                              'h_id': snap['h_logo_id'], 'a_id': snap['a_logo_id'], 'l_id': snap['l_logo_id']}
             else:
-                home, away, h_score, a_score = "Home", "Away", "0", "0"; h_team_id, a_team_id = "0", "0"
-                
-                # Tennis/Combat use athlete, team sports use team
-                if event_sport_type in [SPORT_TYPE_TENNIS, SPORT_TYPE_COMBAT]:
-                    for i, comp in enumerate(comps[:2]):
-                        name = comp.get('athlete', {}).get('shortName') or comp.get('athlete', {}).get('displayName') or comp.get('name', 'Player')
-                        if len(name) > 15: name = name[:14] + "."
-                        
-                        sc = comp.get('score', '')
-                        if event_sport_type == SPORT_TYPE_TENNIS:
-                            t1, t2 = calculate_tennis_scores(comps, state)
-                            sc = t1 if i == 0 else t2
-                        
-                        if not sc: sc = '0'
-                        tid = comp.get('athlete', {}).get('id', '0')
-                        # Tennis: first competitor = player1/home, second = player2/away
-                        if i == 0: home, h_score, h_team_id = name, sc, tid
-                        else: away, a_score, a_team_id = name, sc, tid
-                else:
-                    # Team sports
-                    for team in comps:
-                        name = team.get('team', {}).get('displayName', 'Team'); sc = team.get('score', '0'); tid = team.get('team', {}).get('id', '0')
-                        if team.get('homeAway') == 'home': home, h_score, h_team_id = name, sc, tid
-                        else: away, a_score, a_team_id = name, sc, tid
-                        
-                score_str = "VS"; status_str = "SCH"
-                # OPTIMIZATION: Defer scorer calculation to show_next_match (lazy loading)
-                if state == 'in':
-                    score_str = "{} - {}".format(h_score, a_score); status_str = clock
-                    local_time = "Live"
-                elif state == 'post':
-                    score_str = "{} - {}".format(h_score, a_score); status_str = "FT"
-                    
+                # League color lookup
                 l_color = 0xffffff
                 for key, val in self.league_colors.items():
-                    if key in league_name.upper() or key in event.get('shortName', '').upper(): l_color = val; break
-                    
-                # Store event reference and IDs for lazy scorer loading
-                match_data = {'league': league_name, 'color': l_color, 'home': home, 'away': away, 'score': score_str, 'status': status_str, 'time': local_time, 'h_url': h_url, 'a_url': a_url, 'l_url': l_url, 'h_id': h_id, 'a_id': a_id, 'l_id': l_id,
-                              'home_clean': home, 'away_clean': away, 'h_scorers': None, 'a_scorers': None, 
-                              'event_ref': event, 'h_team_id': h_team_id, 'a_team_id': a_team_id, 'sport_type': event_sport_type, 'state': state}
+                    if key in snap['league_name'].upper() or key in event.get('shortName', '').upper(): l_color = val; break
+
+                # Build match data from snapshot -- all parsing already done
+                match_data = {
+                    'league':     snap['league_name'],
+                    'color':      l_color,
+                    'home':       snap['h_name_short'],
+                    'away':       snap['a_name_short'],
+                    'score':      snap['score_str'],
+                    'status':     snap['status_short'],
+                    'time':       snap['time_str'],
+                    'h_url':      snap['h_logo_url'],
+                    'a_url':      snap['a_logo_url'],
+                    'l_url':      snap['l_logo_url'],
+                    'h_id':       snap['h_logo_id'],
+                    'a_id':       snap['a_logo_id'],
+                    'l_id':       snap['l_logo_id'],
+                    # MiniBar2 extras for lazy scorer loading
+                    'home_clean': snap['h_name_short'],
+                    'away_clean': snap['a_name_short'],
+                    'h_scorers':  None,
+                    'a_scorers':  None,
+                    'event_ref':  event,
+                    'h_team_id':  snap['h_team_id'],
+                    'a_team_id':  snap['a_team_id'],
+                    'sport_type': snap['sport_type'],
+                    'state':      snap['state'],
+                }
             new_matches.append(match_data)
             
         # Handle Filter Empty
@@ -5758,7 +7680,7 @@ class SimpleSportsMiniBar2(Screen):
         self.matches = new_matches
         if not self.ticker_timer.isActive(): 
             self.show_next_match()
-            self.ticker_timer.start(5000)
+            self.ticker_timer.start(5000, False)
 
     def show_next_match(self):
         if not self.matches: return
@@ -5811,12 +7733,41 @@ class SimpleSportsMiniBar2(Screen):
         self["lbl_away"].setText(str(a_txt))
         # self["lbl_status"] is already set in font adjustment block above
         
-        # Set scorers if they exist
-        if h_sc: self["lbl_home_sc"].setText("({})".format(h_sc))
-        else: self["lbl_home_sc"].setText("")
-        
-        if a_sc: self["lbl_away_sc"].setText("({})".format(a_sc))
-        else: self["lbl_away_sc"].setText("")
+        # Red Card / Scorer Parser
+        rc_pixmap = self.rc_pixmap
+
+        def render_scorer_rc(widget_sc, widget_rc, widget_rctxt, text):
+            if not text:
+                widget_sc.setText("")
+                widget_rc.hide()
+                widget_rctxt.hide()
+                return
+
+            if "|RC|" in text:
+                parts = text.split("|RC|")
+                sc_part = parts[0].strip()
+                rc_part = ", ".join([p.strip() for p in parts[1:] if p.strip()])
+                
+                if sc_part: widget_sc.setText("({})".format(sc_part))
+                else: widget_sc.setText("")
+                
+                if rc_pixmap:
+                    try:
+                        widget_rc.instance.setPixmap(rc_pixmap)
+                        widget_rc.instance.setScale(1)
+                    except: pass
+                    widget_rc.show()
+                else: widget_rc.hide()
+                
+                widget_rctxt.setText(rc_part)
+                widget_rctxt.show()
+            else:
+                widget_sc.setText("({})".format(text))
+                widget_rc.hide()
+                widget_rctxt.hide()
+                
+        render_scorer_rc(self["lbl_home_sc"], self["h_sc_rc"], self["h_sc_rctxt"], h_sc)
+        render_scorer_rc(self["lbl_away_sc"], self["a_sc_rc"], self["a_sc_rctxt"], a_sc)
         
         self["lbl_time"].setText(str(data.get('time', '')))
         
@@ -5825,31 +7776,204 @@ class SimpleSportsMiniBar2(Screen):
         self.load_logo(data.get('l_url'), data.get('l_id'), "l_logo")
 
     def load_logo(self, url, img_id, widget_name):
-        """Load logo using team ID naming (aligned with GameInfoScreen approach)"""
-        if not url: self[widget_name].hide(); return
+        """Delegate to shared logo loader (unified cache + pixmap memory cache)"""
+        load_logo_to_widget(self, widget_name, url, img_id)
 
-        # Fallback for missing ID
-        if not img_id or img_id == '0' or img_id == '':
-            import hashlib
-            img_id = hashlib.md5(url.encode('utf-8')).hexdigest()[:10]
+# ==============================================================================
+# ATHLETE PROFILE SCREEN
+# ==============================================================================
+class AthleteProfileScreen(Screen):
+    def __init__(self, session, athlete_id, athlete_name, sport="soccer", league="eng.1"):
+        Screen.__init__(self, session)
+        self.session = session
+        self.athlete_id = str(athlete_id)
+        self.athlete_name = athlete_name
+        self.sport = sport
+        self.league = league
+        self.theme = global_sports_monitor.theme_mode
         
-        file_path = self.logo_path + str(img_id) + ".png"
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-            self[widget_name].instance.setScale(1)
-            self[widget_name].instance.setPixmapFromFile(file_path)
-            self[widget_name].show()
+        # API URLs
+        self.api_url = "https://site.web.api.espn.com/apis/common/v3/sports/{}/{}/athletes/{}/overview".format(sport, league, athlete_id)
+        
+        # UI State
+        self.full_rows = []
+        
+        if self.theme == "ucl":
+            bg_color = "#00000000"; top_bar = "#091442"; accent = "#00ffff"
         else:
-            self[widget_name].hide()
-            # Download to team ID path
-            from twisted.web.client import downloadPage
-            downloadPage(url.encode('utf-8'), file_path).addCallback(self.logo_downloaded, widget_name, file_path).addErrback(self.logo_error)
+            bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
+            
+        common_widgets = """
+            <widget name="match_title" position="0,5" size="1600,28" font="Regular;26" foregroundColor="{accent}" transparent="1" halign="center" valign="center" text="PLAYER PROFILE" zPosition="6" />
+            
+            <!-- Headshot and Logos -->
+            <widget name="headshot" position="50,25" size="110,110" alphatest="blend" zPosition="5" scale="1" />
+            <widget name="t_logo" position="1440,25" size="110,110" alphatest="blend" zPosition="5" scale="1" />
+            
+            <!-- Core Info -->
+            <widget name="a_name" position="170,35" size="600,55" font="Regular;44" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
+            <widget name="a_details" position="170,90" size="800,30" font="Regular;24" foregroundColor="#aaaaaa" transparent="1" halign="left" valign="center" zPosition="5" />
+            
+            <!-- List -->
+            <widget name="info_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
+            <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
+        """.replace("{accent}", accent)
+        
+        self.skin = f"""<screen position="center,center" size="1600,900" title="Player Profile" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{common_widgets}</screen>"""
+        
+        self["match_title"] = Label("PLAYER PROFILE")
+        self["a_name"] = Label(athlete_name)
+        self["a_details"] = Label("")
+        self["headshot"] = Pixmap()
+        self["t_logo"] = Pixmap()
+        self["loading"] = Label("Loading profile...")
+        
+        self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
+        self["info_list"].l.setFont(0, gFont("Regular", 24))
+        self["info_list"].l.setFont(1, gFont("Regular", 20))
+        self["info_list"].l.setItemHeight(50)
+        
+        self["actions"] = ActionMap(["SetupActions", "ColorActions"], {
+            "cancel": self.close, "green": self.close, "ok": self.close, "back": self.close,
+            "up": self["info_list"].up, "down": self["info_list"].down
+        }, -2)
+        
+        self.onLayoutFinish.append(self.start_loading)
 
-    def logo_downloaded(self, data, widget_name, file_path):
-        if self[widget_name].instance:
-            self[widget_name].instance.setScale(1)
-            self[widget_name].instance.setPixmapFromFile(file_path)
-            self[widget_name].show()
-    def logo_error(self, error): pass
+    def start_loading(self):
+        from twisted.web.client import getPage
+        # Note: headshot loading uses the common sport name, so typically "soccer" works.
+        headshot_url = "https://a.espncdn.com/combiner/i?img=/i/headshots/{}/players/full/{}.png".format(self.sport, self.athlete_id)
+        load_logo_to_widget(self, "headshot", headshot_url, "p_" + self.athlete_id)
+        
+        getPage(self.api_url.encode('utf-8')).addCallback(self.parse_data).addErrback(self.error_data)
+
+    def error_data(self, error):
+        self["loading"].setText("Error loading profile.")
+
+    def parse_data(self, body):
+        try:
+            self["loading"].hide()
+            import json
+            data = json.loads(body.decode('utf-8', errors='ignore'))
+            
+            athlete = data.get('athlete', {})
+            
+            # --- HEADER DETAILS ---
+            pos = athlete.get('position', {}).get('displayName', '')
+            jersey = athlete.get('displayJersey', '')
+            height = athlete.get('displayHeight', '')
+            weight = athlete.get('displayWeight', '')
+            age = str(athlete.get('age', ''))
+            citizenship = athlete.get('citizenship', '')
+            
+            parts = []
+            if jersey: parts.append(jersey)
+            if pos: parts.append(pos)
+            if height and weight: parts.append("{} / {}".format(height, weight))
+            if age: parts.append("{} yrs".format(age))
+            if citizenship: parts.append(citizenship)
+            
+            self["a_details"].setText(" | ".join(parts))
+            if not self.athlete_name or self.athlete_name == "Player":
+                self["a_name"].setText(athlete.get('displayName', 'Player Profile'))
+                
+            # Team logo
+            t_logo = athlete.get('team', {}).get('logos', [{}])[0].get('href', '')
+            t_id = athlete.get('team', {}).get('id', '')
+            if t_logo:
+                load_logo_to_widget(self, "t_logo", t_logo, "t_" + str(t_id))
+
+            self.full_rows = []
+            
+            # --- SEASON STATS SUMMARY ---
+            stats_summary = data.get('statsSummary', {})
+            if stats_summary:
+                self.full_rows.append(TextListEntry(stats_summary.get('displayName', 'SEASON STATS'), self.theme, is_header=True))
+                stats_list = stats_summary.get('statistics', [])
+                # Group by 3 for display
+                for i in range(0, len(stats_list), 3):
+                    chunk = stats_list[i:i+3]
+                    row_txt = "  |  ".join(["{}: {}".format(s.get('shortDisplayName', s.get('name', '')), s.get('displayValue', '')) for s in chunk])
+                    self.full_rows.append(TextListEntry("    " + row_txt, self.theme))
+                self.full_rows.append(TextListEntry("", self.theme))
+
+            # --- SPLITS ---
+            stats = data.get('statistics', {})
+            if stats:
+                self.full_rows.append(TextListEntry("COMPETITION SPLITS", self.theme, is_header=True))
+                splits = stats.get('splits', [])
+                disp_names = stats.get('displayNames', [])
+                
+                names = stats.get('names', [])
+                key_stats = ['appearances', 'starts', 'totalGoals', 'goalAssists', 'yellowCards', 'redCards', 'cleanSheet', 'saves', 'goalsConceded']
+                idx_map = []
+                for ks in key_stats:
+                    try: idx_map.append((names.index(ks), disp_names[names.index(ks)].replace("Total ", "").replace("Yellow ", "Y").replace("Red ", "R")))
+                    except: pass
+                
+                # Header row
+                header_txt = "COMPETITION"
+                for idx, name in idx_map: header_txt += " | " + name
+                self.full_rows.append(TextListEntry("    " + header_txt, self.theme))
+                
+                for split in splits:
+                    name = split.get('displayName', '')
+                    s_vals = split.get('stats', [])
+                    row_txt = name
+                    for idx, _ in idx_map:
+                        val = s_vals[idx] if idx < len(s_vals) else "-"
+                        row_txt += " | " + str(val)
+                    self.full_rows.append(TextListEntry("    " + row_txt, self.theme))
+                self.full_rows.append(TextListEntry("", self.theme))
+
+            # --- GAMELOG ---
+            gamelog = data.get('gameLog', {})
+            if gamelog:
+                self.full_rows.append(TextListEntry(gamelog.get('displayName', 'RECENT MATCHES'), self.theme, is_header=True))
+                gl_stats = gamelog.get('statistics', [])
+                if gl_stats:
+                    g_stat = gl_stats[0]
+                    names = g_stat.get('names', [])
+                    disp_names = g_stat.get('displayNames', [])
+                    events = g_stat.get('events', [])
+                    
+                    key_stats = ['appearances', 'totalGoals', 'goalAssists', 'yellowCards', 'redCards', 'saves', 'goalsConceded']
+                    idx_map = []
+                    for ks in key_stats:
+                        try: idx_map.append((names.index(ks), disp_names[names.index(ks)].replace("Total ", "").replace("Yellow ", "Y").replace("Red ", "R")))
+                        except: pass
+                    
+                    for ev in events[:5]: # Last 5 matches
+                        ev_id = ev.get('eventId')
+                        ev_data = gamelog.get('events', {}).get(ev_id, {})
+                        if ev_data:
+                            date_str = ev_data.get('gameDate', '')[:10]
+                            opp = ev_data.get('opponent', {}).get('abbreviation', '')
+                            res = ev_data.get('gameResult', '') + " " + ev_data.get('score', '')
+                            match_str = "{} vs {} ({})".format(date_str, opp, res)
+                            
+                            stats_arr = ev.get('stats', [])
+                            for idx, name in idx_map:
+                                val = stats_arr[idx] if idx < len(stats_arr) else "-"
+                                if str(val) not in ["0", "-", "0.0", "Started"]:
+                                    match_str += " | {}: {}".format(name, val)
+                            
+                            self.full_rows.append(TextListEntry("    " + match_str, self.theme))
+                self.full_rows.append(TextListEntry("", self.theme))
+                
+            # --- NEWS ---
+            news = data.get('news', [])
+            if news:
+                self.full_rows.append(TextListEntry("LATEST NEWS", self.theme, is_header=True))
+                for n in news[:3]:
+                    hl = n.get('headline', '')
+                    self.full_rows.append(TextListEntry("    \u2022 " + hl, self.theme, align="left"))
+
+            self["info_list"].setList(self.full_rows)
+        except Exception as e:
+            self["loading"].setText("Parse Error: " + str(e))
+            self["loading"].show()
 
 # ==============================================================================
 # MINI BAR 1 (Top Left) - FIXED: Callback Synchronization
@@ -5857,9 +7981,6 @@ class SimpleSportsMiniBar2(Screen):
 class SimpleSportsMiniBar(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
-        
-        # 1. Register for Data Updates
-        global_sports_monitor.register_callback(self.on_data_ready)
         
         # RAM Path
         self.logo_path = "/tmp/simplysports/logos/"
@@ -5898,9 +8019,9 @@ class SimpleSportsMiniBar(Screen):
             u'foregroundColor="#00FFFFFF" backgroundColor="#00142030" valign="center" halign="center" zPosition="4" />'
 
             # --- TEAM NAMES (inside the band) ---
-            u'<widget name="lbl_home" position="100,42" size="290,38" font="Regular;32" '
+            u'<widget name="lbl_home" position="100,42" size="275,38" font="Regular;32" '
             u'foregroundColor="#00FFFFFF" backgroundColor="#002C4060" valign="center" halign="right" zPosition="4" />'
-            u'<widget name="lbl_away" position="560,42" size="290,38" font="Regular;32" '
+            u'<widget name="lbl_away" position="572,42" size="278,38" font="Regular;32" '
             u'foregroundColor="#00FFFFFF" backgroundColor="#002C4060" valign="center" halign="left" zPosition="4" />'
 
             # --- LARGE LOGOS (overlapping band at edges) ---
@@ -5908,6 +8029,15 @@ class SimpleSportsMiniBar(Screen):
             u'<widget name="a_logo" position="860,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
 
             # (League and Status moved above band)
+
+            # --- RED CARD INDICATORS (between name and score box) ---
+            u'<widget name="h_rc" position="392,50" size="16,22" alphatest="blend" scale="1" zPosition="5" />'
+            u'<widget name="h_rc_txt" position="385,50" size="30,22" font="Regular;16" '
+            u'foregroundColor="#00FF3333" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="5" />'
+            u'<widget name="a_rc" position="552,50" size="16,22" alphatest="blend" scale="1" zPosition="5" />'
+            u'<widget name="a_rc_txt" position="550,50" size="30,22" font="Regular;16" '
+            u'foregroundColor="#00FF3333" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="5" />'
+
             u'</screen>'
         )
 
@@ -5916,6 +8046,15 @@ class SimpleSportsMiniBar(Screen):
         self["lbl_score"] = Label("")
         self["lbl_away"] = Label("")
         self["lbl_status"] = Label("")
+        
+        self["h_rc"] = Pixmap()
+        self["h_rc_txt"] = Label("")
+        self["a_rc"] = Pixmap()
+        self["a_rc_txt"] = Label("")
+        self["h_rc"].hide()
+        self["h_rc_txt"].hide()
+        self["a_rc"].hide()
+        self["a_rc_txt"].hide()
         
         self["h_logo"] = Pixmap()
         self["a_logo"] = Pixmap()
@@ -5926,6 +8065,12 @@ class SimpleSportsMiniBar(Screen):
         
         self.matches = []
         self.current_match_idx = 0
+        self.rc_pixmap = None
+        try:
+            rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+            if os.path.exists(rc_path) and LoadPixmap:
+                self.rc_pixmap = LoadPixmap(cached=True, path=rc_path)
+        except: pass
         
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
             "cancel": self.close,
@@ -5939,6 +8084,8 @@ class SimpleSportsMiniBar(Screen):
         self.refresh_timer = eTimer()
         safe_connect(self.refresh_timer, self.refresh_data)
         
+        # 1. Register for Data Updates
+        global_sports_monitor.register_callback(self.on_data_ready)
         self.onLayoutFinish.append(self.start_ui)
         self.onClose.append(self.cleanup)
 
@@ -5953,9 +8100,13 @@ class SimpleSportsMiniBar(Screen):
         global_sports_monitor.check_goals()
         # 3. Start periodic refresh
         import random
-        self.refresh_timer.start(60000 + random.randint(0, 15000))
+        # ENSURE: single_shot=False (2nd param) for repeating update
+        self.refresh_timer.start(60000 + random.randint(0, 15000), False)
+        # Also ensure ticker timer is running
+        if not self.ticker_timer.isActive():
+            self.ticker_timer.start(5000, False)
 
-    def on_data_ready(self, success):
+    def on_data_ready(self, success, force_refresh=False):
         # This is called AUTOMATICALLY when Monitor finishes downloading
         self.parse_json()
 
@@ -5969,6 +8120,82 @@ class SimpleSportsMiniBar(Screen):
             
     def refresh_data(self): 
         global_sports_monitor.check_goals(from_ui=True)
+
+    def get_scorers_string(self, event, home_id, away_id):
+        h_el = []; a_el = []
+        try:
+            details = event.get('competitions', [{}])[0].get('details', [])
+            if not details: details = event.get('header', {}).get('competitions', [{}])[0].get('details', [])
+            if details:
+                for play in details:
+                    text_desc = play.get('type', {}).get('text', '').lower()
+                    
+                    # 1. Check for Red Cards
+                    is_rc = play.get('redCard', False) or ('card' in text_desc and 'red' in text_desc)
+                    if is_rc:
+                        rc_ath = play.get('athletesInvolved', [])
+                        if not rc_ath: rc_ath = play.get('participants', [])
+                        if rc_ath:
+                            rc_name = rc_ath[0].get('shortName') or rc_ath[0].get('displayName', '')
+                            if rc_name:
+                                t_id = str(play.get('team', {}).get('id', ''))
+                                rc_str = "|RC| " + rc_name
+                                if t_id == str(home_id) and rc_str not in h_el: h_el.append(rc_str)
+                                elif t_id == str(away_id) and rc_str not in a_el: a_el.append(rc_str)
+
+                    # 2. Check for Goals
+                    is_scoring = play.get('scoringPlay', False) or "goal" in text_desc or "score" in text_desc or "touchdown" in text_desc
+                    if is_scoring and "disallowed" not in text_desc:
+                        scorer = ""
+                        athletes = play.get('athletesInvolved', [])
+                        if athletes: scorer = athletes[0].get('shortName') or athletes[0].get('displayName')
+                        elif play.get('participants'): scorer = play['participants'][0].get('athlete', {}).get('shortName')
+                        
+                        if not scorer:
+                            clean = play.get('type', {}).get('text', '')
+                            if "Goal - " in clean: scorer = clean.split("Goal - ")[1].split('(')[0].strip()
+                            elif "Gamewinner - " in clean: scorer = clean.split("Gamewinner - ")[1].split('(')[0].strip()
+                            elif "Short Handed Goal - " in clean: scorer = clean.split("Short Handed Goal - ")[1].split('(')[0].strip()
+                            elif "Power Play Goal - " in clean: scorer = clean.split("Power Play Goal - ")[1].split('(')[0].strip()
+                        
+                        if scorer:
+                            # (G) is redundant, only show (P)enalty or (O)wn Goal
+                            goal_type = ""
+                            if "penalty" in text_desc: goal_type = " (P)"
+                            elif "own" in text_desc: goal_type = " (O)"
+                            
+                            g_time = play.get('clock', {}).get('displayValue', '')
+                            if g_time: 
+                                scorer = "{}{}{} {}".format(scorer, goal_type, "", g_time).replace("  ", " ")
+                            else: 
+                                scorer = "{}{}".format(scorer, goal_type)
+                            
+                            t_id = str(play.get('team', {}).get('id', ''))
+                            if t_id == str(home_id): h_el.append(scorer)
+                            elif t_id == str(away_id): a_el.append(scorer)
+        except: pass
+        
+        def format_list(lst):
+            if not lst: return ""
+            goals = [x for x in lst if "|RC|" not in x]
+            rcs = [x for x in lst if "|RC|" in x]
+            
+            seen_g = set(); unique_g = [x for x in goals if not (x in seen_g or seen_g.add(x))]
+            g_str = ", ".join(unique_g)
+            if len(g_str) > 30: 
+                short_g = []
+                for n in unique_g:
+                    parts = n.split(' ')
+                    if len(parts) >= 3:
+                        short_g.append("{} {} {}".format(parts[-3], parts[-2], parts[-1]))
+                    else: short_g.append(n)
+                g_str = ", ".join(short_g)
+            
+            seen_rc = set(); unique_rc = [x for x in rcs if not (x in seen_rc or seen_rc.add(x))]
+            rc_str = " ".join(unique_rc)
+            return (g_str + " " + rc_str).strip()
+
+        return format_list(h_el), format_list(a_el)
 
     def parse_json(self):
         events = global_sports_monitor.cached_events
@@ -5984,75 +8211,42 @@ class SimpleSportsMiniBar(Screen):
             self.show_next_match()
             return
             
-        now = datetime.datetime.now()
-        today_str = now.strftime("%Y-%m-%d")
-        tom_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        mode = global_sports_monitor.filter_mode
 
         for event in events:
-            status = event.get('status', {})
-            state = status.get('type', {}).get('state', 'pre')
-            clock = status.get('displayClock', '00:00')
-            if ":" in clock: clock = clock.split(':')[0] + "'"
-            
-            league_name = event.get('league_name', '')
-            mode = global_sports_monitor.filter_mode
-            ev_date = event.get('date', '')[:10]
-            
-            if mode == 0 and state != 'in': continue
-            # Fix: Always show LIVE matches in "Today" view, even if UTC date was yesterday
-            if mode == 2 and ev_date != today_str and state != 'in': continue
-            if mode == 3 and ev_date != tom_str: continue
+            snap = global_sports_monitor.match_snapshots.get(str(event.get('id', '')))
+            if not snap: continue
+            if not snapshot_passes_filter(snap, mode): continue
 
-            # Use logo URLs and IDs directly from event (set by process_events_data)
-            h_url = event.get('h_logo_url', '')
-            a_url = event.get('a_logo_url', '')
-            l_url = event.get('l_logo_url', '')
-            h_id = event.get('h_logo_id', '') or '0'
-            a_id = event.get('a_logo_id', '') or '0'
-            l_id = event.get('l_logo_id', '') or '0'
-
+            # Racing events (>2 competitors) -- use event shortName
             comps = event.get('competitions', [{}])[0].get('competitors', [])
-            
-            # Detect sport type for proper name extraction
-            league_url = event.get('league_url', '')
-            event_sport_type = get_sport_type(league_url)
-            
             if len(comps) > 2:
                 race = event.get('shortName', 'Event')
                 venue = event.get('competitions', [{}])[0].get('venue', {}).get('fullName', '')
-                match_data = {'league': league_name, 'home': race, 'away': venue, 'score': "VS", 'status': "SCH", 'h_url': "", 'a_url': "", 'l_url': "", 'h_id': "", 'a_id': "", 'l_id': ""}
+                match_data = {'league': snap['league_name'], 'home': race, 'away': venue,
+                              'score': "VS", 'status': snap['status_short'],
+                              'h_url': snap['h_logo_url'], 'a_url': snap['a_logo_url'], 'l_url': snap['l_logo_url'],
+                              'h_id': snap['h_logo_id'], 'a_id': snap['a_logo_id'], 'l_id': snap['l_logo_id']}
             else:
-                home, away, h_score, a_score = "Home", "Away", "0", "0"
-                
-                # Tennis/Combat use athlete, team sports use team
-                if event_sport_type in [SPORT_TYPE_TENNIS, SPORT_TYPE_COMBAT]:
-                    for i, comp in enumerate(comps[:2]):
-                        name = comp.get('athlete', {}).get('shortName') or comp.get('athlete', {}).get('displayName') or comp.get('name', 'Player')
-                        # Truncate long names
-                        if len(name) > 15: name = name[:14] + "."
-                        
-                        sc = comp.get('score', '')
-                        if event_sport_type == SPORT_TYPE_TENNIS:
-                            t1, t2 = calculate_tennis_scores(comps, state)
-                            sc = t1 if i == 0 else t2
-                        
-                        if not sc: sc = '0'
-                        # Tennis: first competitor = player1/home, second = player2/away
-                        if i == 0: home, h_score = name, sc
-                        else: away, a_score = name, sc
-                else:
-                    # Team sports
-                    for team in comps:
-                        name = team.get('team', {}).get('displayName', 'Team')
-                        sc = team.get('score', '0')
-                        if team.get('homeAway') == 'home': home, h_score = name, sc
-                        else: away, a_score = name, sc
-                
-                score_str = "VS"; status_str = "SCH"
-                if state == 'in': score_str = "{} - {}".format(h_score, a_score); status_str = clock
-                elif state == 'post': score_str = "{} - {}".format(h_score, a_score); status_str = "FT"
-                
-                match_data = {'league': league_name, 'home': home, 'away': away, 'score': score_str, 'status': status_str, 'h_url': h_url, 'a_url': a_url, 'l_url': l_url, 'h_id': h_id, 'a_id': a_id, 'l_id': l_id}
+                # Build match data from snapshot -- all parsing already done
+                h_scorer, a_scorer = self.get_scorers_string(event, snap['h_team_id'], snap['a_team_id'])
+                match_data = {
+                    'league':  snap['league_name'],
+                    'home':    snap['h_name_short'],
+                    'away':    snap['a_name_short'],
+                    'score':   snap['score_str'],
+                    'status':  (snap['status_short'] + ' ' + snap['clock']) if snap['is_live'] and snap['clock'] else (snap['status_short'] + ' ' + snap['time_str'] if snap['state'] == 'pre' and snap['time_str'] else snap['status_short']),
+                    'h_url':   snap['h_logo_url'],
+                    'a_url':   snap['a_logo_url'],
+                    'l_url':   snap['l_logo_url'],
+                    'h_id':    snap['h_logo_id'],
+                    'a_id':    snap['a_logo_id'],
+                    'l_id':    snap['l_logo_id'],
+                    'h_red_cards': snap.get('h_red_cards', 0),
+                    'a_red_cards': snap.get('a_red_cards', 0),
+                    'h_scorer': h_scorer,
+                    'a_scorer': a_scorer
+                }
             new_matches.append(match_data)
             
         # Handle Filter Empty
@@ -6069,7 +8263,7 @@ class SimpleSportsMiniBar(Screen):
         self.matches = new_matches
         if not self.ticker_timer.isActive(): 
             self.show_next_match()
-            self.ticker_timer.start(5000)
+            self.ticker_timer.start(5000, False)
 
     def show_next_match(self):
         if not self.matches: return
@@ -6089,33 +8283,88 @@ class SimpleSportsMiniBar(Screen):
         self.load_logo(data.get('h_url'), data.get('h_id'), "h_logo")
         self.load_logo(data.get('a_url'), data.get('a_id'), "a_logo")
         self.load_logo(data.get('l_url'), data.get('l_id'), "l_logo")
+        
+        # Red Card Indicators
+        h_rc = data.get('h_red_cards', 0)
+        a_rc = data.get('a_red_cards', 0)
+        
+        # Try to load red card image
+        rc_pixmap = self.rc_pixmap
+        
+        if h_rc > 0:
+            if rc_pixmap:
+                try:
+                    self["h_rc"].instance.setPixmap(rc_pixmap)
+                    self["h_rc"].instance.setScale(1)
+                except: pass
+                self["h_rc"].show()
+                self["h_rc_txt"].hide()
+            else:
+                rc_txt = "RC" if h_rc == 1 else "{}RC".format(h_rc)
+                self["h_rc_txt"].setText(rc_txt)
+                self["h_rc_txt"].show()
+                self["h_rc"].hide()
+        else:
+            self["h_rc"].hide()
+            self["h_rc_txt"].hide()
+        
+        if a_rc > 0:
+            if rc_pixmap:
+                try:
+                    self["a_rc"].instance.setPixmap(rc_pixmap)
+                    self["a_rc"].instance.setScale(1)
+                except: pass
+                self["a_rc"].show()
+                self["a_rc_txt"].hide()
+            else:
+                rc_txt = "RC" if a_rc == 1 else "{}RC".format(a_rc)
+                self["a_rc_txt"].setText(rc_txt)
+                self["a_rc_txt"].show()
+                self["a_rc"].hide()
+        else:
+            self["a_rc"].hide()
+            self["a_rc_txt"].hide()
+
+        # Scorer & Scorer Red Cards
+        h_sc_text = data.get('h_scorer', '')
+        a_sc_text = data.get('a_scorer', '')
+        
+        def render_scorer_rc(widget_sc, widget_rc, widget_rctxt, text):
+            if not text:
+                widget_sc.setText("")
+                widget_rc.hide()
+                widget_rctxt.hide()
+                return
+
+            if "|RC|" in text:
+                parts = text.split("|RC|")
+                sc_part = parts[0].strip()
+                rc_part = ", ".join([p.strip() for p in parts[1:] if p.strip()])
+                widget_sc.setText(sc_part)
+                
+                if rc_pixmap:
+                    try:
+                        widget_rc.instance.setPixmap(rc_pixmap)
+                        widget_rc.instance.setScale(1)
+                    except: pass
+                    widget_rc.show()
+                else: widget_rc.hide()
+                
+                widget_rctxt.setText(rc_part)
+                widget_rctxt.show()
+            else:
+                widget_sc.setText(text)
+                widget_rc.hide()
+                widget_rctxt.hide()
+        try:
+            render_scorer_rc(self["lbl_home_sc"], self["h_sc_rc"], self["h_sc_rctxt"], h_sc_text)
+            render_scorer_rc(self["lbl_away_sc"], self["a_sc_rc"], self["a_sc_rctxt"], a_sc_text)
+        except KeyError:
+            pass
 
     def load_logo(self, url, img_id, widget_name):
-        """Load logo using team ID naming (aligned with GameInfoScreen approach)"""
-        if not url: self[widget_name].hide(); return
-        
-        # Fallback for missing ID
-        if not img_id or img_id == '0' or img_id == '':
-            import hashlib
-            img_id = hashlib.md5(url.encode('utf-8')).hexdigest()[:10]
-        
-        file_path = self.logo_path + str(img_id) + ".png"
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-            self[widget_name].instance.setScale(1)
-            self[widget_name].instance.setPixmapFromFile(file_path)
-            self[widget_name].show()
-        else:
-            self[widget_name].hide()
-            # Download to team ID path
-            from twisted.web.client import downloadPage
-            downloadPage(url.encode('utf-8'), file_path).addCallback(self.logo_downloaded, widget_name, file_path).addErrback(self.logo_error)
-
-    def logo_downloaded(self, data, widget_name, file_path):
-        if self[widget_name].instance:
-            self[widget_name].instance.setScale(1)
-            self[widget_name].instance.setPixmapFromFile(file_path)
-            self[widget_name].show()
-    def logo_error(self, error): pass
+        """Delegate to shared logo loader (unified cache + pixmap memory cache)"""
+        load_logo_to_widget(self, widget_name, url, img_id)
 
 
 
@@ -6160,11 +8409,9 @@ def get_search_keywords(text):
 def normalize_text(text):
     if not text: return ""
     # Ensure text is unicode
-    try:
-        if isinstance(text, str): 
-            try: text = text.decode('utf-8', 'ignore')
-            except: pass
-    except: pass
+    if isinstance(text, bytes):
+        try: text = text.decode('utf-8', 'ignore')
+        except: text = ""
     
     # Basic Greek to Latin mapping for common chars
     greek_map = {
@@ -6289,18 +8536,13 @@ class SimpleSportsScreen(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
         self.session = session
-        global_sports_monitor.set_session(session)
         self.monitor = global_sports_monitor
-        self.monitor.register_callback(self.refresh_ui)
-        
         self.logo_path = "/tmp/simplysports/logos/"
         if not os.path.exists(self.logo_path):
             try: os.makedirs(self.logo_path)
             except: pass
 
         self.active_downloads = set()
-        self.logo_refresh_timer = eTimer()
-        safe_connect(self.logo_refresh_timer, lambda: self.refresh_ui(True))
         
         # Track matches for cursor locking
         self.current_match_ids = []
@@ -6316,14 +8558,19 @@ class SimpleSportsScreen(Screen):
         if self.current_alpha not in valid_alphas: self.current_alpha = "59" 
 
         # ... (Skin setup omitted - keep existing block) ...
-        # [PASTE YOUR EXISTING SKIN SETUP HERE]
+        # Evaluate Theme Mode
         if self.monitor.theme_mode == "ucl":
             bg_base = "0e1e5b"; top_base = "050a2e"
             c_bg = "#" + self.current_alpha + bg_base; c_top = "#" + self.current_alpha + top_base
             bg_widget = '<widget name="main_bg" position="0,0" size="1920,1080" backgroundColor="{c_bg}" zPosition="-1" />'.format(c_bg=c_bg)
             try:
-                path_jpg = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ucl.jpg")
-                if os.path.exists(path_jpg): bg_widget = '<ePixmap position="0,0" size="1920,1080" pixmap="{}" zPosition="-1" alphatest="on" scale="1" />'.format(path_jpg)
+                path_jpg = os.path.join(os.path.dirname(__file__), "ucl.jpg")
+                if os.path.exists(path_jpg): 
+                    bg_widget = '<ePixmap position="0,0" size="1920,1080" pixmap="{}" zPosition="-1" alphatest="on" scale="1" />'.format(path_jpg)
+                else: # Fallback
+                    path_jpg = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ucl.jpg")
+                    if os.path.exists(path_jpg): 
+                        bg_widget = '<ePixmap position="0,0" size="1920,1080" pixmap="{}" zPosition="-1" alphatest="on" scale="1" />'.format(path_jpg)
             except: pass
             top_widget = '<widget name="top_bar" position="0,0" size="1920,100" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
             header_widget = '<widget name="header_bg" position="0,123" size="1920,34" backgroundColor="{c_bg}" zPosition="0" />'.format(c_bg=c_bg)
@@ -6413,20 +8660,28 @@ class SimpleSportsScreen(Screen):
         log_dbg("SimpleSportsScreen: ActionMap Registered")
         
         self.container = eConsoleAppContainer(); self.container.appClosed.append(self.download_finished)
+        global_sports_monitor.set_session(session)
+        self.monitor.register_callback(self.refresh_ui)
         self.onLayoutFinish.append(self.start_ui); self.onClose.append(self.cleanup)
 
     def update_clock(self):
         """Update clock display with current time"""
         try:
-            now = datetime.datetime.now()
+            from datetime import datetime
+            now = datetime.now()
             self["clock"].setText(now.strftime("%H:%M"))
+            # log_diag("UPDATE_CLOCK: " + now.strftime("%H:%M"))
         except: pass
 
     def start_ui(self):
         log_diag("SCREEN.start_ui: is_custom={} filter_mode={} discovery_mode={} active={}".format(
             self.monitor.is_custom_mode, self.monitor.filter_mode, self.monitor.discovery_mode, self.monitor.active))
         self.update_clock()  # Initial clock update
-        self.clock_timer.start(1000)  # Update every second
+        # ENSURE: single_shot=False (2nd param) for repeating update
+        self.clock_timer.start(1000, False)  # Update every second
+        # Clear list immediately to prevent stale cache flash from previous session
+        self["list"].setList([])
+        self["list_title"].setText("Loading...")
         self.update_header(); self.update_filter_button(); self.fetch_data()
     def cleanup(self): 
         self.clock_timer.stop()
@@ -6443,6 +8698,17 @@ class SimpleSportsScreen(Screen):
         elif mode == 1: self["list_title"].setText("All Matches")
         elif mode == 2: self["list_title"].setText("Today's Matches")
         elif mode == 3: self["list_title"].setText("Tomorrow's Matches")
+        # Green button: show 'Driver Position' for racing, 'Mini Bar' otherwise
+        try:
+            if not self.monitor.is_custom_mode:
+                url = DATA_SOURCES[self.monitor.current_league_index][1]
+                if get_sport_type(url) == SPORT_TYPE_RACING:
+                    self["key_green"].setText("Driver Position")
+                else:
+                    self["key_green"].setText("Mini Bar")
+            else:
+                self["key_green"].setText("Mini Bar")
+        except: self["key_green"].setText("Mini Bar")
         d_mode = self.monitor.discovery_mode
         if d_mode == 0: self["key_blue"].setText("Goal Alert: OFF")
         elif d_mode == 1: self["key_blue"].setText("Goal Alert: VISUAL")
@@ -6861,11 +9127,6 @@ class SimpleSportsScreen(Screen):
         new_match_ids = []
         # ----------------------------------------
 
-        # Skip rebuild if no changes and we already have data (unless forced)
-        if not force_refresh and not self.monitor.has_changes and self.current_match_ids and events:
-            log_diag("REFRESH_UI: SKIPPED (no changes, has data)")
-            return
-        
         if not events:
             # If we already have matches and loading is in progress, keep old list to avoid flicker
             if self.current_match_ids and ("Loading" in self.monitor.status_message or "Fetching" in self.monitor.status_message):
@@ -6879,126 +9140,99 @@ class SimpleSportsScreen(Screen):
             self.current_match_ids = []
             return
             
-        now = datetime.datetime.now()
-        today_str = now.strftime("%Y-%m-%d"); tom_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        mode = self.monitor.filter_mode
         raw_entries = []  # Store (entry_data, match_id, is_live) for sorting
-        
+    
         for event in events:
             try:
-                # --- OPTIMIZATION: FILTER FIRST ---
-                # Check filter conditions BEFORE processing heavy logic (date/status)
-                status = event.get('status', {}); state = status.get('type', {}).get('state', 'pre')
-                ev_date = event.get('date', '')[:10]
-                mode = self.monitor.filter_mode
-                
-                # Filter Logic
-                if mode == 0 and state != 'in': continue        # Live Only
-                if mode == 2 and ev_date != today_str: continue # Today
-                if mode == 3 and ev_date != tom_str: continue   # Tomorrow
-                
+                snap = self.monitor.match_snapshots.get(str(event.get('id', '')))
+                if not snap: continue
+                if not snapshot_passes_filter(snap, mode): continue
+
                 # Special Request: Exclude Tennis from "All Matches" (Mode 1) due to volume
-                if mode == 1:
-                    l_url_chk = event.get('league_url', '')
-                    if get_sport_type(l_url_chk) == SPORT_TYPE_TENNIS:
-                        continue
-                
-                # If we passed filters, proceed with processing
-                clock = status.get('displayClock', ''); local_time = get_local_time_str(event.get('date', ''))
-                if ":" in clock: clock = clock.split(':')[0] + "'"
+                if mode == 1 and snap['sport_type'] == SPORT_TYPE_TENNIS: continue
+
+                # Racing: Only show in single-league mode, skip in custom/multi-league
+                if snap['sport_type'] == SPORT_TYPE_RACING and self.monitor.is_custom_mode: continue
+
+                # Logo paths from shared cache
+                h_png = self.get_logo_path(snap['h_logo_url'], snap['h_logo_id'])
+                a_png = self.get_logo_path(snap['a_logo_url'], snap['a_logo_id'])
+                l_png = self.get_logo_path(snap['l_logo_url'], snap['l_logo_id'])
+
                 comps = event.get('competitions', [{}])[0].get('competitors', [])
-                league_prefix = event.get('league_name', '')
-                h_url = event.get('h_logo_url', ''); a_url = event.get('a_logo_url', '')
-                h_id = event.get('h_logo_id', ''); a_id = event.get('a_logo_id', '')
-                l_url_logo = event.get('l_logo_url', ''); l_logo_id = event.get('l_logo_id', '')
-                h_png = self.get_logo_path(h_url, h_id); a_png = self.get_logo_path(a_url, a_id)
-                l_png = self.get_logo_path(l_url_logo, l_logo_id)
-                is_live = False; display_time = local_time; h_score_int = 0; a_score_int = 0
-                
-                # Match ID Generation for Tracking
-                match_id = ""
+                is_racing_event = (snap['sport_type'] == SPORT_TYPE_RACING) or (len(comps) > 2)
 
-                if len(comps) > 2:
-                    left_text = event.get('shortName', 'Race'); right_text = "Event"; score_text = ""; goal_side = None
-                    if state == 'in': score_text = "LIVE"; is_live = True
-                    elif state == 'post': score_text = "FIN"
-                    match_id = left_text + right_text # Fallback ID for racing
+                if is_racing_event:
+                    # Racing: Enhanced row with race name, track, status
+                    race_name = event.get('shortName', '') or event.get('name', 'Race')
+                    track_info = ''
+                    try:
+                        circuit = event.get('circuit', {})
+                        if circuit:
+                            track_name = circuit.get('fullName', '')
+                            addr = circuit.get('address', {})
+                            city = addr.get('city', '')
+                            country = addr.get('country', '')
+                            loc_parts = [p for p in [city, country] if p]
+                            if track_name and loc_parts:
+                                track_info = "{} - {}".format(track_name, ", ".join(loc_parts))
+                            elif track_name:
+                                track_info = track_name
+                            elif loc_parts:
+                                track_info = ", ".join(loc_parts)
+                        if not track_info:
+                            comp_venue = event.get('competitions', [{}])[0].get('venue', {})
+                            track_info = comp_venue.get('fullName', '') or comp_venue.get('address', {}).get('city', '')
+                    except: pass
+                    left_text = race_name
+                    right_text = track_info if track_info else 'Event'
+                    score_text = ""; goal_side = None; is_live = False
+                    display_time = snap['time_str']
+                    h_score_int = 0; a_score_int = 0
+                    
+                    # Determine overall event status from most recent active session
+                    all_comps = event.get('competitions', [])
+                    has_live_session = False
+                    has_finished_session = False
+                    for comp in all_comps:
+                        comp_state = comp.get('status', {}).get('type', {}).get('state', 'pre')
+                        if comp_state == 'in': has_live_session = True
+                        elif comp_state == 'post': has_finished_session = True
+                    
+                    if has_live_session:
+                        score_text = "LIVE"; is_live = True; display_time = "LIVE"
+                    elif has_finished_session:
+                        # Check if all sessions are done or just some
+                        all_done = all(c.get('status', {}).get('type', {}).get('state', 'pre') == 'post' for c in all_comps)
+                        if all_done:
+                            score_text = "FIN"
+                        else:
+                            score_text = "ONGOING"
+                    
+                    match_id = snap['event_id']
                 else:
-                    home, away, h_score, a_score = "Home", "Away", "0", "0"
-                    team_h = next((t for t in comps if t.get('homeAway') == 'home'), None)
-                    if not team_h and len(comps) > 0: team_h = comps[0]
-                    team_a = next((t for t in comps if t.get('homeAway') == 'away'), None)
-                    if not team_a and len(comps) > 1: team_a = comps[1]
-
-                    # FIX: Tennis Flags Reversed in Main Screen
-                    # Override selection if Tennis: Force index 0=Home, 1=Away (Same as SportsMonitor/MiniBar)
-                    league_url = event.get('league_url', '')
-                    if get_sport_type(league_url) == SPORT_TYPE_TENNIS and len(comps) >= 2:
-                        team_h = comps[0]
-                        team_a = comps[1]
-                    
-                    # Handle different sport types
-                    league_url = event.get('league_url', '')
-                    sport_type = event.get('sport_type', 'soccer')
-                    is_tennis = 'athlete' in (team_h or {}) or 'athlete' in (team_a or {})
-                    
-                    if team_h:
-                        if 'athlete' in team_h:
-                            athlete = team_h.get('athlete', {})
-                            home = athlete.get('shortName') or athlete.get('displayName') or athlete.get('fullName') or athlete.get('name') or team_h.get('team', {}).get('displayName') or 'Player 1'
-                        else:
-                            home = team_h.get('team', {}).get('displayName', team_h.get('team', {}).get('name', 'Home'))
-                        
-                        if is_tennis:
-                            t_s1, t_s2 = calculate_tennis_scores(comps, state)
-                            h_score = t_s1 if team_h == comps[0] else t_s2
-                        else:
-                            h_score = team_h.get('score', '0') or '0'
-                    
-                    if team_a:
-                        if 'athlete' in team_a:
-                            athlete = team_a.get('athlete', {})
-                            away = athlete.get('shortName') or athlete.get('displayName') or athlete.get('fullName') or athlete.get('name') or team_a.get('team', {}).get('displayName') or 'Player 2'
-                        else:
-                            away = team_a.get('team', {}).get('displayName', team_a.get('team', {}).get('name', 'Away'))
-                        
-                        if is_tennis:
-                            t_s1, t_s2 = calculate_tennis_scores(comps, state)
-                            a_score = t_s1 if team_a == comps[0] else t_s2
-                        else:
-                            a_score = team_a.get('score', '0') or '0'
-                    
+                    # Team/Tennis/Combat: Read all data from snapshot
                     def truncate_name(name, max_len=25):
-                        if len(name) > max_len:
-                            return name[:max_len-2] + ".."
+                        if len(name) > max_len: return name[:max_len-2] + ".."
                         return name
-                    
-                    left_text = truncate_name(home)
-                    right_text = truncate_name(away)
-                    try: h_score_int = int(h_score)
-                    except: h_score_int = 0
-                    try: a_score_int = int(a_score)
-                    except: a_score_int = 0
-                    
-                    score_text = str(h_score) + " - " + str(a_score) if state in ('in', 'post') else "vs"
-                    goal_side = None
-                    if state == 'in': is_live = True; display_time = clock
-                    
-                    # FIX: Use stable event ID matching SportsMonitor instead of truncated names
-                    match_id_fallback = home + "_" + away
-                    match_id = event.get('id', match_id_fallback)
-                    
-                    goal_side = self.monitor.goal_flags[match_id].get('team') if match_id in self.monitor.goal_flags else None
-                
-                status_short = "SCH"
-                if state == 'in': status_short = "LIVE"
-                elif state == 'post': status_short = "FIN"
-                
-                # Removed redundant late filtering
-                
+
+                    left_text = truncate_name(snap['h_name'])
+                    right_text = truncate_name(snap['a_name'])
+                    score_text = snap['score_str']
+                    h_score_int = snap['h_score_int']
+                    a_score_int = snap['a_score_int']
+                    is_live = snap['is_live']
+                    display_time = snap['time_str']
+                    match_id = snap['event_id']
+                    goal_side = self.monitor.goal_flags.get(match_id, {}).get('team')
+
+                status_short = snap['status_short']
+
                 has_epg = False
                 # Check for recent goals to create a 'heat' effect on the score box
                 c_score_bg = 0x202020 if self.monitor.theme_mode != "ucl" else 0x051030
-                if state == 'in' and match_id in self.monitor.goal_flags:
+                if snap['state'] == 'in' and match_id in self.monitor.goal_flags:
                     goal_time = self.monitor.goal_flags[match_id].get('time', 0)
                     time_since_goal = time.time() - goal_time
                     
@@ -7026,13 +9260,11 @@ class SimpleSportsScreen(Screen):
                         
                         # Convert back to hex
                         c_score_bg = (r << 16) | (g << 8) | b
-                
-                entry_data = (status_short, get_league_abbr(league_prefix), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png)
-                
+
+                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0))
+
                 # Store raw data for sorting (include event for excitement calculation)
-                # FIX: Use actual Event ID for tracking so open_game_info works
-                real_match_id = event.get('id', match_id)
-                raw_entries.append((entry_data, real_match_id, is_live, event))
+                raw_entries.append((entry_data, match_id, is_live, event))
             except Exception as e:
                 with open("/tmp/simplysport_render_error.log", "a") as err_log:
                     err_log.write("Error in refresh_ui loop at %s: %s\n" % (datetime.datetime.now(), str(e)))
@@ -7061,9 +9293,62 @@ class SimpleSportsScreen(Screen):
         list_content = []
         new_match_ids = []
         for entry_data, match_id, is_live, event in raw_entries:
-            if self.monitor.theme_mode == "ucl": list_content.append(UCLListEntry(entry_data))
-            else: list_content.append(SportListEntry(entry_data))
-            new_match_ids.append(match_id)
+            # Use RacingListEntry for racing events
+            ev_url = event.get('league_url', '')
+            if get_sport_type(ev_url) == SPORT_TYPE_RACING:
+                # Header row (event name + circuit + overall status)
+                list_content.append(RacingListEntry(entry_data, self.monitor.theme_mode))
+                new_match_ids.append(match_id)
+                
+                # Iterate ALL sessions (FP1, FP2, FP3, Qual, Race, Sprint etc.)
+                all_competitions = event.get('competitions', [])
+                for comp_idx, comp in enumerate(all_competitions):
+                    sess_type = comp.get('type', {}).get('abbreviation', 'Session {}'.format(comp_idx + 1))
+                    sess_state = comp.get('status', {}).get('type', {}).get('state', 'pre')
+                    sess_broadcast = comp.get('broadcast', '')
+                    sess_start = comp.get('startDate', '')
+                    
+                    # Status label for session
+                    if sess_state == 'in': sess_status = 'LIVE'
+                    elif sess_state == 'post': sess_status = 'FIN'
+                    else: sess_status = 'SCH'
+                    
+                    # Time display
+                    sess_time = get_local_time_str(sess_start) if sess_start else ''
+                    
+                    # Session sub-header row
+                    sess_row = RacingSessionRow(sess_type, sess_status, sess_broadcast, sess_time, self.monitor.theme_mode)
+                    if sess_row:
+                        list_content.append(sess_row)
+                        new_match_ids.append(match_id + '_ses_' + str(comp_idx))
+                    
+                    # For LIVE/FINISHED sessions: expand driver result rows
+                    if sess_state in ('in', 'post'):
+                        comps_list = comp.get('competitors', [])
+                        for drv in comps_list:
+                            athlete = drv.get('athlete', {})
+                            d_name = athlete.get('displayName', '') or athlete.get('shortName', 'Driver')
+                            d_country = athlete.get('flag', {}).get('alt', '')
+                            d_winner = drv.get('winner', False)
+                            d_rank = drv.get('order', 0)
+                            # Get team logo path (cached via get_logo_path mechanism)
+                            d_team_logo = None
+                            team_obj = drv.get('team', {})
+                            team_logo_url = team_obj.get('logo', '')
+                            team_id = team_obj.get('id', '')
+                            if team_logo_url and team_id:
+                                sport_prefix = get_sport_id_prefix(ev_url)
+                                d_team_logo = self.get_logo_path(team_logo_url, sport_prefix + str(team_id))
+                            row = RacingDriverRow(d_rank, d_name, d_country, d_winner, d_team_logo, self.monitor.theme_mode)
+                            if row:
+                                list_content.append(row)
+                                new_match_ids.append(match_id + '_ses_' + str(comp_idx) + '_drv_' + str(d_rank))
+            elif self.monitor.theme_mode == "ucl":
+                list_content.append(UCLListEntry(entry_data))
+                new_match_ids.append(match_id)
+            else:
+                list_content.append(SportListEntry(entry_data))
+                new_match_ids.append(match_id)
             
         if not list_content: 
             msg = self.monitor.status_message or "No Matches Found"
@@ -7072,15 +9357,21 @@ class SimpleSportsScreen(Screen):
             else: self["list"].setList([SportListEntry(dummy_entry)])
             self.current_match_ids = []
         else: 
-            self["list"].setList(list_content)
-            self.current_match_ids = new_match_ids
-            
-            # --- CURSOR RESTORE ---
-            if selected_id:
-                try:
-                    new_index = new_match_ids.index(selected_id)
-                    self["list"].moveToIndex(new_index)
-                except ValueError: pass
+            if getattr(self["list"], "list", None) is not None and self.current_match_ids == new_match_ids and len(self["list"].list) == len(list_content):
+                # Optimization: In-place update prevents cursor jumping and UI flickering
+                for i in range(len(list_content)):
+                    self["list"].list[i] = list_content[i]
+                self["list"].l.invalidate()
+            else:
+                self["list"].setList(list_content)
+                self.current_match_ids = new_match_ids
+                
+                # --- CURSOR RESTORE ---
+                if selected_id:
+                    try:
+                        new_index = new_match_ids.index(selected_id)
+                        self["list"].moveToIndex(new_index)
+                    except ValueError: pass
 
     # ... (Keep existing Menu, Reminder, and Update methods unchanged) ...
     # [PASTE EXISTING METHODS HERE]
@@ -7153,9 +9444,33 @@ class SimpleSportsScreen(Screen):
             # Handle both ChoiceBox tuple format or our custom format
             idx = selection[1] if isinstance(selection, tuple) else selection
             self.monitor.set_league(idx)
-            self.update_header()
-            self.fetch_data()
-    def open_mini_bar(self): self.session.openWithCallback(self.mini_bar_callback, SimpleSportsMiniBar)
+            # Re-open screen to apply new skin/theme (F1 background etc)
+            self.session.open(SimpleSportsScreen)
+            self.close()
+    def open_mini_bar(self):
+        # Racing mode: open RacingMiniBar with selected event
+        if not self.monitor.is_custom_mode:
+            try:
+                url = DATA_SOURCES[self.monitor.current_league_index][1]
+                if get_sport_type(url) == SPORT_TYPE_RACING:
+                    # Get selected event from main screen list
+                    idx = self["list"].getSelectedIndex()
+                    event = None
+                    if idx is not None and 0 <= idx < len(self.current_match_ids):
+                        match_id = self.current_match_ids[idx]
+                        event = self.monitor.event_map.get(match_id)
+                        if not event:
+                            for ev in self.monitor.cached_events:
+                                if ev.get('id') == match_id:
+                                    event = ev
+                                    break
+                    if event:
+                        self.session.open(RacingMiniBar, event)
+                    else:
+                        self.session.open(MessageBox, "No racing event selected!", MessageBox.TYPE_INFO, timeout=5)
+                    return
+            except: pass
+        self.session.openWithCallback(self.mini_bar_callback, SimpleSportsMiniBar)
     def mini_bar_callback(self, result=None):
         if result == "next": 
             self.session.openWithCallback(self.on_minibar_closed, SimpleSportsMiniBar2)
@@ -7193,6 +9508,28 @@ class SimpleSportsScreen(Screen):
         if event:
             selected_event = event
             self.selected_event_for_reminder = selected_event
+            
+            # Check if this is a driver sub-row selection
+            if '_drv_' in match_id:
+                try:
+                    rank_str = match_id.split('_drv_')[1]
+                    rank = int(rank_str)
+                    comps = selected_event.get('competitions', [{}])[0].get('competitors', [])
+                    driver_data = None
+                    for c in comps:
+                        if c.get('order', 0) == rank:
+                            driver_data = c
+                            break
+                    if driver_data:
+                        league_name = selected_event.get('league_name', '')
+                        url = ""
+                        for item in DATA_SOURCES:
+                            if item[0] == league_name: url = item[1]; break
+                        self.session.open(RacingDriverInfoScreen, driver_data, url, selected_event)
+                        return
+                except:
+                    pass
+            
             state = selected_event.get('status', {}).get('type', {}).get('state', 'pre')
             if state == 'pre':
                 options = [("Game Info / Details", "info"), ("Find Broadcasting Channel", "broadcast_search"), ("Remind me 12 hours before", 720), ("Remind me 9 hours before", 540), ("Remind me 6 hours before", 360), ("Remind me 3 hours before", 180), ("Remind me 2 hours before", 120), ("Remind me 1 hour before", 60), ("Remind me 15 minutes before", 15), ("Remind me 5 minutes before", 5), ("Delete Reminder", -1), ("Cancel", 0)]
