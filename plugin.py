@@ -80,7 +80,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "4.4" # A new code to improvements to the main screen, minibars, toast, and gameinfo screen.
+CURRENT_VERSION = "4.5" # A new code to include Yesterdays matches and enhance notifications speed.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LOGO_CACHE_DIR = "/tmp/simplysports/logos"
@@ -693,19 +693,21 @@ def build_match_snapshot(event):
     }
 
 def snapshot_passes_filter(snap, filter_mode):
-    """Shared filter for all UI screens. filter_mode: 0=Live, 1=All, 2=Today, 3=Tomorrow"""
+    """Shared filter for all UI screens. filter_mode: 0=Yesterday, 1=Live, 2=Today, 3=Tomorrow, 4=All"""
     state    = snap['state']
     ev_date  = snap['date'][:10] if snap['date'] else ''
     now      = datetime.datetime.now()
     today    = now.strftime("%Y-%m-%d")
-    # Calculate tomorrow: add 86400 seconds (1 day) to avoid needing timedelta import
     import calendar as _cal
     tomorrow_ts = _cal.timegm(now.timetuple()) + 86400
     tomorrow = datetime.datetime.utcfromtimestamp(tomorrow_ts).strftime("%Y-%m-%d")
+    yesterday_ts = _cal.timegm(now.timetuple()) - 86400
+    yesterday = datetime.datetime.utcfromtimestamp(yesterday_ts).strftime("%Y-%m-%d")
     
-    if filter_mode == 0 and state != 'in':      return False
+    if filter_mode == 0 and ev_date != yesterday: return False
+    if filter_mode == 1 and state != 'in':        return False
     if filter_mode == 2 and ev_date != today and state != 'in': return False
-    if filter_mode == 3 and ev_date != tomorrow: return False
+    if filter_mode == 3 and ev_date != tomorrow:  return False
     return True
 
 # ==============================================================================
@@ -1425,7 +1427,7 @@ class SportsMonitor:
         self.goal_flags = {}
         self.last_states = {}
         self.notified_events = set()  # Track fired notifications: {(match_id, event_type)}
-        self.filter_mode = 0 
+        self.filter_mode = 1 
         self.theme_mode = "default"
         self.transparency = "59"
         
@@ -1532,7 +1534,7 @@ class SportsMonitor:
         else: self.defaults()
 
     def defaults(self):
-        self.filter_mode = 0; self.theme_mode = "default"; self.transparency = "59"
+        self.filter_mode = 1; self.theme_mode = "default"; self.transparency = "59"
         self.discovery_mode = 0; self.reminders = []; self.menu_section = "all"
         self.show_in_menu = True; self.minibar_color_mode = "default"
 
@@ -1556,8 +1558,8 @@ class SportsMonitor:
         self.save_config(); return self.theme_mode
     def toggle_filter(self):
         old = self.filter_mode
-        self.filter_mode = (self.filter_mode + 1) % 4
-        log_diag("MONITOR.toggle_filter: {} -> {} (0=Live,1=All,2=Today,3=Tomorrow)".format(old, self.filter_mode))
+        self.filter_mode = (self.filter_mode + 1) % 5
+        log_diag("MONITOR.toggle_filter: {} -> {} (0=Yesterday,1=Live,2=Today,3=Tomorrow,4=All)".format(old, self.filter_mode))
         self.save_config(); return self.filter_mode
     def cycle_discovery_mode(self):
         old = self.discovery_mode
@@ -1581,12 +1583,10 @@ class SportsMonitor:
     def toggle_activity(self): return self.cycle_discovery_mode()
 
     def _get_timer_interval(self, live_count=0):
-        """Return timer interval in ms: 
-           Fixed at 60s (1 min) for all active states to sync with notifications."""
-        
-        # UI is active or Background-Live: 60s (1 min)
+        """Return timer interval in ms."""
+        # UI is active or Background-Live: 30s
         if len(self.callbacks) > 0 or live_count > 0:
-            return 60000 
+            return 30000 
             
         # Idle background: 300s (5 mins)
         return 300000
@@ -1966,10 +1966,8 @@ class SportsMonitor:
                 if ev.get('status', {}).get('type', {}).get('state', '') != 'in':
                     continue
                 league_url = ev.get('league_url', '')
-                if 'soccer' in league_url:
-                    continue  # Soccer scoreboard is already accurate; no need
                 
-                # Build summary URL exactly as GameInfo does
+                # Build CDN boxscore URL (same structure as GameInfoScreen uses)
                 base_url = league_url.split('?')[0]
                 sport = ''; league_slug = ''
                 for i, part in enumerate(base_url.rstrip('/').split('/')):
@@ -1979,7 +1977,7 @@ class SportsMonitor:
                 if not sport or not league_slug or league_slug == 'scoreboard':
                     continue
                 
-                summary_url = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(
+                summary_url = "https://cdn.espn.com/core/{}/{}/boxscore?xhr=1&gameId={}".format(
                     sport, league_slug, eid)
                 d = getPage(summary_url.encode('utf-8'))
                 d.addCallback(self.on_live_summary, str(eid))
@@ -2037,6 +2035,9 @@ class SportsMonitor:
                 if str(ce.get('id', '')) == eid:
                     self.cached_events[i] = ev
                     break
+            
+            # Trigger notification evaluator immediately on live score changes
+            self.evaluate_goals()
             
             self._trigger_callbacks(True)
         except Exception as e:
@@ -2250,6 +2251,118 @@ class SportsMonitor:
         if sport == 'basketball': return "SCORE (+{})".format(diff)
         if sport == 'football': return "SCORE (+{})".format(diff)
         return "SCORE"
+    def fetch_summary_for_scorer(self, event, callback, expected_score=None):
+        try:
+            event_id = str(event.get('id', ''))
+            league_url = event.get('league_url', '')
+            if not event_id or not league_url:
+                return callback(None)
+
+            sport_type = get_sport_type(league_url)
+            base_url = league_url.split('?')[0]
+            summary_url = ""
+
+            if sport_type == SPORT_TYPE_TENNIS:
+                tournament_id = event.get('tournament_id', '')
+                competition_id = event.get('competition_id', '')
+                api_link = ""
+                
+                try:
+                    links = event.get('links', [])
+                    for link in links:
+                         href = link.get('href', '')
+                         if "summary" in href and "api.espn.com" in href:
+                             api_link = href
+                             break
+                except: pass
+                
+                if api_link:
+                    summary_url = api_link
+                elif tournament_id and competition_id:
+                    if "scoreboard" in base_url:
+                        summary_url = base_url.replace("scoreboard", "summary") + "?event=" + str(tournament_id) + "&competition=" + str(competition_id)
+                    else:
+                        summary_url = "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/summary?event=" + str(tournament_id) + "&competition=" + str(competition_id)
+                else:
+                     if "scoreboard" in base_url:
+                        summary_url = base_url.replace("scoreboard", "summary") + "?event=" + str(event_id)
+                     else:
+                        summary_url = "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/summary?event=" + str(event_id)
+            else:
+                if "scoreboard" in base_url:
+                    summary_url = base_url.replace("scoreboard", "summary") + "?event=" + str(event_id)
+                else:
+                    sport = 'soccer'
+                    league = 'eng.1'
+                    parts = base_url.split('/')
+                    for i, p in enumerate(parts):
+                        if p == 'sports' and i + 2 < len(parts):
+                            sport = parts[i+1]
+                            league = parts[i+2]
+                            break
+                    summary_url = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(sport, league, event_id)
+
+            if not summary_url:
+                return callback(None)
+
+            def on_summary_success(body):
+                import json
+                try:
+                    data = json.loads(body.decode('utf-8', errors='ignore'))
+                    header = data.get('header', {})
+                    competitions = header.get('competitions', [])
+                    if not competitions:
+                        competitions = data.get('gamepackageJSON', {}).get('header', {}).get('competitions', [])
+                    
+                    details = competitions[0].get('details', []) if competitions else []
+                    
+                    scoring_plays = data.get('scoringPlays', [])
+                    if not scoring_plays:
+                        scoring_plays = data.get('gamepackageJSON', {}).get('scoringPlays', [])
+
+                    if not scoring_plays and details:
+                        for play in details:
+                            is_scoring = play.get('scoringPlay', False)
+                            text_desc = play.get('type', {}).get('text', '').lower()
+                            if is_scoring or "goal" in text_desc:
+                                scoring_plays.append(play)
+                    
+                    if scoring_plays:
+                        if expected_score is not None and len(scoring_plays) < expected_score:
+                            print("[SimplySport] fetch_summary API stale data. Expected {}, got {}".format(expected_score, len(scoring_plays)))
+                            return callback(None)
+                            
+                        last_play = scoring_plays[-1]
+                        clock = last_play.get('clock', {}).get('displayValue', '')
+                        
+                        text_desc = last_play.get('type', {}).get('text', '').lower()
+                        goal_type = "(G)"
+                        if "penalty" in text_desc:
+                            goal_type = "(P)"
+                        elif "own" in text_desc:
+                            goal_type = "(O)"
+
+                        athletes = last_play.get('athletesInvolved', [])
+                        if not athletes: athletes = last_play.get('participants', [])
+                        
+                        if athletes:
+                            p_name = athletes[0].get('displayName') or athletes[0].get('shortName')
+                            result = "{} {} {}".format(p_name, goal_type, clock)
+                            print("[SimplySport] fetch_summary_for_scorer API resolved: {}".format(result))
+                            return callback(result)
+                        else:
+                            return callback("Goal {}".format(clock))
+                    return callback(None)
+                except Exception as e:
+                    print("[SimplySport] fetch_summary_for_scorer error parsing:", e)
+                    return callback(None)
+                    
+            from twisted.web.client import getPage
+            getPage(summary_url.encode('utf-8')).addCallback(on_summary_success).addErrback(lambda err: callback(None))
+        except Exception as e:
+            print("[SimplySport] fetch_summary_for_scorer error:", e)
+            return callback(None)
+
     def get_scorer_text(self, event, allow_pending=False):
         try:
             # 1. Get Actual Total Score
@@ -2670,11 +2783,42 @@ class SportsMonitor:
                                         elif points == 2: scorer_text = "SAFETY / 2PT"
                                         else: scorer_text = "SCORE (+{})".format(points)
                                     else:
-                                        # SYNC: Remove goal_retries delay. Fire notification IMMEDIATELY.
-                                        scorer_text = self.get_scorer_text(event, allow_pending=True)
-                                        if scorer_text is None:
-                                            # Fallback to generic "Goal!" immediately if scorer info is stale
-                                            scorer_text = self.get_scorer_text(event, allow_pending=False) or "Goal!"
+                                        # ASYNC: Try to fetch richer data from ESPN Summary API
+                                        def schedule_goal_notification(m_id, s_disp, s_type, d_h, d_a, ev, exp_score):
+                                            state_container = {'fired': False, 'timeout_call': None}
+                                            
+                                            def fire_notification(scorer_result):
+                                                if state_container['fired']: return
+                                                state_container['fired'] = True
+                                                if state_container['timeout_call'] and state_container['timeout_call'].active():
+                                                    state_container['timeout_call'].cancel()
+                                                    
+                                                final_text = scorer_result
+                                                if not final_text:
+                                                    final_text = self.get_scorer_text(ev, allow_pending=False) or "Goal!"
+                                                    
+                                                if d_h > 0:
+                                                    g_sound = 'goal' if s_type != 'basketball' else None
+                                                    self.queue_notification(m_id, s_disp, final_text, event_type="goal", scoring_team="home", sound_type=g_sound)
+                                                    self.goal_flags[m_id] = {'time': time.time(), 'team': 'home'}
+                                                if d_a > 0:
+                                                    g_sound = 'goal' if s_type != 'basketball' else None
+                                                    self.queue_notification(m_id, s_disp, final_text, event_type="goal", scoring_team="away", sound_type=g_sound)
+                                                    self.goal_flags[m_id] = {'time': time.time(), 'team': 'away'}
+                                                    
+                                            def on_timeout():
+                                                if not state_container['fired']:
+                                                    print("[SimplySport] fetch_summary_for_scorer timed out.")
+                                                    fire_notification(None)
+                                                    
+                                            from twisted.internet import reactor
+                                            state_container['timeout_call'] = reactor.callLater(3.0, on_timeout)
+                                            self.fetch_summary_for_scorer(ev, fire_notification, expected_score=exp_score)
+                                            
+                                        schedule_goal_notification(match_id, score_display, sport_type, diff_h, diff_a, event, h_score + a_score)
+                                        
+                                        diff_h = 0
+                                        diff_a = 0
 
                                     if diff_h > 0:
                                         goal_sound = 'goal' if sport_type != 'basketball' else None
@@ -8694,10 +8838,11 @@ class SimpleSportsScreen(Screen):
             try: item = DATA_SOURCES[self.monitor.current_league_index]; self["league_title"].setText(item[0])
             except: pass
         mode = self.monitor.filter_mode
-        if mode == 0: self["list_title"].setText("Live Matches")
-        elif mode == 1: self["list_title"].setText("All Matches")
+        if mode == 0: self["list_title"].setText("Yesterday's Matches")
+        elif mode == 1: self["list_title"].setText("Live Matches")
         elif mode == 2: self["list_title"].setText("Today's Matches")
         elif mode == 3: self["list_title"].setText("Tomorrow's Matches")
+        elif mode == 4: self["list_title"].setText("All Matches")
         # Green button: show 'Driver Position' for racing, 'Mini Bar' otherwise
         try:
             if not self.monitor.is_custom_mode:
@@ -8715,10 +8860,11 @@ class SimpleSportsScreen(Screen):
         elif d_mode == 2: self["key_blue"].setText("Goal Alert: SOUND")
     def update_filter_button(self): 
         mode = self.monitor.filter_mode
-        if mode == 0: self["key_yellow"].setText("Show All")
+        if mode == 0: self["key_yellow"].setText("Live Only")
         elif mode == 1: self["key_yellow"].setText("Show Today")
         elif mode == 2: self["key_yellow"].setText("Show Tomorrow")
-        elif mode == 3: self["key_yellow"].setText("Live Only")
+        elif mode == 3: self["key_yellow"].setText("Show All")
+        elif mode == 4: self["key_yellow"].setText("Yesterday")
         self.update_header()
     def fetch_data(self): self.monitor.check_goals(from_ui=True)
     
@@ -9149,8 +9295,8 @@ class SimpleSportsScreen(Screen):
                 if not snap: continue
                 if not snapshot_passes_filter(snap, mode): continue
 
-                # Special Request: Exclude Tennis from "All Matches" (Mode 1) due to volume
-                if mode == 1 and snap['sport_type'] == SPORT_TYPE_TENNIS: continue
+                # Special Request: Exclude Tennis from "All Matches" (Mode 4) due to volume
+                if mode == 4 and snap['sport_type'] == SPORT_TYPE_TENNIS: continue
 
                 # Racing: Only show in single-league mode, skip in custom/multi-league
                 if snap['sport_type'] == SPORT_TYPE_RACING and self.monitor.is_custom_mode: continue
