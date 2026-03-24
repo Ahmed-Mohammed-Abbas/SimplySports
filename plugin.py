@@ -7,6 +7,7 @@ import ssl
 import hashlib
 import sys
 from datetime import datetime
+import calendar
 
 
 # Py2/3 Compatibility
@@ -52,6 +53,54 @@ from Components.Sources.StaticText import StaticText
 import json
 import datetime
 import calendar
+import math
+import random
+import collections
+import uuid
+import os
+
+def get_device_id():
+    """Generates a unique, anonymous ID based on the receiver's MAC address."""
+    mac = uuid.getnode()
+    return hashlib.sha256(str(mac).encode('utf-8')).hexdigest()[:16]
+
+def push_to_firebase_threaded(url, payload_string):
+    """Sends a standard POST request but tells Firebase to treat it as a PATCH.
+    This is a bulletproof workaround for older Enigma2 systems that may corrupt 
+    native PATCH/PUT headers."""
+    def _send():
+        try:
+            # Handle Python 2 (urllib2) vs Python 3 (urllib.request)
+            try:
+                import urllib2 as request_module
+            except ImportError:
+                import urllib.request as request_module
+            
+            # 1. Build a standard POST request with the payload
+            # (In standard urllib, adding data= makes it a POST automatically)
+            req = request_module.Request(url, data=payload_string.encode('utf-8'))
+            
+            # 2. Strictly enforce the JSON Content-Type
+            req.add_header('Content-Type', 'application/json')
+            
+            # 3. FIREBASE MAGIC: Tell Firebase this POST is actually a PATCH
+            # This allows us to merge data without worrying about native PATCH support.
+            req.add_header('X-HTTP-Method-Override', 'PATCH')
+            
+            # 4. Send the request natively (Python won't corrupt the headers now)
+            request_module.urlopen(req, timeout=10)
+            
+        except Exception as e:
+            print("[SimplySports] Firebase upload failed:", str(e))
+            
+    # Fire and forget in a background thread so the UI never freezes
+    import threading
+    t = threading.Thread(target=_send)
+    t.daemon = True
+    t.start()
+
+# Define your new Firebase Base URL
+FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
 
 # ==============================================================================
 # PERFORMANCE PROFILING INTEGRATION (Optional Hook)
@@ -80,9 +129,10 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "4.5" # A new code to include Yesterdays matches and enhance notifications speed.
+CURRENT_VERSION = "4.6" # A new code to include users' predictions in the sports matches.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
+LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
 LOGO_CACHE_DIR = "/tmp/simplysports/logos"
 
 # ==============================================================================
@@ -112,50 +162,44 @@ load_fallback_font()
 # DEBUG LOGGING
 # ==============================================================================
 DEBUG_LOG_FILE = "/tmp/simply_sport_debug.log"
-_dbg_counter = 0
+
+try:
+    import logging
+    from logging.handlers import RotatingFileHandler
+    _dbg_logger = logging.getLogger("simplysport_dbg")
+    _dbg_logger.setLevel(logging.DEBUG)
+    _dbg_logger.propagate = False
+    if not _dbg_logger.handlers:
+        _dbg_handler = RotatingFileHandler(DEBUG_LOG_FILE, maxBytes=50000, backupCount=1)
+        _dbg_handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s", "%Y-%m-%d %H:%M:%S"))
+        _dbg_logger.addHandler(_dbg_handler)
+except: pass
 
 def log_dbg(msg):
-    global _dbg_counter
-    try:
-        with open(DEBUG_LOG_FILE, "a") as f:
-            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            f.write("[{}] {}\n".format(ts, msg))
-        _dbg_counter += 1
-        if _dbg_counter > 50:
-            _dbg_counter = 0
-            with open(DEBUG_LOG_FILE, "r") as f:
-                lines = f.readlines()
-            if len(lines) > 1000:
-                with open(DEBUG_LOG_FILE, "w") as f:
-                    f.writelines(lines[-1000:])
-    except:
-        pass
+    try: _dbg_logger.debug(str(msg))
+    except: pass
 
 # ==============================================================================
 # DIAGNOSTIC LOGGING (Verbose - for debugging loading issues)
 # ==============================================================================
 DIAG_LOG_FILE = "/tmp/simplysport_diag.log"
-_diag_counter = 0
+
+try:
+    import logging
+    from logging.handlers import RotatingFileHandler
+    _diag_logger = logging.getLogger("simplysport_diag")
+    _diag_logger.setLevel(logging.DEBUG)
+    _diag_logger.propagate = False
+    if not _diag_logger.handlers:
+        _diag_handler = RotatingFileHandler(DIAG_LOG_FILE, maxBytes=50000, backupCount=1)
+        _diag_handler.setFormatter(logging.Formatter("[%(asctime)s.%(msecs)03d] %(message)s", "%H:%M:%S"))
+        _diag_logger.addHandler(_diag_handler)
+except: pass
 
 def log_diag(msg):
     """Verbose diagnostic log with millisecond timestamps for tracing API/UI flow."""
-    global _diag_counter
-    try:
-        import time as _t
-        ms = int((_t.time() % 1) * 1000)
-        ts = datetime.datetime.now().strftime("%H:%M:%S")
-        with open(DIAG_LOG_FILE, "a") as f:
-            f.write("[{}.{:03d}] {}\n".format(ts, ms, msg))
-        _diag_counter += 1
-        if _diag_counter > 50:
-            _diag_counter = 0
-            with open(DIAG_LOG_FILE, "r") as f:
-                lines = f.readlines()
-            if len(lines) > 1000:
-                with open(DIAG_LOG_FILE, "w") as f:
-                    f.writelines(lines[-1000:])
-    except:
-        pass
+    try: _diag_logger.debug(str(msg))
+    except: pass
 
 # ==============================================================================
 # DATA SOURCES (FULL LIST)
@@ -692,17 +736,10 @@ def build_match_snapshot(event):
         'raw_event':     event,
     }
 
-def snapshot_passes_filter(snap, filter_mode):
+def snapshot_passes_filter(snap, filter_mode, today, tomorrow, yesterday):
     """Shared filter for all UI screens. filter_mode: 0=Yesterday, 1=Live, 2=Today, 3=Tomorrow, 4=All"""
     state    = snap['state']
     ev_date  = snap['date'][:10] if snap['date'] else ''
-    now      = datetime.datetime.now()
-    today    = now.strftime("%Y-%m-%d")
-    import calendar as _cal
-    tomorrow_ts = _cal.timegm(now.timetuple()) + 86400
-    tomorrow = datetime.datetime.utcfromtimestamp(tomorrow_ts).strftime("%Y-%m-%d")
-    yesterday_ts = _cal.timegm(now.timetuple()) - 86400
-    yesterday = datetime.datetime.utcfromtimestamp(yesterday_ts).strftime("%Y-%m-%d")
     
     if filter_mode == 0 and ev_date != yesterday: return False
     if filter_mode == 1 and state != 'in':        return False
@@ -754,6 +791,7 @@ def load_logo_to_widget(screen, widget_name, url, img_id=None, on_loaded=None):
         try:
             if not (os.path.exists(file_path) and os.path.getsize(file_path) > 100):
                 return
+            GLOBAL_VALID_LOGO_PATHS.add(file_path)
             ptr = None
             if LoadPixmap:
                 ptr = LoadPixmap(cached=True, path=file_path)
@@ -782,6 +820,20 @@ class LogoCacheManager:
     def __init__(self):
         self.cache_dir = LOGO_CACHE_DIR
         self._ensure_cache_dir()
+        
+        # Populate in-memory valid logo paths
+        try:
+            if os.path.exists(self.cache_dir):
+                for filename in os.listdir(self.cache_dir):
+                    if filename.endswith('.png'):
+                        GLOBAL_VALID_LOGO_PATHS.add(os.path.join(self.cache_dir, filename))
+            # Also check /tmp/simplysports/logos
+            tmp_dir = "/tmp/simplysports/logos/"
+            if os.path.exists(tmp_dir):
+                for filename in os.listdir(tmp_dir):
+                    if filename.endswith('.png'):
+                        GLOBAL_VALID_LOGO_PATHS.add(os.path.join(tmp_dir, filename))
+        except: pass
         
         # OPTIMIZATION: Run pruning 60 seconds AFTER startup to avoid blocking boot
         self.prune_timer = eTimer()
@@ -813,6 +865,7 @@ class LogoCacheManager:
                 if os.path.isfile(file_path):
                     if os.path.getmtime(file_path) < cutoff:
                         os.remove(file_path)
+                        GLOBAL_VALID_LOGO_PATHS.discard(file_path)
                 count += 1
         except: pass
 
@@ -862,15 +915,19 @@ try:
     from Tools.LoadPixmap import LoadPixmap
 except ImportError:
     LoadPixmap = None
-
-GLOBAL_PIXMAP_CACHE = {}
+GLOBAL_PIXMAP_CACHE = collections.OrderedDict()
+GLOBAL_PIXMAP_CACHE_LIMIT = 200
+GLOBAL_VALID_LOGO_PATHS = set()
 
 def get_scaled_pixmap(path, width, height):
     """Load and return a scaled pixmap from file path, cached in memory"""
     if not path: return None
     cache_key = "{}_{}x{}".format(path, width, height)
+    
     if cache_key in GLOBAL_PIXMAP_CACHE:
-        return GLOBAL_PIXMAP_CACHE[cache_key]
+        val = GLOBAL_PIXMAP_CACHE.pop(cache_key)
+        GLOBAL_PIXMAP_CACHE[cache_key] = val
+        return val
         
     try:
         from enigma import ePicLoad
@@ -878,6 +935,8 @@ def get_scaled_pixmap(path, width, height):
         sc.setPara((width, height, 1, 1, 0, 1, "#00000000"))
         if sc.startDecode(path, 0, 0, False) == 0:
             ptr = sc.getData()
+            if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
+                GLOBAL_PIXMAP_CACHE.popitem(last=False)
             GLOBAL_PIXMAP_CACHE[cache_key] = ptr
             return ptr
     except: pass
@@ -885,7 +944,10 @@ def get_scaled_pixmap(path, width, height):
     # Fallback to standard LoadPixmap if ePicLoad fails
     if LoadPixmap:
         ptr = LoadPixmap(cached=True, path=path)
-        if ptr: GLOBAL_PIXMAP_CACHE[cache_key] = ptr
+        if ptr: 
+            if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
+                GLOBAL_PIXMAP_CACHE.popitem(last=False)
+            GLOBAL_PIXMAP_CACHE[cache_key] = ptr
         return ptr
     return None
 
@@ -910,9 +972,9 @@ def SportListEntry(entry):
              c_score_bg = 0x202020; has_epg = False; l_png = ""; h_red_cards = 0; a_red_cards = 0
         else: return []
 
-        if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
-        if a_png and (not os.path.exists(a_png) or os.path.getsize(a_png) == 0): a_png = None
-        if l_png and (not os.path.exists(l_png) or os.path.getsize(l_png) == 0): l_png = None
+        if h_png and h_png not in GLOBAL_VALID_LOGO_PATHS: h_png = None
+        if a_png and a_png not in GLOBAL_VALID_LOGO_PATHS: a_png = None
+        if l_png and l_png not in GLOBAL_VALID_LOGO_PATHS: l_png = None
 
         c_text = 0xffffff
         c_dim = 0xDDDDDD 
@@ -998,7 +1060,10 @@ def SportListEntry(entry):
             rc_img = None
             try:
                 rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
-                if os.path.exists(rc_path):
+                if rc_path in GLOBAL_VALID_LOGO_PATHS:
+                    rc_img = get_scaled_pixmap(rc_path, 16, 22)
+                elif os.path.exists(rc_path):
+                    GLOBAL_VALID_LOGO_PATHS.add(rc_path)
                     rc_img = get_scaled_pixmap(rc_path, 16, 22)
             except: pass
             if h_red_cards > 0:
@@ -1030,7 +1095,7 @@ def RacingListEntry(entry, theme_mode="default"):
             l_png = ""
         else: return []
 
-        if l_png and (not os.path.exists(l_png) or os.path.getsize(l_png) == 0): l_png = None
+        if l_png and l_png not in GLOBAL_VALID_LOGO_PATHS: l_png = None
 
         c_text = 0xffffff
         c_dim = 0xAAAAAA
@@ -1113,7 +1178,7 @@ def RacingDriverRow(rank, driver_name, country, is_winner=False, team_logo=None,
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 0, 70, h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rank_txt, rank_color, c_sel))
 
         # Team logo (at x=95, aligned with league logo in header)
-        if team_logo and os.path.exists(team_logo) and os.path.getsize(team_logo) > 0:
+        if team_logo and team_logo in GLOBAL_VALID_LOGO_PATHS:
             res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 95, 20, 50, 50, get_scaled_pixmap(team_logo, 50, 50)))
 
         # Driver name (at x=160, aligned with event name in header)
@@ -1212,9 +1277,9 @@ def UCLListEntry(entry):
              c_score_bg = 0x051030; l_png = ""; h_red_cards = 0; a_red_cards = 0
         else: return []
 
-        if h_png and (not os.path.exists(h_png) or os.path.getsize(h_png) == 0): h_png = None
-        if a_png and (not os.path.exists(a_png) or os.path.getsize(a_png) == 0): a_png = None
-        if l_png and (not os.path.exists(l_png) or os.path.getsize(l_png) == 0): l_png = None
+        if h_png and h_png not in GLOBAL_VALID_LOGO_PATHS: h_png = None
+        if a_png and a_png not in GLOBAL_VALID_LOGO_PATHS: a_png = None
+        if l_png and l_png not in GLOBAL_VALID_LOGO_PATHS: l_png = None
 
         c_text = 0xffffff
         c_dim = 0xDDDDDD 
@@ -1298,7 +1363,10 @@ def UCLListEntry(entry):
             rc_img = None
             try:
                 rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
-                if os.path.exists(rc_path):
+                if rc_path in GLOBAL_VALID_LOGO_PATHS:
+                    rc_img = get_scaled_pixmap(rc_path, 16, 22)
+                elif os.path.exists(rc_path):
+                    GLOBAL_VALID_LOGO_PATHS.add(rc_path)
                     rc_img = get_scaled_pixmap(rc_path, 16, 22)
             except: pass
             if h_red_cards > 0:
@@ -1358,28 +1426,7 @@ def InfoListEntry(entry):
     #return res  ###
 
 
-def get_scaled_pixmap(path, width, height):
-    """Load and return a scaled pixmap from file path, cached in memory"""
-    if not path: return None
-    cache_key = "{}_{}x{}".format(path, width, height)
-    if cache_key in GLOBAL_PIXMAP_CACHE:
-        return GLOBAL_PIXMAP_CACHE[cache_key]
-        
-    try:
-        from enigma import ePicLoad
-        sc = ePicLoad()
-        sc.setPara((width, height, 1, 1, 0, 1, "#00000000"))
-        if sc.startDecode(path, 0, 0, False) == 0:
-            ptr = sc.getData()
-            GLOBAL_PIXMAP_CACHE[cache_key] = ptr
-            return ptr
-    except: pass
-    
-    if LoadPixmap:
-        ptr = LoadPixmap(cached=True, path=path)
-        if ptr: GLOBAL_PIXMAP_CACHE[cache_key] = ptr
-        return ptr
-    return None
+
 
 def SelectionListEntry(name, is_selected, logo_path=None, mode="multi"):
     col_sel = 0x00FF85 if is_selected else 0x9E9E9E
@@ -1396,17 +1443,47 @@ def SelectionListEntry(name, is_selected, logo_path=None, mode="multi"):
     
     # Add logo if available
     text_x = base_x
-    if logo_path and os.path.exists(logo_path) and os.path.getsize(logo_path) > 0:
-        try:
-            # Resize image to fit 35x35
-            pixmap = get_scaled_pixmap(logo_path, 35, 35)
-            if pixmap:
-                res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, base_x, 7, 35, 35, pixmap))
-                text_x = base_x + 45  # Shift text after logo
-        except:
-            pass
+    if logo_path:
+        is_valid = logo_path in GLOBAL_VALID_LOGO_PATHS
+        if not is_valid and os.path.exists(logo_path) and os.path.getsize(logo_path) > 0:
+            GLOBAL_VALID_LOGO_PATHS.add(logo_path)
+            is_valid = True
+            
+        if is_valid:
+            try:
+                # Resize image to fit 35x35
+                pixmap = get_scaled_pixmap(logo_path, 35, 35)
+                if pixmap:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, base_x, 7, 35, 35, pixmap))
+                    text_x = base_x + 45  # Shift text after logo
+            except:
+                pass
     
     res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, 5, 700 - (text_x - 70), 40, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, name, text_col, text_col, None, None))
+    return res
+
+def LeaderboardListEntry(rank, name, score, is_me=False):
+    # Colors: Gold for 1st, Accent for others. Cyan for ME.
+    c_text = 0xffffff
+    c_accent = 0x00FF85
+    c_gold = 0xFFD700
+    c_me = 0x00ffff
+    c_sel = c_accent
+    
+    res = [(rank, name, score, is_me)]
+    h = 60
+    
+    # 1. Rank
+    rank_color = c_gold if rank == 1 else c_accent
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 0, 100, h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "#" + str(rank), rank_color, c_sel))
+    
+    # 2. Name
+    name_color = c_me if is_me else c_text
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 140, 0, 560, h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, name, name_color, c_sel))
+    
+    # 3. Score
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 720, 0, 200, h, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(score) + " pts", c_text, c_sel))
+    
     return res
 
 
@@ -1432,8 +1509,10 @@ class SportsMonitor:
         self.transparency = "59"
         
         self.logo_path_cache = {} 
-        self.missing_logo_cache = [] 
+        self.missing_logo_cache = set() 
         self.pending_logos = set()
+        self.voter_name = "Anonymous"
+        self.current_league_index = 0
         self.reminders = [] 
         
         self.timer = eTimer()
@@ -1474,10 +1553,13 @@ class SportsMonitor:
         safe_connect(self.callback_debounce_timer, self._execute_pending_callback)
         self.event_map = {} # optimization: O(1) lookup
         self.live_summary_timer = None  # Timer for direct summary fetches for live American 
+        self._summary_fail_counts = {}   # {eid: consecutive_fail_count}
+        self._dead_summary_eids = set()  # EIDs that failed 3+ times, skip for session
         
         self.load_cache()
         
         self.load_config()
+        self.load_ledger()
         
         self.boot_timer = eTimer()
         
@@ -1522,6 +1604,7 @@ class SportsMonitor:
                     self.menu_section = data.get("menu_section", "all")
                     self.show_in_menu = bool(data.get("show_in_menu", True))
                     self.minibar_color_mode = data.get("minibar_color_mode", "default")
+                    self.voter_name = data.get("voter_name", "Anonymous")
                     
                     # FIX: Ensure timer state is set correctly (handles active and reminders)
                     try:
@@ -1537,6 +1620,11 @@ class SportsMonitor:
         self.filter_mode = 1; self.theme_mode = "default"; self.transparency = "59"
         self.discovery_mode = 0; self.reminders = []; self.menu_section = "all"
         self.show_in_menu = True; self.minibar_color_mode = "default"
+        self.voter_name = "Anonymous"
+        # FIX Bug 1: resolved_bets must be a dict (not a list) to support key-based
+        # lookups and assignment used throughout the gamification engine.
+        # Also ensure total_predictions and correct_predictions are always present.
+        self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
 
     def save_config(self):
         data = {
@@ -1545,11 +1633,229 @@ class SportsMonitor:
             "discovery_mode": self.discovery_mode, "active": self.active,
             "custom_indices": self.custom_league_indices, "is_custom_mode": self.is_custom_mode,
             "reminders": self.reminders, "menu_section": self.menu_section,
-            "show_in_menu": self.show_in_menu, "minibar_color_mode": self.minibar_color_mode
+            "show_in_menu": self.show_in_menu, "minibar_color_mode": self.minibar_color_mode,
+            "voter_name": self.voter_name
         }
         try:
             with open(CONFIG_FILE, "w") as f: json.dump(data, f)
         except: pass
+
+    def load_ledger(self):
+        try:
+            if os.path.exists(LEDGER_FILE):
+                with open(LEDGER_FILE, "r") as f:
+                    self.ledger = json.load(f)
+            else:
+                self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
+            
+            # FIX: Ensure resolved_bets is a dictionary (V2 requirement)
+            if not isinstance(self.ledger.get("resolved_bets"), dict):
+                # Migration: if it was a list, just convert to empty dict (safer than trying to guess structure)
+                self.ledger["resolved_bets"] = {}
+                
+            # Migration logic for old /tmp votes
+            old_votes_file = "/tmp/simplysports_votes.json"
+            if os.path.exists(old_votes_file):
+                try:
+                    with open(old_votes_file, "r") as f:
+                        old_data = json.load(f)
+                        for eid in old_data:
+                            eid_str = str(eid)
+                            if eid_str not in self.ledger["resolved_bets"]:
+                                self.ledger["resolved_bets"][eid_str] = {"legacy": True}
+                    self.save_ledger()
+                except: pass
+        except:
+            self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
+
+    def save_ledger(self):
+        """Saves the current ledger to disk, pruning resolved bets older than 30 days."""
+        import json
+        import time
+        
+        if not hasattr(self, 'ledger') or not self.ledger:
+            return
+
+        # --- THE JANITOR: 30-Day Pruning Routine ---
+        thirty_days_in_seconds = 30 * 24 * 60 * 60
+        current_time = int(time.time())
+        
+        resolved = self.ledger.get("resolved_bets", {})
+        if isinstance(resolved, dict):
+            stale_keys = []
+            
+            for event_id, bet_data in resolved.items():
+                # Get the timestamp. If it doesn't exist (older bets), assign it today's time
+                bet_time = bet_data.get("timestamp")
+                if bet_time is None:
+                    bet_data["timestamp"] = current_time
+                    continue
+                    
+                # If the bet is older than 30 days, mark it for deletion
+                if (current_time - int(bet_time)) > thirty_days_in_seconds:
+                    stale_keys.append(event_id)
+            
+            # Delete the stale bets from the dictionary
+            for event_id in stale_keys:
+                del resolved[event_id]
+                print("[SimplySports Janitor] Deleted stale bet:", event_id)
+        # -------------------------------------------
+
+        try:
+            # FIX Bug 4: Always use the module-level LEDGER_FILE constant directly.
+            # getattr(self, 'LEDGER_FILE', ...) never resolved to the instance because
+            # LEDGER_FILE is not an instance attribute — it is a module-level constant.
+            # The silent fallback to the hardcoded string meant any rename of the
+            # constant at the top of the file would be ignored here, causing a
+            # path mismatch between save and load after a restart.
+            with open(LEDGER_FILE, "w") as f:
+                json.dump(self.ledger, f)
+        except Exception as e:
+            print("[SimplySports] Failed to save ledger:", e)
+    def add_pending_bet(self, event_id, prediction, sport, league, h_name="Home", a_name="Away"):
+        eid = str(event_id)
+        if eid not in self.ledger["pending_bets"] and eid not in self.ledger["resolved_bets"]:
+            self.ledger["pending_bets"][eid] = {
+                "prediction": prediction, # 'home', 'away', or 'draw'
+                "sport": sport,
+                "league": league,
+                # Store team names at bet time so the Personal Profile screen can
+                # show a meaningful "Arsenal vs Chelsea" label even after the match
+                # has dropped out of the live event_map cache.
+                "h_name": h_name,
+                "a_name": a_name,
+                "timestamp": int(time.time())
+            }
+            self.save_ledger()
+            self.evaluate_pending_bets()
+
+    def evaluate_pending_bets(self):
+        if not self.ledger.get("pending_bets"): return
+        
+        log_diag("REFREE: Evaluating {} pending bets...".format(len(self.ledger["pending_bets"])))
+        for eid, bet in list(self.ledger["pending_bets"].items()):
+            sport = bet.get("sport", "soccer")
+            league = bet.get("league", "")
+            url = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(sport, league, eid)
+            
+            if url in self.active_requests: continue
+            
+            self.active_requests.add(url)
+            d = self.agent.request(b'GET', url.encode('utf-8'))
+            d.addCallback(readBody)
+            d.addCallback(self._on_summary_resolved, eid, bet)
+            d.addErrback(lambda x: log_dbg("Referee error for {}: {}".format(eid, x)))
+            d.addBoth(lambda x: self.active_requests.discard(url))
+
+    def _on_summary_resolved(self, body, eid, bet):
+        try:
+            data = json.loads(body)
+            header = data.get('header', {})
+            comps = header.get('competitions', [{}])
+            if not comps: return
+            
+            comp = comps[0]
+            status = comp.get('status', {})
+            state = status.get('type', {}).get('state', 'pre')
+            
+            if state == 'post':
+                # Match finished! Calculate winner from scores (V2 Logic)
+                competitors = comp.get('competitors', [])
+                h_score = 0
+                a_score = 0
+                
+                for c in competitors:
+                    score_val = int(c.get('score', 0))
+                    if c.get('homeAway') == 'home':
+                        h_score = score_val
+                    else:
+                        a_score = score_val
+                
+                # Determine actual winner
+                if h_score > a_score: actual_winner = 'home'
+                elif a_score > h_score: actual_winner = 'away'
+                else: actual_winner = 'draw'
+                
+                prediction = bet.get("prediction")
+                sport = bet.get("sport", "soccer")
+                current_score = int(self.ledger.get("total_score", 0))
+                total_preds = int(self.ledger.get("total_predictions", 0)) + 1
+                correct_preds = int(self.ledger.get("correct_predictions", 0))
+                
+                # Initialize sport-specific tracking
+                if "sport_stats" not in self.ledger:
+                    self.ledger["sport_stats"] = {}
+                if sport not in self.ledger["sport_stats"]:
+                    self.ledger["sport_stats"][sport] = {"score": 0, "total": 0, "correct": 0}
+                
+                self.ledger["sport_stats"][sport]["total"] += 1
+                
+                if prediction == actual_winner:
+                    current_score += 1
+                    correct_preds += 1
+                    self.ledger["sport_stats"][sport]["score"] += 1
+                    self.ledger["sport_stats"][sport]["correct"] += 1
+                    log_diag("REFREE: Match {} result ({}) matched prediction! Score: {}".format(eid, actual_winner, current_score))
+                else:
+                    current_score -= 1
+                    self.ledger["sport_stats"][sport]["score"] -= 1
+                    log_diag("REFREE: Match {} result ({}) MISMATCHED prediction ({}). Score: {}".format(eid, actual_winner, prediction, current_score))
+                
+                # Update Ledger with detailed results (V2 Requirement)
+                self.ledger["total_score"] = current_score
+                self.ledger["total_predictions"] = total_preds
+                self.ledger["correct_predictions"] = correct_preds
+                
+                self.ledger["resolved_bets"][eid] = {
+                    "prediction": prediction,
+                    "result": actual_winner,
+                    "score": "{}-{}".format(h_score, a_score),
+                    # Carry team names from the pending bet so the Personal Profile
+                    # screen can show "Arsenal vs Chelsea" after the match is over.
+                    "h_name": bet.get("h_name", "Home"),
+                    "a_name": bet.get("a_name", "Away"),
+                    # FIX Bug 6: Use the current time (moment of resolution) rather than
+                    # the original bet placement timestamp.  The 30-day pruning janitor in
+                    # save_ledger() measures age from this timestamp.  Reusing the placement
+                    # time would shorten the retention window for postponed matches — a match
+                    # placed 29 days ago would be pruned the very next save after resolution.
+                    "timestamp": int(time.time())
+                }
+                
+                # Clean up pending
+                if eid in self.ledger["pending_bets"]:
+                    del self.ledger["pending_bets"][eid]
+                
+                self.save_ledger()
+                self.sync_leaderboard()
+        except Exception as e:
+            log_dbg("Referee processing error for {}: {}".format(eid, e))
+
+    def sync_leaderboard(self):
+        device_id = get_device_id()
+        url = "{}/leaderboard/{}.json".format(FIREBASE_URL, device_id)
+        
+        # Calculate accuracy safely
+        total_preds = int(self.ledger.get("total_predictions", 0))
+        correct_preds = int(self.ledger.get("correct_predictions", 0))
+        accuracy = (float(correct_preds) / total_preds * 100.0) if total_preds > 0 else 0.0
+        total_score = self.ledger.get("total_score", 0)
+
+        # Compute this player's current badge so other users see it on their
+        # leaderboard without having to recalculate it client-side.
+        badge = get_rank_badge(total_score, accuracy)
+
+        payload = json.dumps({
+            "score": total_score,
+            "name": self.voter_name,
+            "accuracy": round(accuracy, 1),
+            "total_bets": total_preds,
+            "sports": self.ledger.get("sport_stats", {}),
+            "badge": badge,
+            "timestamp": int(time.time())
+        })
+        
+        push_to_firebase_threaded(url, payload)
 
     # ... (Helpers omitted for brevity, assuming standard methods exist) ...
     def toggle_theme(self):
@@ -1727,6 +2033,7 @@ class SportsMonitor:
         log_diag("CHECK_GOALS: ENTER from_ui={} active={} is_custom={} discovery_mode={} filter_mode={} cached_events={} batch_remaining={} active_requests={} callbacks={}".format(
             from_ui, self.active, self.is_custom_mode, self.discovery_mode, self.filter_mode, len(self.cached_events), self.batch_remaining, len(self.active_requests), len(self.callbacks)))
         self.check_reminders()
+        self.evaluate_pending_bets()
 
         # Guard: Data fetching happens if:
         # 1. Goal Alert is ON (self.active)
@@ -1801,25 +2108,34 @@ class SportsMonitor:
                 fired += 1
             log_diag("CHECK_GOALS: CUSTOM MODE - Fired {} requests (10s timeout), skipped {}, batch_remaining={}".format(fired, skipped, self.batch_remaining))
 
+    def _save_cache_bg(self):
+        try:
+            cache_dir = os.path.dirname(self.cache_file)
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+            
+            # Take a shallow copy of the list to prevent mid-iteration modification
+            events_copy = list(self.cached_events)
+            data = {
+                'timestamp': self.last_update,
+                'events': events_copy
+            }
+            with open(self.cache_file, 'w') as f:
+                json.dump(data, f)
+        except Exception as e:
+            print("[SportsMonitor] Cache Save BG Error: ", e)
+
     def save_cache(self):
         # Optimization: Write Coalescing (Max once every 2 mins)
         if time.time() - self.last_cache_save < 120 and self.cached_events:
             return
 
-        try:
-            self.last_cache_save = time.time()
-            cache_dir = os.path.dirname(self.cache_file)
-            if not os.path.exists(cache_dir):
-                os.makedirs(cache_dir)
-            
-            data = {
-                'timestamp': self.last_update,
-                'events': self.cached_events
-            }
-            with open(self.cache_file, 'w') as f:
-                json.dump(data, f)
-        except Exception as e:
-            print("[SportsMonitor] Cache Save Error: ", e)
+        self.last_cache_save = time.time()
+        
+        import threading
+        t = threading.Thread(target=self._save_cache_bg)
+        t.daemon = True
+        t.start()
 
     def load_cache(self):
         try:
@@ -1922,6 +2238,23 @@ class SportsMonitor:
         
         self.save_cache()
         
+        # FINAL REBUILD: One full snapshot rebuild after all batch responses
+        self.match_snapshots = {}
+        for ev in self.cached_events:
+            eid = ev.get('id')
+            if eid:
+                self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+                
+        # Remove stale snapshot keys for reaped events
+        stale_keys = [k for k in self.match_snapshots if k not in self.event_map]
+        for k in stale_keys:
+            del self.match_snapshots[k]
+            
+        log_dbg("FINALIZE_BATCH: Final snapshot rebuild \u2014 {} snapshots".format(len(self.match_snapshots)))
+        
+        # Evaluate goals ONCE after all batch data is complete
+        self.evaluate_goals()
+        
         log_diag("FINALIZE_BATCH: DONE cached_events={}".format(len(self.cached_events)))
         
         # Determine live_count for timer interval
@@ -1936,8 +2269,8 @@ class SportsMonitor:
                 try:
                     m_date = ev.get('date', '')
                     if m_date:
-                        from dateutil.parser import parse
-                        m_ts = time.mktime(parse(m_date).timetuple())
+                        dt = datetime.strptime(m_date[:16], "%Y-%m-%dT%H:%M")
+                        m_ts = calendar.timegm(dt.timetuple())
                         if 0 <= (m_ts - now) <= 900: # 15 minutes
                             live_count += 1
                 except: pass
@@ -1959,11 +2292,12 @@ class SportsMonitor:
     def fetch_live_summaries(self):
         """For each live non-soccer match, fetch the ESPN summary API directly
         (same endpoint GameInfo uses) and patch the score/status into event_map."""
-        from twisted.web.client import getPage
         live_found = 0
         try:
             for eid, ev in list(self.event_map.items()):
                 if ev.get('status', {}).get('type', {}).get('state', '') != 'in':
+                    continue
+                if eid in self._dead_summary_eids:
                     continue
                 league_url = ev.get('league_url', '')
                 
@@ -1981,7 +2315,7 @@ class SportsMonitor:
                     sport, league_slug, eid)
                 d = getPage(summary_url.encode('utf-8'))
                 d.addCallback(self.on_live_summary, str(eid))
-                d.addErrback(lambda e, i=eid: log_diag("on_live_summary FETCH_ERR eid={} {}".format(i, str(e)[:80])))
+                d.addErrback(self._on_summary_error, str(eid))
                 live_found += 1
         except Exception as e:
             log_diag("fetch_live_summaries ERROR: " + str(e))
@@ -1994,8 +2328,18 @@ class SportsMonitor:
         else:
             self.live_summary_timer = None
 
+    def _on_summary_error(self, failure, eid):
+        count = self._summary_fail_counts.get(eid, 0) + 1
+        self._summary_fail_counts[eid] = count
+        if count >= 3:
+            self._dead_summary_eids.add(eid)
+            log_diag("CIRCUIT_BREAKER: eid={} failed {} times, marking dead for session".format(eid, count))
+        else:
+            log_diag("on_live_summary FETCH_ERR eid={} attempt={} {}".format(eid, count, str(failure)[:80]))
+
     def on_live_summary(self, body, eid):
         """Parse the summary API response and patch fresh score/status into event_map."""
+        self._summary_fail_counts.pop(eid, None)
         try:
             data = json.loads(body)
             # Summary API structure: header.competitions[0].competitors[].score
@@ -2035,9 +2379,8 @@ class SportsMonitor:
                 if str(ce.get('id', '')) == eid:
                     self.cached_events[i] = ev
                     break
-            
             # Trigger notification evaluator immediately on live score changes
-            self.evaluate_goals()
+            self._debounced_evaluate_goals()
             
             self._trigger_callbacks(True)
         except Exception as e:
@@ -2306,7 +2649,6 @@ class SportsMonitor:
                 return callback(None)
 
             def on_summary_success(body):
-                import json
                 try:
                     data = json.loads(body.decode('utf-8', errors='ignore'))
                     header = data.get('header', {})
@@ -2357,7 +2699,6 @@ class SportsMonitor:
                     print("[SimplySport] fetch_summary_for_scorer error parsing:", e)
                     return callback(None)
                     
-            from twisted.web.client import getPage
             getPage(summary_url.encode('utf-8')).addCallback(on_summary_success).addErrback(lambda err: callback(None))
         except Exception as e:
             print("[SimplySport] fetch_summary_for_scorer error:", e)
@@ -2511,6 +2852,8 @@ class SportsMonitor:
                     if data:
                         with open(target_path, 'wb') as f: f.write(data)
                         self.logo_path_cache[team_id] = target_path # Register globally
+                        self.missing_logo_cache.discard(team_id)
+                        GLOBAL_VALID_LOGO_PATHS.add(target_path)
                     self.pending_logos.discard(team_id)
                     return data
                 
@@ -2670,6 +3013,24 @@ class SportsMonitor:
             
         return matches
 
+    def _debounced_evaluate_goals(self):
+        """
+        Debounced evaluation for goals/red-cards.
+        Ensures O(N) evaluation only runs once per 300ms window,
+        even if multiple live summary API responses arrive simultaneously.
+        """
+        if getattr(self, '_eval_pending', False):
+            return
+            
+        self._eval_pending = True
+        
+        def _execute():
+            self._eval_pending = False
+            self.evaluate_goals()
+            
+        from twisted.internet import reactor
+        reactor.callLater(0.3, _execute)
+
     def evaluate_goals(self):
         """Evaluate all cached events for goal/start/end/red-card notifications.
         Runs synchronously — NOT inside the cancellable lazy processor.
@@ -2714,8 +3075,8 @@ class SportsMonitor:
 
                 if len(comps) < 2: continue
 
-                # Skip individual sports EXCEPT Tennis and Racing (Racing handled above)
-                if event_sport_type in [SPORT_TYPE_GOLF]:
+                # Skip individual sports EXCEPT Racing (Racing handled above)
+                if event_sport_type in [SPORT_TYPE_GOLF, SPORT_TYPE_TENNIS, SPORT_TYPE_COMBAT]:
                     continue
 
                 # Read names, scores, logos from snapshot
@@ -2886,8 +3247,12 @@ class SportsMonitor:
         except StopIteration:
             self.lazy_processor = None
             # Notifications already evaluated in _run_lazy_process_events_data
-            # Just trigger final UI callbacks
-            self._trigger_callbacks(True)
+            # Prevent UI storm: Only trigger callbacks if we aren't mid-batch.
+            # (Batch mode will call _trigger_callbacks inside finalize_batch)
+            if getattr(self, 'batch_is_active', False):
+                pass
+            else:
+                self._trigger_callbacks(True)
         except Exception as e:
             print("[SimplySport] Error in background lazy UI sync:", e)
             self.lazy_processor = None
@@ -2910,6 +3275,8 @@ class SportsMonitor:
                     json_str = body.decode('utf-8', errors='ignore')
                     data = json.loads(json_str)
                     league_obj = data.get('leagues', [{}])[0]
+                    cur_l_logo = league_obj.get('logos', [{}])[0].get('href', '')
+                    cur_l_id = str(league_obj.get('id', ''))
                     if l_name: league_name = l_name
                     else: league_name = league_obj.get('name') or league_obj.get('shortName') or ""
                     events = data.get('events', [])
@@ -2936,11 +3303,11 @@ class SportsMonitor:
                             if not eid: continue
                             
                             eid_str = str(eid)
-                            league_seen_ids.add(eid)
+                            league_seen_ids.add(eid_str)
                             status_type_state = processed_ev.get('status', {}).get('type', {}).get('state', '')
                             
                             # Check for changes using fresh scoreboard data vs stored state
-                            old_ev = self.event_map.get(eid)
+                            old_ev = self.event_map.get(eid_str)
                             
                             is_changed = True
                             if old_ev:
@@ -3074,10 +3441,7 @@ class SportsMonitor:
                                         if not a_logo and a_id:
                                             a_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, a_id)
                                 
-                                processed_ev['h_logo_url'] = h_logo
-                                processed_ev['a_logo_url'] = a_logo
                                 # Prefix logo IDs with unique sport name to prevent cross-sport collisions
-                                # e.g. soccer team 360 vs basketball team 360 -> soccer_360.png vs basketball_360.png
                                 sport_prefix = get_sport_id_prefix(league_url)
                                 processed_ev['h_logo_id'] = sport_prefix + str(h_id) if h_id else ''
                                 processed_ev['a_logo_id'] = sport_prefix + str(a_id) if a_id else ''
@@ -3086,26 +3450,34 @@ class SportsMonitor:
                                 if h_logo and h_id: self.prefetch_logo(h_logo, processed_ev['h_logo_id'])
                                 if a_logo and a_id: self.prefetch_logo(a_logo, processed_ev['a_logo_id'])
                                 
-                                # League Logo Extraction & Caching
-                                l_logo = league_obj.get('logos', [{}])[0].get('href', '')
-                                l_id = league_obj.get('id', '')
-                                if l_logo and l_id:
-                                    self.prefetch_logo(l_logo, "league_" + str(l_id))
-                                
-                                processed_ev['l_logo_url'] = l_logo
-                                processed_ev['l_logo_id'] = "league_" + str(l_id) if l_id else ''
+                                processed_ev['h_logo_url'] = h_logo
+                                processed_ev['a_logo_url'] = a_logo
+
+                            # League Logo ALWAYS assigned (Fixes Racing/Individual sports missing logos)
+                            processed_ev['l_logo_url'] = cur_l_logo
+                            processed_ev['l_logo_id'] = "league_" + cur_l_id if cur_l_id else ''
+                            if cur_l_logo and cur_l_id:
+                                self.prefetch_logo(cur_l_logo, processed_ev['l_logo_id'])
                             
-                            self.event_map[eid] = processed_ev
+                            self.event_map[str(eid)] = processed_ev
                             if is_changed: 
                                 changed_events.append(processed_ev)
                                 has_changes = True
                                 
                     # REAPING Stability Fix: Remove entries for THIS specific league that were not in this response.
                     # This prevents matches from appearing/disappearing if unrelated requests fail/timeout.
-                    reap_keys = [mid for mid, ex_ev in self.event_map.items() 
-                                 if ex_ev.get('league_name') == league_name 
-                                 and ex_ev.get('league_url') == l_url
-                                 and mid not in league_seen_ids]
+                    now_date = datetime.now().strftime("%Y-%m-%d")
+                    reap_keys = []
+                    for mid, ex_ev in self.event_map.items():
+                        if ex_ev.get('league_name') != league_name: continue
+                        if ex_ev.get('league_url') != l_url: continue
+                        if mid in league_seen_ids: continue
+                        
+                        ex_state = ex_ev.get('status', {}).get('type', {}).get('state', 'pre')
+                        ex_date  = ex_ev.get('date', '')[:10]
+                        if ex_state == 'pre' and ex_date > now_date:
+                            continue # Keep tomorrow's matches
+                        reap_keys.append(mid)
                     for rk in reap_keys:
                         if rk in self.event_map: del self.event_map[rk]
                     if reap_keys: has_changes = True
@@ -3135,17 +3507,31 @@ class SportsMonitor:
             self.cached_events = unique_list
             
             # Build normalized snapshots for all UI consumers
-            self.match_snapshots = {}
-            for ev in self.cached_events:
-                eid = ev.get('id')
-                if eid:
-                    self.match_snapshots[str(eid)] = build_match_snapshot(ev)
-            
-            # TRIGGER: Evaluate goals IMMEDIATELY after snapshots are built
-            # This ensures notifications fire at the exact same time as UI updates
-            self.evaluate_goals()
-            
-            log_dbg("SNAPSHOTS: Built {} snapshots from {} events".format(len(self.match_snapshots), len(self.cached_events)))
+            if append_mode:
+                # INCREMENTAL: Only rebuild snapshots for events that actually changed
+                for ev in changed_events:
+                    eid = ev.get('id')
+                    if eid:
+                        self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+                # Also rebuild snapshots for any new events not yet in match_snapshots
+                for ev in self.cached_events:
+                    eid = ev.get('id')
+                    if eid and str(eid) not in self.match_snapshots:
+                        self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+                log_dbg("SNAPSHOTS: Incremental \u2014 rebuilt {} changed, {} total".format(
+                    len(changed_events), len(self.match_snapshots)))
+                # NOTE: evaluate_goals() deferred to finalize_batch() for append_mode
+            else:
+                # FULL REBUILD: Single league mode \u2014 rebuild everything
+                self.match_snapshots = {}
+                for ev in self.cached_events:
+                    eid = ev.get('id')
+                    if eid:
+                        self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+                
+                # TRIGGER: Evaluate goals IMMEDIATELY after snapshots are built
+                self.evaluate_goals()
+                log_dbg("SNAPSHOTS: Full rebuild \u2014 {} snapshots".format(len(self.match_snapshots)))
             
             # Only set status message if there's an actual issue (no matches)
             if len(self.cached_events) == 0: self.status_message = "No Matches Found"
@@ -3171,8 +3557,8 @@ class SportsMonitor:
                     try:
                         m_date = event.get('date', '')
                         if m_date:
-                            from dateutil.parser import parse
-                            m_ts = time.mktime(parse(m_date).timetuple())
+                            dt = datetime.strptime(m_date[:16], "%Y-%m-%dT%H:%M")
+                            m_ts = calendar.timegm(dt.timetuple())
                             if 0 <= (m_ts - now) <= 900: # 900s = 15m
                                 live_count += 1
                     except: pass
@@ -3305,6 +3691,30 @@ def TextListEntry(text, theme_mode, align="center", is_header=False):
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, bg_actual, col_sel))
     
     res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, flags, str(text), col_text, col_text, bg_actual, col_sel))
+    return res
+
+def VoteListEntry(team_type, team_name, votes, total_votes, theme_mode, has_voted=False, is_pre_match=True):
+    """Draws a 2-Column Layout for Voting with Percentages and Lockout states."""
+    pct = (votes / float(total_votes) * 100) if total_votes > 0 else 0.0
+    
+    # 1. NEW LOGIC: Determine what text to show based on match state
+    if not is_pre_match:
+        display_text = "{}  -  {} Votes ({:.1f}%)  [VOTING CLOSED]".format(team_name, votes, pct)
+    elif has_voted or total_votes > 0:
+        display_text = "{}  -  {} Votes ({:.1f}%)".format(team_name, votes, pct)
+    else:
+        display_text = "{}  -  Press OK to Vote!".format(team_name)
+
+    if theme_mode == "ucl":
+        col_text, col_bg, col_sel = 0xffffff, 0x051030, 0x182c82
+    else:
+        col_text, col_bg, col_sel = 0x00FF85, 0x100015, 0x444444
+        
+    # Payload: ("VOTE", "home" or "away", team_name)
+    res = [("VOTE", team_type, team_name)] 
+    
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, display_text, col_text, col_text, col_bg, col_sel))
     return res
 
 def wrap_text(text, max_chars=70):
@@ -3472,7 +3882,6 @@ class TeamStandingScreen(Screen):
     def page_down(self):
         total_items = len(self.standings_rows)
         if total_items > 0:
-            import math
             max_page = int(math.ceil(float(total_items) / float(self.items_per_page))) - 1
             if self.current_page < max_page:
                 self.current_page += 1
@@ -3487,7 +3896,6 @@ class TeamStandingScreen(Screen):
         end_index = start_index + self.items_per_page
         page_data = self.standings_rows[start_index:end_index]
         self["standings_list"].setList(page_data)
-        import math
         total_pages = int(math.ceil(float(total_items) / float(self.items_per_page)))
         if total_pages > 1:
             self["hint"].setText("Page {}/{} - Left/Right to navigate, OK to exit".format(self.current_page + 1, total_pages))
@@ -4115,7 +4523,6 @@ class SimplePlayer(Screen):
                     self.session.nav.playService(eServiceReference(ref))
 
                     # Record start time for grace period
-                    import time
                     self.start_time = time.time()
                     
                     # Listen for EOF
@@ -4145,7 +4552,6 @@ class SimplePlayer(Screen):
             if self.is_advancing: return
             
             # Grace period: Ignore EOF if within first 5 seconds (buffering)
-            import time
             if (time.time() - self.start_time) < 5:
                 return
             
@@ -4246,14 +4652,12 @@ class RacingDriverInfoScreen(Screen):
         is_core = "sports.core.api" in self.league_url
         if is_core and self.d_id:
             a_url = self.league_url + "/athletes/" + str(self.d_id)
-            from twisted.web.client import getPage
             getPage(a_url.encode('utf-8')).addCallback(self.on_athlete).addErrback(self.on_error)
         elif self.d_id:
             league = "f1"
             if "nascar" in self.league_url: league = "nascar"
             elif "irl" in self.league_url: league = "irl"
             a_url = "https://site.api.espn.com/apis/common/v3/sports/racing/" + league + "/athletes/" + str(self.d_id)
-            from twisted.web.client import getPage
             getPage(a_url.encode('utf-8')).addCallback(self.on_athlete_site).addErrback(self.on_error)
         else:
             self.full_rows = [TextListEntry("Basic Competitor Info", self.theme, is_header=True)]
@@ -4263,7 +4667,6 @@ class RacingDriverInfoScreen(Screen):
             self.update_list()
 
     def on_athlete(self, body):
-        import json
         self.full_rows = []
         try:
             data = json.loads(body.decode('utf-8', errors='ignore'))
@@ -4294,7 +4697,6 @@ class RacingDriverInfoScreen(Screen):
             stats_ref = data.get('statistics', {}).get('$ref', '')
             if stats_ref:
                 self.stats_url = stats_ref
-                from twisted.web.client import getPage
                 getPage(stats_ref.encode('utf-8')).addCallback(self.on_stats).addErrback(self.on_error)
             else:
                 self.update_list()
@@ -4303,7 +4705,6 @@ class RacingDriverInfoScreen(Screen):
             self.update_list()
 
     def on_athlete_site(self, body):
-        import json
         self.full_rows = []
         try:
             data = json.loads(body.decode('utf-8', errors='ignore')).get('athlete', {})
@@ -4337,7 +4738,6 @@ class RacingDriverInfoScreen(Screen):
             self.update_list()
 
     def on_stats(self, body):
-        import json
         try:
             data = json.loads(body.decode('utf-8', errors='ignore'))
             self.full_rows.append(TextListEntry("", self.theme))
@@ -4453,6 +4853,8 @@ class GameInfoScreen(Screen):
                         league = url_parts[i + 2]
                         break
                 if sport and league and league != 'scoreboard':
+                    self.sport = sport
+                    self.league = league
                     # Fix: Extract actual competition ID. In tournaments, it can differ from event_id.
                     competition_id = event_id
                     if self.fallback_event_data:
@@ -4579,10 +4981,78 @@ class GameInfoScreen(Screen):
         
         self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions"], {
             "cancel": self.close, "green": self.close, "ok": self.handle_ok, "back": self.close,
+            "yellow": self.open_leaderboard,
             "up": self["info_list"].up, "down": self["info_list"].down, "left": self.page_up, "right": self.page_down
         }, -2)
         
+        # Add Voting State Variables
+        self.device_id = get_device_id()
+        self.community_votes = {"home": 0, "away": 0, "draw": 0}
+        self.has_voted = self._check_local_vote_status()
+        self.fetch_community_votes()
+
         self.onLayoutFinish.append(self.start_loading)
+
+    def _check_local_vote_status(self):
+        """Check if this device already voted for this match locally via centralized ledger."""
+        eid = str(self.event_id)
+        if global_sports_monitor and global_sports_monitor.ledger:
+            # FIX Bug 2: Use {} (not []) as the fallback so that 'in' always performs
+            # a key-based dict lookup, matching the dict contract of resolved_bets.
+            if eid in global_sports_monitor.ledger.get("pending_bets", {}) or eid in global_sports_monitor.ledger.get("resolved_bets", {}):
+                return True
+        return False
+
+    def _mark_voted_locally(self):
+        """No-op, replaced by centralized ledger in add_pending_bet."""
+        pass
+
+    def fetch_community_votes(self):
+        url = "{}/matches/{}.json".format(FIREBASE_URL, self.event_id)
+        print("[SimplySports] Fetching community votes from:", url)
+        getPage(url.encode('utf-8'), timeout=10).addCallback(self.on_votes_received).addErrback(self.on_votes_error)
+
+    def on_votes_received(self, html):
+        try:
+            # print("[SimplySports] Firebase votes received:", html)
+            data = json.loads(html)
+            if data is None:
+                data = {"home": 0, "away": 0, "draw": 0}
+                
+            if isinstance(data, dict):
+                self.community_votes['home'] = int(data.get('home', 0))
+                self.community_votes['away'] = int(data.get('away', 0))
+                self.community_votes['draw'] = int(data.get('draw', 0))
+                
+                # --- REBUILD VOTE ROWS IN MEMORY FOR ASYNC REFRESH ---
+                h_votes = self.community_votes.get('home', 0)
+                a_votes = self.community_votes.get('away', 0)
+                d_votes = self.community_votes.get('draw', 0)
+                total_votes = h_votes + a_votes + d_votes
+                h_name_vote = getattr(self, 'h_team_name', "Home")
+                a_name_vote = getattr(self, 'a_team_name', "Away")
+                has_voted = getattr(self, 'has_voted', False)
+                
+                # ESPN API states: 'pre' (Scheduled), 'in' (Live), 'post' (Finished)
+                is_pre_match = (getattr(self, 'game_status', 'pre') == 'pre')
+                
+                for i, row in enumerate(self.full_rows):
+                    if isinstance(row, (list, tuple)) and len(row) > 0 and isinstance(row[0], tuple) and len(row[0]) > 0 and row[0][0] == "VOTE":
+                        t_type = row[0][1]
+                        if t_type == 'home': t_name = h_name_vote
+                        elif t_type == 'away': t_name = a_name_vote
+                        else: t_name = "Draw"
+                        # ALWAYS pass is_pre_match to ensure correct text rendering even when voting is closed
+                        self.full_rows[i] = VoteListEntry(t_type, t_name, self.community_votes.get(t_type, 0), total_votes, getattr(self, 'theme', ''), has_voted, is_pre_match)
+
+                # Re-render the UI with new data
+                if hasattr(self, 'update_display'):
+                    self.update_display()
+        except Exception as e:
+            print("[SimplySports] Error parsing Firebase data:", e)
+
+    def on_votes_error(self, error):
+        print("[SimplySports] Firebase fetch error:", error)
 
     def handle_ok(self):
         idx = self["info_list"].getSelectedIndex()
@@ -4592,12 +5062,101 @@ class GameInfoScreen(Screen):
         real_idx = (self.current_page * self.items_per_page) + idx
         if real_idx < len(self.full_rows):
             item = self.full_rows[real_idx]
-            # item[0] is the data tuple passed to InfoListEntry/TextListEntry
             data = item[0]
             
-            # Check if it's a tuple for VIDEO or PLAYER
             if isinstance(data, tuple) and len(data) > 0:
-                if data[0] == "VIDEO" and len(data) > 3:
+                if data[0] == "VOTE" and len(data) > 2:
+                    # Phase 2: Lockout logic
+                    # If match has started (status != 'pre') OR user already voted
+                    if getattr(self, 'has_voted', False) or getattr(self, 'game_status', 'pre') != 'pre':
+                        self.session.open(LeaderboardScreen)
+                        return
+                    
+                    # 1. CAPTURE SELECTION & INCREMENT LOCALLY (optimistic UI update)
+                    team_type = data[1] # 'home', 'away', or 'draw'
+                    # FIX Bug 5: Only increment the local optimistic counter for the UI.
+                    # The absolute value is NO LONGER sent to Firebase (see step 4 below)
+                    # so this local bump is purely for immediate visual feedback and does
+                    # not participate in the server-side count.
+                    current_votes = int(self.community_votes.get(team_type, 0))
+                    self.community_votes[team_type] = current_votes + 1
+                    
+                    self.has_voted = True
+                    self._mark_voted_locally()
+                    
+                    # 2. Add to Local Gamification Ledger
+                    sport = getattr(self, 'sport', 'soccer')
+                    league = getattr(self, 'league', 'eng.1')
+                    # Pass team names so the bet history can show "Arsenal vs Chelsea"
+                    # even after the match leaves the live event_map cache.
+                    h_nm = getattr(self, 'h_team_name', 'Home')
+                    a_nm = getattr(self, 'a_team_name', 'Away')
+                    if global_sports_monitor:
+                        global_sports_monitor.add_pending_bet(self.event_id, team_type, sport, league, h_nm, a_nm)
+                    
+                    # 3. --- REBUILD VOTE ROWS IN MEMORY FOR INSTANT REFRESH ---
+                    h_votes = self.community_votes.get('home', 0)
+                    a_votes = self.community_votes.get('away', 0)
+                    d_votes = self.community_votes.get('draw', 0)
+                    total_votes = h_votes + a_votes + d_votes
+                    h_name_vote = getattr(self, 'h_team_name', "Home")
+                    a_name_vote = getattr(self, 'a_team_name', "Away")
+                    
+                    for i, row in enumerate(self.full_rows):
+                        if isinstance(row, (list, tuple)) and len(row) > 0 and isinstance(row[0], tuple) and len(row[0]) > 0 and row[0][0] == "VOTE":
+                            t_type = row[0][1]
+                            if t_type == 'home': t_name = h_name_vote
+                            elif t_type == 'away': t_name = a_name_vote
+                            else: t_name = "Draw"
+                            self.full_rows[i] = VoteListEntry(t_type, t_name, self.community_votes.get(t_type, 0), total_votes, getattr(self, 'theme', ''), True, True)
+
+                    # 4. BUILD THE PAYLOAD (Using Flat-Paths for efficient PATCH merge)
+                    voter_name = getattr(global_sports_monitor, 'voter_name', 'Anonymous')
+                    device_id = getattr(self, 'device_id', 'unknown')
+                    
+                    import json
+                    # FIX Bug 3: Slash-containing keys ("voters/id/name") are NOT interpreted
+                    # as nested paths by the Firebase REST PATCH endpoint — they are stored as
+                    # literal key names.  Use a properly nested dict so Firebase creates the
+                    # correct voters → device_id → {name, team} sub-tree.
+                    #
+                    # FIX Bug 5: RACE CONDITION — previously we read the local cached count,
+                    # added 1, and wrote the absolute number back.  Two users voting at the
+                    # same moment would both read N, both write N+1, and one vote would be
+                    # silently lost.  The fix uses Firebase's server-side atomic increment
+                    # ("{'.sv': 'increment'}" with value 1) so the server always adds exactly
+                    # +1 to whatever the current true count is, regardless of what any client
+                    # cached locally.  The voter record and nested dict structure are unchanged.
+                    put_data = json.dumps({
+                        team_type: {".sv": {"increment": 1}},
+                        "voters": {
+                            device_id: {
+                                "name": voter_name,
+                                "team": team_type
+                            }
+                        }
+                    })
+                    
+                    # 5. SEND TO FIREBASE (Final Bulletproof helper)
+                    url = "{}/matches/{}.json".format(FIREBASE_URL, self.event_id)
+                    push_to_firebase_threaded(url, put_data)
+                    
+                    # 6. FORCE UI REFRESH IMMEDIATELY
+                    if hasattr(self, 'update_display'):
+                        self.update_display()
+                    
+                    # Restore focus using the correct Enigma2 MenuList/eListbox methods
+                    if hasattr(self["info_list"], 'moveToIndex'):
+                        self["info_list"].moveToIndex(idx)
+                    elif self["info_list"].instance is not None:
+                        # Deep fallback for very old Enigma2 images
+                        try: self["info_list"].instance.moveSelectionTo(idx)
+                        except: pass
+                    
+                    self.session.open(MessageBox, "Vote Submitted! Good luck!", MessageBox.TYPE_INFO, timeout=2)
+                    return
+
+                elif data[0] == "VIDEO" and len(data) > 3:
                     url = data[3]
                     title = data[2]
                     self.play_video(url, title)
@@ -4624,6 +5183,10 @@ class GameInfoScreen(Screen):
             
             # Default behavior: Standings
             self.open_standings()
+
+    def open_leaderboard(self):
+        """Action handler for Yellow button and has_voted OK press."""
+        self.session.open(LeaderboardScreen)
 
     def play_all_videos(self):
         if not hasattr(self, 'all_videos') or not self.all_videos: return
@@ -4683,15 +5246,18 @@ class GameInfoScreen(Screen):
         if result == "close_all":
             self.close()
 
+    def open_leaderboard(self):
+        self.session.open(LeaderboardScreen)
+
     def update_display(self):
         if not self.full_rows:
             self["info_list"].setList([]); self["page_indicator"].setText(""); return
+
         total_items = len(self.full_rows)
         start_index = self.current_page * self.items_per_page
         end_index = start_index + self.items_per_page
         page_data = self.full_rows[start_index:end_index]
         self["info_list"].setList(page_data)
-        import math
         total_pages = int(math.ceil(float(total_items) / float(self.items_per_page)))
         if total_pages > 1: self["page_indicator"].setText("Page {}/{}".format(self.current_page + 1, total_pages))
         else: self["page_indicator"].setText("")
@@ -4699,7 +5265,6 @@ class GameInfoScreen(Screen):
     def page_down(self):
         total_items = len(self.full_rows)
         if total_items > 0:
-            import math
             max_page = int(math.ceil(float(total_items) / float(self.items_per_page))) - 1
             if self.current_page < max_page: self.current_page += 1; self.update_display()
 
@@ -4728,7 +5293,6 @@ class GameInfoScreen(Screen):
              self.use_fallback_data()
              return
 
-        from twisted.web.client import getPage
         
         is_live = False
         if snap:
@@ -4754,7 +5318,6 @@ class GameInfoScreen(Screen):
     def error_cdn(self, error):
         """Fallback to standard summary API if the CDN Live Boxscore request fails"""
         print("[SimplySport] CDN Boxscore fetch failed. Falling back to primary summary endpoint.")
-        from twisted.web.client import getPage
         if self.summary_url:
             getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
         else:
@@ -4769,7 +5332,6 @@ class GameInfoScreen(Screen):
     def parse_odds(self, body):
         """Parse core API odds response (multi-provider: Bet365, ESPN BET, etc)"""
         try:
-            import json
             data = json.loads(body)
             items = data.get('items', [])
             parsed = []
@@ -4848,7 +5410,6 @@ class GameInfoScreen(Screen):
     def parse_live_status(self, body):
         """Fast-path: update header clock/period from core API status (arrives before /summary)"""
         try:
-            import json
             data = json.loads(body)
             display_clock = data.get('displayClock', '')
             status_type = data.get('type', {})
@@ -4973,6 +5534,27 @@ class GameInfoScreen(Screen):
                 self["h_score"].setText(""); self["a_score"].setText("")
                 return
             
+            # --- ADD VOTING SECTION (FALLBACK PATH) ---
+            self.event_data = data
+            self.game_status = state # 'pre', 'in', 'post'
+            is_pre_match = (state == 'pre')
+            
+            h_name_vote = getattr(self, 'h_team_name', "Home")
+            a_name_vote = getattr(self, 'a_team_name', "Away")
+            h_votes = getattr(self, 'community_votes', {}).get('home', 0)
+            a_votes = getattr(self, 'community_votes', {}).get('away', 0)
+            d_votes = getattr(self, 'community_votes', {}).get('draw', 0)
+            total_votes = h_votes + a_votes + d_votes
+            has_voted = getattr(self, 'has_voted', False)
+
+            header_text = "COMMUNITY PREDICTION" if is_pre_match else "COMMUNITY PREDICTION (Closed)"
+            self.full_rows.append(TextListEntry(header_text, getattr(self, 'theme', ''), is_header=True))
+            self.full_rows.append(VoteListEntry("home", h_name_vote, h_votes, total_votes, getattr(self, 'theme', ''), has_voted, is_pre_match))
+            self.full_rows.append(VoteListEntry("draw", "Draw", d_votes, total_votes, getattr(self, 'theme', ''), has_voted, is_pre_match))
+            self.full_rows.append(VoteListEntry("away", a_name_vote, a_votes, total_votes, getattr(self, 'theme', ''), has_voted, is_pre_match))
+            self.full_rows.append(StatsListEntry("", "", "", getattr(self, 'theme', ''))) # Spacer
+            self.fetch_community_votes()
+
             # Fix: Tennis flags/names reversed in GameInfo. Force index 0=Home, 1=Away to match Main Screen
             if self.sport_type == SPORT_TYPE_TENNIS and len(comps) >= 2:
                 h_team = comps[0]
@@ -5292,6 +5874,34 @@ class GameInfoScreen(Screen):
             except: pass
 
             self.full_rows = [] 
+            self.game_status = game_status  # Store for handle_ok lockout
+            self.event_data = data # Save for external access
+
+            # --- ADD VOTING SECTION FIRST ---
+            h_name_vote = getattr(self, 'h_team_name', "Home")
+            a_name_vote = getattr(self, 'a_team_name', "Away")
+            
+            h_votes = getattr(self, 'community_votes', {}).get('home', 0)
+            a_votes = getattr(self, 'community_votes', {}).get('away', 0)
+            d_votes = getattr(self, 'community_votes', {}).get('draw', 0)
+            total_votes = h_votes + a_votes + d_votes
+            has_voted = getattr(self, 'has_voted', False)
+            
+            # ESPN API states: 'pre' (Scheduled), 'in' (Live), 'post' (Finished)
+            is_pre_match = (game_status == 'pre')
+            
+            # ALWAYS show the same structure, VoteListEntry will handle the [VOTING CLOSED] text internally
+            header_text = "COMMUNITY PREDICTION" if is_pre_match else "COMMUNITY PREDICTION (Closed)"
+            self.full_rows.append(TextListEntry(header_text, getattr(self, 'theme', ''), is_header=True))
+            
+            self.full_rows.append(VoteListEntry("home", h_name_vote, h_votes, total_votes, getattr(self, 'theme', ''), has_voted, is_pre_match))
+            self.full_rows.append(VoteListEntry("draw", "Draw", d_votes, total_votes, getattr(self, 'theme', ''), has_voted, is_pre_match))
+            self.full_rows.append(VoteListEntry("away", a_name_vote, a_votes, total_votes, getattr(self, 'theme', ''), has_voted, is_pre_match))
+            
+            self.full_rows.append(StatsListEntry("", "", "", getattr(self, 'theme', ''))) # Spacer
+            # Fetch live votes from Firebase NOW that vote rows exist
+            self.fetch_community_votes()
+            # ---------------------------------
 
             # ==========================================================
             # SPORT TYPE BRANCHING - Route to appropriate parser
@@ -5507,7 +6117,6 @@ class GameInfoScreen(Screen):
                 if news_items:
                     self.full_rows.append(TextListEntry("LATEST NEWS", self.theme, is_header=True))
                     count = 0
-                    import random
                     for article in news_items:
                         if count >= 5: break
                         headline = article.get('headline', '')
@@ -7406,7 +8015,6 @@ class RacingMiniBar(Screen):
         self["lbl_driver"].setText("Loading standings...")
         
         try:
-            from twisted.web.client import getPage
             getPage(summary_url.encode('utf-8')).addCallback(self.on_data).addErrback(self.on_error)
         except:
             self.show_from_scoreboard_data()
@@ -7649,7 +8257,6 @@ class SimpleSportsMiniBar2(Screen):
     def start_all_timers(self):
         self.parse_json()
         global_sports_monitor.check_goals()
-        import random
         # ENSURE: single_shot=False (2nd param) for repeating update
         self.refresh_timer.start(60000 + random.randint(0, 15000), False)
         # Also ensure ticker timer is running if matches exist
@@ -7762,10 +8369,16 @@ class SimpleSportsMiniBar2(Screen):
             
         mode = global_sports_monitor.filter_mode
 
+        # Pre-compute dates once per render pass
+        now = datetime.datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        tomorrow_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) + 86400).strftime("%Y-%m-%d")
+        yesterday_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) - 86400).strftime("%Y-%m-%d")
+
         for event in events:
             snap = global_sports_monitor.match_snapshots.get(str(event.get('id', '')))
             if not snap: continue
-            if not snapshot_passes_filter(snap, mode): continue
+            if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
 
             # Racing events (>2 competitors) -- use event shortName
             comps = event.get('competitions', [{}])[0].get('competitors', [])
@@ -7985,7 +8598,6 @@ class AthleteProfileScreen(Screen):
         self.onLayoutFinish.append(self.start_loading)
 
     def start_loading(self):
-        from twisted.web.client import getPage
         # Note: headshot loading uses the common sport name, so typically "soccer" works.
         headshot_url = "https://a.espncdn.com/combiner/i?img=/i/headshots/{}/players/full/{}.png".format(self.sport, self.athlete_id)
         load_logo_to_widget(self, "headshot", headshot_url, "p_" + self.athlete_id)
@@ -7998,7 +8610,6 @@ class AthleteProfileScreen(Screen):
     def parse_data(self, body):
         try:
             self["loading"].hide()
-            import json
             data = json.loads(body.decode('utf-8', errors='ignore'))
             
             athlete = data.get('athlete', {})
@@ -8243,7 +8854,6 @@ class SimpleSportsMiniBar(Screen):
         # 2. Trigger Fetch (Will call on_data_ready when done)
         global_sports_monitor.check_goals()
         # 3. Start periodic refresh
-        import random
         # ENSURE: single_shot=False (2nd param) for repeating update
         self.refresh_timer.start(60000 + random.randint(0, 15000), False)
         # Also ensure ticker timer is running
@@ -8357,10 +8967,16 @@ class SimpleSportsMiniBar(Screen):
             
         mode = global_sports_monitor.filter_mode
 
+        # Pre-compute dates once per render pass
+        now = datetime.datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        tomorrow_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) + 86400).strftime("%Y-%m-%d")
+        yesterday_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) - 86400).strftime("%Y-%m-%d")
+
         for event in events:
             snap = global_sports_monitor.match_snapshots.get(str(event.get('id', '')))
             if not snap: continue
-            if not snapshot_passes_filter(snap, mode): continue
+            if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
 
             # Racing events (>2 competitors) -- use event shortName
             comps = event.get('competitions', [{}])[0].get('competitors', [])
@@ -8781,7 +9397,7 @@ class SimpleSportsScreen(Screen):
         
         # Logo Refresh Timer (Batched UI updates)
         self.logo_refresh_timer = eTimer()
-        safe_connect(self.logo_refresh_timer, lambda: self.refresh_ui(True))
+        safe_connect(self.logo_refresh_timer, self.refresh_logos_only)
         
         log_dbg("SimpleSportsScreen: Registering ActionMap...")
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions", "EPGSelectActions", "InfobarEPGActions", "InfobarActions", "GlobalActions"], 
@@ -8829,6 +9445,7 @@ class SimpleSportsScreen(Screen):
         self.update_header(); self.update_filter_button(); self.fetch_data()
     def cleanup(self): 
         self.clock_timer.stop()
+        self.logo_refresh_timer.stop()
         self.monitor.unregister_callback(self.refresh_ui)
     
     # ... (Keep Header, Filter, Download helpers unchanged) ...
@@ -8879,12 +9496,27 @@ class SimpleSportsScreen(Screen):
              # Create a short hash of the URL to use as ID
              team_id = hashlib.md5(url.encode('utf-8')).hexdigest()[:10]
         
-        # Check team-ID-named file
+        # Fast Success Bypass
         if team_id in self.monitor.logo_path_cache: return self.monitor.logo_path_cache[team_id]
+        
+        # CRITICAL FIX: Negative Cache bypass. If OS lacks graphic, skip the system call entirely!
+        if team_id in self.monitor.missing_logo_cache: return None
+        
         target_path = self.logo_path + str(team_id) + ".png"
-        if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
+        
+        # Fast Set Bypass
+        if target_path in GLOBAL_VALID_LOGO_PATHS:
             self.monitor.logo_path_cache[team_id] = target_path
             return target_path
+            
+        # The ultimate heavy fallback. Only executes precisely ONE time per missing image!
+        if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
+            GLOBAL_VALID_LOGO_PATHS.add(target_path)
+            self.monitor.logo_path_cache[team_id] = target_path
+            return target_path
+        
+        # It's officially missing - track it so we never stall checking the disk for it again
+        self.monitor.missing_logo_cache.add(team_id)
         
         # Queue download if not cached
         self.queue_download(url, target_path, team_id)
@@ -8914,7 +9546,9 @@ class SimpleSportsScreen(Screen):
 
     def download_finished(self, data, filename, target_path):
         self.active_downloads.discard(filename)
+        self.monitor.missing_logo_cache.discard(filename)
         if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
+            GLOBAL_VALID_LOGO_PATHS.add(target_path)
             self.monitor.logo_path_cache[filename] = target_path
             # Batch UI updates - wait for more downloads before refreshing
             if not self.logo_refresh_timer.isActive(): self.logo_refresh_timer.start(1500, True)
@@ -8995,8 +9629,6 @@ class SimpleSportsScreen(Screen):
                 match_time_ts = 0
                 
                 try: 
-                    import calendar
-                    import time
                     if ev_date_str:
                         # Harden Parsing: Standardize separator and remove Z/fractions
                         clean_date = ev_date_str.replace("Z", "").replace("T", " ")
@@ -9018,7 +9650,6 @@ class SimpleSportsScreen(Screen):
                 # FALLBACK: If date parse failed or missing, use CURRENT TIME
                 # This assumes the user wants EPG for what's happening NOW.
                 if match_time_ts == 0:
-                    import time
                     match_time_ts = int(time.time())
 
                 # Define safe defaults for EPG search variables before the loop to avoid UnboundLocalError
@@ -9103,7 +9734,6 @@ class SimpleSportsScreen(Screen):
         sys_time_str = "Unknown"
         if c_count > 0:
             try:
-                import time
                 import datetime
                 cur_time = int(time.time())
                 sys_time_str = datetime.datetime.fromtimestamp(cur_time).strftime('%Y-%m-%d %H:%M')
@@ -9135,7 +9765,6 @@ class SimpleSportsScreen(Screen):
             unique_services[str(s[0])] = s
 
         from twisted.internet import threads
-        import time
 
         def _bg_search(services, m_time, h_words, a_words, l_words):
             bg_results = []
@@ -9252,6 +9881,11 @@ class SimpleSportsScreen(Screen):
         # Execute heavy loop in background thread to prevent UI lockup
         threads.deferToThread(_bg_search, unique_services, match_time_ts, h_norm, a_norm, l_norm).addCallback(_on_search_done)
 
+    def refresh_logos_only(self):
+        """Lightweight redraw of existing list items to pop in newly downloaded logos without rebuilding the list array."""
+        if self.shown:
+            self["list"].l.invalidate()
+
     @profile_function("SimpleSportsScreen")
     def refresh_ui(self, success, force_refresh=False):
         log_diag("REFRESH_UI: success={} force={} filter_mode={} is_custom={} cached_events={} status='{}'".format(
@@ -9288,15 +9922,18 @@ class SimpleSportsScreen(Screen):
             
         mode = self.monitor.filter_mode
         raw_entries = []  # Store (entry_data, match_id, is_live) for sorting
+        
+        # Pre-compute dates once per render pass
+        now = datetime.datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
+        tomorrow_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) + 86400).strftime("%Y-%m-%d")
+        yesterday_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) - 86400).strftime("%Y-%m-%d")
     
         for event in events:
             try:
                 snap = self.monitor.match_snapshots.get(str(event.get('id', '')))
                 if not snap: continue
-                if not snapshot_passes_filter(snap, mode): continue
-
-                # Special Request: Exclude Tennis from "All Matches" (Mode 4) due to volume
-                if mode == 4 and snap['sport_type'] == SPORT_TYPE_TENNIS: continue
+                if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
 
                 # Racing: Only show in single-league mode, skip in custom/multi-league
                 if snap['sport_type'] == SPORT_TYPE_RACING and self.monitor.is_custom_mode: continue
@@ -9528,7 +10165,8 @@ class SimpleSportsScreen(Screen):
             ("Change Interface Theme", "theme"), 
             ("Mini Bar Style (Default Theme only)", "minibar_color"),
             ("Main Screen Transparency (Default Theme only)", "transparency"), 
-            ("Show Plugin in Main Menu: " + in_menu_txt, "toggle_menu")
+            ("Show Plugin in Main Menu: " + in_menu_txt, "toggle_menu"),
+            ("Set Voter Name: " + self.monitor.voter_name, "voter_name")
         ]
         self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title="Settings & Tools", list=menu_options)
     def settings_menu_callback(self, selection):
@@ -9542,7 +10180,20 @@ class SimpleSportsScreen(Screen):
                 self.monitor.show_in_menu = not self.monitor.show_in_menu
                 self.monitor.save_config()
                 self.session.open(MessageBox, "Setting saved.\nYou must Restart GUI for menu changes to take effect.", MessageBox.TYPE_INFO)
+            elif action == "voter_name": self.open_voter_name_input()
     
+    def open_voter_name_input(self):
+        try:
+            from Screens.VirtualKeyBoard import VirtualKeyBoard
+            self.session.openWithCallback(self.voter_name_entered, VirtualKeyBoard, title="Enter your SS-Voter name:", text=self.monitor.voter_name)
+        except Exception:
+            self.session.open(MessageBox, "VirtualKeyBoard not available on this image.", MessageBox.TYPE_ERROR, timeout=3)
+    def voter_name_entered(self, text=None):
+        if text is not None:
+            self.monitor.voter_name = text.strip() or "Anonymous"
+            self.monitor.save_config()
+            self.session.open(MessageBox, "Voter name saved: " + self.monitor.voter_name, MessageBox.TYPE_INFO, timeout=3)
+
     def open_minibar_color_selector(self):
         c_options = [
             ("Default", "default"), 
@@ -9817,12 +10468,18 @@ from enigma import loadPNG
 # ==============================================================================
 # PICON HELPER
 # ==============================================================================
+GLOBAL_PICON_PATH_CACHE = {}
+
 def get_picon(service_ref):
     if not service_ref: return None
     
     # Convert Service Reference to Picon Filename Format
     # 1:0:19:2B66:3F:1:C00000:0:0:0: -> 1_0_19_2B66_3F_1_C00000_0_0_0
     sname = str(service_ref).strip().replace(':', '_').rstrip('_')
+    
+    if sname in GLOBAL_PICON_PATH_CACHE:
+        cached_path = GLOBAL_PICON_PATH_CACHE[sname]
+        return loadPNG(cached_path) if cached_path else None
     
     # Search Paths
     search_paths = [
@@ -9837,6 +10494,7 @@ def get_picon(service_ref):
     for path in search_paths:
         png_file = path + sname + ".png"
         if os.path.exists(png_file) and os.path.getsize(png_file) > 0:
+            GLOBAL_PICON_PATH_CACHE[sname] = png_file
             return loadPNG(png_file)
             
     # Try alternate name format (remove last 0 if trailing)
@@ -9845,8 +10503,10 @@ def get_picon(service_ref):
         for path in search_paths:
             png_file = path + sname_alt + ".png"
             if os.path.exists(png_file):
+                GLOBAL_PICON_PATH_CACHE[sname] = png_file
                 return loadPNG(png_file)
                 
+    GLOBAL_PICON_PATH_CACHE[sname] = None
     return None
 
 # ==============================================================================
@@ -9991,7 +10651,6 @@ class BroadcastingChannelsScreen(Screen):
              
              if sref:
                 # Check if match is in the future (> 5 mins from now)
-                import time
                 now = int(time.time())
                 if self.match_time_ts > now + 300:
                     self.session.openWithCallback(self.zap_callback, ChoiceBox, title="Future Match Selected", list=[("Zap Now (Check Channel)", "zap"), ("Remind & Zap (When starts)", "remind_zap")])
@@ -10078,8 +10737,755 @@ def main(session, **kwargs):
         if result is True:
             # Only restart if explicitly requested (True)
             session.openWithCallback(callback, SimpleSportsScreen)
-            
+
     session.openWithCallback(callback, SimpleSportsScreen)
+
+# ==============================================================================
+# GAMIFICATION BADGE / RANK SYSTEM
+# ==============================================================================
+def get_rank_badge(score, accuracy):
+    """Returns a dynamic title badge based on score and accuracy.
+
+    Tiers are evaluated from highest to lowest; the first match wins.
+    Each tier has a base badge (score-only) and an optional accuracy-bonus
+    badge that unlocks a prestige title at the same score level.
+
+    Tier map:
+        500+ pts  & acc > 80% -> Prophet   (elite + surgical)
+        500+ pts               -> Legend    (elite volume)
+        300+ pts  & acc > 75% -> Visionary (master + razor-sharp)
+        300+ pts               -> Master    (high volume)
+        150+ pts  & acc > 70% -> Strategist(expert + sharp)
+        150+ pts               -> Expert    (solid volume)
+         75+ pts  & acc > 65% -> Tactician (veteran + precise)
+         75+ pts               -> Veteran   (solid volume)
+         50+ pts  & acc > 60% -> Oracle    (early accuracy reward, as specified)
+         11-49 pts             -> Scout
+          0-10 pts             -> Rookie
+    """
+    score = int(score)
+    accuracy = float(accuracy)
+
+    if score >= 500 and accuracy > 80:  return "Prophet"
+    if score >= 500:                    return "Legend"
+    if score >= 300 and accuracy > 75:  return "Visionary"
+    if score >= 300:                    return "Master"
+    if score >= 150 and accuracy > 70:  return "Strategist"
+    if score >= 150:                    return "Expert"
+    if score >= 75  and accuracy > 65:  return "Tactician"
+    if score >= 75:                     return "Veteran"
+    if score >= 50  and accuracy > 60:  return "Oracle"
+    if score >= 11:                     return "Scout"
+    return "Rookie"
+
+# Badge tier → hex colour (used by both leaderboard and profile entry builders)
+BADGE_COLORS = {
+    "Prophet":    0xFFFFAA,   # near-white gold
+    "Legend":     0xFFD700,   # gold
+    "Visionary":  0xFF44AA,   # pink
+    "Master":     0xFF6633,   # orange-red
+    "Strategist": 0xAA88FF,   # soft purple
+    "Expert":     0xFFAA00,   # amber
+    "Tactician":  0x00DDBB,   # bright teal
+    "Veteran":    0x00AAAA,   # teal
+    "Oracle":     0x00CC66,   # green
+    "Scout":      0x4488FF,   # blue
+    "Rookie":     0x888888,   # dim gray
+}
+
+def get_badge_color(badge):
+    return BADGE_COLORS.get(badge, 0x888888)
+
+def LeaderboardListEntry(rank, name, badge, score, accuracy, total_bets, theme_mode="default"):
+    """One coloured row for the global leaderboard list.
+
+    Column layout (1600 px wide, item height 74 px):
+      x=0   w=70   rank number / medal symbol
+      x=70  w=4    thin accent bar
+      x=90  w=460  player name (bold)
+      x=570 w=210  badge title (tier colour)
+      x=800 w=140  score  label + value
+      x=960 w=220  accuracy bar + value
+      x=1200 w=200 total bets
+      x=1570 w=2   right border
+    """
+    try:
+        # ── Palette ────────────────────────────────────────────────────────────
+        if theme_mode == "ucl":
+            c_bg   = 0x091442;  c_sel  = 0x00ffff;  c_accent = 0x00ffff
+            c_dim  = 0x7799cc;  c_text = 0xeeeeff;  c_gold   = 0x00ffff
+        else:
+            c_bg   = 0x111118;  c_sel  = 0x00FF85;  c_accent = 0x00FF85
+            c_dim  = 0x778899;  c_text = 0xffffff;  c_gold   = 0xFFD700
+
+        c_silver  = 0xC0C0C0
+        c_bronze  = 0xCD7F32
+        c_won     = 0x33DD77
+        c_lost    = 0xFF4455
+
+        # Medal colour for top 3
+        if   rank == 1: rank_color = c_gold
+        elif rank == 2: rank_color = c_silver
+        elif rank == 3: rank_color = c_bronze
+        else:           rank_color = c_dim
+
+        badge_color = get_badge_color(badge)
+
+        h    = 74
+        # rank symbol
+        rank_txt = u"#{:d}".format(rank) if rank > 3 else [u"1st", u"2nd", u"3rd"][rank - 1]
+
+        entry_data = ("LB", rank, name, badge, score, accuracy, total_bets, theme_mode)
+        res = [entry_data]
+
+        # ── Rank ──
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    0, 0, 70, h, 1,
+                    RT_HALIGN_CENTER | RT_VALIGN_CENTER,
+                    rank_txt, rank_color, c_sel))
+
+        # ── Thin accent bar (left edge of name column) ──
+        bar_color = rank_color if rank <= 3 else c_accent
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    71, 8, 4, h - 16, 0,
+                    RT_HALIGN_CENTER,
+                    u"", bar_color, bar_color))
+
+        # ── Player name ──
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    84, 0, 470, h, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    name, c_text, c_sel))
+
+        # ── Badge title ──
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    570, 0, 210, h, 0,
+                    RT_HALIGN_CENTER | RT_VALIGN_CENTER,
+                    u"[{}]".format(badge), badge_color, c_sel))
+
+        # ── Score ──
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    800, 0, 60, h, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    u"Pts", c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    845, 0, 120, h, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    str(score), c_won if score > 0 else c_dim, c_sel))
+
+        # ── Accuracy ──
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    990, 0, 60, h, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    u"Acc", c_dim, c_sel))
+        acc_color = c_won if accuracy >= 60 else c_lost if accuracy > 0 else c_dim
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    1038, 0, 160, h, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    u"{:.1f}%".format(accuracy), acc_color, c_sel))
+
+        # ── Total bets ──
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    1215, 0, 70, h, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    u"Bets", c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    1265, 0, 120, h, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    str(total_bets), c_text, c_sel))
+
+        # ── Bottom separator ──
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    0, h - 2, 1590, 2, 0,
+                    RT_HALIGN_CENTER,
+                    u"", 0x222230, 0x222230))
+
+        return res
+    except Exception as e:
+        print("[LB Entry] Error:", e)
+        return []
+
+
+def ProfileListEntry(outcome, h_name, a_name, picked, score_str, date_str, theme_mode="default"):
+    """One coloured row for the Personal Profile bet history.
+
+    outcome: "WON", "LOST", or "PENDING"
+    Column layout (1600 px wide, item height 74 px):
+      x=0   w=4    accent bar (green/red/yellow)
+      x=12  w=130  outcome tag  [WON] / [LOST] / [PENDING]
+      x=155 w=530  match name   Arsenal vs Chelsea
+      x=700 w=80   "Picked:" label
+      x=790 w=280  picked team
+      x=1085 w=60  "FT:" label  (hidden for PENDING)
+      x=1155 w=180 score        (hidden for PENDING)
+      x=1390 w=180 date
+    """
+    try:
+        if theme_mode == "ucl":
+            c_bg   = 0x091442;  c_sel  = 0x00ffff;  c_accent = 0x00ffff
+            c_dim  = 0x7799cc;  c_text = 0xeeeeff
+        else:
+            c_bg   = 0x111118;  c_sel  = 0x00FF85;  c_accent = 0x00FF85
+            c_dim  = 0x778899;  c_text = 0xffffff
+
+        c_won     = 0x33DD77
+        c_lost    = 0xFF4455
+        c_pending = 0xFFAA00
+
+        if outcome == "WON":
+            bar_color = c_won;     tag_color = c_won;     tag_txt = u"[WON]"
+        elif outcome == "LOST":
+            bar_color = c_lost;    tag_color = c_lost;    tag_txt = u"[LOST]"
+        else:
+            bar_color = c_pending; tag_color = c_pending; tag_txt = u"[PENDING]"
+
+        match_txt = u"{} vs {}".format(h_name, a_name)
+
+        h = 74
+        entry_data = ("PF", outcome, h_name, a_name, picked, score_str, date_str, theme_mode)
+        res = [entry_data]
+
+        # Accent bar
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    0, 8, 4, h - 16, 0,
+                    RT_HALIGN_CENTER,
+                    u"", bar_color, bar_color))
+
+        # Outcome tag
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    12, 0, 130, h, 1,
+                    RT_HALIGN_CENTER | RT_VALIGN_CENTER,
+                    tag_txt, tag_color, c_sel))
+
+        # Match name
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    155, 0, 530, h, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    match_txt, c_text, c_sel))
+
+        # "Picked:" label
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    700, 0, 80, h, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    u"Picked:", c_dim, c_sel))
+
+        # Picked team
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    792, 0, 280, h, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    picked, c_text, c_sel))
+
+        # FT + score (resolved only)
+        if outcome != "PENDING":
+            res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                        1085, 0, 50, h, 0,
+                        RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                        u"FT:", c_dim, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                        1140, 0, 180, h, 1,
+                        RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                        score_str, c_text, c_sel))
+
+        # Date
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    1390, 0, 190, h, 0,
+                    RT_HALIGN_RIGHT | RT_VALIGN_CENTER,
+                    date_str, c_dim, c_sel))
+
+        # Bottom separator
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    12, h - 2, 1570, 2, 0,
+                    RT_HALIGN_CENTER,
+                    u"", 0x222230, 0x222230))
+
+        return res
+    except Exception as e:
+        print("[Profile Entry] Error:", e)
+        return []
+
+
+def ProfileSectionHeader(title, theme_mode="default"):
+    """A dim section divider row (e.g. '-- Pending bets --')."""
+    try:
+        if theme_mode == "ucl":
+            c_bg = 0x091442; c_accent = 0x00ffff; c_dim = 0x7799cc
+        else:
+            c_bg = 0x0d0d15; c_accent = 0x00FF85; c_dim = 0x556677
+        h = 40
+        entry_data = ("PH", title, theme_mode)
+        res = [entry_data]
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    0, 0, 1590, h - 2, 0,
+                    RT_HALIGN_CENTER,
+                    u"", c_bg, c_bg))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    20, 0, 1560, h, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    title, c_dim, c_accent))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    0, h - 2, 1590, 2, 0,
+                    RT_HALIGN_CENTER,
+                    u"", 0x222230, 0x222230))
+        return res
+    except Exception as e:
+        print("[Profile Header] Error:", e)
+        return []
+
+class LeaderboardScreen(Screen):
+
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        self.setTitle("SimplySports: Global Leaderboard")
+
+        theme = getattr(global_sports_monitor, "theme_mode", "default") if global_sports_monitor else "default"
+        if theme == "ucl":
+            bg       = "#00091442";  top_bar  = "#091442"
+            accent   = "#00ffff";    dim      = "#7799cc"
+        else:
+            bg       = "#00111118";  top_bar  = "#0d0d20"
+            accent   = "#00FF85";    dim      = "#556677"
+
+        self.skin = (
+            u'<screen name="LeaderboardScreen" position="center,center" '
+            u'size="1600,900" flags="wfNoBorder" backgroundColor="{bg}">'
+            # ── Top bar ──
+            u'<eLabel position="0,0"    size="1600,90"  backgroundColor="{top}" zPosition="0"/>'
+            u'<eLabel position="0,90"   size="1600,3"   backgroundColor="{acc}" zPosition="1"/>'
+            # ── Title + sport filter label ──
+            u'<widget name="title_lbl"  position="0,20" size="1600,50" font="Regular;30" '
+            u'foregroundColor="{acc}" halign="center" valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="sport_label" position="0,96" size="1600,28" font="Regular;20" '
+            u'foregroundColor="{dim}" halign="center" valign="center" transparent="1" zPosition="5"/>'
+            # ── Column header labels ──
+            u'<eLabel position="0,124"  size="1600,30"  backgroundColor="#0a0a16" zPosition="2"/>'
+            u'<widget name="col_rank"   position="0,124"   size="70,30"  font="Regular;16" foregroundColor="{dim}" halign="center" valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_name"   position="84,124"  size="470,30" font="Regular;16" foregroundColor="{dim}" halign="left"   valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_badge"  position="570,124" size="210,30" font="Regular;16" foregroundColor="{dim}" halign="center" valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_score"  position="800,124" size="170,30" font="Regular;16" foregroundColor="{dim}" halign="left"   valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_acc"    position="990,124" size="210,30" font="Regular;16" foregroundColor="{dim}" halign="left"   valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_bets"   position="1215,124" size="200,30" font="Regular;16" foregroundColor="{dim}" halign="left"  valign="center" transparent="1" zPosition="5"/>'
+            # ── List ──
+            u'<widget name="list" position="0,154" size="1600,666" scrollbarMode="showNever" '
+            u'transparent="1" zPosition="5"/>'
+            # ── Loading label (shown before data arrives) ──
+            u'<widget name="loading" position="0,400" size="1600,60" font="Regular;28" '
+            u'foregroundColor="{acc}" halign="center" transparent="1" zPosition="8"/>'
+            # ── Button bar ──
+            u'<eLabel position="0,820" size="1600,3"   backgroundColor="{acc}" zPosition="1"/>'
+            u'<eLabel position="0,823" size="1600,77"  backgroundColor="{top}" zPosition="0"/>'
+            u'<ePixmap pixmap="skin_default/buttons/green.png"  position="30,848"  size="35,25" alphatest="on" zPosition="5"/>'
+            u'<widget name="key_green"  position="75,843"  size="260,35" font="Regular;22" foregroundColor="{acc}" halign="left" valign="center" transparent="1" zPosition="5"/>'
+            u'<ePixmap pixmap="skin_default/buttons/yellow.png" position="430,848" size="35,25" alphatest="on" zPosition="5"/>'
+            u'<widget name="key_yellow" position="475,843" size="280,35" font="Regular;22" foregroundColor="#FFEE00" halign="left" valign="center" transparent="1" zPosition="5"/>'
+            u'<ePixmap pixmap="skin_default/buttons/blue.png"   position="860,848" size="35,25" alphatest="on" zPosition="5"/>'
+            u'<widget name="key_blue"   position="905,843" size="260,35" font="Regular;22" foregroundColor="#44AAFF" halign="left" valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="hint"       position="1200,848" size="380,35" font="Regular;18" foregroundColor="{dim}" halign="right" valign="center" transparent="1" zPosition="5"/>'
+            u'</screen>'
+        ).format(bg=bg, top=top_bar, acc=accent, dim=dim)
+
+        # ── Widgets ──
+        self["title_lbl"]  = Label("GLOBAL LEADERBOARD")
+        self["sport_label"] = Label("")
+        self["loading"]    = Label("Fetching leaderboard...")
+        self["key_green"]  = Label("Score Rank")
+        self["key_yellow"] = Label("Accuracy Rank")
+        self["key_blue"]   = Label("My Profile")
+        self["hint"]       = Label(u"◄ ►  Change Sport")
+        # Column headers
+        self["col_rank"]  = Label("#")
+        self["col_name"]  = Label("Player")
+        self["col_badge"] = Label("Badge")
+        self["col_score"] = Label("Pts")
+        self["col_acc"]   = Label("Accuracy")
+        self["col_bets"]  = Label("Bets")
+
+        self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+
+        self.users_data      = []
+        self.available_sports = ["Global"]
+        self.current_sport_idx = 0
+        self.current_sort    = "score"
+        self._theme          = theme
+
+        self["actions"] = ActionMap(
+            ["SetupActions", "ColorActions", "DirectionActions"], {
+                "cancel": self.close,
+                "ok":     self.close,
+                "green":  self.sort_by_score,
+                "yellow": self.sort_by_accuracy,
+                "blue":   self.open_profile,
+                "left":   self.prev_sport,
+                "right":  self.next_sport,
+                "up":     self.cursor_up,
+                "down":   self.cursor_down,
+            }, -1)
+
+        self.onLayoutFinish.append(self._setup_list)
+        self.fetch_leaderboard()
+
+    def _setup_list(self):
+        self["list"].l.setFont(0, gFont("Regular", 22))
+        self["list"].l.setFont(1, gFont("Regular", 24))
+        self["list"].l.setItemHeight(74)
+
+    def cursor_up(self):
+        self["list"].up()
+
+    def cursor_down(self):
+        self["list"].down()
+
+    def open_profile(self):
+        self.session.open(PersonalProfileScreen)
+        
+    def fetch_leaderboard(self):
+        import threading
+        import time
+        url = "{}/leaderboard.json?r={}".format(FIREBASE_URL, int(time.time()))
+        
+        def _fetch():
+            try:
+                try:
+                    import urllib2 as request_module
+                except ImportError:
+                    import urllib.request as request_module
+                
+                req = request_module.Request(url)
+                response = request_module.urlopen(req, timeout=5)
+                html = response.read()
+                
+                from twisted.internet import reactor
+                reactor.callFromThread(self.on_data_received, html)
+            except Exception as e:
+                print("[SimplySports] Leaderboard fetch failed:", e)
+                
+        threading.Thread(target=_fetch).start()
+        
+    def on_data_received(self, html):
+        import json
+        try:
+            if isinstance(html, bytes): html = html.decode('utf-8')
+            if not html or html.strip() == "null":
+                self["loading"].setText("No scores recorded yet.")
+                return
+                
+            data = json.loads(html)
+            self.users_data = []
+            sports_set = set() # Automatically find all sports the community has voted on
+            
+            if isinstance(data, dict):
+                for device_id, info in data.items():
+                    user_sports = info.get("sports", {})
+                    for s in user_sports.keys():
+                        sports_set.add(s)
+
+                    stored_score    = int(info.get("score", 0))
+                    stored_accuracy = float(info.get("accuracy", 0.0))
+
+                    # Use the badge stored by the remote client if present;
+                    # otherwise compute it live so older clients that pre-date
+                    # the badge feature still get a correct title.
+                    stored_badge = info.get("badge")
+                    if not stored_badge:
+                        stored_badge = get_rank_badge(stored_score, stored_accuracy)
+
+                    self.users_data.append({
+                        "name": info.get("name", "Anonymous"),
+                        "score": stored_score,
+                        "accuracy": stored_accuracy,
+                        "total_bets": int(info.get("total_bets", 0)),
+                        "sports": user_sports,
+                        "badge": stored_badge
+                    })
+            
+            # Build the navigation list
+            self.available_sports = ["Global"] + sorted(list(sports_set))
+            self.apply_sort()
+            
+        except Exception as e:
+            print("[SimplySports] Parse error:", e)
+
+    # --- NAVIGATION METHODS ---
+    def next_sport(self):
+        self.current_sport_idx = (self.current_sport_idx + 1) % len(self.available_sports)
+        self.apply_sort()
+
+    def prev_sport(self):
+        self.current_sport_idx = (self.current_sport_idx - 1) % len(self.available_sports)
+        self.apply_sort()
+
+    def sort_by_score(self):
+        self.current_sort = "score"
+        self.apply_sort()
+
+    def sort_by_accuracy(self):
+        self.current_sort = "accuracy"
+        self.apply_sort()
+
+    # --- CORE FILTERING AND SORTING ENGINE ---
+    def extract_stats(self, user, sport):
+        """Extracts either Global stats or specific Sport stats for the math"""
+        if sport == "Global":
+            return user['score'], user['accuracy'], user['total_bets']
+        else:
+            sd = user['sports'].get(sport, {})
+            sc = sd.get("score", 0)
+            tot = sd.get("total", 0)
+            cor = sd.get("correct", 0)
+            acc = (float(cor) / tot * 100.0) if tot > 0 else 0.0
+            return sc, acc, tot
+
+    def apply_sort(self):
+        if not self.users_data: return
+
+        current_sport = self.available_sports[self.current_sport_idx]
+
+        # 1. Sport filter label
+        if current_sport == "Global":
+            self["sport_label"].setText(u"◄  Global Ranking  ►")
+        else:
+            self["sport_label"].setText(
+                u"◄  {} Only  ►".format(current_sport.upper()))
+
+        # 2. Filter
+        filtered_users = [
+            u for u in self.users_data
+            if current_sport == "Global" or current_sport in u['sports']
+        ]
+
+        # 3. Sort
+        if self.current_sort == "score":
+            sorted_users = sorted(
+                filtered_users,
+                key=lambda k: (self.extract_stats(k, current_sport)[0],
+                               self.extract_stats(k, current_sport)[1]),
+                reverse=True)
+        else:
+            sorted_users = sorted(
+                filtered_users,
+                key=lambda k: (self.extract_stats(k, current_sport)[1],
+                               self.extract_stats(k, current_sport)[0]),
+                reverse=True)
+
+        # 4. Render with coloured multiContent rows
+        rows = []
+        for idx, user in enumerate(sorted_users):
+            rank = idx + 1
+            sc, acc, tot = self.extract_stats(user, current_sport)
+            badge = get_rank_badge(sc, acc)
+            row = LeaderboardListEntry(
+                rank, user['name'], badge, sc, acc, tot, self._theme)
+            if row:
+                rows.append(row)
+
+        if not rows:
+            rows.append(([("EMPTY",)],))
+
+        self["list"].setList(rows)
+        # Hide the loading label once data is rendered
+        try:
+            self["loading"].setText("")
+        except Exception:
+            pass
+
+# ==============================================================================
+# PERSONAL PROFILE / BET HISTORY SCREEN
+# ==============================================================================
+class PersonalProfileScreen(Screen):
+    """Personal stats header + scrollable bet history.
+
+    Layout: 1600x900, same visual language as LeaderboardScreen.
+    Navigation: up/down cursor + page up/down.
+    Data source: global_sports_monitor.ledger (100% local, no network call).
+    """
+
+    MAX_HISTORY = 20
+
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        self.setTitle("SimplySports: My Profile")
+
+        theme = getattr(global_sports_monitor, "theme_mode", "default") if global_sports_monitor else "default"
+        self._theme = theme
+
+        if theme == "ucl":
+            bg      = "#00091442"; top_bar = "#091442"
+            accent  = "#00ffff";   dim     = "#7799cc"
+        else:
+            bg      = "#00111118"; top_bar = "#0d0d20"
+            accent  = "#00FF85";   dim     = "#556677"
+
+        self.skin = (
+            u'<screen name="PersonalProfileScreen" position="center,center" '
+            u'size="1600,900" flags="wfNoBorder" backgroundColor="{bg}">'
+            # Top bar
+            u'<eLabel position="0,0"    size="1600,90"  backgroundColor="{top}" zPosition="0"/>'
+            u'<eLabel position="0,90"   size="1600,3"   backgroundColor="{acc}" zPosition="1"/>'
+            # Name + badge (large, centred)
+            u'<widget name="header_name"  position="0,12" size="1600,46" font="Regular;32" '
+            u'foregroundColor="{acc}" halign="center" valign="center" transparent="1" zPosition="5"/>'
+            # Stats strip
+            u'<widget name="header_stats" position="0,55" size="1600,28" font="Regular;20" '
+            u'foregroundColor="{dim}" halign="center" valign="center" transparent="1" zPosition="5"/>'
+            # Column headers
+            u'<eLabel position="0,93" size="1600,30" backgroundColor="#0a0a16" zPosition="2"/>'
+            u'<widget name="col_outcome" position="12,93"   size="130,30" font="Regular;16" foregroundColor="{dim}" halign="center" valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_match"   position="155,93"  size="530,30" font="Regular;16" foregroundColor="{dim}" halign="left"   valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_picked"  position="700,93"  size="360,30" font="Regular;16" foregroundColor="{dim}" halign="left"   valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_score"   position="1085,93" size="290,30" font="Regular;16" foregroundColor="{dim}" halign="left"   valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="col_date"    position="1390,93" size="190,30" font="Regular;16" foregroundColor="{dim}" halign="right"  valign="center" transparent="1" zPosition="5"/>'
+            # List
+            u'<widget name="list" position="0,123" size="1600,617" scrollbarMode="showNever" '
+            u'transparent="1" zPosition="5"/>'
+            # Button bar
+            u'<eLabel position="0,740" size="1600,3"  backgroundColor="{acc}" zPosition="1"/>'
+            u'<eLabel position="0,743" size="1600,77" backgroundColor="{top}" zPosition="0"/>'
+            u'<ePixmap pixmap="skin_default/buttons/red.png" position="30,768" size="35,25" alphatest="on" zPosition="5"/>'
+            u'<widget name="key_red"    position="75,763"  size="200,35" font="Regular;22" foregroundColor="#FF4455" halign="left" valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="hint"       position="1200,763" size="380,35" font="Regular;18" foregroundColor="{dim}" halign="right" valign="center" transparent="1" zPosition="5"/>'
+            u'</screen>'
+        ).format(bg=bg, top=top_bar, acc=accent, dim=dim)
+
+        self["header_name"]  = Label("")
+        self["header_stats"] = Label("")
+        self["key_red"]      = Label("Close")
+        self["hint"]         = Label(u"▲ ▼  Navigate")
+        self["col_outcome"]  = Label("Result")
+        self["col_match"]    = Label("Match")
+        self["col_picked"]   = Label("Your Pick")
+        self["col_score"]    = Label("Final Score")
+        self["col_date"]     = Label("Date")
+
+        self["list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions"], {
+                "cancel":  self.close,
+                "ok":      self.close,
+                "red":     self.close,
+                "up":      self.cursor_up,
+                "down":    self.cursor_down,
+                "left":    self.page_up,
+                "right":   self.page_down,
+            }, -1)
+
+        self.onLayoutFinish.append(self._setup_and_populate)
+
+    def _setup_and_populate(self):
+        self["list"].l.setFont(0, gFont("Regular", 20))
+        self["list"].l.setFont(1, gFont("Regular", 22))
+        self._populate()
+
+    # ------------------------------------------------------------------
+    # Navigation
+    # ------------------------------------------------------------------
+
+    def cursor_up(self):
+        self["list"].up()
+
+    def cursor_down(self):
+        self["list"].down()
+
+    def page_up(self):
+        self["list"].pageUp()
+
+    def page_down(self):
+        self["list"].pageDown()
+
+    # ------------------------------------------------------------------
+    # Data helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _prediction_label(prediction, h_name, a_name):
+        if prediction == "home": return h_name
+        if prediction == "away": return a_name
+        return "Draw"
+
+    @staticmethod
+    def _format_timestamp(ts):
+        try:
+            import time as _time
+            return _time.strftime("%d %b", _time.localtime(int(ts)))
+        except Exception:
+            return ""
+
+    # ------------------------------------------------------------------
+    # Main render
+    # ------------------------------------------------------------------
+
+    def _populate(self):
+        if not global_sports_monitor:
+            return
+
+        ledger = global_sports_monitor.ledger
+        voter_name    = getattr(global_sports_monitor, "voter_name", "Anonymous")
+        total_score   = int(ledger.get("total_score", 0))
+        total_preds   = int(ledger.get("total_predictions", 0))
+        correct_preds = int(ledger.get("correct_predictions", 0))
+        accuracy      = (float(correct_preds) / total_preds * 100.0) if total_preds > 0 else 0.0
+        badge         = get_rank_badge(total_score, accuracy)
+
+        # Header widgets
+        self["header_name"].setText(
+            u"{name}   [{badge}]".format(name=voter_name, badge=badge))
+        self["header_stats"].setText(
+            u"Score: {sc}   •   Accuracy: {acc:.1f}%   •   Total Bets: {tot}   •   Correct: {cor}".format(
+                sc=total_score, acc=accuracy, tot=total_preds, cor=correct_preds))
+
+        # ── Resolved bets (newest first, capped) ──
+        resolved = ledger.get("resolved_bets", {})
+        sorted_resolved = []
+        if isinstance(resolved, dict):
+            sorted_resolved = sorted(
+                [(eid, bet) for eid, bet in resolved.items()
+                 if isinstance(bet, dict) and not bet.get("legacy")],
+                key=lambda x: int(x[1].get("timestamp", 0)),
+                reverse=True
+            )[:self.MAX_HISTORY]
+
+        rows = []
+
+        if not sorted_resolved:
+            rows.append(ProfileSectionHeader(
+                "  No resolved bets yet  —  vote on a match to start!", self._theme))
+        else:
+            for _eid, bet in sorted_resolved:
+                prediction  = bet.get("prediction", "?")
+                result      = bet.get("result", "?")
+                score_str   = bet.get("score", "?-?")
+                h_name      = bet.get("h_name", "Home")
+                a_name      = bet.get("a_name", "Away")
+                ts          = bet.get("timestamp", 0)
+                outcome     = "WON" if prediction == result else "LOST"
+                picked_lbl  = self._prediction_label(prediction, h_name, a_name)
+                date_lbl    = self._format_timestamp(ts)
+                row = ProfileListEntry(
+                    outcome, h_name, a_name, picked_lbl,
+                    score_str, date_lbl, self._theme)
+                if row:
+                    rows.append(row)
+
+        # ── Pending bets ──
+        pending = ledger.get("pending_bets", {})
+        if isinstance(pending, dict) and pending:
+            rows.append(ProfileSectionHeader(
+                u"  ⏳  Awaiting results  —  {} pending".format(len(pending)),
+                self._theme))
+            for _eid, bet in sorted(pending.items(),
+                                    key=lambda x: int(x[1].get("timestamp", 0)),
+                                    reverse=True):
+                prediction = bet.get("prediction", "?")
+                h_name     = bet.get("h_name", "Home")
+                a_name     = bet.get("a_name", "Away")
+                picked_lbl = self._prediction_label(prediction, h_name, a_name)
+                row = ProfileListEntry(
+                    "PENDING", h_name, a_name, picked_lbl, "", "", self._theme)
+                if row:
+                    rows.append(row)
+
+        self["list"].setList(rows)
+        self["list"].l.setItemHeight(74)
+
 
 # ==============================================================================
 # PLUGIN REGISTRATION
@@ -10093,14 +11499,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -10115,7 +11521,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
