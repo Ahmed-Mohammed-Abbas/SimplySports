@@ -100,6 +100,289 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
+VERSION = "4.8"
+
+# ==============================================================================
+# AI MODE — API HELPERS
+# ==============================================================================
+AI_PROVIDERS = [
+    ("gemini", "Google Gemini Flash"),
+    ("groq", "Groq (Llama 3)"),
+]
+AI_LANGUAGES = ["English", "Arabic", "French", "Spanish", "German", "Italian", "Portuguese", "Turkish", "Dutch", "Russian"]
+AI_FREQUENCIES = [5, 10, 15, 30, 60]
+
+def fetch_sports_headlines(max_items=6):
+    """Fetch latest sports headlines from BBC Sport RSS (no API key needed)."""
+    feeds = [
+        "https://feeds.bbci.co.uk/sport/football/rss.xml",
+        "https://feeds.bbci.co.uk/sport/rss.xml",
+    ]
+    headlines = []
+    for feed_url in feeds:
+        if len(headlines) >= max_items:
+            break
+        try:
+            try:
+                from urllib.request import urlopen, Request
+            except ImportError:
+                from urllib2 import urlopen, Request
+            req = Request(feed_url)
+            req.add_header("User-Agent", "Mozilla/5.0")
+            resp = urlopen(req, timeout=8)
+            raw = resp.read().decode("utf-8", errors="ignore")
+            # Lightweight XML title extraction (no heavy parser needed)
+            import re
+            items = re.findall(r"<item>.*?<title>\s*(.*?)\s*</title>", raw, re.DOTALL)
+            for title in items:
+                clean = re.sub(r"<!\[CDATA\[(.*?)\]\]>", r"\1", title).strip()
+                if clean and clean not in headlines:
+                    headlines.append(clean)
+                    if len(headlines) >= max_items:
+                        break
+        except Exception as e:
+            log_dbg("[AI Mode] News fetch failed for {}: {}".format(feed_url, str(e)))
+    return headlines
+
+
+def call_ai_api_threaded(api_key, provider, prompt, on_result):
+    """
+    Calls the chosen AI provider in a background thread.
+    Calls on_result(text) on the main thread when done.
+    Calls on_result(None) on error so the in-flight flag can be cleared.
+    """
+    def _run():
+        try:
+            try:
+                from urllib.request import urlopen, Request
+            except ImportError:
+                from urllib2 import urlopen, Request
+            
+            # Fetch real-time sports news and inject into prompt
+            full_prompt = prompt
+            try:
+                news = fetch_sports_headlines(6)
+                if news:
+                    news_block = "\n\n=== LATEST SPORTS NEWS (from BBC Sport) ===\n"
+                    news_block += "\n".join("- " + h for h in news)
+                    full_prompt = prompt + news_block
+            except Exception:
+                pass  # News fetch is optional, don't block AI call
+            
+            text = ""
+            if provider == "gemini":
+                url = (
+                    "https://generativelanguage.googleapis.com"
+                    "/v1beta/models/gemini-2.0-flash:generateContent"
+                    "?key=" + api_key
+                )
+                payload = json.dumps({
+                    "contents": [{"parts": [{"text": full_prompt}]}]
+                })
+                req = Request(url, data=payload.encode("utf-8"))
+                req.add_header("Content-Type", "application/json")
+                req.add_header("User-Agent", "Mozilla/5.0")
+                resp = urlopen(req, timeout=15)
+                data = json.loads(resp.read().decode("utf-8"))
+                text = (data["candidates"][0]["content"]
+                             ["parts"][0]["text"])
+
+            elif provider == "groq":
+                url = "https://api.groq.com/openai/v1/chat/completions"
+                payload = json.dumps({
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [{"role": "user", "content": full_prompt}],
+                    "max_tokens": 300
+                })
+                req = Request(url, data=payload.encode("utf-8"))
+                req.add_header("Content-Type", "application/json")
+                req.add_header("Authorization", "Bearer " + api_key)
+                req.add_header("User-Agent", "Mozilla/5.0")
+                resp = urlopen(req, timeout=15)
+                data = json.loads(resp.read().decode("utf-8"))
+                text = data["choices"][0]["message"]["content"]
+
+            else:
+                text = ""
+
+            # Schedule callback on main thread via reactor
+            if on_result:
+                reactor.callFromThread(on_result, text.strip() if text else None)
+
+        except Exception as e:
+            # Handle rate limiting with one automatic retry
+            err_code = getattr(e, 'code', 0)
+            if err_code == 429:
+                try:
+                    import time
+                    log_dbg("[AI Mode] Rate limited (429). Retrying in 30s...")
+                    time.sleep(30)
+                    # Rebuild request for retry
+                    try:
+                        from urllib.request import urlopen, Request
+                    except ImportError:
+                        from urllib2 import urlopen, Request
+                    req2 = Request(req.full_url, data=req.data)
+                    for hdr, val in req.header_items():
+                        if hdr.lower() not in ('host', 'content-length'):
+                            req2.add_header(hdr, val)
+                    resp = urlopen(req2, timeout=15)
+                    data = json.loads(resp.read().decode("utf-8"))
+                    if provider == "gemini":
+                        text = data["candidates"][0]["content"]["parts"][0]["text"]
+                    elif provider == "groq":
+                        text = data["choices"][0]["message"]["content"]
+                    else:
+                        text = ""
+                    if on_result:
+                        reactor.callFromThread(on_result, text.strip() if text else None)
+                    return
+                except Exception as retry_e:
+                    log_dbg("[AI Mode] Retry also failed: " + str(retry_e))
+                if on_result:
+                    reactor.callFromThread(on_result,
+                        "ERROR: Rate limited by AI provider. "
+                        "Please wait a few minutes or switch to Groq provider.")
+                return
+
+            err_msg = str(e)
+            if hasattr(e, 'read'):
+                try:
+                    err_msg += " | " + e.read().decode("utf-8")
+                except:
+                    pass
+            log_dbg("[AI Mode] API call failed: " + err_msg)
+            if on_result:
+                reactor.callFromThread(on_result, "ERROR: " + err_msg)
+
+    t = threading.Thread(target=_run)
+    t.daemon = True
+    t.start()
+
+def build_ai_prompt(language, cached_events, match_snapshots, ledger=None):
+    """Build a compact, structured prompt from live match data (~800 tokens max)."""
+    lines = []
+
+    for event in cached_events[:12]:   # cap to 12 events
+        snap = match_snapshots.get(str(event.get("id", "")))
+        if not snap:
+            continue
+        state  = snap.get("state", "pre")
+        h_name = snap.get("h_name", "Home")
+        a_name = snap.get("a_name", "Away")
+        score  = snap.get("score_str", "")
+        league = snap.get("league_name", "")
+        t_str  = snap.get("time_str", "")
+        clock  = snap.get("clock", "")
+
+        if state == "in":
+            lines.append(
+                "LIVE: {} vs {} | {} | {} {}".format(
+                    h_name, a_name, score, league, clock))
+        elif state == "pre":
+            lines.append(
+                "UPCOMING: {} vs {} at {} | {}".format(
+                    h_name, a_name, t_str, league))
+        elif state == "post":
+            lines.append(
+                "FINISHED: {} vs {} | {} | {}".format(
+                    h_name, a_name, score, league))
+
+    # Fallback: if cached_events didn't produce lines, iterate snapshots directly
+    if not lines and match_snapshots:
+        for mid, snap in list(match_snapshots.items())[:12]:
+            state  = snap.get("state", "pre")
+            h_name = snap.get("h_name", "Home")
+            a_name = snap.get("a_name", "Away")
+            score  = snap.get("score_str", "")
+            league = snap.get("league_name", "")
+            t_str  = snap.get("time_str", "")
+            clock  = snap.get("clock", "")
+            if state == "in":
+                lines.append("LIVE: {} vs {} | {} | {} {}".format(h_name, a_name, score, league, clock))
+            elif state == "pre":
+                lines.append("UPCOMING: {} vs {} at {} | {}".format(h_name, a_name, t_str, league))
+            elif state == "post":
+                lines.append("FINISHED: {} vs {} | {} | {}".format(h_name, a_name, score, league))
+
+    match_summary = "\n".join(lines) if lines else "No matches available."
+    log_dbg("[AI Mode] Prompt match data ({} lines): {}".format(len(lines), match_summary[:300]))
+
+    # --- Build ledger / user prediction context ---
+    ledger_lines = []
+    if ledger:
+        pending = ledger.get("pending_bets", {})
+        if pending and match_snapshots:
+            for eid, bet in list(pending.items())[:6]:   # cap to 6 bets
+                snap = match_snapshots.get(str(eid))
+                prediction  = bet.get("prediction", "")
+                h_name      = bet.get("h_name", "Home")
+                a_name      = bet.get("a_name", "Away")
+                pred_label  = h_name if prediction == "home" else (
+                              a_name if prediction == "away" else "Draw")
+                if snap:
+                    state = snap.get("state", "pre")
+                    score = snap.get("score_str", "")
+                    if state == "in":
+                        ledger_lines.append(
+                            "USER BET: {} vs {} (LIVE {}) — user picked: {}".format(
+                                h_name, a_name, score, pred_label))
+                    elif state == "pre":
+                        ledger_lines.append(
+                            "USER BET: {} vs {} (upcoming) — user picked: {}".format(
+                                h_name, a_name, pred_label))
+                    # skip 'post' matches — bet already resolved
+                else:
+                    # Match not in current snapshot window (different league/day)
+                    ledger_lines.append(
+                        "USER BET (pending): {} vs {} — user picked: {}".format(
+                            h_name, a_name, pred_label))
+
+        total_preds = int(ledger.get("total_predictions", 0))
+        correct     = int(ledger.get("correct_predictions", 0))
+        total_score = int(ledger.get("total_score", 0))
+        if total_preds > 0:
+            accuracy = int(correct * 100.0 / total_preds)
+            ledger_lines.append(
+                "USER RECORD: {}/{} correct ({}% accuracy), points: {}".format(
+                    correct, total_preds, accuracy, total_score))
+
+    has_ledger = bool(ledger_lines)
+
+    system_instruction = (
+        "You are an energetic sports broadcaster and commentator. "
+        "I will provide you with TWO data sources:\n"
+        "1. MATCH DATA: Live, Upcoming, and Finished matches from the user's watchlist.\n"
+        "2. LATEST SPORTS NEWS: Real breaking headlines from BBC Sport.\n\n"
+        "Your job is to write EXACTLY 2 short, thrilling notification messages.\n\n"
+        "RULES:\n"
+        "1. Message 1: A punchy headline about a match from the MATCH DATA "
+        "(mention actual team names and scores), OR if no matches exist, "
+        "pick the most exciting headline from LATEST SPORTS NEWS and rephrase it.\n"
+        "2. Message 2: An exciting question, hype reminder, or breaking news update. "
+        "Use MATCH DATA for upcoming matches, or LATEST SPORTS NEWS for transfer rumors, "
+        "injuries, or major events."
+        "{ledger_rule}"
+        "\n3. NEVER invent matches, scores, or facts not present in the provided data.\n"
+        "4. Respond ONLY in {language}.\n"
+        "5. Keep each message under 25 words.\n"
+        "6. Separate them with a blank line.\n"
+        "7. No markdown, no asterisks, no numbering, no emojis."
+    ).format(
+        language=language,
+        ledger_rule=(
+            "\n   USER PREDICTIONS are provided below. If a USER BET matches a LIVE "
+            "match, make Message 2 personal: reference the user's pick and the current "
+            "score in an exciting way."
+        ) if has_ledger else ""
+    )
+
+    prompt = system_instruction + "\n\n=== MATCH DATA ===\n" + match_summary
+    if ledger_lines:
+        prompt += "\n\n=== USER PREDICTIONS ===\n" + "\n".join(ledger_lines)
+    log_dbg("[AI Mode] Prompt built: {} match lines, {} ledger lines".format(
+        len(lines), len(ledger_lines)))
+    return prompt
 
 XMLTV_EPG_URL = "https://epg.pw/xmltv/epg.xml"
 EPG_SEARCH_CAT_COLOR = 0x0055CC   # blue tint for EPG-sourced entries in the list
@@ -132,7 +415,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "4.7" # A new Online search for EPG screen and restyled the main screen.
+CURRENT_VERSION = "4.8" # A new AI Mode and redesigned main screen.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -657,7 +940,19 @@ def build_match_snapshot(event):
         score_str = '{} - {}'.format(h_score_str, a_score_str)
     else:
         score_str = 'VS'
-    
+        # Inject voting info instead of VS separator for scheduled matches
+        event_id = str(event.get('id', ''))
+        try:
+            if global_sports_monitor and hasattr(global_sports_monitor, 'all_community_votes'):
+                match_votes = global_sports_monitor.all_community_votes.get(event_id, {})
+                if match_votes:
+                    h_votes = match_votes.get('home', 0)
+                    a_votes = match_votes.get('away', 0)
+                    if int(h_votes) > 0 or int(a_votes) > 0 or int(match_votes.get('draw', 0)) > 0:
+                        score_str = '{} VTS {}'.format(h_votes, a_votes)
+        except Exception:
+            pass
+
     # --- Time Display String (Single Definition) ---
     if state == 'in' and not is_suspended:
         time_str = clock_display or 'LIVE'
@@ -684,6 +979,21 @@ def build_match_snapshot(event):
         except:
             pass
     
+    # --- Possession Extraction ---
+    h_possession = 0.0
+    a_possession = 0.0
+    if state == 'in' and len(comps) >= 2:
+        try:
+            for stat in team_h.get('statistics', []):
+                if stat.get('name') == 'possessionPct':
+                    h_possession = float(stat.get('displayValue', 0))
+                    break
+            for stat in team_a.get('statistics', []):
+                if stat.get('name') == 'possessionPct':
+                    a_possession = float(stat.get('displayValue', 0))
+                    break
+        except Exception: pass
+
     return {
         # Identity
         'event_id':      str(event.get('id', '')),
@@ -694,6 +1004,8 @@ def build_match_snapshot(event):
         
         # State
         'state':         state,
+        'h_poss':        h_possession,
+        'a_poss':        a_possession,
         'status_short':  status_short,
         'is_live':       state == 'in' and not is_suspended,
         'is_postponed':  is_postponed,
@@ -953,7 +1265,11 @@ def get_scaled_pixmap(path, width, height):
 # ==============================================================================
 def SportListEntry(entry):
     try:
-        if len(entry) >= 17:
+        h_poss = 0.0
+        a_poss = 0.0
+        if len(entry) >= 19:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss = entry[:19]
+        elif len(entry) >= 17:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards = entry[:17]
         elif len(entry) >= 15:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
@@ -1057,6 +1373,22 @@ def SportListEntry(entry):
         
         # Away Name: 1150 (was 1130), 520 (Reduced for Time move)
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        
+        # --- Live Possession Bars ---
+        if status == "LIVE" and (h_poss > 0 or a_poss > 0):
+            max_w = 200
+            h_bar_w = int(max_w * (h_poss / 100.0))
+            a_bar_w = int(max_w * (a_poss / 100.0))
+            bar_y = 65
+            bar_h = 3
+            
+            # Home Possession Bar (growing leftwards from 770)
+            if h_bar_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 770 - h_bar_w, bar_y, h_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
+            
+            # Away Possession Bar (growing rightwards from 1150)
+            if a_bar_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
         
         # Time: 1710, 180 (Ends 1890 -> 30px safe margin)
         font_time = 3 
@@ -1271,7 +1603,11 @@ def RacingSessionRow(session_type, session_status, broadcast, time_str, theme_mo
 
 def UCLListEntry(entry):
     try:
-        if len(entry) >= 17:
+        h_poss = 0.0
+        a_poss = 0.0
+        if len(entry) >= 19:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss = entry[:19]
+        elif len(entry) >= 17:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards = entry[:17]
         elif len(entry) >= 15:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
@@ -1364,6 +1700,22 @@ def UCLListEntry(entry):
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 5, 60, 60, get_scaled_pixmap(a_png, 60, 60)))
         # Away Name: 1150, 520
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        
+        # --- Live Possession Bars ---
+        if status == "LIVE" and (h_poss > 0 or a_poss > 0):
+            max_w = 200
+            h_bar_w = int(max_w * (h_poss / 100.0))
+            a_bar_w = int(max_w * (a_poss / 100.0))
+            bar_y = 65
+            bar_h = 3
+            
+            # Home Possession Bar (growing leftwards from 770)
+            if h_bar_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 770 - h_bar_w, bar_y, h_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
+            
+            # Away Possession Bar (growing rightwards from 1150)
+            if a_bar_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
         
         # EPG Indicator (x=1670)
         if has_epg:
@@ -1507,6 +1859,43 @@ def LeaderboardListEntry(rank, name, score, is_me=False):
     return res
 
 
+class AIToast(Screen):
+    """Non-invasive AI Mode notification ticker that appears at the bottom."""
+    def __init__(self, session, text, duration_ms=10000):
+        from enigma import eTimer
+        Screen.__init__(self, session)
+        self.monitor = global_sports_monitor
+        
+        # Match the main plugin theme
+        theme = getattr(self.monitor, "theme_mode", "default")
+        alpha = "33" # 20% transparent, 80% solid (in E2, 00 is opaque, FF is transparent)
+        if theme == "ucl":
+            bg = "#" + alpha + "050a2e"
+            accent = "#00ffff"
+        else:
+            bg = "#" + alpha + "0d0d20"
+            accent = "#00FF85"
+
+        self.skin = (
+            u'<screen position="center,927" size="1600,95" flags="wfNoBorder" backgroundColor="#FF000000">'
+            u'<eLabel position="0,0" size="1600,95" backgroundColor="{bg}" zPosition="0" />'
+            u'<eLabel position="0,0" size="1600,3" backgroundColor="{acc}" zPosition="1" />'
+            u'<widget name="msg" position="20,10" size="1560,75" font="Regular;26" '
+            u'foregroundColor="#FFFFFF" halign="center" valign="center" transparent="1" zPosition="2" />'
+            u'</screen>'
+        ).format(bg=bg, acc=accent)
+        self["msg"] = Label(text)
+        
+        # ActionMap makes it dismissable via the EXIT button (-1 priority so it doesn't block global hotkeys)
+        from Components.ActionMap import ActionMap
+        self["actions"] = ActionMap(["SetupActions"], {
+            "cancel": self.close
+        }, -1)
+
+        self.timer = eTimer()
+        self.timer.callback.append(self.close)
+        self.timer.start(duration_ms, True)
+
 # ==============================================================================
 # SPORTS MONITOR (FIXED: Stable Sorting)
 # ==============================================================================
@@ -1537,6 +1926,21 @@ class SportsMonitor:
         
         self.timer = eTimer()
         safe_connect(self.timer, self.check_goals)
+        
+        self.votes_timer = eTimer()
+        safe_connect(self.votes_timer, self.fetch_all_community_votes)
+        self.votes_timer.start(60000, False) # Fetch votes every 60s
+
+        # AI Mode state
+        self.ai_enabled = False
+        self.ai_api_key = ""
+        self.ai_provider = "gemini"
+        self.ai_language = "English"
+        self.ai_frequency = 30  # minutes
+        self.ai_timer = eTimer()
+        safe_connect(self.ai_timer, self._ai_timer_fired)
+        self._ai_last_call_ts = 0
+        self._ai_call_in_flight = False
             
         self.session = None
         self.cached_events = [] 
@@ -1548,6 +1952,7 @@ class SportsMonitor:
         self.current_toast = None  # Reference to active GoalToast for live updates
         self.current_toast_match = None  # (home, away) tuple of active toast
         self.has_changes = True  # Track if data changed since last UI refresh
+        self.all_community_votes = {} # Store all match votes locally
         
         # Batching variables
         self.batch_queue = []
@@ -1577,6 +1982,7 @@ class SportsMonitor:
         self._dead_summary_eids = set()  # EIDs that failed 3+ times, skip for session
         
         self.load_cache()
+        self.fetch_all_community_votes()
         
         self.load_config()
         self.load_ledger()
@@ -1589,8 +1995,28 @@ class SportsMonitor:
         
         self._boot_initialized = True # Mark initialization complete
 
+    def fetch_all_community_votes(self):
+        try:
+            from twisted.web.client import getPage
+            url = "{}/matches.json".format(FIREBASE_URL)
+            getPage(url.encode('utf-8'), timeout=10).addCallback(self.on_all_votes_received).addErrback(lambda e: None)
+        except Exception as e:
+            log_dbg("Error starting vote fetch: {}".format(e))
+
+    def on_all_votes_received(self, html):
+        try:
+            import json
+            data = json.loads(html)
+            if isinstance(data, dict):
+                self.all_community_votes = data
+                self.has_changes = True
+                self._trigger_callbacks()
+        except Exception:
+            pass
+
     def set_session(self, session):
         self.session = session
+        self._start_ai_timer()  # Start AI timer when session is available
     def register_callback(self, func):
         if func not in self.callbacks: 
             self.callbacks.append(func)
@@ -1599,6 +2025,379 @@ class SportsMonitor:
         if func in self.callbacks: 
             self.callbacks.remove(func)
             self.ensure_timer_state() # Allow idle shutdown if all UIs closed
+
+    # ==========================================================================
+    # AI MODE — SCHEDULER & NOTIFICATION
+    # ==========================================================================
+    def _start_ai_timer(self):
+        """Start or restart the AI timer based on current settings."""
+        self.ai_timer.stop()
+        if not self.ai_enabled or not self.ai_api_key:
+            return
+        interval_ms = self.ai_frequency * 60 * 1000
+        self.ai_timer.start(interval_ms, False)   # False = repeating
+        log_dbg("[AI Mode] Timer started: every {} min".format(self.ai_frequency))
+
+    def _ai_timer_fired(self):
+        """Called by the AI timer. Builds prompt and fires API call."""
+        if not self.ai_enabled or not self.ai_api_key:
+            return
+        # Rate-limit guard
+        now = int(time.time())
+        min_gap = max((self.ai_frequency - 1) * 60, 60)
+        if (now - self._ai_last_call_ts) < min_gap:
+            return
+        # In-flight guard
+        if self._ai_call_in_flight:
+            return
+        # Skip if no data
+        if not self.cached_events:
+            return
+
+        self._ai_call_in_flight = True
+        self._ai_last_call_ts = now
+
+        prompt = build_ai_prompt(
+            self.ai_language,
+            self.cached_events,
+            self.match_snapshots,
+            getattr(self, 'ledger', None)
+        )
+
+        call_ai_api_threaded(
+            self.ai_api_key,
+            self.ai_provider,
+            prompt,
+            self._on_ai_response
+        )
+
+    def _on_ai_response(self, text):
+        """Called on main thread after AI API returns."""
+        self._ai_call_in_flight = False
+        if not text:
+            return
+        if text.startswith("ERROR: "):
+            try:
+                from Screens.MessageBox import MessageBox
+                if self.session:
+                    self.session.open(MessageBox, "AI API Error: " + text[7:], MessageBox.TYPE_ERROR, timeout=10)
+            except Exception:
+                pass
+            return
+        
+        # Split into individual messages (blank-line separated)
+        messages = [m.strip() for m in text.split("\n\n") if m.strip()]
+        for msg in messages[:2]:              # show max 2 notifications
+            self._show_ai_notification(msg)
+        # Also feed to the active SimpleSportsScreen ticker if any
+        for cb in self.callbacks:
+            try:
+                screen = getattr(cb, '__self__', None)
+                if screen and hasattr(screen, 'receive_ai_ticker'):
+                    screen.receive_ai_ticker(messages[:2])
+            except Exception:
+                pass
+
+    def _show_ai_notification(self, text):
+        """Display an auto-dismissing popup with the AI-generated message."""
+        if not self.session:
+            return
+        try:
+            self.session.open(AIToast, text, 10000)
+        except Exception as e:
+            log_dbg("[AI Mode] Notification failed: " + str(e))
+
+    def test_ai_now(self):
+        """Fire a single AI call immediately (for the Test Now button)."""
+        if not self.ai_api_key:
+            if self.session:
+                self.session.open(MessageBox, "Please set an API key first.", MessageBox.TYPE_ERROR, timeout=3)
+            return
+        if self._ai_call_in_flight:
+            return
+        self._ai_call_in_flight = True
+        prompt = build_ai_prompt(
+            self.ai_language,
+            self.cached_events,
+            self.match_snapshots,
+            getattr(self, 'ledger', None)
+        )
+        call_ai_api_threaded(
+            self.ai_api_key,
+            self.ai_provider,
+            prompt,
+            self._on_ai_response
+        )
+
+    def _trigger_ai_goal_commentary(self, match_id, score_display, scorer_text, scoring_team):
+        """Fire an immediate AI commentary call when a soccer goal is detected.
+        Only called for soccer (see evaluate_goals guard). Reads the full match
+        timeline already held in event_map — no additional API request needed.
+
+        Guards:
+          - AI Mode must be enabled with a valid key.
+          - Per-match cooldown of 90 s prevents double-commentary on rapid polls.
+          - Falls through silently on any error so the goal notification itself
+            is never affected.
+        """
+        if not self.ai_enabled or not self.ai_api_key:
+            return
+
+        # Per-match cooldown stored as a dynamic attribute (no extra dict needed)
+        now = int(time.time())
+        cooldown_attr = "_ai_goal_ts_" + str(match_id)
+        if now - getattr(self, cooldown_attr, 0) < 90:
+            log_dbg("[AI Mode] Goal commentary skipped — cooldown active for {}".format(match_id))
+            return
+        setattr(self, cooldown_attr, now)
+
+        try:
+            snap = self.match_snapshots.get(str(match_id), {})
+            h_name = snap.get("h_name", "Home")
+            a_name = snap.get("a_name", "Away")
+            league = snap.get("league_name", "")
+            clock  = snap.get("clock", "")
+            scoring_team_name = h_name if scoring_team == "home" else a_name
+
+            # --- Build match event timeline from event_map (no API call needed) ---
+            # Uses the same 'details' array that powers the GameInfo screen's
+            # timeline view — goals, penalties, own goals, red cards, with
+            # scorer, assist, team, and clock all already parsed and in memory.
+            timeline_lines = []
+            try:
+                ev = self.event_map.get(str(match_id), {})
+                details = ev.get('competitions', [{}])[0].get('details', [])
+
+                # Resolve home team id so we can label events correctly
+                h_id_str = ""
+                for c in ev.get('competitions', [{}])[0].get('competitors', []):
+                    if c.get('homeAway') == 'home':
+                        h_id_str = str(c.get('id', '') or c.get('team', {}).get('id', ''))
+                        break
+
+                for play in details:
+                    text_desc = play.get('type', {}).get('text', '').lower()
+                    is_og    = play.get('ownGoal', False)
+                    is_pk    = play.get('penaltyKick', False)
+                    is_rc    = play.get('redCard', False)
+                    is_score = (play.get('scoringPlay', False) or is_og or is_pk
+                                or 'goal' in text_desc)
+                    is_red   = is_rc or ('card' in text_desc and 'red' in text_desc)
+
+                    if not (is_score or is_red):
+                        continue  # skip yellow cards, subs — keep prompt compact
+
+                    event_clock = play.get('clock', {}).get('displayValue', '?')
+
+                    # Resolve athlete names (two possible ESPN structures)
+                    athletes = play.get('athletesInvolved', []) or []
+                    if not athletes:
+                        athletes = [p.get('athlete', p)
+                                    for p in play.get('participants', [])]
+                    player = ""
+                    assist = ""
+                    if athletes:
+                        a0 = athletes[0]
+                        player = a0.get('displayName') or a0.get('shortName', '')
+                        if is_score and len(athletes) > 1:
+                            a1 = athletes[1]
+                            assist = a1.get('displayName') or a1.get('shortName', '')
+
+                    t_id       = str(play.get('team', {}).get('id', ''))
+                    team_label = h_name if t_id == h_id_str else a_name
+
+                    if is_red:
+                        badge = "[RC]"
+                    elif is_pk:
+                        badge = "[Pen]"
+                    elif is_og:
+                        badge = "[OG]"
+                    else:
+                        badge = "[Goal]"
+
+                    # Team-level only: no player names to avoid AI confusing old scorers
+                    line = "{} {} {}".format(event_clock, badge, team_label)
+                    timeline_lines.append(line)
+
+            except Exception as te:
+                log_dbg("[AI Mode] Timeline build error: {}".format(str(te)))
+
+            # --- Personal stake note from ledger ---
+            personal_note = ""
+            if hasattr(self, "ledger"):
+                bet = self.ledger.get("pending_bets", {}).get(str(match_id))
+                if bet:
+                    prediction = bet.get("prediction", "")
+                    pred_name  = (h_name if prediction == "home" else
+                                  a_name if prediction == "away" else "Draw")
+                    if pred_name == scoring_team_name:
+                        personal_note = (
+                            " The viewer predicted {} to win and their team just scored!".format(pred_name))
+                    else:
+                        personal_note = (
+                            " The viewer predicted {} to win — this goal goes against them.".format(pred_name))
+
+            # --- Build match flow context (team-level, no player names) ---
+            timeline_block = ""
+            if timeline_lines:
+                timeline_block = "\nMATCH FLOW: " + "; ".join(timeline_lines[-8:])
+
+            # --- Assemble prompt (THIS goal + match story) ---
+            prompt = (
+                "React to THIS goal that JUST happened RIGHT NOW. "
+                "Write exactly ONE short sentence, like a real human TV commentator would say it live on air. "
+                "Sound natural and conversational, like a friend watching the game.\n\n"
+                "THE GOAL: {} scores for {} in minute {}! Score is now {} in {} ({}).{}\n\n"
+                "RULES:\n"
+                "- The ONLY player you may name is the current scorer: {}.\n"
+                "- Do NOT name any other players from previous events.\n"
+                "- You MAY reference the match story (comebacks, red cards, drama) "
+                "without naming old scorers.\n"
+                "- Keep it under 20 words. One sentence only.\n"
+                "- No numbering, no emojis, no asterisks, no markdown.\n"
+                "- Respond ONLY in {}.{}"
+            ).format(
+                scorer_text, scoring_team_name, clock, score_display,
+                league, "{} vs {}".format(h_name, a_name),
+                personal_note, scorer_text, self.ai_language,
+                timeline_block
+            )
+
+            # Delay so the GoalToast (5 s) has fully dismissed before the AIToast
+            # appears. 8 s here + ~3-5 s API latency = commentary arrives ~11-13 s
+            # after the goal — well clear of the score notification.
+            _key  = self.ai_api_key
+            _prov = self.ai_provider
+            _cb   = self._on_ai_response
+            reactor.callLater(8, lambda: call_ai_api_threaded(_key, _prov, prompt, _cb))
+            log_dbg("[AI Mode] Goal commentary scheduled (+8 s) — match {} score {} timeline_events={}".format(
+                match_id, score_display, len(timeline_lines)))
+
+        except Exception as e:
+            log_dbg("[AI Mode] _trigger_ai_goal_commentary error: {}".format(str(e)))
+
+    def _trigger_ai_match_event_commentary(self, match_id, event_type, score_fmt):
+        """Fire AI commentary when a soccer match kicks off ('start') or ends ('end').
+        Uses the same delayed delivery pattern as goal commentary so the GoalToast
+        notification (kickoff / full-time banner) is fully visible before the AI
+        response arrives.
+
+        event_type : 'start' or 'end'
+        score_fmt  : compact score string e.g. '2-1'
+        """
+        if not self.ai_enabled or not self.ai_api_key:
+            return
+
+        # 5-minute cooldown prevents double-firing if evaluate_goals runs twice
+        now = int(time.time())
+        cooldown_attr = "_ai_{}_ts_{}".format(event_type, str(match_id))
+        if now - getattr(self, cooldown_attr, 0) < 300:
+            log_dbg("[AI Mode] {} commentary skipped — cooldown for {}".format(
+                event_type, match_id))
+            return
+        setattr(self, cooldown_attr, now)
+
+        try:
+            snap   = self.match_snapshots.get(str(match_id), {})
+            h_name = snap.get("h_name", "Home")
+            a_name = snap.get("a_name", "Away")
+            league = snap.get("league_name", "")
+
+            # --- Build full timeline for end-of-match summary ---
+            timeline_lines = []
+            if event_type == 'end':
+                try:
+                    ev      = self.event_map.get(str(match_id), {})
+                    details = ev.get('competitions', [{}])[0].get('details', [])
+                    h_id_str = ""
+                    for c in ev.get('competitions', [{}])[0].get('competitors', []):
+                        if c.get('homeAway') == 'home':
+                            h_id_str = str(
+                                c.get('id', '') or c.get('team', {}).get('id', ''))
+                            break
+                    for play in details:
+                        text_desc = play.get('type', {}).get('text', '').lower()
+                        is_og    = play.get('ownGoal', False)
+                        is_pk    = play.get('penaltyKick', False)
+                        is_rc    = play.get('redCard', False)
+                        is_score = (play.get('scoringPlay', False) or is_og or is_pk
+                                    or 'goal' in text_desc)
+                        is_red   = is_rc or ('card' in text_desc and 'red' in text_desc)
+                        if not (is_score or is_red):
+                            continue
+                        event_clock = play.get('clock', {}).get('displayValue', '?')
+                        athletes = play.get('athletesInvolved', []) or [
+                            p.get('athlete', p) for p in play.get('participants', [])]
+                        player = ""
+                        assist = ""
+                        if athletes:
+                            a0     = athletes[0]
+                            player = a0.get('displayName') or a0.get('shortName', '')
+                            if is_score and len(athletes) > 1:
+                                a1     = athletes[1]
+                                assist = a1.get('displayName') or a1.get('shortName', '')
+                        t_id       = str(play.get('team', {}).get('id', ''))
+                        team_label = h_name if t_id == h_id_str else a_name
+                        badge = ("[RC]"   if is_red  else
+                                 "[Pen]"  if is_pk   else
+                                 "[OG]"   if is_og   else "[Goal]")
+                        line = "{} {} {} ({})".format(
+                            event_clock, badge, player, team_label)
+                        if assist and is_score and not is_red:
+                            line += " assist: {}".format(assist)
+                        timeline_lines.append(line)
+                except Exception as te:
+                    log_dbg("[AI Mode] Match-end timeline error: {}".format(str(te)))
+
+            # --- User prediction context ---
+            personal_note = ""
+            if hasattr(self, "ledger"):
+                bet = self.ledger.get("pending_bets", {}).get(str(match_id))
+                if bet:
+                    prediction = bet.get("prediction", "")
+                    pred_name  = (h_name if prediction == "home" else
+                                  a_name if prediction == "away" else "Draw")
+                    personal_note = (
+                        " The viewer predicted {} to win.".format(pred_name))
+
+            # --- Build prompt ---
+            if event_type == 'start':
+                prompt = (
+                    "The whistle just blew — {} vs {} is kicking off NOW in the {}. "
+                    "Write exactly ONE sentence like a real human commentator would say live on TV. "
+                    "Sound natural and excited, not robotic. "
+                    "Mention both teams. Keep it under 20 words. "
+                    "No emojis, no markdown, no numbering. "
+                    "Respond ONLY in {}.{}"
+                ).format(h_name, a_name, league, self.ai_language, personal_note)
+
+            else:   # 'end'
+                timeline_block = ""
+                if timeline_lines:
+                    timeline_block = (
+                        "\nMatch events for context: " + "; ".join(timeline_lines[-6:]))
+                prompt = (
+                    "Full time! {} vs {} ends {}. {}. "
+                    "Write exactly ONE sentence like a real human commentator would say at the final whistle. "
+                    "React to the final score. Sound natural, not robotic, not cliche. "
+                    "Keep it under 20 words. "
+                    "No emojis, no markdown, no numbering. "
+                    "Respond ONLY in {}.{}{}"
+                ).format(
+                    h_name, a_name, score_fmt, league,
+                    self.ai_language, personal_note, timeline_block)
+
+            # Delay so the start/end GoalToast banner finishes before AIToast arrives
+            _key  = self.ai_api_key
+            _prov = self.ai_provider
+            _cb   = self._on_ai_response
+            reactor.callLater(8, lambda: call_ai_api_threaded(_key, _prov, prompt, _cb))
+            log_dbg("[AI Mode] Match {} commentary scheduled (+8 s) — {} {}".format(
+                event_type, match_id, score_fmt))
+
+        except Exception as e:
+            log_dbg("[AI Mode] _trigger_ai_match_event_commentary error: {}".format(
+                str(e)))
 
     def load_config(self):
         if os.path.exists(CONFIG_FILE):
@@ -1618,6 +2417,14 @@ class SportsMonitor:
                     self.show_in_menu = bool(data.get("show_in_menu", True))
                     self.minibar_color_mode = data.get("minibar_color_mode", "default")
                     self.voter_name = data.get("voter_name", "Anonymous")
+                    self.install_registered = bool(data.get("install_registered", False))
+                    # AI Mode config (safe defaults for older installs without the key)
+                    ai_cfg = data.get("ai_mode", {})
+                    self.ai_enabled   = ai_cfg.get("enabled", False)
+                    self.ai_api_key   = ai_cfg.get("api_key", "")
+                    self.ai_provider  = ai_cfg.get("provider", "gemini")
+                    self.ai_language  = ai_cfg.get("language", "English")
+                    self.ai_frequency = int(ai_cfg.get("frequency_min", 30))
                     
                     # FIX: Ensure timer state is set correctly (handles active and reminders)
                     try:
@@ -1634,6 +2441,9 @@ class SportsMonitor:
         self.discovery_mode = 0; self.reminders = []; self.menu_section = "all"
         self.show_in_menu = True; self.minibar_color_mode = "default"
         self.voter_name = "Anonymous"
+        self.ai_enabled = False; self.ai_api_key = ""; self.ai_provider = "gemini"
+        self.ai_language = "English"; self.ai_frequency = 30
+        self.install_registered = False
         # FIX Bug 1: resolved_bets must be a dict (not a list) to support key-based
         # lookups and assignment used throughout the gamification engine.
         # Also ensure total_predictions and correct_predictions are always present.
@@ -1647,7 +2457,15 @@ class SportsMonitor:
             "custom_indices": self.custom_league_indices, "is_custom_mode": self.is_custom_mode,
             "reminders": self.reminders, "menu_section": self.menu_section,
             "show_in_menu": self.show_in_menu, "minibar_color_mode": self.minibar_color_mode,
-            "voter_name": self.voter_name
+            "voter_name": self.voter_name,
+            "install_registered": getattr(self, "install_registered", False),
+            "ai_mode": {
+                "enabled": self.ai_enabled,
+                "api_key": self.ai_api_key,
+                "provider": self.ai_provider,
+                "language": self.ai_language,
+                "frequency_min": self.ai_frequency
+            }
         }
         try:
             with open(CONFIG_FILE, "w") as f: json.dump(data, f)
@@ -1867,8 +2685,32 @@ class SportsMonitor:
             "badge": badge,
             "timestamp": int(time.time())
         })
-        
         push_to_firebase_threaded(url, payload)
+
+    def _register_install(self):
+        """Push a registration record to /installs/{device_id} in Firebase.
+        first_seen is written only once (guarded by install_registered flag).
+        last_seen and name are updated on every call.
+        Runs in a background thread — never blocks the UI.
+        """
+        device_id = get_device_id()
+        url = "{}/installs/{}.json".format(FIREBASE_URL, device_id)
+        now = int(time.time())
+
+        payload = {
+            "name":       self.voter_name,
+            "last_seen":  now,
+            "version":    VERSION,
+        }
+
+        # Write first_seen only on the very first registration
+        if not self.install_registered:
+            payload["first_seen"] = now
+            self.install_registered = True
+            self.save_config()
+
+        push_to_firebase_threaded(url, json.dumps(payload))
+        log_dbg("[Install] Registration pushed for device {}".format(device_id))
 
     # ... (Helpers omitted for brevity, assuming standard methods exist) ...
     def toggle_theme(self):
@@ -3126,12 +3968,18 @@ class SportsMonitor:
                                  self.notified_events.add((match_id, 'start'))
                                  stend_sound = 'stend' if should_play_stend else None
                                  self.queue_notification(match_id, score_fmt, "MATCH STARTED", event_type="start", sound_type=stend_sound)
+                                 # AI kickoff commentary — soccer only
+                                 if '/soccer/' in league_url.lower():
+                                     self._trigger_ai_match_event_commentary(match_id, 'start', score_fmt)
                     elif state == 'post' and prev_state == 'in':
                         # DEDUP: Only fire end notification once per match
                         if (match_id, 'end') not in self.notified_events:
                             self.notified_events.add((match_id, 'end'))
                             stend_sound = 'stend' if should_play_stend else None
                             self.queue_notification(match_id, score_fmt, "FULL TIME", event_type="end", sound_type=stend_sound)
+                            # AI full-time commentary — soccer only
+                            if '/soccer/' in league_url.lower():
+                                self._trigger_ai_match_event_commentary(match_id, 'end', score_fmt)
 
                 self.last_states[match_id] = state
                 if state == 'in':
@@ -3182,6 +4030,11 @@ class SportsMonitor:
                                                     g_sound = 'goal' if s_type != 'basketball' else None
                                                     self.queue_notification(m_id, s_disp, final_text, event_type="goal", scoring_team="away", sound_type=g_sound)
                                                     self.goal_flags[m_id] = {'time': time.time(), 'team': 'away'}
+                                                # AI goal commentary — soccer only (basketball/football score too
+                                                # frequently and would exhaust the API quota rapidly)
+                                                if s_type == 'soccer':
+                                                    scoring_side = "home" if d_h > 0 else "away"
+                                                    self._trigger_ai_goal_commentary(m_id, s_disp, final_text, scoring_side)
                                                     
                                             def on_timeout():
                                                 if not state_container['fired']:
@@ -9663,6 +10516,12 @@ class SimpleSportsScreen(Screen):
         self.logo_refresh_timer = eTimer()
         safe_connect(self.logo_refresh_timer, self.refresh_logos_only)
         
+        # AI Ticker
+        self._ai_ticker_messages = []
+        self._ai_ticker_idx = 0
+        self.ai_ticker_timer = eTimer()
+        safe_connect(self.ai_ticker_timer, self._advance_ai_ticker)
+        
         log_dbg("SimpleSportsScreen: Registering ActionMap...")
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions", "EPGSelectActions", "InfobarEPGActions", "InfobarActions", "GlobalActions"], 
             {
@@ -9709,7 +10568,31 @@ class SimpleSportsScreen(Screen):
     def cleanup(self): 
         self.clock_timer.stop()
         self.logo_refresh_timer.stop()
+        self.ai_ticker_timer.stop()
         self.monitor.unregister_callback(self.refresh_ui)
+
+    def receive_ai_ticker(self, messages):
+        """Receive AI-generated messages and start cycling them in the title bar."""
+        self._ai_ticker_messages = messages
+        self._ai_ticker_idx = 0
+        if not self.ai_ticker_timer.isActive():
+            self.ai_ticker_timer.start(8000, False)   # 8 s per message
+
+    def _advance_ai_ticker(self):
+        """Cycle through AI ticker messages, then restore normal title."""
+        if not self._ai_ticker_messages:
+            self.ai_ticker_timer.stop()
+            return
+        msg = self._ai_ticker_messages[
+            self._ai_ticker_idx % len(self._ai_ticker_messages)
+        ]
+        self["list_title"].setText(msg)
+        self._ai_ticker_idx += 1
+        if self._ai_ticker_idx >= len(self._ai_ticker_messages):
+            self.ai_ticker_timer.stop()
+            self._ai_ticker_messages = []
+            # Restore normal title after ticker finishes
+            self.update_header()
     
     # ... (Keep Header, Filter, Download helpers unchanged) ...
     def update_header(self):
@@ -10307,7 +11190,7 @@ class SimpleSportsScreen(Screen):
                         # Convert back to hex
                         c_score_bg = (r << 16) | (g << 8) | b
 
-                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0))
+                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0))
 
                 # Store raw data for sorting (include event for excitement calculation)
                 raw_entries.append((entry_data, match_id, is_live, event))
@@ -10423,13 +11306,15 @@ class SimpleSportsScreen(Screen):
     # [PASTE EXISTING METHODS HERE]
     def open_settings_menu(self):
         in_menu_txt = "Yes" if self.monitor.show_in_menu else "No"
+        ai_status = "ON" if self.monitor.ai_enabled else "OFF"
         menu_options = [
             ("Check for Updates", "update"), 
             ("Change Interface Theme", "theme"), 
             ("Mini Bar Style (Default Theme only)", "minibar_color"),
             ("Main Screen Transparency (Default Theme only)", "transparency"), 
             ("Show Plugin in Main Menu: " + in_menu_txt, "toggle_menu"),
-            ("Set Voter Name: " + self.monitor.voter_name, "voter_name")
+            ("Set Voter Name: " + self.monitor.voter_name, "voter_name"),
+            ("AI Mode: " + ai_status, "ai_mode")
         ]
         self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title="Settings & Tools", list=menu_options)
     def settings_menu_callback(self, selection):
@@ -10444,6 +11329,100 @@ class SimpleSportsScreen(Screen):
                 self.monitor.save_config()
                 self.session.open(MessageBox, "Setting saved.\nYou must Restart GUI for menu changes to take effect.", MessageBox.TYPE_INFO)
             elif action == "voter_name": self.open_voter_name_input()
+            elif action == "ai_mode": self.open_ai_mode_menu()
+    
+    def open_ai_mode_menu(self):
+        """AI Mode settings via ChoiceBox sub-menu (proven navigation pattern)."""
+        m = self.monitor
+        if not m.ai_enabled:
+            # AI is OFF — offer to turn it on
+            options = [
+                ("Turn AI Mode ON", "toggle_on"),
+            ]
+        else:
+            # AI is ON — show full config menu
+            masked_key = "(not set)" if not m.ai_api_key else ("****" + m.ai_api_key[-4:] if len(m.ai_api_key) > 4 else "****")
+            provider_label = m.ai_provider
+            for code, label in AI_PROVIDERS:
+                if code == m.ai_provider:
+                    provider_label = label
+                    break
+            options = [
+                ("Turn AI Mode OFF", "toggle_off"),
+                ("API Key: " + masked_key, "api_key"),
+                ("Provider: " + provider_label, "provider"),
+                ("Language: " + m.ai_language, "language"),
+                ("Frequency: Every {} min".format(m.ai_frequency), "frequency"),
+                ("Test AI Now", "test"),
+            ]
+        self.session.openWithCallback(self.ai_mode_callback, ChoiceBox, title="AI Mode Settings", list=options)
+
+    def ai_mode_callback(self, selection):
+        if not selection:
+            return
+        action = selection[1]
+        m = self.monitor
+        if action == "toggle_on":
+            m.ai_enabled = True
+            m.save_config()
+            m._start_ai_timer()
+            self.session.open(MessageBox, "AI Mode ENABLED.\nOpen AI Mode again to configure API key and options.", MessageBox.TYPE_INFO, timeout=4)
+        elif action == "toggle_off":
+            m.ai_enabled = False
+            m.ai_timer.stop()
+            m.save_config()
+            self.session.open(MessageBox, "AI Mode DISABLED.", MessageBox.TYPE_INFO, timeout=3)
+        elif action == "api_key":
+            try:
+                from Screens.VirtualKeyBoard import VirtualKeyBoard
+                self.session.openWithCallback(self.ai_key_entered, VirtualKeyBoard,
+                    title="Enter AI API Key:", text=m.ai_api_key)
+            except Exception:
+                self.session.open(MessageBox, "VirtualKeyBoard not available.", MessageBox.TYPE_ERROR, timeout=3)
+        elif action == "provider":
+            options = [(label, code) for code, label in AI_PROVIDERS]
+            self.session.openWithCallback(self.ai_provider_selected, ChoiceBox,
+                title="Select AI Provider", list=options)
+        elif action == "language":
+            options = [(lang, lang) for lang in AI_LANGUAGES]
+            self.session.openWithCallback(self.ai_language_selected, ChoiceBox,
+                title="Select AI Language", list=options)
+        elif action == "frequency":
+            options = [("Every {} minutes".format(f), f) for f in AI_FREQUENCIES]
+            self.session.openWithCallback(self.ai_freq_selected, ChoiceBox,
+                title="Select AI Frequency", list=options)
+        elif action == "test":
+            m.test_ai_now()
+
+    def ai_key_entered(self, text=None):
+        if text is not None:
+            key = text.strip()
+            if key and len(key) < 20:
+                self.session.open(MessageBox, "API key seems too short. Please check.", MessageBox.TYPE_WARNING, timeout=3)
+                return
+            self.monitor.ai_api_key = key
+            self.monitor.save_config()
+            self.monitor._start_ai_timer()
+            self.session.open(MessageBox, "API Key saved.", MessageBox.TYPE_INFO, timeout=3)
+
+    def ai_provider_selected(self, selection):
+        if selection:
+            self.monitor.ai_provider = selection[1]
+            self.monitor.save_config()
+            self.session.open(MessageBox, "Provider saved: " + selection[0], MessageBox.TYPE_INFO, timeout=3)
+
+    def ai_language_selected(self, selection):
+        if selection:
+            self.monitor.ai_language = selection[1]
+            self.monitor.save_config()
+            self.session.open(MessageBox, "Language saved: " + selection[1], MessageBox.TYPE_INFO, timeout=3)
+
+    def ai_freq_selected(self, selection):
+        if selection:
+            self.monitor.ai_frequency = selection[1]
+            self.monitor.save_config()
+            self.monitor._start_ai_timer()
+            self.session.open(MessageBox, "Frequency saved: Every {} min".format(selection[1]), MessageBox.TYPE_INFO, timeout=3)
     
     def open_voter_name_input(self):
         try:
@@ -10455,6 +11434,7 @@ class SimpleSportsScreen(Screen):
         if text is not None:
             self.monitor.voter_name = text.strip() or "Anonymous"
             self.monitor.save_config()
+            self.monitor._register_install()
             self.session.open(MessageBox, "Voter name saved: " + self.monitor.voter_name, MessageBox.TYPE_INFO, timeout=3)
 
     def open_minibar_color_selector(self):
@@ -11287,14 +12267,41 @@ class BroadcastingChannelsScreen(Screen):
 # ==============================================================================
 def main(session, **kwargs):
     # The callback handles the plugin restart.
-    # We set result=None to handle the case where the user presses Exit/Cancel
-    # (which calls close() with no arguments).
-    def callback(result=None):
+    def launch_plugin(result=None):
         if result is True:
             # Only restart if explicitly requested (True)
-            session.openWithCallback(callback, SimpleSportsScreen)
+            session.openWithCallback(launch_plugin, SimpleSportsScreen)
 
-    session.openWithCallback(callback, SimpleSportsScreen)
+    def on_name_entered(name):
+        if name and name.strip() and name.strip() != "Anonymous":
+            # 1. Save their new name
+            global_sports_monitor.voter_name = name.strip()
+            global_sports_monitor.install_registered = True
+            global_sports_monitor.save_config()
+            # 2. Push registration to Firebase
+            global_sports_monitor._register_install()
+            # 3. Allow them into the plugin!
+            session.openWithCallback(launch_plugin, SimpleSportsScreen)
+        else:
+            # FORCE REGISTRATION: They cancelled or entered blank.
+            # Do nothing. They are bounced back to the Enigma2 menu.
+            log_dbg("[Install] Registration cancelled. Bouncing to E2 menu.")
+            pass
+
+    # Gateway Check:
+    if not global_sports_monitor.install_registered and (not global_sports_monitor.voter_name or global_sports_monitor.voter_name == "Anonymous"):
+        from Screens.VirtualKeyBoard import VirtualKeyBoard
+        session.openWithCallback(
+            on_name_entered,
+            VirtualKeyBoard,
+            title="Registration Required! Please enter a display name:",
+            text=""
+        )
+    else:
+        # Already registered! Update 'last_seen' silently in background
+        global_sports_monitor._register_install()
+        # Open plugin normally
+        session.openWithCallback(launch_plugin, SimpleSportsScreen)
 
 # ==============================================================================
 # GAMIFICATION BADGE / RANK SYSTEM
