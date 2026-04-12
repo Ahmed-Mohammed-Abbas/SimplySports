@@ -100,7 +100,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "4.8"
+VERSION = "4.9"
 
 # ==============================================================================
 # AI MODE — API HELPERS
@@ -415,7 +415,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "4.8" # A new AI Mode and redesigned main screen.
+CURRENT_VERSION = "4.9" # Fix background voting fetch every 1-minute (Data consuming)
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1996,6 +1996,10 @@ class SportsMonitor:
         self._boot_initialized = True # Mark initialization complete
 
     def fetch_all_community_votes(self):
+        # Only download votes when the main screen is actually open.
+        # Background mode has no UI to update, so fetching is pure waste.
+        if not self.callbacks:
+            return
         try:
             from twisted.web.client import getPage
             url = "{}/matches.json".format(FIREBASE_URL)
@@ -2018,8 +2022,12 @@ class SportsMonitor:
         self.session = session
         self._start_ai_timer()  # Start AI timer when session is available
     def register_callback(self, func):
-        if func not in self.callbacks: 
+        if func not in self.callbacks:
             self.callbacks.append(func)
+            # If this is the first UI listener, fetch votes immediately so
+            # the screen doesn't have to wait up to 60 s for the timer tick.
+            if len(self.callbacks) == 1:
+                self.fetch_all_community_votes()
             self.ensure_timer_state() # Ensure timer starts if it was idle
     def unregister_callback(self, func):
         if func in self.callbacks: 
