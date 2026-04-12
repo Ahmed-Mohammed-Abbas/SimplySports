@@ -100,7 +100,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "4.9"
+VERSION = "5.0"
 
 # ==============================================================================
 # AI MODE — API HELPERS
@@ -109,8 +109,27 @@ AI_PROVIDERS = [
     ("gemini", "Google Gemini Flash"),
     ("groq", "Groq (Llama 3)"),
 ]
-AI_LANGUAGES = ["English", "Arabic", "French", "Spanish", "German", "Italian", "Portuguese", "Turkish", "Dutch", "Russian"]
+AI_LANGUAGES = ["English", "Arabic", "عربي (مصري)", "عربي (عراقي)", "عربي (خليجي)", "دارجة (مغربية)", "عربي (شامي)", "French", "Spanish", "German", "Italian", "Portuguese", "Turkish", "Dutch", "Russian", "Greek", "Croatian", "Serbian", "Bosnian"]
 AI_FREQUENCIES = [5, 10, 15, 30, 60]
+
+def get_ai_language_instruction(language):
+    """Format the language instruction, supporting dialect specifics."""
+    dialect_map = {
+        "عربي (مصري)": "Egyptian Arabic",
+        "عربي (عراقي)": "Iraqi Arabic",
+        "عربي (خليجي)": "Gulf Arabic",
+        "دارجة (مغربية)": "Moroccan Darija",
+        "عربي (شامي)": "Levantine Arabic"
+    }
+    if language in dialect_map:
+        return "Respond ONLY in {} dialect USING NATIVE ARABIC SCRIPT, casual football fan tone".format(dialect_map[language])
+        
+    if "(" in language and ")" in language:
+        base_lang = language.split("(")[0].strip()
+        dialect = language.split("(")[1].replace(")", "").strip()
+        return "Respond ONLY in {} {} dialect USING NATIVE SCRIPT, casual football fan tone".format(dialect, base_lang)
+        
+    return "Respond ONLY in {}".format(language)
 
 def fetch_sports_headlines(max_items=6):
     """Fetch latest sports headlines from BBC Sport RSS (no API key needed)."""
@@ -364,12 +383,12 @@ def build_ai_prompt(language, cached_events, match_snapshots, ledger=None):
         "injuries, or major events."
         "{ledger_rule}"
         "\n3. NEVER invent matches, scores, or facts not present in the provided data.\n"
-        "4. Respond ONLY in {language}.\n"
+        "4. {language_instruction}.\n"
         "5. Keep each message under 25 words.\n"
         "6. Separate them with a blank line.\n"
         "7. No markdown, no asterisks, no numbering, no emojis."
     ).format(
-        language=language,
+        language_instruction=get_ai_language_instruction(language),
         ledger_rule=(
             "\n   USER PREDICTIONS are provided below. If a USER BET matches a LIVE "
             "match, make Message 2 personal: reference the user's pick and the current "
@@ -415,7 +434,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "4.9" # Fix background voting fetch every 1-minute (Data consuming)
+CURRENT_VERSION = "5.0" # Update version to 5.0 and add new AI languages, Arabic dialects & enhanced AI Toast
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1877,19 +1896,28 @@ class AIToast(Screen):
             accent = "#00FF85"
 
         self.skin = (
-            u'<screen position="center,927" size="1600,95" flags="wfNoBorder" backgroundColor="#FF000000">'
-            u'<eLabel position="0,0" size="1600,95" backgroundColor="{bg}" zPosition="0" />'
+            u'<screen position="center,952" size="1600,100" flags="wfNoBorder" backgroundColor="#FF000000">'
+            u'<eLabel position="0,0" size="1600,100" backgroundColor="{bg}" zPosition="0" />'
             u'<eLabel position="0,0" size="1600,3" backgroundColor="{acc}" zPosition="1" />'
-            u'<widget name="msg" position="20,10" size="1560,75" font="Regular;26" '
+            u'<widget name="msg" position="20,10" size="1560,80" font="Regular;30" '
             u'foregroundColor="#FFFFFF" halign="center" valign="center" transparent="1" zPosition="2" />'
             u'</screen>'
         ).format(bg=bg, acc=accent)
         self["msg"] = Label(text)
         
-        # ActionMap makes it dismissable via the EXIT button (-1 priority so it doesn't block global hotkeys)
+        # ActionMap makes it dismissable via ANY standard button
         from Components.ActionMap import ActionMap
-        self["actions"] = ActionMap(["SetupActions"], {
-            "cancel": self.close
+        self["actions"] = ActionMap(["SetupActions", "DirectionActions", "OkCancelActions", "ColorActions"], {
+            "cancel": self.close,
+            "ok":     self.close,
+            "up":     self.close,
+            "down":   self.close,
+            "left":   self.close,
+            "right":  self.close,
+            "red":    self.close,
+            "green":  self.close,
+            "yellow": self.close,
+            "blue":   self.close
         }, -1)
 
         self.timer = eTimer()
@@ -2263,11 +2291,11 @@ class SportsMonitor:
                 "without naming old scorers.\n"
                 "- Keep it under 20 words. One sentence only.\n"
                 "- No numbering, no emojis, no asterisks, no markdown.\n"
-                "- Respond ONLY in {}.{}"
+                "- {}.{}"
             ).format(
                 scorer_text, scoring_team_name, clock, score_display,
                 league, "{} vs {}".format(h_name, a_name),
-                personal_note, scorer_text, self.ai_language,
+                personal_note, scorer_text, get_ai_language_instruction(self.ai_language),
                 timeline_block
             )
 
@@ -2376,8 +2404,8 @@ class SportsMonitor:
                     "Sound natural and excited, not robotic. "
                     "Mention both teams. Keep it under 20 words. "
                     "No emojis, no markdown, no numbering. "
-                    "Respond ONLY in {}.{}"
-                ).format(h_name, a_name, league, self.ai_language, personal_note)
+                    "{}.{}"
+                ).format(h_name, a_name, league, get_ai_language_instruction(self.ai_language), personal_note)
 
             else:   # 'end'
                 timeline_block = ""
@@ -2390,10 +2418,10 @@ class SportsMonitor:
                     "React to the final score. Sound natural, not robotic, not cliche. "
                     "Keep it under 20 words. "
                     "No emojis, no markdown, no numbering. "
-                    "Respond ONLY in {}.{}{}"
+                    "{}.{}{}"
                 ).format(
                     h_name, a_name, score_fmt, league,
-                    self.ai_language, personal_note, timeline_block)
+                    get_ai_language_instruction(self.ai_language), personal_note, timeline_block)
 
             # Delay so the start/end GoalToast banner finishes before AIToast arrives
             _key  = self.ai_api_key
@@ -4358,7 +4386,7 @@ class SportsMonitor:
                     for rk in reap_keys:
                         if rk in self.event_map: del self.event_map[rk]
                     if reap_keys: has_changes = True
-                except: pass
+                except Exception: pass
             
             # Rebuild cached_events from map
             unique_list = list(self.event_map.values())
@@ -4448,7 +4476,7 @@ class SportsMonitor:
                 log_diag("LAZY_PROCESS: Restarting timer in {}ms (active={} callbacks={} reminders={})".format(
                     new_interval, self.active, len(self.callbacks), len(self.reminders)))
                 self.timer.start(new_interval, False)
-        except:
+        except Exception:
             self.status_message = "JSON Parse Error"
             if not self.batch_is_active:
                 for cb in self.callbacks: cb(True)
