@@ -42,7 +42,7 @@ except ImportError:
 
 from twisted.web.client import Agent, readBody, getPage, downloadPage, HTTPConnectionPool
 from functools import partial
-from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER, getDesktop, eConsoleAppContainer, gRGB, addFont, eEPGCache, eServiceReference, eServiceCenter, ePoint
+from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER, getDesktop, eConsoleAppContainer, gRGB, addFont, eEPGCache, eServiceReference, eServiceCenter, ePoint, eSize
 import json
 import datetime
 import math
@@ -107,7 +107,196 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "5.1"
+VERSION = "5.2"
+
+# ==============================================================================
+# LANGUAGE / TRANSLATION SYSTEM
+# ==============================================================================
+PLUGIN_LANGUAGE = "en"   # "en" or "ar" — loaded from config at start-up
+
+TRANSLATIONS = {
+    # ── Main screen static labels ──────────────────────────────────────────────
+    "SIMPLY SPORTS":              {"ar": u"\u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633"},
+    "MENU: Settings & Tools":     {"ar": u"\u0627\u0644\u0642\u0627\u0626\u0645\u0629: \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a"},
+    "LOADING...":                 {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644..."},
+    "Loading...":                 {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644..."},
+    "STATUS":                     {"ar": u"\u0627\u0644\u062d\u0627\u0644\u0629"},
+    "LEAGUE":                     {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a"},
+    "HOME":                       {"ar": u"\u0627\u0644\u0645\u0636\u064a\u0641"},
+    "SCORE":                      {"ar": u"\u0627\u0644\u0646\u062a\u064a\u062c\u0629"},
+    "AWAY":                       {"ar": u"\u0627\u0644\u0636\u064a\u0641"},
+    "TIME":                       {"ar": u"\u0627\u0644\u0648\u0642\u062a"},
+    # ── Coloured-button labels ─────────────────────────────────────────────────
+    "League List":                {"ar": u"\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
+    "Mini Bar":                   {"ar": u"\u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631"},
+    "Driver Position":            {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0633\u0627\u0626\u0642\u064a\u0646"},
+    "Info/EPG: Channels":         {"ar": u"\u0645\u0639\u0644\u0648\u0645\u0627\u062a / \u0627\u0644\u0642\u0646\u0648\u0627\u062a"},
+    # ── Yellow (filter) button ─────────────────────────────────────────────────
+    "Live Only":                  {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
+    "Show Today":                 {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
+    "Show Tomorrow":              {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u063a\u062f"},
+    "Show All":                   {"ar": u"\u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    "Yesterday":                  {"ar": u"\u0623\u0645\u0633"},
+    # ── Blue (alert) button ────────────────────────────────────────────────────
+    "Goal Alert: OFF":            {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: \u0645\u063a\u0644\u0642"},
+    "Goal Alert: VISUAL":         {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: \u0645\u0631\u0626\u064a"},
+    "Goal Alert: SOUND":          {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: \u0635\u0648\u062a\u064a"},
+    # ── list_title / header titles ─────────────────────────────────────────────
+    "Yesterday's Matches":        {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u0623\u0645\u0633"},
+    "Live Matches":               {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
+    "Today's Matches":            {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
+    "Tomorrow's Matches":         {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u063a\u062f"},
+    "All Matches":                {"ar": u"\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    "Custom League View":         {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
+    # ── Status / empty-state messages ─────────────────────────────────────────
+    "No Matches Found":           {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    "Check Filters":              {"ar": u"\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0641\u0644\u0627\u062a\u0631"},
+    "Updating Data...":           {"ar": u"\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a..."},
+    "Please Wait":                {"ar": u"\u064a\u064f\u0631\u062c\u0649 \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631"},
+    # ── Settings menu ─────────────────────────────────────────────────────────
+    "Settings & Tools":           {"ar": u"\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u0623\u062f\u0648\u0627\u062a"},
+    "Check for Updates":          {"ar": u"\u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u062a\u062d\u062f\u064a\u062b\u0627\u062a"},
+    "Change Interface Theme":     {"ar": u"\u062a\u063a\u064a\u064a\u0631 \u0645\u0638\u0647\u0631 \u0627\u0644\u0648\u0627\u062c\u0647\u0629"},
+    "Mini Bar Style (Default Theme only)":          {"ar": u"\u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"},
+    "Main Screen Transparency (Default Theme only)": {"ar": u"\u0634\u0641\u0627\u0641\u064a\u0629 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"},
+    "Show Plugin in Main Menu: ": {"ar": u"\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c \u0641\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629: "},
+    "Set Voter Name: ":           {"ar": u"\u062a\u0639\u064a\u064a\u0646 \u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0648\u0651\u062a: "},
+    "AI Mode: ":                  {"ar": u"\u0648\u0636\u0639 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a: "},
+    "Notifications Test":         {"ar": u"\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a"},
+    "Yes":                        {"ar": u"\u0646\u0639\u0645"},
+    "No":                         {"ar": u"\u0644\u0627"},
+    "ON":                         {"ar": u"\u0645\u0641\u0639\u0651\u0644"},
+    "OFF":                        {"ar": u"\u0645\u063a\u0644\u0642"},
+    # ── League menu ───────────────────────────────────────────────────────────
+    "League Options":             {"ar": u"\u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u062f\u0648\u0631\u064a"},
+    "Select Single League":       {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u062f\u0648\u0631\u064a \u0648\u0627\u062d\u062f"},
+    "Custom Leagues (View/Edit)": {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629 (\u0639\u0631\u0636/\u062a\u0639\u062f\u064a\u0644)"},
+    # ── Theme / Transparency / MiniBar selectors ──────────────────────────────
+    "Select Theme":               {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u0638\u0647\u0631"},
+    "Default":                    {"ar": u"\u0627\u0641\u062a\u0631\u0627\u0636\u064a"},
+    "Select Transparency":        {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0634\u0641\u0627\u0641\u064a\u0629"},
+    "Solid (0% Transparent)":     {"ar": u"\u063a\u064a\u0631 \u0634\u0641\u0627\u0641 (0\u066a)"},
+    "Standard (35% Transparent)": {"ar": u"\u0642\u064a\u0627\u0633\u064a (35\u066a)"},
+    "90% Transparent":            {"ar": u"\u0634\u0641\u0627\u0641 90\u066a"},
+    "Fully Transparent (100%)":   {"ar": u"\u0634\u0641\u0627\u0641 \u0628\u0627\u0644\u0643\u0627\u0645\u0644 (100\u066a)"},
+    "Select Mini Bar Style (Default Theme Only)": {"ar": u"\u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a \u0641\u0642\u0637)"},
+    "Premier League (Purple/Green)": {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a (\u0628\u0646\u0641\u0633\u062c\u064a/\u0623\u062e\u0636\u0631)"},
+    "Spanish League (Red/Gold)":  {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a (\u0623\u062d\u0645\u0631/\u0630\u0647\u0628\u064a)"},
+    "Serie A (Blue/Cyan)":        {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u064a\u0637\u0627\u0644\u064a (\u0623\u0632\u0631\u0642/\u0633\u0645\u0627\u0648\u064a)"},
+    "French League (Dark/Yellow)": {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0631\u0646\u0633\u064a (\u062f\u0627\u0643\u0646/\u0623\u0635\u0641\u0631)"},
+    # ── AI mode menu ──────────────────────────────────────────────────────────
+    "AI Mode Settings":           {"ar": u"\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a"},
+    "Turn AI Mode ON":            {"ar": u"\u062a\u0634\u063a\u064a\u0644 \u0648\u0636\u0639 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a"},
+    "Turn AI Mode OFF":           {"ar": u"\u0625\u064a\u0642\u0627\u0641 \u0648\u0636\u0639 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a"},
+    "API Key: ":                  {"ar": u"\u0645\u0641\u062a\u0627\u062d API: "},
+    "Provider: ":                 {"ar": u"\u0627\u0644\u0645\u0632\u0648\u0651\u062f: "},
+    "Language: ":                 {"ar": u"\u0627\u0644\u0644\u063a\u0629: "},
+    "Frequency: Every {} min":    {"ar": u"\u0627\u0644\u062a\u0643\u0631\u0627\u0631: \u0643\u0644 {} \u062f\u0642\u064a\u0642\u0629"},
+    "Test AI Now":                {"ar": u"\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a \u0627\u0644\u0622\u0646"},
+    # ── Game options / reminders ───────────────────────────────────────────────
+    "Game Options":               {"ar": u"\u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Game Info / Details":        {"ar": u"\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629 / \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644"},
+    "Find Broadcasting Channel":  {"ar": u"\u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u0642\u0646\u0627\u0629 \u0627\u0644\u0628\u062b"},
+    "Remind me 12 hours before":  {"ar": u"\u062a\u0630\u0643\u064a\u0631\u0646\u064a \u0642\u0628\u0644 12 \u0633\u0627\u0639\u0629"},
+    "Remind me 9 hours before":   {"ar": u"\u062a\u0630\u0643\u064a\u0631\u0646\u064a \u0642\u0628\u0644 9 \u0633\u0627\u0639\u0627\u062a"},
+    "Remind me 6 hours before":   {"ar": u"\u062a\u0630\u0643\u064a\u0631\u0646\u064a \u0642\u0628\u0644 6 \u0633\u0627\u0639\u0627\u062a"},
+    "Remind me 3 hours before":   {"ar": u"\u062a\u0630\u0643\u064a\u0631\u0646\u064a \u0642\u0628\u0644 3 \u0633\u0627\u0639\u0627\u062a"},
+    "Remind me 2 hours before":   {"ar": u"\u062a\u0630\u0643\u064a\u0631\u0646\u064a \u0642\u0628\u0644 \u0633\u0627\u0639\u062a\u064a\u0646"},
+    "Remind me 1 hour before":    {"ar": u"\u062a\u0630\u0643\u064a\u0631\u0646\u064a \u0642\u0628\u0644 \u0633\u0627\u0639\u0629"},
+    "Remind me 15 minutes before": {"ar": u"\u062a\u0630\u0643\u064a\u0631\u0646\u064a \u0642\u0628\u0644 15 \u062f\u0642\u064a\u0642\u0629"},
+    "Remind me 5 minutes before": {"ar": u"\u062a\u0630\u0643\u064a\u0631\u0646\u064a \u0642\u0628\u0644 5 \u062f\u0642\u0627\u0626\u0642"},
+    "Delete Reminder":            {"ar": u"\u062d\u0630\u0641 \u0627\u0644\u062a\u0630\u0643\u064a\u0631"},
+    "Cancel":                     {"ar": u"\u0625\u0644\u063a\u0627\u0621"},
+    # ── Profile / betting history screen ──────────────────────────────────────
+    "Result":                     {"ar": u"\u0627\u0644\u0646\u062a\u064a\u062c\u0629"},
+    "Match":                      {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Your Pick":                  {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631\u0643"},
+    "Final Score":                {"ar": u"\u0627\u0644\u0646\u062a\u064a\u062c\u0629 \u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0629"},
+    "Date":                       {"ar": u"\u0627\u0644\u062a\u0627\u0631\u064a\u062e"},
+    "Close":                      {"ar": u"\u0625\u063a\u0644\u0627\u0642"},
+    u"\u25b2 \u25bc  Navigate":   {"ar": u"\u25b2 \u25bc  \u062a\u0646\u0642\u0644"},
+    # ── Leaderboard screen ────────────────────────────────────────────────────
+    "GLOBAL LEADERBOARD":         {"ar": u"\u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u062a\u0635\u062f\u0631\u064a\u0646 \u0627\u0644\u0639\u0627\u0644\u0645\u064a\u0629"},
+    "Fetching leaderboard...":    {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u062a\u0635\u062f\u0631\u064a\u0646..."},
+    "Score Rank":                 {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0646\u0642\u0627\u0637"},
+    "Accuracy Rank":              {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062f\u0642\u0629"},
+    "My Profile":                 {"ar": u"\u0645\u0644\u0641\u064a \u0627\u0644\u0634\u062e\u0635\u064a"},
+    u"\u25c4 \u25ba  Change Sport": {"ar": u"\u25c4 \u25ba  \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0631\u064a\u0627\u0636\u0629"},
+    "Player":                     {"ar": u"\u0627\u0644\u0644\u0627\u0639\u0628"},
+    "Badge":                      {"ar": u"\u0627\u0644\u0634\u0627\u0631\u0629"},
+    "Pts":                        {"ar": u"\u0646\u0642\u0627\u0637"},
+    "Accuracy":                   {"ar": u"\u0627\u0644\u062f\u0642\u0629"},
+    "Bets":                       {"ar": u"\u0627\u0644\u0631\u0647\u0627\u0646\u0627\u062a"},
+    "No scores recorded yet.":    {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u062a\u0627\u0626\u062c \u0645\u0633\u062c\u0644\u0629 \u0628\u0639\u062f."},
+    "Global Ranking":             {"ar": u"\u0627\u0644\u062a\u0635\u0646\u064a\u0641 \u0627\u0644\u0639\u0627\u0644\u0645\u064a"},
+    "Only":                       {"ar": u"\u0641\u0642\u0637"},
+    # ── Broadcasting channels screen ──────────────────────────────────────────
+    "MATCH BROADCASTS":           {"ar": u"\u0628\u062b \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Select Channel to Zap":      {"ar": u"\u0627\u062e\u062a\u0631 \u0627\u0644\u0642\u0646\u0627\u0629 \u0644\u0644\u062a\u0628\u062f\u064a\u0644"},
+    "Broadcasters":               {"ar": u"\u0627\u0644\u0642\u0646\u0648\u0627\u062a \u0627\u0644\u0646\u0627\u0642\u0644\u0629"},
+    "EPG Search":                 {"ar": u"\u0628\u062d\u062b EPG"},
+    "Down":                       {"ar": u"\u0623\u0633\u0641\u0644"},
+    "No Local EPG Matches":       {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u062a\u0627\u0626\u062c EPG \u0645\u062d\u0644\u064a\u0629"},
+    "Press Green for Web Search": {"ar": u"\u0627\u0636\u063a\u0637 \u0627\u0644\u0623\u062e\u0636\u0631 \u0644\u0644\u0628\u062d\u062b \u0639\u0628\u0631 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a"},
+    "Searching...":               {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u0628\u062d\u062b..."},
+    "Parsing XMLTV...":           {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0644\u064a\u0644 XMLTV..."},
+    "XML Format/Timeout":         {"ar": u"\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u062a\u0646\u0633\u064a\u0642/\u0627\u0644\u0645\u0647\u0644\u0629"},
+    "No EPG matches found":       {"ar": u"\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0646\u062a\u0627\u0626\u062c EPG"},
+    # ── Game info screen ──────────────────────────────────────────────────────
+    "MATCH DETAILS":              {"ar": u"\u062a\u0641\u0627\u0635\u064a\u0644 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Fetching Data...":           {"ar": u"\u062c\u0627\u0631\u064d \u062c\u0644\u0628 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a..."},
+    # ── Team standings screen ─────────────────────────────────────────────────
+    "LEAGUE STANDINGS":           {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062f\u0648\u0631\u064a"},
+    "STANDINGS":                  {"ar": u"\u0627\u0644\u062a\u0631\u062a\u064a\u0628"},
+    "Loading Standings...":       {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062a\u0631\u062a\u064a\u0628..."},
+    "Press OK to return to Main Screen": {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629"},
+    # ── Zap notification screen ───────────────────────────────────────────────
+    "Match is starting! Zap to channel?": {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629 \u0639\u0644\u0649 \u0648\u0634\u0643 \u0627\u0644\u0628\u062f\u0621! \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0625\u0644\u0649 \u0627\u0644\u0642\u0646\u0627\u0629\u061f"},
+    "Zap Now":                    {"ar": u"\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u0622\u0646"},
+    # ── League selector screen ────────────────────────────────────────────────
+    "Select Custom Leagues":      {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
+    "Select League":              {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a"},
+    "Save":                       {"ar": u"\u062d\u0641\u0638"},
+    "Press OK to Toggle":         {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0628\u062f\u064a\u0644"},
+    "Press OK to Select":         {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u0627\u062e\u062a\u064a\u0627\u0631"},
+    # ── Athlete / player profile screen ───────────────────────────────────────
+    "PLAYER PROFILE":             {"ar": u"\u0645\u0644\u0641 \u0627\u0644\u0644\u0627\u0639\u0628"},
+    "Loading profile...":         {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a..."},
+    "Error loading profile.":     {"ar": u"\u062e\u0637\u0623 \u0641\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a."},
+    # ── Racing mini bar ───────────────────────────────────────────────────────
+    "Loading standings...":       {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062a\u0631\u062a\u064a\u0628..."},
+    "No driver data available":   {"ar": u"\u0644\u0627 \u062a\u062a\u0648\u0641\u0631 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0633\u0627\u0626\u0642\u064a\u0646"},
+    # ── Personal profile / bet history ────────────────────────────────────────
+    "WON":                        {"ar": u"\u0641\u0627\u0632"},
+    "LOST":                       {"ar": u"\u062e\u0633\u0631"},
+    "Draw":                       {"ar": u"\u062a\u0639\u0627\u062f\u0644"},
+    "Score:":                     {"ar": u"\u0627\u0644\u0646\u0642\u0627\u0637:"},
+    "Accuracy:":                  {"ar": u"\u0627\u0644\u062f\u0642\u0629:"},
+    "Total Bets:":                {"ar": u"\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0631\u0647\u0627\u0646\u0627\u062a:"},
+    "Correct:":                   {"ar": u"\u0627\u0644\u0635\u062d\u064a\u062d\u0629:"},
+    "No resolved bets yet":       {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0631\u0647\u0627\u0646\u0627\u062a \u0645\u062d\u0633\u0648\u0645\u0629 \u0628\u0639\u062f"},
+    "vote on a match to start!":  {"ar": u"\u0635\u0648\u0651\u062a \u0639\u0644\u0649 \u0645\u0628\u0627\u0631\u0627\u0629 \u0644\u0644\u0628\u062f\u0621!"},
+    # ── Update system ─────────────────────────────────────────────────────────
+    "CHECKING FOR UPDATES...":    {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u062a\u062d\u062f\u064a\u062b\u0627\u062a..."},
+    "FETCHING FILE LIST...":      {"ar": u"\u062c\u0644\u0628 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0644\u0641\u0627\u062a..."},
+    "Latest version installed!":  {"ar": u"\u0644\u062f\u064a\u0643 \u0623\u062d\u062f\u062b \u0625\u0635\u062f\u0627\u0631!"},
+    "Update check failed.":       {"ar": u"\u0641\u0634\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u062a\u062d\u062f\u064a\u062b\u0627\u062a."},
+    "Update available: ":         {"ar": u"\u064a\u0648\u062c\u062f \u062a\u062d\u062f\u064a\u062b: "},
+    "Update now?":                {"ar": u"\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0622\u0646\u061f"},
+}
+
+
+
+def _t(key):
+    """Return the translated string for *key* in the active PLUGIN_LANGUAGE.
+    Falls back to the original key when no translation exists."""
+    global PLUGIN_LANGUAGE
+    if PLUGIN_LANGUAGE == "ar":
+        entry = TRANSLATIONS.get(key)
+        if entry:
+            return entry.get("ar", key)
+    return key
+
 
 # ==============================================================================
 # AI MODE — API HELPERS
@@ -443,7 +632,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "5.1"  # Update version to 5.1 and add new Animation to the toast screen, new notifications, and new overall power bar
+CURRENT_VERSION = "5.2"  # Update version to 5.2 - added ARABIC language to the plugin Main UI, all menus and screens, more GIFs for toast screen.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1038,37 +1227,17 @@ def build_match_snapshot(event):
     # --- Possession Extraction ---
     h_possession = 0.0
     a_possession = 0.0
-    h_perf_pct = 0.0
-    a_perf_pct = 0.0
+
     if state == 'in' and len(comps) >= 2:
         try:
-            h_pct_sum = 0.0
-            h_pct_cnt = 0
             for stat in team_h.get('statistics', []):
                 name = stat.get('name', '').lower()
-                disp = str(stat.get('displayValue', '')).strip()
                 if name == 'possessionpct':
-                    h_possession = float(disp or 0)
-                if 'pct' in name or 'percentage' in name or '%' in disp:
-                    try:
-                        h_pct_sum += float(disp.replace('%', ''))
-                        h_pct_cnt += 1
-                    except: pass
-            if h_pct_cnt > 0: h_perf_pct = h_pct_sum / h_pct_cnt
-
-            a_pct_sum = 0.0
-            a_pct_cnt = 0
+                    h_possession = float(stat.get('displayValue', 0) or 0)
             for stat in team_a.get('statistics', []):
                 name = stat.get('name', '').lower()
-                disp = str(stat.get('displayValue', '')).strip()
                 if name == 'possessionpct':
-                    a_possession = float(disp or 0)
-                if 'pct' in name or 'percentage' in name or '%' in disp:
-                    try:
-                        a_pct_sum += float(disp.replace('%', ''))
-                        a_pct_cnt += 1
-                    except: pass
-            if a_pct_cnt > 0: a_perf_pct = a_pct_sum / a_pct_cnt
+                    a_possession = float(stat.get('displayValue', 0) or 0)
         except Exception: pass
 
     return {
@@ -1083,8 +1252,7 @@ def build_match_snapshot(event):
         'state':         state,
         'h_poss':        h_possession,
         'a_poss':        a_possession,
-        'h_perf_pct':    h_perf_pct,
-        'a_perf_pct':    a_perf_pct,
+
         'status_short':  status_short,
         'is_live':       state == 'in' and not is_suspended,
         'is_postponed':  is_postponed,
@@ -1349,11 +1517,8 @@ def SportListEntry(entry):
     try:
         h_poss = 0.0
         a_poss = 0.0
-        h_perf = 0.0
-        a_perf = 0.0
-        if len(entry) >= 21:
-             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_perf, a_perf = entry[:21]
-        elif len(entry) >= 19:
+
+        if len(entry) >= 19:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss = entry[:19]
         elif len(entry) >= 17:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards = entry[:17]
@@ -1477,20 +1642,7 @@ def SportListEntry(entry):
                 if a_bar_w > 0:
                     res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
 
-            if (h_perf > 0 or a_perf > 0):
-                perf_max_w = 80
-                h_perf_w = int(perf_max_w * (h_perf / 100.0))
-                a_perf_w = int(perf_max_w * (a_perf / 100.0))
-                perf_y = 65
-                perf_h = 3
 
-                # Home Performance Bar (under home score box: 860 to 940, growing leftwards from 940)
-                if h_perf_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 940 - h_perf_w, perf_y, h_perf_w, perf_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
-
-                # Away Performance Bar (under away score box: 980 to 1060, growing rightwards from 980)
-                if a_perf_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, perf_y, a_perf_w, perf_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
 
         # Time: 1710, 180 (Ends 1890 -> 30px safe margin)
         font_time = 3
@@ -1536,11 +1688,8 @@ def RacingListEntry(entry, theme_mode="default"):
     try:
         h_poss = 0.0
         a_poss = 0.0
-        h_perf = 0.0
-        a_perf = 0.0
-        if len(entry) >= 21:
-            status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_perf, a_perf = entry[:21]
-        elif len(entry) >= 19:
+
+        if len(entry) >= 19:
             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss = entry[:19]
         elif len(entry) >= 15:
             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
@@ -1828,20 +1977,7 @@ def UCLListEntry(entry):
                 if a_bar_w > 0:
                     res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
 
-            if (h_perf > 0 or a_perf > 0):
-                perf_max_w = 80
-                h_perf_w = int(perf_max_w * (h_perf / 100.0))
-                a_perf_w = int(perf_max_w * (a_perf / 100.0))
-                perf_y = 65
-                perf_h = 3
 
-                # Home Performance Bar (under home score box: 860 to 940, growing leftwards from 940)
-                if h_perf_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 940 - h_perf_w, perf_y, h_perf_w, perf_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
-
-                # Away Performance Bar (under away score box: 980 to 1060, growing rightwards from 980)
-                if a_perf_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, perf_y, a_perf_w, perf_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
 
         # EPG Indicator (x=1670)
         if has_epg:
@@ -2066,7 +2202,7 @@ class SportsMonitor:
 
         self.votes_timer = eTimer()
         safe_connect(self.votes_timer, self.fetch_all_community_votes)
-        self.votes_timer.start(60000, False) # Fetch votes every 60s
+        self.votes_timer.start(300000, False) # Fetch votes every 300s
 
         # AI Mode state
         self.ai_enabled = False
@@ -2563,6 +2699,9 @@ class SportsMonitor:
                     self.minibar_color_mode = data.get("minibar_color_mode", "default")
                     self.voter_name = data.get("voter_name", "Anonymous")
                     self.install_registered = bool(data.get("install_registered", False))
+                    # Plugin language
+                    global PLUGIN_LANGUAGE
+                    PLUGIN_LANGUAGE = data.get("plugin_language", "en")
                     # AI Mode config (safe defaults for older installs without the key)
                     ai_cfg = data.get("ai_mode", {})
                     self.ai_enabled   = ai_cfg.get("enabled", False)
@@ -2604,6 +2743,7 @@ class SportsMonitor:
             "show_in_menu": self.show_in_menu, "minibar_color_mode": self.minibar_color_mode,
             "voter_name": self.voter_name,
             "install_registered": getattr(self, "install_registered", False),
+            "plugin_language": PLUGIN_LANGUAGE,
             "ai_mode": {
                 "enabled": self.ai_enabled,
                 "api_key": self.ai_api_key,
@@ -4947,10 +5087,10 @@ class TeamStandingScreen(Screen):
                 <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
             </screen>"""
 
-        self["title"] = Label(league_name.upper() if league_name else "LEAGUE STANDINGS")
-        self["subtitle"] = Label("STANDINGS")
-        self["loading"] = Label("Loading Standings...")
-        self["hint"] = Label("Press OK to return to Main Screen")
+        self["title"] = Label(_t(league_name.upper()) if league_name else _t("LEAGUE STANDINGS"))
+        self["subtitle"] = Label(_t("STANDINGS"))
+        self["loading"] = Label(_t("Loading Standings..."))
+        self["hint"] = Label(_t("Press OK to return to Main Screen"))
 
         self["standings_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
         self["standings_list"].l.setFont(0, gFont("Regular", 24))
@@ -6067,9 +6207,9 @@ class GameInfoScreen(Screen):
         self["h_name"] = Label(""); self["a_name"] = Label("")
         self["h_score"] = Label(""); self["a_score"] = Label("")
         self["score_sep"] = Label("-"); self["start_time_label"] = Label(""); self["countdown_label"] = Label("")
-        self["stadium_name"] = Label(""); self["match_title"] = Label("MATCH DETAILS")
+        self["stadium_name"] = Label(""); self["match_title"] = Label(_t("MATCH DETAILS"))
         self["h_logo"] = Pixmap(); self["a_logo"] = Pixmap()
-        self["loading"] = Label("Fetching Data..."); self["page_indicator"] = Label("")
+        self["loading"] = Label(_t("Fetching Data...")); self["page_indicator"] = Label("")
 
         self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
         self["info_list"].l.setFont(0, gFont("Regular", 24))
@@ -8415,7 +8555,7 @@ class GoalToast(Screen):
             u'foregroundColor="{lfg}" backgroundColor="{bg}" transparent="1" valign="center" halign="left" zPosition="3" />'
 
             # --- GOAL ANIMATION ---
-            u'<widget name="goal_anim" position="437,-10" size="80,80" alphatest="blend" scale="1" zPosition="10" />'
+            u'<widget name="goal_anim" position="437,-10" size="99,99" alphatest="blend" scale="1" zPosition="10" />'
 
             u'</screen>'
         ).format(
@@ -8615,6 +8755,7 @@ class GoalToast(Screen):
         """Delegate to shared logo loader"""
         load_logo_to_widget(self, widget_name, url, img_id)
 
+
 # ==============================================================================
 # ZAP NOTIFICATION SCREEN (Interactive)
 # ==============================================================================
@@ -8664,9 +8805,9 @@ class ZapNotificationScreen(Screen):
 
         self["title"] = Label(str(league))
         self["match_name"] = Label(str(match_name))
-        self["prompt"] = Label("Match is starting! Zap to channel?")
-        self["key_ok"] = Label("Zap Now")
-        self["key_cancel"] = Label("Cancel")
+        self["prompt"] = Label(_t("Match is starting! Zap to channel?"))
+        self["key_ok"] = Label(_t("Zap Now"))
+        self["key_cancel"] = Label(_t("Cancel"))
 
         self["h_logo"] = Pixmap()
         self["a_logo"] = Pixmap()
@@ -8762,14 +8903,14 @@ class LeagueSelector(Screen):
             </screen>
             """
 
-        self["header"] = Label("Select Custom Leagues" if mode == "multi" else "Select League")
+        self["header"] = Label(_t("Select Custom Leagues") if mode == "multi" else _t("Select League"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         self["list"].l.setFont(0, gFont("SimplySportFont", 28))
         self["list"].l.setItemHeight(50)
 
-        self["key_red"] = Label("Cancel")
-        self["key_green"] = Label("Save" if mode == "multi" else "")
-        self["info"] = Label("Press OK to Toggle" if mode == "multi" else "Press OK to Select")
+        self["key_red"] = Label(_t("Cancel"))
+        self["key_green"] = Label(_t("Save") if mode == "multi" else "")
+        self["info"] = Label(_t("Press OK to Toggle") if mode == "multi" else _t("Press OK to Select"))
 
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
             "cancel": self.cancel,
@@ -9218,7 +9359,7 @@ class RacingMiniBar(Screen):
             summary_url = league_url + "/summary?event=" + str(event_id)
 
         self["lbl_league"].setText(league_name)
-        self["lbl_driver"].setText("Loading standings...")
+        self["lbl_driver"].setText(_t("Loading standings..."))
 
         try:
             getPage(summary_url.encode('utf-8')).addCallback(self.on_data).addErrback(self.on_error)
@@ -9267,7 +9408,7 @@ class RacingMiniBar(Screen):
                 })
 
         if not self.drivers:
-            self["lbl_driver"].setText("No driver data available")
+            self["lbl_driver"].setText(_t("No driver data available"))
         else:
             self.current_idx = -1
             self.show_next_driver()
@@ -9784,12 +9925,12 @@ class AthleteProfileScreen(Screen):
 
         self.skin = f"""<screen position="center,center" size="1600,900" title="Player Profile" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{common_widgets}</screen>"""
 
-        self["match_title"] = Label("PLAYER PROFILE")
+        self["match_title"] = Label(_t("PLAYER PROFILE"))
         self["a_name"] = Label(athlete_name)
         self["a_details"] = Label("")
         self["headshot"] = Pixmap()
         self["t_logo"] = Pixmap()
-        self["loading"] = Label("Loading profile...")
+        self["loading"] = Label(_t("Loading profile..."))
 
         self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
         self["info_list"].l.setFont(0, gFont("Regular", 24))
@@ -9811,7 +9952,7 @@ class AthleteProfileScreen(Screen):
         getPage(self.api_url.encode('utf-8')).addCallback(self.parse_data).addErrback(self.error_data)
 
     def error_data(self, error):
-        self["loading"].setText("Error loading profile.")
+        self["loading"].setText(_t("Error loading profile."))
 
     def parse_data(self, body):
         try:
@@ -10843,10 +10984,10 @@ class SimpleSportsScreen(Screen):
         """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_bar=c_bar, c_top=c_top)
 
         self["top_bar"] = Label(""); self["header_bg"] = Label(""); self["bottom_bar"] = Label(""); self["main_bg"] = Label(""); self["bar_bg"] = Label("")
-        self["top_title"] = Label("SIMPLY SPORTS"); self["league_title"] = Label("LOADING..."); self["list_title"] = Label("")
-        self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label("MENU: Settings & Tools")
+        self["top_title"] = Label(_t("SIMPLY SPORTS")); self["league_title"] = Label(_t("LOADING...")); self["list_title"] = Label("")
+        self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label(_t("MENU: Settings & Tools"))
         self["clock"] = Label("")  # Clock widget
-        self["head_status"] = Label("STATUS"); self["head_league"] = Label("LEAGUE"); self["head_home"] = Label("HOME"); self["head_score"] = Label("SCORE"); self["head_away"] = Label("AWAY"); self["head_time"] = Label("TIME")
+        self["head_status"] = Label(_t("STATUS")); self["head_league"] = Label(_t("LEAGUE")); self["head_home"] = Label(_t("HOME")); self["head_score"] = Label(_t("SCORE")); self["head_away"] = Label(_t("AWAY")); self["head_time"] = Label(_t("TIME"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         # Use Custom font "SimplySportFont" which is guaranteed to map to a valid system font
         self["list"].l.setFont(0, gFont("SimplySportFont", 26))
@@ -10854,8 +10995,8 @@ class SimpleSportsScreen(Screen):
         self["list"].l.setFont(2, gFont("SimplySportFont", 38))
         self["list"].l.setFont(3, gFont("SimplySportFont", 20))
         self["list"].l.setItemHeight(90)
-        self["key_red"] = Label("League List"); self["key_green"] = Label("Mini Bar"); self["key_yellow"] = Label("Live Only"); self["key_blue"] = Label("Goal Alert: OFF")
-        self["key_epg"] = Label("Info/EPG: Channels")
+        self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Live Only")); self["key_blue"] = Label(_t("Goal Alert: OFF"))
+        self["key_epg"] = Label(_t("Info/EPG: Channels"))
 
         # Clock timer
         self.clock_timer = eTimer()
@@ -10946,39 +11087,39 @@ class SimpleSportsScreen(Screen):
 
     # ... (Keep Header, Filter, Download helpers unchanged) ...
     def update_header(self):
-        if self.monitor.is_custom_mode: self["league_title"].setText("Custom League View")
+        if self.monitor.is_custom_mode: self["league_title"].setText(_t("Custom League View"))
         else:
             try: item = DATA_SOURCES[self.monitor.current_league_index]; self["league_title"].setText(item[0])
             except: pass
         mode = self.monitor.filter_mode
-        if mode == 0: self["list_title"].setText("Yesterday's Matches")
-        elif mode == 1: self["list_title"].setText("Live Matches")
-        elif mode == 2: self["list_title"].setText("Today's Matches")
-        elif mode == 3: self["list_title"].setText("Tomorrow's Matches")
-        elif mode == 4: self["list_title"].setText("All Matches")
+        if mode == 0: self["list_title"].setText(_t("Yesterday's Matches"))
+        elif mode == 1: self["list_title"].setText(_t("Live Matches"))
+        elif mode == 2: self["list_title"].setText(_t("Today's Matches"))
+        elif mode == 3: self["list_title"].setText(_t("Tomorrow's Matches"))
+        elif mode == 4: self["list_title"].setText(_t("All Matches"))
         # Green button: show 'Driver Position' for racing, 'Mini Bar' otherwise
         try:
             if not self.monitor.is_custom_mode:
                 url = DATA_SOURCES[self.monitor.current_league_index][1]
                 if get_sport_type(url) == SPORT_TYPE_RACING:
-                    self["key_green"].setText("Driver Position")
+                    self["key_green"].setText(_t("Driver Position"))
                 else:
-                    self["key_green"].setText("Mini Bar")
+                    self["key_green"].setText(_t("Mini Bar"))
             else:
-                self["key_green"].setText("Mini Bar")
-        except: self["key_green"].setText("Mini Bar")
+                self["key_green"].setText(_t("Mini Bar"))
+        except: self["key_green"].setText(_t("Mini Bar"))
         d_mode = self.monitor.discovery_mode
-        if d_mode == 0: self["key_blue"].setText("Goal Alert: OFF")
-        elif d_mode == 1: self["key_blue"].setText("Goal Alert: VISUAL")
-        elif d_mode == 2: self["key_blue"].setText("Goal Alert: SOUND")
+        if d_mode == 0: self["key_blue"].setText(_t("Goal Alert: OFF"))
+        elif d_mode == 1: self["key_blue"].setText(_t("Goal Alert: VISUAL"))
+        elif d_mode == 2: self["key_blue"].setText(_t("Goal Alert: SOUND"))
 
     def update_filter_button(self):
         mode = self.monitor.filter_mode
-        if mode == 0: self["key_yellow"].setText("Live Only")
-        elif mode == 1: self["key_yellow"].setText("Show Today")
-        elif mode == 2: self["key_yellow"].setText("Show Tomorrow")
-        elif mode == 3: self["key_yellow"].setText("Show All")
-        elif mode == 4: self["key_yellow"].setText("Yesterday")
+        if mode == 0: self["key_yellow"].setText(_t("Live Only"))
+        elif mode == 1: self["key_yellow"].setText(_t("Show Today"))
+        elif mode == 2: self["key_yellow"].setText(_t("Show Tomorrow"))
+        elif mode == 3: self["key_yellow"].setText(_t("Show All"))
+        elif mode == 4: self["key_yellow"].setText(_t("Yesterday"))
         self.update_header()
 
     def fetch_data(self):
@@ -11543,7 +11684,7 @@ class SimpleSportsScreen(Screen):
                         # Convert back to hex
                         c_score_bg = (r << 16) | (g << 8) | b
 
-                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0), snap.get('h_perf_pct', 0.0), snap.get('a_perf_pct', 0.0))
+                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0))
 
                 # Store raw data for sorting (include event for excitement calculation)
                 raw_entries.append((entry_data, match_id, is_live, event))
@@ -11659,19 +11800,21 @@ class SimpleSportsScreen(Screen):
     # ... (Keep existing Menu, Reminder, and Update methods unchanged) ...
     # [PASTE EXISTING METHODS HERE]
     def open_settings_menu(self):
-        in_menu_txt = "Yes" if self.monitor.show_in_menu else "No"
-        ai_status = "ON" if self.monitor.ai_enabled else "OFF"
+        in_menu_txt = _t("Yes") if self.monitor.show_in_menu else _t("No")
+        ai_status = _t("ON") if self.monitor.ai_enabled else _t("OFF")
+        cur_lang_lbl = u"\u0627\u0644\u0639\u0631\u0628\u064a\u0629" if PLUGIN_LANGUAGE == "ar" else "English"
         menu_options = [
-            ("Check for Updates", "update"),
-            ("Change Interface Theme", "theme"),
-            ("Mini Bar Style (Default Theme only)", "minibar_color"),
-            ("Main Screen Transparency (Default Theme only)", "transparency"),
-            ("Show Plugin in Main Menu: " + in_menu_txt, "toggle_menu"),
-            ("Set Voter Name: " + self.monitor.voter_name, "voter_name"),
-            ("AI Mode: " + ai_status, "ai_mode"),
-            ("Notifications Test", "notif_test")
+            (_t("Check for Updates"), "update"),
+            (_t("Change Interface Theme"), "theme"),
+            (_t("Mini Bar Style (Default Theme only)"), "minibar_color"),
+            (_t("Main Screen Transparency (Default Theme only)"), "transparency"),
+            (_t("Show Plugin in Main Menu: ") + in_menu_txt, "toggle_menu"),
+            (_t("Set Voter Name: ") + self.monitor.voter_name, "voter_name"),
+            (_t("AI Mode: ") + ai_status, "ai_mode"),
+            (_t("Notifications Test"), "notif_test"),
+            (u"Language / \u0627\u0644\u0644\u063a\u0629: " + cur_lang_lbl, "change_language"),
         ]
-        self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title="Settings & Tools", list=menu_options)
+        self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title=_t("Settings & Tools"), list=menu_options)
 
     def settings_menu_callback(self, selection):
         if selection:
@@ -11683,10 +11826,51 @@ class SimpleSportsScreen(Screen):
             elif action == "toggle_menu":
                 self.monitor.show_in_menu = not self.monitor.show_in_menu
                 self.monitor.save_config()
-                self.session.open(MessageBox, "Setting saved.\nYou must Restart GUI for menu changes to take effect.", MessageBox.TYPE_INFO)
+                msg = (u"\u062a\u0645 \u0627\u0644\u062d\u0641\u0638.\n\u064a\u062c\u0628 \u0625\u0639\u0627\u062f\u0629 \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0648\u0627\u062c\u0647\u0629 \u0644\u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u062a\u063a\u064a\u064a\u0631\u0627\u062a."
+                       if PLUGIN_LANGUAGE == "ar" else
+                       "Setting saved.\nYou must Restart GUI for menu changes to take effect.")
+                self.session.open(MessageBox, msg, MessageBox.TYPE_INFO)
             elif action == "voter_name": self.open_voter_name_input()
             elif action == "ai_mode": self.open_ai_mode_menu()
             elif action == "notif_test": self.run_notification_test()
+            elif action == "change_language": self.open_language_selector()
+
+
+    def open_language_selector(self):
+        lang_options = [
+            ("English", "en"),
+            (u"\u0627\u0644\u0639\u0631\u0628\u064a\u0629  (Arabic)", "ar"),
+        ]
+        self.session.openWithCallback(
+            self.language_selected,
+            ChoiceBox,
+            title=u"Select Language / \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0644\u063a\u0629",
+            list=lang_options
+        )
+
+    def language_selected(self, selection):
+        if not selection:
+            return
+        global PLUGIN_LANGUAGE
+        new_lang = selection[1]
+        if new_lang == PLUGIN_LANGUAGE:
+            return
+        PLUGIN_LANGUAGE = new_lang
+        self.monitor.save_config()
+        if PLUGIN_LANGUAGE == "ar":
+            msg = u"\u062a\u0645 \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0644\u063a\u0629 \u0625\u0644\u0649 \u0627\u0644\u0639\u0631\u0628\u064a\u0629.\n\u0633\u064a\u062a\u0645 \u0625\u0639\u0627\u062f\u0629 \u0641\u062a\u062d \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0622\u0646."
+        else:
+            msg = u"Language changed to English.\nThe screen will now reload."
+        self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
+        from twisted.internet import reactor
+        reactor.callLater(3.2, self._reopen_after_lang_change)
+
+    def _reopen_after_lang_change(self):
+        try:
+            self.session.open(SimpleSportsScreen)
+            self.close()
+        except Exception:
+            pass
 
     def run_notification_test(self):
         """Sequentially display every notification type using dummy match data."""
@@ -11750,7 +11934,7 @@ class SimpleSportsScreen(Screen):
         if not m.ai_enabled:
             # AI is OFF — offer to turn it on
             options = [
-                ("Turn AI Mode ON", "toggle_on"),
+                (_t("Turn AI Mode ON"), "toggle_on"),
             ]
         else:
             # AI is ON — show full config menu
@@ -11761,14 +11945,14 @@ class SimpleSportsScreen(Screen):
                     provider_label = label
                     break
             options = [
-                ("Turn AI Mode OFF", "toggle_off"),
-                ("API Key: " + masked_key, "api_key"),
-                ("Provider: " + provider_label, "provider"),
-                ("Language: " + m.ai_language, "language"),
-                ("Frequency: Every {} min".format(m.ai_frequency), "frequency"),
-                ("Test AI Now", "test"),
+                (_t("Turn AI Mode OFF"), "toggle_off"),
+                (_t("API Key: ") + masked_key, "api_key"),
+                (_t("Provider: ") + provider_label, "provider"),
+                (_t("Language: ") + m.ai_language, "language"),
+                (_t("Frequency: Every {} min").format(m.ai_frequency), "frequency"),
+                (_t("Test AI Now"), "test"),
             ]
-        self.session.openWithCallback(self.ai_mode_callback, ChoiceBox, title="AI Mode Settings", list=options)
+        self.session.openWithCallback(self.ai_mode_callback, ChoiceBox, title=_t("AI Mode Settings"), list=options)
 
     def ai_mode_callback(self, selection):
         if not selection:
@@ -11779,31 +11963,38 @@ class SimpleSportsScreen(Screen):
             m.ai_enabled = True
             m.save_config()
             m._start_ai_timer()
-            self.session.open(MessageBox, "AI Mode ENABLED.\nOpen AI Mode again to configure API key and options.", MessageBox.TYPE_INFO, timeout=4)
+            msg = (u"\u062a\u0645 \u062a\u0641\u0639\u064a\u0644 \u0648\u0636\u0639 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a.\n\u0627\u0641\u062a\u062d\u0647 \u0645\u062c\u062f\u062f\u0627\u064b \u0644\u0636\u0628\u0637 \u0645\u0641\u062a\u0627\u062d API." if PLUGIN_LANGUAGE == "ar" else "AI Mode ENABLED.\nOpen AI Mode again to configure API key and options.")
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=4)
         elif action == "toggle_off":
             m.ai_enabled = False
             m.ai_timer.stop()
             m.save_config()
-            self.session.open(MessageBox, "AI Mode DISABLED.", MessageBox.TYPE_INFO, timeout=3)
+            msg = u"\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u0648\u0636\u0639 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a." if PLUGIN_LANGUAGE == "ar" else "AI Mode DISABLED."
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
         elif action == "api_key":
             try:
                 from Screens.VirtualKeyBoard import VirtualKeyBoard
+                title_str = u"\u0623\u062f\u062e\u0644 \u0645\u0641\u062a\u0627\u062d API:" if PLUGIN_LANGUAGE == "ar" else "Enter AI API Key:"
                 self.session.openWithCallback(self.ai_key_entered, VirtualKeyBoard,
-                    title="Enter AI API Key:", text=m.ai_api_key)
+                    title=title_str, text=m.ai_api_key)
             except Exception:
-                self.session.open(MessageBox, "VirtualKeyBoard not available.", MessageBox.TYPE_ERROR, timeout=3)
+                msg = u"\u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u0641\u0627\u062a\u064a\u062d \u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631\u0629." if PLUGIN_LANGUAGE == "ar" else "VirtualKeyBoard not available."
+                self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR, timeout=3)
         elif action == "provider":
             options = [(label, code) for code, label in AI_PROVIDERS]
+            title_str = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0645\u0632\u0648\u0651\u062f \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a" if PLUGIN_LANGUAGE == "ar" else "Select AI Provider"
             self.session.openWithCallback(self.ai_provider_selected, ChoiceBox,
-                title="Select AI Provider", list=options)
+                title=title_str, list=options)
         elif action == "language":
             options = [(lang, lang) for lang in AI_LANGUAGES]
+            title_str = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0644\u063a\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a" if PLUGIN_LANGUAGE == "ar" else "Select AI Language"
             self.session.openWithCallback(self.ai_language_selected, ChoiceBox,
-                title="Select AI Language", list=options)
+                title=title_str, list=options)
         elif action == "frequency":
-            options = [("Every {} minutes".format(f), f) for f in AI_FREQUENCIES]
+            options = [((u"\u0643\u0644 {} \u062f\u0642\u064a\u0642\u0629" if PLUGIN_LANGUAGE == "ar" else "Every {} minutes").format(f), f) for f in AI_FREQUENCIES]
+            title_str = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u062a\u0643\u0631\u0627\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a" if PLUGIN_LANGUAGE == "ar" else "Select AI Frequency"
             self.session.openWithCallback(self.ai_freq_selected, ChoiceBox,
-                title="Select AI Frequency", list=options)
+                title=title_str, list=options)
         elif action == "test":
             m.test_ai_now()
 
@@ -11811,65 +12002,79 @@ class SimpleSportsScreen(Screen):
         if text is not None:
             key = text.strip()
             if key and len(key) < 20:
-                self.session.open(MessageBox, "API key seems too short. Please check.", MessageBox.TYPE_WARNING, timeout=3)
+                msg = u"\u0645\u0641\u062a\u0627\u062d API \u0642\u0635\u064a\u0631 \u062c\u062f\u0627\u064b." if PLUGIN_LANGUAGE == "ar" else "API key seems too short. Please check."
+                self.session.open(MessageBox, msg, MessageBox.TYPE_WARNING, timeout=3)
                 return
             self.monitor.ai_api_key = key
             self.monitor.save_config()
             self.monitor._start_ai_timer()
-            self.session.open(MessageBox, "API Key saved.", MessageBox.TYPE_INFO, timeout=3)
+            msg = u"\u062a\u0645 \u062d\u0641\u0638 \u0645\u0641\u062a\u0627\u062d API." if PLUGIN_LANGUAGE == "ar" else "API Key saved."
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
     def ai_provider_selected(self, selection):
         if selection:
             self.monitor.ai_provider = selection[1]
             self.monitor.save_config()
-            self.session.open(MessageBox, "Provider saved: " + selection[0], MessageBox.TYPE_INFO, timeout=3)
+            msg = (u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0645\u0632\u0648\u0651\u062f: " + selection[0]) if PLUGIN_LANGUAGE == "ar" else ("Provider saved: " + selection[0])
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
     def ai_language_selected(self, selection):
         if selection:
             self.monitor.ai_language = selection[1]
             self.monitor.save_config()
-            self.session.open(MessageBox, "Language saved: " + selection[1], MessageBox.TYPE_INFO, timeout=3)
+            msg = (u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0644\u063a\u0629: " + selection[1]) if PLUGIN_LANGUAGE == "ar" else ("Language saved: " + selection[1])
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
     def ai_freq_selected(self, selection):
         if selection:
             self.monitor.ai_frequency = selection[1]
             self.monitor.save_config()
             self.monitor._start_ai_timer()
-            self.session.open(MessageBox, "Frequency saved: Every {} min".format(selection[1]), MessageBox.TYPE_INFO, timeout=3)
+            msg = (u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u062a\u0643\u0631\u0627\u0631: \u0643\u0644 {} \u062f\u0642\u064a\u0642\u0629".format(selection[1])) if PLUGIN_LANGUAGE == "ar" else ("Frequency saved: Every {} min".format(selection[1]))
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
     def open_voter_name_input(self):
         try:
             from Screens.VirtualKeyBoard import VirtualKeyBoard
-            self.session.openWithCallback(self.voter_name_entered, VirtualKeyBoard, title="Enter your SS-Voter name:", text=self.monitor.voter_name)
+            title_str = u"\u0623\u062f\u062e\u0644 \u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0648\u0651\u062a:" if PLUGIN_LANGUAGE == "ar" else "Enter your SS-Voter name:"
+            self.session.openWithCallback(self.voter_name_entered, VirtualKeyBoard, title=title_str, text=self.monitor.voter_name)
         except Exception:
-            self.session.open(MessageBox, "VirtualKeyBoard not available on this image.", MessageBox.TYPE_ERROR, timeout=3)
+            msg = u"\u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u0641\u0627\u062a\u064a\u062d \u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631\u0629." if PLUGIN_LANGUAGE == "ar" else "VirtualKeyBoard not available on this image."
+            self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR, timeout=3)
 
     def voter_name_entered(self, text=None):
         if text is not None:
             self.monitor.voter_name = text.strip() or "Anonymous"
             self.monitor.save_config()
             self.monitor._register_install()
-            self.session.open(MessageBox, "Voter name saved: " + self.monitor.voter_name, MessageBox.TYPE_INFO, timeout=3)
+            msg = (u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0627\u0633\u0645: " + self.monitor.voter_name) if PLUGIN_LANGUAGE == "ar" else ("Voter name saved: " + self.monitor.voter_name)
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
     def open_minibar_color_selector(self):
         c_options = [
-            ("Default", "default"),
-            ("Premier League (Purple/Green)", "pl"),
-            ("Spanish League (Red/Gold)", "laliga"),
-            ("Serie A (Blue/Cyan)", "seriea"),
-            ("French League (Dark/Yellow)", "ligue1")
+            (_t("Default"), "default"),
+            (_t("Premier League (Purple/Green)"), "pl"),
+            (_t("Spanish League (Red/Gold)"), "laliga"),
+            (_t("Serie A (Blue/Cyan)"), "seriea"),
+            (_t("French League (Dark/Yellow)"), "ligue1")
         ]
-        self.session.openWithCallback(self.minibar_color_selected, ChoiceBox, title="Select Mini Bar Style (Default Theme Only)", list=c_options)
+        self.session.openWithCallback(self.minibar_color_selected, ChoiceBox, title=_t("Select Mini Bar Style (Default Theme Only)"), list=c_options)
 
     def minibar_color_selected(self, selection):
         if selection:
             self.monitor.minibar_color_mode = selection[1]
             self.monitor.save_config()
-            self.session.open(MessageBox, "Mini Bar color saved.", MessageBox.TYPE_INFO)
+            msg = u"\u062a\u0645 \u062d\u0641\u0638 \u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631." if PLUGIN_LANGUAGE == "ar" else "Mini Bar color saved."
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO)
 
     def open_transparency_selector(self):
-        t_options = [("Solid (0% Transparent)", "00"), ("Standard (35% Transparent)", "59"), ("90% Transparent", "E6"), ("Fully Transparent (100%)", "FF")]
-        self.session.openWithCallback(self.transparency_selected, ChoiceBox, title="Select Transparency", list=t_options)
+        t_options = [
+            (_t("Solid (0% Transparent)"), "00"),
+            (_t("Standard (35% Transparent)"), "59"),
+            (_t("90% Transparent"), "E6"),
+            (_t("Fully Transparent (100%)"), "FF"),
+        ]
+        self.session.openWithCallback(self.transparency_selected, ChoiceBox, title=_t("Select Transparency"), list=t_options)
 
     def transparency_selected(self, selection):
         if selection:
@@ -11878,8 +12083,8 @@ class SimpleSportsScreen(Screen):
                 self.monitor.transparency = hex_val; self.monitor.save_config(); self.close(True)
 
     def open_theme_selector(self):
-        menu_list = [("Default", "default"), ("UCL", "ucl")]
-        self.session.openWithCallback(self.theme_selected, ChoiceBox, title="Select Theme", list=menu_list)
+        menu_list = [(_t("Default"), "default"), ("UCL", "ucl")]
+        self.session.openWithCallback(self.theme_selected, ChoiceBox, title=_t("Select Theme"), list=menu_list)
 
     def theme_selected(self, selection):
         if selection:
@@ -11888,8 +12093,11 @@ class SimpleSportsScreen(Screen):
                 self.monitor.theme_mode = new_theme; self.monitor.save_config(); self.close(True)
 
     def open_league_menu(self):
-        options = [("Select Single League", "single"), ("Custom Leagues (View/Edit)", "custom_leagues")]
-        self.session.openWithCallback(self.league_menu_callback, ChoiceBox, title="League Options", list=options)
+        options = [
+            (_t("Select Single League"), "single"),
+            (_t("Custom Leagues (View/Edit)"), "custom_leagues"),
+        ]
+        self.session.openWithCallback(self.league_menu_callback, ChoiceBox, title=_t("League Options"), list=options)
 
     def league_menu_callback(self, selection):
         if selection:
@@ -11998,8 +12206,21 @@ class SimpleSportsScreen(Screen):
 
             state = selected_event.get('status', {}).get('type', {}).get('state', 'pre')
             if state == 'pre':
-                options = [("Game Info / Details", "info"), ("Find Broadcasting Channel", "broadcast_search"), ("Remind me 12 hours before", 720), ("Remind me 9 hours before", 540), ("Remind me 6 hours before", 360), ("Remind me 3 hours before", 180), ("Remind me 2 hours before", 120), ("Remind me 1 hour before", 60), ("Remind me 15 minutes before", 15), ("Remind me 5 minutes before", 5), ("Delete Reminder", -1), ("Cancel", 0)]
-                self.session.openWithCallback(self.reminder_selected, ChoiceBox, title="Game Options", list=options)
+                options = [
+                    (_t("Game Info / Details"), "info"),
+                    (_t("Find Broadcasting Channel"), "broadcast_search"),
+                    (_t("Remind me 12 hours before"), 720),
+                    (_t("Remind me 9 hours before"), 540),
+                    (_t("Remind me 6 hours before"), 360),
+                    (_t("Remind me 3 hours before"), 180),
+                    (_t("Remind me 2 hours before"), 120),
+                    (_t("Remind me 1 hour before"), 60),
+                    (_t("Remind me 15 minutes before"), 15),
+                    (_t("Remind me 5 minutes before"), 5),
+                    (_t("Delete Reminder"), -1),
+                    (_t("Cancel"), 0),
+                ]
+                self.session.openWithCallback(self.reminder_selected, ChoiceBox, title=_t("Game Options"), list=options)
             else:
                 event_id = selected_event.get('id'); league_name = selected_event.get('league_name', ''); url = ""
                 for item in DATA_SOURCES:
@@ -12055,9 +12276,11 @@ class SimpleSportsScreen(Screen):
 
             if val == -1:
                 if self.monitor.remove_reminder(match_name):
-                    self.session.open(MessageBox, "Reminder removed.", MessageBox.TYPE_INFO, timeout=2)
+                    msg = u"\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u062a\u0630\u0643\u064a\u0631." if PLUGIN_LANGUAGE == "ar" else "Reminder removed."
+                    self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
                 else:
-                    self.session.open(MessageBox, "No active reminder found for: " + match_name, MessageBox.TYPE_ERROR, timeout=2)
+                    msg = (u"\u0644\u0627 \u064a\u0648\u062c\u062f \u062a\u0630\u0643\u064a\u0631 \u0644\u0640: " + match_name) if PLUGIN_LANGUAGE == "ar" else ("No active reminder found for: " + match_name)
+                    self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR, timeout=2)
                 return
 
             # Robust Date Parsing
@@ -12077,23 +12300,25 @@ class SimpleSportsScreen(Screen):
                 if dt: match_time_ts = calendar.timegm(dt.timetuple())
 
             if match_time_ts == 0:
-                self.session.open(MessageBox, "Invalid Date Error. Cannot set reminder.", MessageBox.TYPE_ERROR)
+                msg = u"\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u062a\u0627\u0631\u064a\u062e. \u0644\u0627 \u064a\u0645\u0643\u0646 \u0636\u0628\u0637 \u0627\u0644\u062a\u0630\u0643\u064a\u0631." if PLUGIN_LANGUAGE == "ar" else "Invalid Date Error. Cannot set reminder."
+                self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR)
                 return
 
             trigger_time = match_time_ts - (val * 60)
             now = time.time()
             if now >= trigger_time:
                 time_left = match_time_ts - now
-                if time_left < 0: msg = "Game has already started!"
+                if time_left < 0:
+                    msg = u"\u0627\u0646\u0637\u0644\u0642\u062a \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629 \u0628\u0627\u0644\u0641\u0639\u0644!" if PLUGIN_LANGUAGE == "ar" else "Game has already started!"
                 else:
                     hrs = int(time_left // 3600); mins = int((time_left % 3600) // 60)
-                    msg = "Too late for this reminder!\nGame starts in {}h {}m.".format(hrs, mins)
+                    msg = (u"\u0641\u0627\u062a \u0627\u0644\u0623\u0648\u0627\u0646!\n\u062a\u0628\u062f\u0623 \u062e\u0644\u0627\u0644 {}\u0633 {}\u062f.".format(hrs, mins) if PLUGIN_LANGUAGE == "ar" else "Too late for this reminder!\nGame starts in {}h {}m.".format(hrs, mins))
                 self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR, timeout=5)
                 return
 
-            label = "Starts in {} Mins".format(val)
+            label = (u"\u062a\u0628\u062f\u0623 \u062e\u0644\u0627\u0644 {} \u062f\u0642\u064a\u0642\u0629".format(val) if PLUGIN_LANGUAGE == "ar" else "Starts in {} Mins".format(val))
             if val >= 60:
-                label = "Starts in {} Hour(s)".format(int(val / 60))
+                label = (u"\u062a\u0628\u062f\u0623 \u062e\u0644\u0627\u0644 {} \u0633\u0627\u0639\u0629".format(int(val / 60)) if PLUGIN_LANGUAGE == "ar" else "Starts in {} Hour(s)".format(int(val / 60)))
 
             league_name = event.get('league_name', '')
             h_logo = event.get('h_logo_url', '')
@@ -12104,11 +12329,13 @@ class SimpleSportsScreen(Screen):
             # For now, just store generic data
 
             self.monitor.add_reminder(match_name, trigger_time, league_name, h_logo, a_logo, label, h_id=h_id, a_id=a_id)
-            self.session.open(MessageBox, "Reminder set for:\n" + match_name, MessageBox.TYPE_INFO, timeout=3)
+            msg = (u"\u062a\u0645 \u0636\u0628\u0637 \u0627\u0644\u062a\u0630\u0643\u064a\u0631 \u0644\u0640:\n" + match_name) if PLUGIN_LANGUAGE == "ar" else ("Reminder set for:\n" + match_name)
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
         except Exception as e:
             log_dbg("reminder_selected ERROR: " + str(e))
-            self.session.open(MessageBox, "Error setting reminder: " + str(e), MessageBox.TYPE_ERROR)
+            msg = (u"\u062e\u0637\u0623 \u0641\u064a \u0636\u0628\u0637 \u0627\u0644\u062a\u0630\u0643\u064a\u0631: " + str(e)) if PLUGIN_LANGUAGE == "ar" else ("Error setting reminder: " + str(e))
+            self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR)
 
     def toggle_discovery(self):
         if time.time() - self.last_key_time < 0.5: return
@@ -12123,24 +12350,31 @@ class SimpleSportsScreen(Screen):
         self.monitor.toggle_filter(); self.update_filter_button(); self.monitor._trigger_callbacks(True, force_refresh=True)
 
     def check_for_updates(self):
-        self["league_title"].setText("CHECKING FOR UPDATES...")
+        self["league_title"].setText(_t("CHECKING FOR UPDATES..."))
         url = GITHUB_BASE_URL + "version.txt"
         getPage(url.encode('utf-8')).addCallback(self.got_version).addErrback(self.update_fail)
 
     def got_version(self, data):
         try:
             remote = data.decode('utf-8').strip()
-            if remote > CURRENT_VERSION: self.session.openWithCallback(self.start_update, MessageBox, "Update available: " + remote + "\nUpdate now?", MessageBox.TYPE_YESNO)
-            else: self.session.open(MessageBox, "Latest version installed!", MessageBox.TYPE_INFO, timeout=3); self.update_header()
+            if remote > CURRENT_VERSION:
+                msg = _t("Update available: ") + remote + "\n" + _t("Update now?")
+                self.session.openWithCallback(self.start_update, MessageBox, msg, MessageBox.TYPE_YESNO)
+            else:
+                msg = _t("Latest version installed!")
+                self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
+                self.update_header()
         except:
             self.update_fail(None)
 
     def update_fail(self, error):
-        self.session.open(MessageBox, "Update check failed.", MessageBox.TYPE_ERROR, timeout=3); self.update_header()
+        msg = _t("Update check failed.")
+        self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR, timeout=3)
+        self.update_header()
 
     def start_update(self, answer):
         if answer:
-            self["league_title"].setText("FETCHING FILE LIST...")
+            self["league_title"].setText(_t("FETCHING FILE LIST..."))
             tree_url = "https://api.github.com/repos/Ahmed-Mohammed-Abbas/SimplySports/git/trees/main?recursive=1"
             getPage(tree_url.encode('utf-8')).addCallback(self._got_file_tree).addErrback(self.update_fail)
 
@@ -12181,7 +12415,10 @@ class SimpleSportsScreen(Screen):
         self._download_next_file(None)
 
     def _final_update_success(self, data):
-        self.session.open(MessageBox, "Update complete! %d files downloaded.\nRestart GUI to apply." % self._update_total, MessageBox.TYPE_INFO)
+        msg = (u"\u0627\u0643\u062a\u0645\u0644 \u0627\u0644\u062a\u062d\u062f\u064a\u062b! %d \u0645\u0644\u0641\u0627\u062a \u0645\u062d\u0645\u0651\u0644\u0629.\n\u0623\u0639\u062f \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0648\u0627\u062c\u0647\u0629." % self._update_total
+                if PLUGIN_LANGUAGE == "ar" else
+                "Update complete! %d files downloaded.\nRestart GUI to apply." % self._update_total)
+        self.session.open(MessageBox, msg, MessageBox.TYPE_INFO)
         self.update_header()
 
 
@@ -12341,11 +12578,11 @@ class BroadcastingChannelsScreen(Screen):
             </screen>
             """
 
-        self["title"] = Label("MATCH BROADCASTS")
-        self["hint"] = Label("Select Channel to Zap")
-        self["key_red"] = Label("Broadcasters")
-        self["key_green"] = Label("EPG Search")
-        self["key_yellow"] = Label("Down")
+        self["title"] = Label(_t("MATCH BROADCASTS"))
+        self["hint"] = Label(_t("Select Channel to Zap"))
+        self["key_red"] = Label(_t("Broadcasters"))
+        self["key_green"] = Label(_t("EPG Search"))
+        self["key_yellow"] = Label(_t("Down"))
 
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         self["list"].l.setFont(0, gFont("SimplySportFont", 28))
@@ -12383,8 +12620,8 @@ class BroadcastingChannelsScreen(Screen):
             pass
         # If no local EPG results, guide user to use Green/Red buttons
         if not self.channels:
-            self["title"].setText("No Local EPG Matches")
-            self["hint"].setText("Press Green for Web Search")
+            self["title"].setText(_t("No Local EPG Matches"))
+            self["hint"].setText(_t("Press Green for Web Search"))
 
     def add_live_results(self, new_channels):
         if not new_channels:
@@ -12632,8 +12869,8 @@ class BroadcastingChannelsScreen(Screen):
 
     def _launch_epg_search(self):
         self._epg_search_running = True
-        self["key_green"].setText("Searching...")
-        self["hint"].setText("Parsing XMLTV...")
+        self["key_green"].setText(_t("Searching..."))
+        self["hint"].setText(_t("Parsing XMLTV..."))
         log_dbg("XMLTV Search starting for terms: {}".format(self._xmltv_search_terms))
 
         from twisted.internet import threads
@@ -12723,8 +12960,8 @@ class BroadcastingChannelsScreen(Screen):
 
     def _xmltv_search_err(self, error):
         self._epg_search_running = False
-        self["key_green"].setText("EPG Search")
-        self["hint"].setText("XML Format/Timeout")
+        self["key_green"].setText(_t("EPG Search"))
+        self["hint"].setText(_t("XML Format/Timeout"))
         log_dbg("XMLTV parser error: " + str(error))
         from Screens.MessageBox import MessageBox
         self.session.open(MessageBox, "Failed to download or parse XMLTV file.", MessageBox.TYPE_ERROR)
@@ -12737,7 +12974,7 @@ class BroadcastingChannelsScreen(Screen):
 
     def _on_all_epg_done(self, results_list):
         self._epg_search_running = False
-        self["key_green"].setText("EPG Search")
+        self["key_green"].setText(_t("EPG Search"))
 
         seen = set()
         new_channels = []
@@ -12761,9 +12998,9 @@ class BroadcastingChannelsScreen(Screen):
 
         if new_channels:
             self.add_live_results(new_channels)
-            self["hint"].setText(u"Found {} via EPG".format(len(new_channels)))
+            self["hint"].setText(_t("Found {} via EPG").format(len(new_channels)))
         else:
-            self["hint"].setText("No EPG matches found")
+            self["hint"].setText(_t("No EPG matches found"))
 
 
 # ==============================================================================
@@ -13170,20 +13407,20 @@ class LeaderboardScreen(Screen):
         ).format(bg=bg, top=top_bar, acc=accent, dim=dim)
 
         # ── Widgets ──
-        self["title_lbl"]  = Label("GLOBAL LEADERBOARD")
+        self["title_lbl"]  = Label(_t("GLOBAL LEADERBOARD"))
         self["sport_label"] = Label("")
-        self["loading"]    = Label("Fetching leaderboard...")
-        self["key_green"]  = Label("Score Rank")
-        self["key_yellow"] = Label("Accuracy Rank")
-        self["key_blue"]   = Label("My Profile")
-        self["hint"]       = Label(u"◄ ►  Change Sport")
+        self["loading"]    = Label(_t("Fetching leaderboard..."))
+        self["key_green"]  = Label(_t("Score Rank"))
+        self["key_yellow"] = Label(_t("Accuracy Rank"))
+        self["key_blue"]   = Label(_t("My Profile"))
+        self["hint"]       = Label(_t(u"\u25c4 \u25ba  Change Sport"))
         # Column headers
         self["col_rank"]  = Label("#")
-        self["col_name"]  = Label("Player")
-        self["col_badge"] = Label("Badge")
-        self["col_score"] = Label("Pts")
-        self["col_acc"]   = Label("Accuracy")
-        self["col_bets"]  = Label("Bets")
+        self["col_name"]  = Label(_t("Player"))
+        self["col_badge"] = Label(_t("Badge"))
+        self["col_score"] = Label(_t("Pts"))
+        self["col_acc"]   = Label(_t("Accuracy"))
+        self["col_bets"]  = Label(_t("Bets"))
 
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
 
@@ -13252,7 +13489,7 @@ class LeaderboardScreen(Screen):
             if isinstance(html, bytes):
                 html = html.decode('utf-8')
             if not html or html.strip() == "null":
-                self["loading"].setText("No scores recorded yet.")
+                self["loading"].setText(_t("No scores recorded yet."))
                 return
 
             data = json.loads(html)
@@ -13329,10 +13566,10 @@ class LeaderboardScreen(Screen):
 
         # 1. Sport filter label
         if current_sport == "Global":
-            self["sport_label"].setText(u"◄  Global Ranking  ►")
+            self["sport_label"].setText(u"◄  {}  ►".format(_t("Global Ranking")))
         else:
             self["sport_label"].setText(
-                u"◄  {} Only  ►".format(current_sport.upper()))
+                u"◄  {} {}  ►".format(current_sport.upper(), _t("Only")))
 
         # 2. Filter
         filtered_users = [
@@ -13436,13 +13673,13 @@ class PersonalProfileScreen(Screen):
 
         self["header_name"]  = Label("")
         self["header_stats"] = Label("")
-        self["key_red"]      = Label("Close")
-        self["hint"]         = Label(u"▲ ▼  Navigate")
-        self["col_outcome"]  = Label("Result")
-        self["col_match"]    = Label("Match")
-        self["col_picked"]   = Label("Your Pick")
-        self["col_score"]    = Label("Final Score")
-        self["col_date"]     = Label("Date")
+        self["key_red"]      = Label(_t("Close"))
+        self["hint"]         = Label(_t(u"\u25b2 \u25bc  Navigate"))
+        self["col_outcome"]  = Label(_t("Result"))
+        self["col_match"]    = Label(_t("Match"))
+        self["col_picked"]   = Label(_t("Your Pick"))
+        self["col_score"]    = Label(_t("Final Score"))
+        self["col_date"]     = Label(_t("Date"))
 
         self["list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
 
@@ -13520,7 +13757,8 @@ class PersonalProfileScreen(Screen):
         self["header_name"].setText(
             u"{name}   [{badge}]".format(name=voter_name, badge=badge))
         self["header_stats"].setText(
-            u"Score: {sc}   •   Accuracy: {acc:.1f}%   •   Total Bets: {tot}   •   Correct: {cor}".format(
+            u"{} {sc}   •   {} {acc:.1f}%   •   {} {tot}   •   {} {cor}".format(
+                _t("Score:"), _t("Accuracy:"), _t("Total Bets:"), _t("Correct:"),
                 sc=total_score, acc=accuracy, tot=total_preds, cor=correct_preds))
 
         # ── Resolved bets (newest first, capped) ──
@@ -13538,7 +13776,7 @@ class PersonalProfileScreen(Screen):
 
         if not sorted_resolved:
             rows.append(ProfileSectionHeader(
-                "  No resolved bets yet  —  vote on a match to start!", self._theme))
+                "  {}  —  {}!".format(_t("No resolved bets yet"), _t("vote on a match to start!")), self._theme))
         else:
             for _eid, bet in sorted_resolved:
                 prediction  = bet.get("prediction", "?")
@@ -13547,7 +13785,7 @@ class PersonalProfileScreen(Screen):
                 h_name      = bet.get("h_name", "Home")
                 a_name      = bet.get("a_name", "Away")
                 ts          = bet.get("timestamp", 0)
-                outcome     = "WON" if prediction == result else "LOST"
+                outcome     = _t("WON") if prediction == result else _t("LOST")
                 picked_lbl  = self._prediction_label(prediction, h_name, a_name)
                 date_lbl    = self._format_timestamp(ts)
                 row = ProfileListEntry(
@@ -13591,14 +13829,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -13613,7 +13851,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
