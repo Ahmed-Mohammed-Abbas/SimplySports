@@ -107,7 +107,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "5.2"
+VERSION = "5.3"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -148,6 +148,10 @@ TRANSLATIONS = {
     "Tomorrow's Matches":         {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u063a\u062f"},
     "All Matches":                {"ar": u"\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
     "Custom League View":         {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
+    # ── Header breakdown labels ───────────────────────────────────────────────
+    "Live":                       {"ar": u"\u0645\u0628\u0627\u0634\u0631"},
+    "Fin":                        {"ar": u"\u0627\u0646\u062a\u0647\u062a"},
+    "Sch":                        {"ar": u"\u0642\u0627\u062f\u0645\u0629"},
     # ── Status / empty-state messages ─────────────────────────────────────────
     "No Matches Found":           {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
     "Check Filters":              {"ar": u"\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0641\u0644\u0627\u062a\u0631"},
@@ -632,7 +636,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "5.2"  # Update version to 5.2 - added ARABIC language to the plugin Main UI, all menus and screens, more GIFs for toast screen.
+CURRENT_VERSION = "5.3"  # Update version to 5.3 -  a new Main UI with new bars and shots.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1185,18 +1189,6 @@ def build_match_snapshot(event):
         score_str = '{} - {}'.format(h_score_str, a_score_str)
     else:
         score_str = 'VS'
-        # Inject voting info instead of VS separator for scheduled matches
-        event_id = str(event.get('id', ''))
-        try:
-            if global_sports_monitor and hasattr(global_sports_monitor, 'all_community_votes'):
-                match_votes = global_sports_monitor.all_community_votes.get(event_id, {})
-                if match_votes:
-                    h_votes = match_votes.get('home', 0)
-                    a_votes = match_votes.get('away', 0)
-                    if int(h_votes) > 0 or int(a_votes) > 0 or int(match_votes.get('draw', 0)) > 0:
-                        score_str = '{} VTS {}'.format(h_votes, a_votes)
-        except Exception:
-            pass
 
     # --- Time Display String (Single Definition) ---
     if state == 'in' and not is_suspended:
@@ -1224,20 +1216,66 @@ def build_match_snapshot(event):
         except:
             pass
 
-    # --- Possession Extraction ---
+    # --- Possession & Percentage Stats Extraction ---
     h_possession = 0.0
     a_possession = 0.0
+    h_pct_stats = []
+    a_pct_stats = []
+    h_shots_total = 0
+    a_shots_total = 0
+    h_shots_ot = 0
+    a_shots_ot = 0
 
     if state == 'in' and len(comps) >= 2:
         try:
+            # Collect raw stats into dicts for derived percentage computation
+            h_raw = {}
+            a_raw = {}
             for stat in team_h.get('statistics', []):
                 name = stat.get('name', '').lower()
+                disp = str(stat.get('displayValue', ''))
                 if name == 'possessionpct':
-                    h_possession = float(stat.get('displayValue', 0) or 0)
+                    h_possession = float(disp or 0)
+                else:
+                    try: h_raw[name] = float(disp)
+                    except: pass
             for stat in team_a.get('statistics', []):
                 name = stat.get('name', '').lower()
+                disp = str(stat.get('displayValue', ''))
                 if name == 'possessionpct':
-                    a_possession = float(stat.get('displayValue', 0) or 0)
+                    a_possession = float(disp or 0)
+                else:
+                    try: a_raw[name] = float(disp)
+                    except: pass
+
+            # Derive percentage stats from raw counts
+            # 1. Shot Accuracy: shotsOnTarget / totalShots * 100
+            h_shots = h_raw.get('totalshots', 0)
+            a_shots = a_raw.get('totalshots', 0)
+            h_on_target = h_raw.get('shotsontarget', 0)
+            a_on_target = a_raw.get('shotsontarget', 0)
+            h_shots_total = int(h_shots)
+            a_shots_total = int(a_shots)
+            h_shots_ot = int(h_on_target)
+            a_shots_ot = int(a_on_target)
+            if h_shots > 0:
+                h_pct_stats.append(h_on_target / h_shots * 100.0)
+            if a_shots > 0:
+                a_pct_stats.append(a_on_target / a_shots * 100.0)
+
+            # 2. Shot Dominance: team shots / total shots * 100
+            total_shots = h_shots + a_shots
+            if total_shots > 0:
+                h_pct_stats.append(h_shots / total_shots * 100.0)
+                a_pct_stats.append(a_shots / total_shots * 100.0)
+
+            # 3. Corner Dominance: team corners / total corners * 100
+            h_corners = h_raw.get('woncorners', 0)
+            a_corners = a_raw.get('woncorners', 0)
+            total_corners = h_corners + a_corners
+            if total_corners > 0:
+                h_pct_stats.append(h_corners / total_corners * 100.0)
+                a_pct_stats.append(a_corners / total_corners * 100.0)
         except Exception: pass
 
     return {
@@ -1252,6 +1290,12 @@ def build_match_snapshot(event):
         'state':         state,
         'h_poss':        h_possession,
         'a_poss':        a_possession,
+        'h_pct_stats':   h_pct_stats,
+        'a_pct_stats':   a_pct_stats,
+        'h_shots':       h_shots_total,
+        'a_shots':       a_shots_total,
+        'h_on_target':   h_shots_ot,
+        'a_on_target':   a_shots_ot,
 
         'status_short':  status_short,
         'is_live':       state == 'in' and not is_suspended,
@@ -1517,8 +1561,15 @@ def SportListEntry(entry):
     try:
         h_poss = 0.0
         a_poss = 0.0
+        h_pct_stats = []
+        a_pct_stats = []
+        h_shots = 0; a_shots = 0; h_on_target = 0; a_on_target = 0
 
-        if len(entry) >= 19:
+        if len(entry) >= 25:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target = entry[:25]
+        elif len(entry) >= 21:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats = entry[:21]
+        elif len(entry) >= 19:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss = entry[:19]
         elif len(entry) >= 17:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards = entry[:17]
@@ -1625,14 +1676,28 @@ def SportListEntry(entry):
         # Away Name: 1150 (was 1130), 520 (Reduced for Time move)
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
 
+        # --- Shot Stats Below Score Box (LIVE only) ---
+        if status == "LIVE" and (h_shots > 0 or a_shots > 0):
+            h_shot_str = "{}({})".format(h_shots, h_on_target)
+            a_shot_str = "{}({})".format(a_shots, a_on_target)
+            # Home shots centered under home score box (x=860, w=80)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
+            # Away shots centered under away score box (x=980, w=80)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
+
         # --- Live Possession & Performance Bars ---
         if status == "LIVE":
-            if (h_poss > 0 or a_poss > 0):
+            if (h_poss > 0 or a_poss > 0 or h_pct_stats or a_pct_stats):
                 max_w = 200
-                h_bar_w = int(max_w * (h_poss / 100.0))
-                a_bar_w = int(max_w * (a_poss / 100.0))
+                h_bar_w = int(max_w * (h_poss / 100.0)) if h_poss > 0 else 0
+                a_bar_w = int(max_w * (a_poss / 100.0)) if a_poss > 0 else 0
                 bar_y = 65
-                bar_h = 3
+                bar_h = 5
+                c_track = 0x1A1A2E
+
+                # Track backgrounds (full-width dim rail)
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 570, bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
 
                 # Home Possession Bar (growing leftwards from 770)
                 if h_bar_w > 0:
@@ -1641,6 +1706,29 @@ def SportListEntry(entry):
                 # Away Possession Bar (growing rightwards from 1150)
                 if a_bar_w > 0:
                     res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
+
+                # Extra Percentage Bars (distinct colors per stat, with dim tracks)
+                stat_colors = [0x00BBFF, 0xFF9900, 0xFFDD00, 0xBB66FF]
+                stat_track  = [0x002233, 0x261500, 0x262200, 0x1A0D22]
+                stat_y = 72
+                stat_h = 4
+                stat_stride = 7
+                max_stats = max(len(h_pct_stats), len(a_pct_stats))
+                for i in range(min(4, max_stats)):
+                    y_pos = stat_y + (i * stat_stride)
+                    c = stat_colors[i % len(stat_colors)]
+                    ct = stat_track[i % len(stat_track)]
+                    # Track backgrounds
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 570, y_pos, max_w, stat_h, 0, RT_HALIGN_CENTER, "", ct, ct, ct, ct))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, y_pos, max_w, stat_h, 0, RT_HALIGN_CENTER, "", ct, ct, ct, ct))
+                    if i < len(h_pct_stats):
+                        bw = int(max_w * (min(100.0, max(0.0, h_pct_stats[i])) / 100.0))
+                        if bw > 0:
+                            res.append((eListboxPythonMultiContent.TYPE_TEXT, 770 - bw, y_pos, bw, stat_h, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+                    if i < len(a_pct_stats):
+                        bw = int(max_w * (min(100.0, max(0.0, a_pct_stats[i])) / 100.0))
+                        if bw > 0:
+                            res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, y_pos, bw, stat_h, 0, RT_HALIGN_CENTER, "", c, c, c, c))
 
 
 
@@ -1864,7 +1952,14 @@ def UCLListEntry(entry):
     try:
         h_poss = 0.0
         a_poss = 0.0
-        if len(entry) >= 19:
+        h_pct_stats = []
+        a_pct_stats = []
+        h_shots = 0; a_shots = 0; h_on_target = 0; a_on_target = 0
+        if len(entry) >= 25:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target = entry[:25]
+        elif len(entry) >= 21:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats = entry[:21]
+        elif len(entry) >= 19:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss = entry[:19]
         elif len(entry) >= 17:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards = entry[:17]
@@ -1960,14 +2055,28 @@ def UCLListEntry(entry):
         # Away Name: 1150, 520
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
 
+        # --- Shot Stats Below Score Box (LIVE only) ---
+        if status == "LIVE" and (h_shots > 0 or a_shots > 0):
+            h_shot_str = "{}({})".format(h_shots, h_on_target)
+            a_shot_str = "{}({})".format(a_shots, a_on_target)
+            # Home shots centered under home score box (x=860, w=80)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
+            # Away shots centered under away score box (x=980, w=80)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
+
         # --- Live Possession & Performance Bars ---
         if status == "LIVE":
-            if (h_poss > 0 or a_poss > 0):
+            if (h_poss > 0 or a_poss > 0 or ('h_pct_stats' in locals() and h_pct_stats) or ('a_pct_stats' in locals() and a_pct_stats)):
                 max_w = 200
-                h_bar_w = int(max_w * (h_poss / 100.0))
-                a_bar_w = int(max_w * (a_poss / 100.0))
+                h_bar_w = int(max_w * (h_poss / 100.0)) if h_poss > 0 else 0
+                a_bar_w = int(max_w * (a_poss / 100.0)) if a_poss > 0 else 0
                 bar_y = 65
-                bar_h = 3
+                bar_h = 5
+                c_track = 0x1A1A2E
+
+                # Track backgrounds (full-width dim rail)
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 570, bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
 
                 # Home Possession Bar (growing leftwards from 770)
                 if h_bar_w > 0:
@@ -1976,6 +2085,29 @@ def UCLListEntry(entry):
                 # Away Possession Bar (growing rightwards from 1150)
                 if a_bar_w > 0:
                     res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
+
+                # Extra Percentage Bars (distinct colors per stat, with dim tracks)
+                stat_colors = [0x00BBFF, 0xFF9900, 0xFFDD00, 0xBB66FF]
+                stat_track  = [0x002233, 0x261500, 0x262200, 0x1A0D22]
+                stat_y = 72
+                stat_h = 4
+                stat_stride = 7
+                max_stats = max(len(h_pct_stats), len(a_pct_stats))
+                for i in range(min(4, max_stats)):
+                    y_pos = stat_y + (i * stat_stride)
+                    c = stat_colors[i % len(stat_colors)]
+                    ct = stat_track[i % len(stat_track)]
+                    # Track backgrounds
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 570, y_pos, max_w, stat_h, 0, RT_HALIGN_CENTER, "", ct, ct, ct, ct))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, y_pos, max_w, stat_h, 0, RT_HALIGN_CENTER, "", ct, ct, ct, ct))
+                    if i < len(h_pct_stats):
+                        bw = int(max_w * (min(100.0, max(0.0, h_pct_stats[i])) / 100.0))
+                        if bw > 0:
+                            res.append((eListboxPythonMultiContent.TYPE_TEXT, 770 - bw, y_pos, bw, stat_h, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+                    if i < len(a_pct_stats):
+                        bw = int(max_w * (min(100.0, max(0.0, a_pct_stats[i])) / 100.0))
+                        if bw > 0:
+                            res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, y_pos, bw, stat_h, 0, RT_HALIGN_CENTER, "", c, c, c, c))
 
 
 
@@ -2200,9 +2332,6 @@ class SportsMonitor:
         self.timer = eTimer()
         safe_connect(self.timer, self.check_goals)
 
-        self.votes_timer = eTimer()
-        safe_connect(self.votes_timer, self.fetch_all_community_votes)
-        self.votes_timer.start(300000, False) # Fetch votes every 300s
 
         # AI Mode state
         self.ai_enabled = False
@@ -2255,7 +2384,6 @@ class SportsMonitor:
         self._dead_summary_eids = set()  # EIDs that failed 3+ times, skip for session
 
         self.load_cache()
-        self.fetch_all_community_votes()
 
         self.load_config()
         self.load_ledger()
@@ -2299,8 +2427,6 @@ class SportsMonitor:
             self.callbacks.append(func)
             # If this is the first UI listener, fetch votes immediately so
             # the screen doesn't have to wait up to 60 s for the timer tick.
-            if len(self.callbacks) == 1:
-                self.fetch_all_community_votes()
             self.ensure_timer_state() # Ensure timer starts if it was idle
     def unregister_callback(self, func):
         if func in self.callbacks:
@@ -6331,6 +6457,7 @@ class GameInfoScreen(Screen):
                     a_nm = getattr(self, 'a_team_name', 'Away')
                     if global_sports_monitor:
                         global_sports_monitor.add_pending_bet(self.event_id, team_type, sport, league, h_nm, a_nm)
+                        global_sports_monitor.fetch_all_community_votes()
 
                     # 3. --- REBUILD VOTE ROWS IN MEMORY FOR INSTANT REFRESH ---
                     h_votes = self.community_votes.get('home', 0)
@@ -11086,17 +11213,34 @@ class SimpleSportsScreen(Screen):
             self.update_header()
 
     # ... (Keep Header, Filter, Download helpers unchanged) ...
-    def update_header(self):
+    def update_header(self, count=None, count_live=0, count_fin=0, count_sch=0):
         if self.monitor.is_custom_mode: self["league_title"].setText(_t("Custom League View"))
         else:
             try: item = DATA_SOURCES[self.monitor.current_league_index]; self["league_title"].setText(item[0])
             except: pass
+            
         mode = self.monitor.filter_mode
-        if mode == 0: self["list_title"].setText(_t("Yesterday's Matches"))
-        elif mode == 1: self["list_title"].setText(_t("Live Matches"))
-        elif mode == 2: self["list_title"].setText(_t("Today's Matches"))
-        elif mode == 3: self["list_title"].setText(_t("Tomorrow's Matches"))
-        elif mode == 4: self["list_title"].setText(_t("All Matches"))
+        title_str = ""
+        if mode == 0: title_str = _t("Yesterday's Matches")
+        elif mode == 1: title_str = _t("Live Matches")
+        elif mode == 2: title_str = _t("Today's Matches")
+        elif mode == 3: title_str = _t("Tomorrow's Matches")
+        elif mode == 4: title_str = _t("All Matches")
+        
+        if count is not None and title_str:
+            breakdown = "{}".format(count)
+            parts = []
+            if count_live > 0: parts.append("{} {}".format(count_live, _t("Live")))
+            if count_fin > 0: parts.append("{} {}".format(count_fin, _t("Fin")))
+            if count_sch > 0: parts.append("{} {}".format(count_sch, _t("Sch")))
+            # Reverse order for RTL (Arabic) so it reads naturally right-to-left
+            if PLUGIN_LANGUAGE == "ar":
+                parts.reverse()
+            if parts:
+                breakdown += " - " + " / ".join(parts)
+            title_str = "{}  ({})".format(title_str, breakdown)
+            
+        self["list_title"].setText(title_str)
         # Green button: show 'Driver Position' for racing, 'Mini Bar' otherwise
         try:
             if not self.monitor.is_custom_mode:
@@ -11534,7 +11678,6 @@ class SimpleSportsScreen(Screen):
             log_diag("REFRESH_UI: SKIPPED (not success, not forced)")
             return
 
-        self.update_header()
         events = self.monitor.cached_events
 
         # --- CURSOR PRESERVATION LOGIC START ---
@@ -11684,7 +11827,7 @@ class SimpleSportsScreen(Screen):
                         # Convert back to hex
                         c_score_bg = (r << 16) | (g << 8) | b
 
-                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0))
+                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0), snap.get('h_pct_stats', []), snap.get('a_pct_stats', []), snap.get('h_shots', 0), snap.get('a_shots', 0), snap.get('h_on_target', 0), snap.get('a_on_target', 0))
 
                 # Store raw data for sorting (include event for excitement calculation)
                 raw_entries.append((entry_data, match_id, is_live, event))
@@ -11774,13 +11917,23 @@ class SimpleSportsScreen(Screen):
                 list_content.append(SportListEntry(entry_data))
                 new_match_ids.append(match_id)
 
+        # Count match states for header breakdown
+        count_live = 0; count_fin = 0; count_sch = 0
+        for entry_data, match_id, is_live, event in raw_entries:
+            status_val = entry_data[0] if entry_data else ""
+            if status_val == "LIVE": count_live += 1
+            elif status_val == "FIN": count_fin += 1
+            else: count_sch += 1
+
         if not list_content:
+            self.update_header(0, count_live, count_fin, count_sch)
             msg = self.monitor.status_message or "No Matches Found"
             dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0)
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
             else: self["list"].setList([SportListEntry(dummy_entry)])
             self.current_match_ids = []
         else:
+            self.update_header(len(list_content), count_live, count_fin, count_sch)
             if getattr(self["list"], "list", None) is not None and self.current_match_ids == new_match_ids and len(self["list"].list) == len(list_content):
                 # Optimization: In-place update prevents cursor jumping and UI flickering
                 for i in range(len(list_content)):
@@ -13359,6 +13512,7 @@ class LeaderboardScreen(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
         self.setTitle("SimplySports: Global Leaderboard")
+        if global_sports_monitor: global_sports_monitor.fetch_all_community_votes()
 
         theme = getattr(global_sports_monitor, "theme_mode", "default") if global_sports_monitor else "default"
         if theme == "ucl":
@@ -13629,6 +13783,7 @@ class PersonalProfileScreen(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
         self.setTitle("SimplySports: My Profile")
+        if global_sports_monitor: global_sports_monitor.fetch_all_community_votes()
 
         theme = getattr(global_sports_monitor, "theme_mode", "default") if global_sports_monitor else "default"
         self._theme = theme
