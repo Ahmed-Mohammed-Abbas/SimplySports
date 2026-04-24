@@ -107,7 +107,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "5.3"
+VERSION = "5.4"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -257,6 +257,14 @@ TRANSLATIONS = {
     # ── Zap notification screen ───────────────────────────────────────────────
     "Match is starting! Zap to channel?": {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629 \u0639\u0644\u0649 \u0648\u0634\u0643 \u0627\u0644\u0628\u062f\u0621! \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0625\u0644\u0649 \u0627\u0644\u0642\u0646\u0627\u0629\u061f"},
     "Zap Now":                    {"ar": u"\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u0622\u0646"},
+    "MATCH STARTED":              {"ar": u"\u0628\u062f\u0623\u062a \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "FULL TIME":                  {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "HALF TIME":                  {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0634\u0648\u0637 \u0627\u0644\u0623\u0648\u0644"},
+    "RACE STARTING":              {"ar": u"\u0628\u062f\u0623 \u0627\u0644\u0633\u0628\u0627\u0642"},
+    "RACE FINISHED":              {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0633\u0628\u0627\u0642"},
+    "2ND HALF STARTED":           {"ar": u"\u0628\u062f\u0627\u064a\u0629 \u0627\u0644\u0634\u0648\u0637 \u0627\u0644\u062b\u0627\u0646\u064a"},
+    "Match Start":                {"ar": u"\u0628\u062f\u0627\u064a\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Full Time":                  {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     # ── League selector screen ────────────────────────────────────────────────
     "Select Custom Leagues":      {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
     "Select League":              {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a"},
@@ -280,6 +288,9 @@ TRANSLATIONS = {
     "Correct:":                   {"ar": u"\u0627\u0644\u0635\u062d\u064a\u062d\u0629:"},
     "No resolved bets yet":       {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0631\u0647\u0627\u0646\u0627\u062a \u0645\u062d\u0633\u0648\u0645\u0629 \u0628\u0639\u062f"},
     "vote on a match to start!":  {"ar": u"\u0635\u0648\u0651\u062a \u0639\u0644\u0649 \u0645\u0628\u0627\u0631\u0627\u0629 \u0644\u0644\u0628\u062f\u0621!"},
+    "PENDING":                    {"ar": u"\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631"},
+    "Awaiting results":           {"ar": u"\u0641\u064a \u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0646\u062a\u0627\u0626\u062c"},
+    "pending":                    {"ar": u"\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631"},
     # ── Update system ─────────────────────────────────────────────────────────
     "CHECKING FOR UPDATES...":    {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u062a\u062d\u062f\u064a\u062b\u0627\u062a..."},
     "FETCHING FILE LIST...":      {"ar": u"\u062c\u0644\u0628 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0644\u0641\u0627\u062a..."},
@@ -287,8 +298,299 @@ TRANSLATIONS = {
     "Update check failed.":       {"ar": u"\u0641\u0634\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u062a\u062d\u062f\u064a\u062b\u0627\u062a."},
     "Update available: ":         {"ar": u"\u064a\u0648\u062c\u062f \u062a\u062d\u062f\u064a\u062b: "},
     "Update now?":                {"ar": u"\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0622\u0646\u061f"},
+    # ── League selector — sport group headers ────────────────────────────────
+    "SOCCER":                         {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645"},
+    "BASKETBALL":                     {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629"},
+    "AMERICAN FOOTBALL":              {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0623\u0645\u0631\u064a\u0643\u064a\u0629"},
+    "ICE HOCKEY":                     {"ar": u"\u0647\u0648\u0643\u064a \u0627\u0644\u062c\u0644\u064a\u062f"},
+    "BASEBALL":                       {"ar": u"\u0627\u0644\u0628\u064a\u0633\u0628\u0648\u0644"},
+    "RACING":                         {"ar": u"\u0633\u0628\u0627\u0642\u0627\u062a \u0627\u0644\u0633\u064a\u0627\u0631\u0627\u062a"},
+    "TENNIS":                         {"ar": u"\u0627\u0644\u062a\u0646\u0633"},
+    "RUGBY UNION":                    {"ar": u"\u0627\u0644\u0631\u0643\u0628\u064a"},
+    "RUGBY LEAGUE":                   {"ar": u"\u062f\u0648\u0631\u064a \u0627\u0644\u0631\u0643\u0628\u064a"},
+    "CRICKET":                        {"ar": u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a"},
+    "GOLF":                           {"ar": u"\u0627\u0644\u063a\u0648\u0644\u0641"},
+    "BOXING":                         {"ar": u"\u0627\u0644\u0645\u0644\u0627\u0643\u0645\u0629"},
+    "MMA":                            {"ar": u"\u0627\u0644\u0641\u0646\u0648\u0646 \u0627\u0644\u0642\u062a\u0627\u0644\u064a\u0629 \u0627\u0644\u0645\u062e\u062a\u0644\u0637\u0629"},
+    "LACROSSE":                       {"ar": u"\u0627\u0644\u0644\u0627\u0643\u0631\u0648\u0633"},
+    "(WOMEN)":                        {"ar": u"(\u0646\u0633\u0627\u0621)"},
 }
 
+
+# ==============================================================================
+# LEAGUE NAME TRANSLATIONS (Arabic)
+# Maps English DATA_SOURCES names -> Arabic display names.
+# Used ONLY for display in LeagueSelector; all internal logic uses the original
+# English key so sorting, URL building and data matching are unaffected.
+# ==============================================================================
+LEAGUE_NAMES_AR = {
+    # ── International / FIFA ────────────────────────────────────────────────
+    u"World Cup Qualifying - UEFA":                   u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 - \u0623\u0648\u0631\u0648\u0628\u0627",
+    u"World Cup Qualifying - CAF":                    u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 - \u0623\u0641\u0631\u064a\u0642\u064a\u0627",
+    u"World Cup Qualifying - AFC":                    u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 - \u0622\u0633\u064a\u0627",
+    u"FIFA World Cup Qualifying - Playoff":           u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 - \u0645\u0644\u062d\u0642",
+    u"World Cup Qualifying - CONMEBOL":               u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 - \u0623\u0645\u0631\u064a\u0643\u0627 \u0627\u0644\u062c\u0646\u0648\u0628\u064a\u0629",
+    u"World Cup Qualifying - OFC":                    u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 - \u0623\u0648\u0642\u064a\u0627\u0646\u0648\u0633\u064a\u0627",
+    u"World Cup Qualifying":                          u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645",
+    u"International Friendly":                        u"\u0645\u0628\u0627\u0631\u0627\u0629 \u0648\u062f\u064a\u0629 \u062f\u0648\u0644\u064a\u0629",
+    u"Women's Int. Friendly":                         u"\u0645\u0628\u0627\u0631\u0627\u0629 \u0648\u062f\u064a\u0629 \u062f\u0648\u0644\u064a\u0629 (\u0646\u0633\u0627\u0621)",
+    u"Under-21 International Friendly":               u"\u0645\u0628\u0627\u0631\u0627\u0629 \u0648\u062f\u064a\u0629 \u062a\u062d\u062a 21 \u0633\u0646\u0629",
+    u"International U20 Friendly":                    u"\u0645\u0628\u0627\u0631\u0627\u0629 \u0648\u062f\u064a\u0629 \u062a\u062d\u062a 20 \u0633\u0646\u0629",
+    u"FIFA World Cup":                                u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645",
+    u"FIFA Women's World Cup":                        u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 \u0644\u0644\u0646\u0633\u0627\u0621",
+    u"FIFA Club World Cup":                           u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 \u0644\u0644\u0623\u0646\u062f\u064a\u0629",
+    u"FIFA Intercontinental Cup":                     u"\u0643\u0623\u0633 \u0627\u0644\u0642\u0627\u0631\u0627\u062a",
+    u"FIFA Under-20 World Cup":                       u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 \u062a\u062d\u062a 20 \u0633\u0646\u0629",
+    u"FIFA Under-17 World Cup":                       u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 \u062a\u062d\u062a 17 \u0633\u0646\u0629",
+    u"FIFA Under-17 Women's World Cup":               u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 \u062a\u062d\u062a 17 \u0633\u0646\u0629 (\u0646\u0633\u0627\u0621)",
+    u"FIFA Women's Champions Cup":                    u"\u0643\u0623\u0633 \u0628\u0637\u0644\u0627\u062a \u0627\u0644\u0639\u0627\u0644\u0645",
+    u"FIFA Women's World Cup Qualifying - Playoff":   u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 \u0644\u0644\u0646\u0633\u0627\u0621 - \u0645\u0644\u062d\u0642",
+    u"FIFA Women's World Cup Qualifying - UEFA":      u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 \u0644\u0644\u0646\u0633\u0627\u0621 - \u0623\u0648\u0631\u0648\u0628\u0627",
+    u"SheBelieves Cup":                               u"\u0643\u0623\u0633 SheBelieves",
+    u"Men's Olympic Soccer Tournament":               u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0623\u0648\u0644\u0645\u0628\u064a\u0629 (\u0631\u062c\u0627\u0644)",
+    u"Women's Olympic Soccer Tournament":             u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0623\u0648\u0644\u0645\u0628\u064a\u0629 (\u0646\u0633\u0627\u0621)",
+    # ── UEFA ────────────────────────────────────────────────────────────────
+    u"UEFA Champions League":                         u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0623\u0648\u0631\u0648\u0628\u0627",
+    u"UEFA Europa League":                            u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a",
+    u"UEFA Conference League":                        u"\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0624\u062a\u0645\u0631 \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a",
+    u"UEFA Nations League":                           u"\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0645\u0645 \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a\u0629",
+    u"UEFA Euro Qualifiers":                          u"\u062a\u0635\u0641\u064a\u0627\u062a \u064a\u0648\u0631\u0648",
+    u"UEFA U21 Qualifiers":                           u"\u062a\u0635\u0641\u064a\u0627\u062a \u064a\u0648\u0631\u0648 \u062a\u062d\u062a 21 \u0633\u0646\u0629",
+    u"UEFA Women's Champions League":                 u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0623\u0648\u0631\u0648\u0628\u0627 \u0644\u0644\u0646\u0633\u0627\u0621",
+    u"UEFA Super Cup":                                u"\u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a",
+    u"UEFA European Championship":                    u"\u0628\u0637\u0648\u0644\u0629 \u0623\u0648\u0631\u0648\u0628\u0627",
+    u"UEFA Women's European Championship":            u"\u0628\u0637\u0648\u0644\u0629 \u0623\u0648\u0631\u0648\u0628\u0627 \u0644\u0644\u0646\u0633\u0627\u0621",
+    u"UEFA European Under-21 Championship":           u"\u0628\u0637\u0648\u0644\u0629 \u0623\u0648\u0631\u0648\u0628\u0627 \u062a\u062d\u062a 21 \u0633\u0646\u0629",
+    u"UEFA European Under-19 Championship":           u"\u0628\u0637\u0648\u0644\u0629 \u0623\u0648\u0631\u0648\u0628\u0627 \u062a\u062d\u062a 19 \u0633\u0646\u0629",
+    u"UEFA Women's Nations League":                   u"\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0645\u0645 \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a\u0629 \u0644\u0644\u0646\u0633\u0627\u0621",
+    u"UEFA Champions League Qualifying":              u"\u062a\u0635\u0641\u064a\u0627\u062a \u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0628\u0637\u0627\u0644",
+    u"UEFA Europa League Qualifying":                 u"\u062a\u0635\u0641\u064a\u0627\u062a \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a",
+    u"UEFA Conference League Qualifying":             u"\u062a\u0635\u0641\u064a\u0627\u062a \u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0624\u062a\u0645\u0631 \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a",
+    u"CONMEBOL-UEFA Cup of Champions":                u"\u0643\u0623\u0633 \u0627\u0644\u0623\u0628\u0637\u0627\u0644 CONMEBOL-UEFA",
+    # ── England ─────────────────────────────────────────────────────────────
+    u"Premier League":                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"English Premier League":                        u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Championship":                                  u"\u062f\u0648\u0631\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u0623\u0648\u0644\u0649 \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a",
+    u"League One":                                    u"\u062f\u0648\u0631\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629 \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a",
+    u"League Two":                                    u"\u062f\u0648\u0631\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0644\u062b\u0629 \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a",
+    u"FA Cup":                                        u"\u0643\u0623\u0633 \u0627\u0644\u0627\u062a\u062d\u0627\u062f \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a",
+    u"Carabao Cup":                                   u"\u0643\u0623\u0633 \u0627\u0644\u0631\u0627\u0628\u0637\u0629 \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629",
+    u"Community Shield":                              u"\u062f\u0631\u0639 \u0627\u0644\u0645\u062c\u062a\u0645\u0639",
+    u"Women's Super League":                          u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a \u0627\u0644\u0646\u0633\u0627\u0626\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Women's FA Cup":                                u"\u0643\u0623\u0633 \u0627\u0644\u0627\u062a\u062d\u0627\u062f \u0644\u0644\u0646\u0633\u0627\u0621",
+    u"EFL Trophy":                                    u"\u0643\u0623\u0633 EFL",
+    u"National League":                               u"\u0627\u0644\u0631\u0627\u0628\u0637\u0629 \u0627\u0644\u0648\u0637\u0646\u064a\u0629 \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629",
+    u"Premier League Asia Trophy":                    u"\u0643\u0623\u0633 \u0622\u0633\u064a\u0627 \u0644\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a",
+    u"English Women's FA Community Shield":           u"\u062f\u0631\u0639 \u0627\u0644\u0645\u062c\u062a\u0645\u0639 \u0644\u0644\u0646\u0633\u0627\u0621",
+    # ── Spain ───────────────────────────────────────────────────────────────
+    u"La Liga":                                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a",
+    u"Spanish La Liga":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a",
+    u"La Liga 2":                                     u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a \u0627\u0644\u062b\u0627\u0646\u064a",
+    u"Copa del Rey":                                  u"\u0643\u0623\u0633 \u0627\u0644\u0645\u0644\u0643 \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a",
+    u"Spanish Supercopa":                             u"\u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a",
+    u"Liga F (Women)":                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a \u0627\u0644\u0646\u0633\u0627\u0626\u064a",
+    u"Copa de la Reina":                              u"\u0643\u0623\u0633 \u0627\u0644\u0645\u0644\u0643\u0629 \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a\u0629",
+    u"Trofeo Joan Gamper":                            u"\u0643\u0623\u0633 \u062e\u0648\u0627\u0646 \u063a\u0627\u0645\u0628\u0631",
+    # ── Italy ───────────────────────────────────────────────────────────────
+    u"Serie A":                                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u064a\u0637\u0627\u0644\u064a",
+    u"Italian Serie A":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u064a\u0637\u0627\u0644\u064a",
+    u"Serie B":                                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u064a\u0637\u0627\u0644\u064a \u0627\u0644\u062b\u0627\u0646\u064a",
+    u"Coppa Italia":                                  u"\u0643\u0623\u0633 \u0625\u064a\u0637\u0627\u0644\u064a\u0627",
+    u"Italian Supercoppa":                            u"\u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0625\u064a\u0637\u0627\u0644\u064a",
+    # ── Germany ─────────────────────────────────────────────────────────────
+    u"Bundesliga":                                    u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a",
+    u"German Bundesliga":                             u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a",
+    u"2. Bundesliga":                                 u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a \u0627\u0644\u062b\u0627\u0646\u064a",
+    u"3. Liga":                                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a \u0627\u0644\u062b\u0627\u0644\u062b",
+    u"DFB Pokal":                                     u"\u0643\u0623\u0633 \u0623\u0644\u0645\u0627\u0646\u064a\u0627",
+    u"German Supercup":                               u"\u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a",
+    u"German Bundesliga Promotion/Relegation Playoff": u"\u0645\u0644\u062d\u0642 \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a",
+    u"German Bundesliga 2 Promotion/Relegation Playoffs": u"\u0645\u0644\u062d\u0642 \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a \u0627\u0644\u062b\u0627\u0646\u064a",
+    # ── France ──────────────────────────────────────────────────────────────
+    u"Ligue 1":                                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0631\u0646\u0633\u064a",
+    u"French Ligue 1":                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0631\u0646\u0633\u064a",
+    u"Ligue 2":                                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0631\u0646\u0633\u064a \u0627\u0644\u062b\u0627\u0646\u064a",
+    u"Coupe de France":                               u"\u0643\u0623\u0633 \u0641\u0631\u0646\u0633\u0627",
+    u"Premiere Ligue (Women)":                        u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0631\u0646\u0633\u064a \u0627\u0644\u0646\u0633\u0627\u0626\u064a",
+    u"French Trophee des Champions":                  u"\u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0641\u0631\u0646\u0633\u064a",
+    # ── Netherlands ─────────────────────────────────────────────────────────
+    u"Eredivisie":                                    u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0648\u0644\u0646\u062f\u064a",
+    u"Eerste Divisie":                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0648\u0644\u0646\u062f\u064a \u0627\u0644\u062b\u0627\u0646\u064a",
+    u"KNVB Beker":                                    u"\u0643\u0623\u0633 \u0647\u0648\u0644\u0646\u062f\u0627",
+    u"Johan Cruyff Shield":                           u"\u062f\u0631\u0639 \u064a\u0648\u0647\u0627\u0646 \u0643\u0631\u0648\u064a\u0641",
+    u"Dutch Tweede Divisie":                          u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0648\u0644\u0646\u062f\u064a \u0627\u0644\u062b\u0627\u0644\u062b",
+    u"Dutch Vrouwen Eredivisie":                      u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0648\u0644\u0646\u062f\u064a \u0627\u0644\u0646\u0633\u0627\u0626\u064a",
+    u"Dutch KNVB Beker Vrouwen":                      u"\u0643\u0623\u0633 \u0647\u0648\u0644\u0646\u062f\u0627 \u0627\u0644\u0646\u0633\u0627\u0626\u064a",
+    # ── Portugal ────────────────────────────────────────────────────────────
+    u"Primeira Liga":                                 u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0631\u062a\u063a\u0627\u0644\u064a",
+    u"Liga 2 Portugal":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0631\u062a\u063a\u0627\u0644\u064a \u0627\u0644\u062b\u0627\u0646\u064a",
+    u"Taca de Portugal":                              u"\u0643\u0623\u0633 \u0627\u0644\u0628\u0631\u062a\u063a\u0627\u0644",
+    u"Taca de Liga":                                  u"\u0643\u0623\u0633 \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0631\u062a\u063a\u0627\u0644\u064a",
+    # ── Scotland ────────────────────────────────────────────────────────────
+    u"Scottish Premiership":                          u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0627\u0633\u0643\u062a\u0644\u0646\u062f\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Scottish Championship":                         u"\u0628\u0637\u0648\u0644\u0629 \u0627\u0633\u0643\u062a\u0644\u0646\u062f\u0627",
+    u"Scottish League One":                           u"\u062f\u0648\u0631\u064a \u0627\u0633\u0643\u062a\u0644\u0646\u062f\u0627 \u0627\u0644\u0623\u0648\u0644",
+    u"Scottish League Two":                           u"\u062f\u0648\u0631\u064a \u0627\u0633\u0643\u062a\u0644\u0646\u062f\u0627 \u0627\u0644\u062b\u0627\u0646\u064a",
+    u"Scottish Cup":                                  u"\u0643\u0623\u0633 \u0627\u0633\u0643\u062a\u0644\u0646\u062f\u0627",
+    u"Scottish League Cup":                           u"\u0643\u0623\u0633 \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0627\u0633\u0643\u062a\u0644\u0646\u062f\u064a",
+    u"Scottish Challenge Cup":                        u"\u0643\u0623\u0633 \u0627\u0644\u062a\u062d\u062f\u064a \u0627\u0644\u0627\u0633\u0643\u062a\u0644\u0646\u062f\u064a",
+    # ── Turkey ──────────────────────────────────────────────────────────────
+    u"Super Lig":                                     u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u062a\u0631\u0643\u064a",
+    u"Turkish Cup":                                   u"\u0643\u0623\u0633 \u062a\u0631\u0643\u064a\u0627",
+    # ── Belgium ─────────────────────────────────────────────────────────────
+    u"Belgian Pro League":                            u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0644\u062c\u064a\u0643\u064a",
+    u"Belgian Cup":                                   u"\u0643\u0623\u0633 \u0628\u0644\u062c\u064a\u0643\u0627",
+    # ── Other Europe ────────────────────────────────────────────────────────
+    u"Austrian Bundesliga":                           u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0646\u0645\u0633\u0627\u0648\u064a",
+    u"Swiss Super League":                            u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0633\u0648\u064a\u0633\u0631\u064a",
+    u"Danish Superliga":                              u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u062f\u0646\u0645\u0627\u0631\u0643\u064a",
+    u"Swedish Allsvenskan":                           u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0633\u0648\u064a\u062f\u064a",
+    u"Norwegian Eliteserien":                         u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0646\u0631\u0648\u064a\u062c\u064a",
+    u"Greek Super League":                            u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u064a\u0648\u0646\u0627\u0646\u064a",
+    u"Czech First League":                            u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u062a\u0634\u064a\u0643\u064a",
+    u"Polish Ekstraklasa":                            u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0648\u0644\u0646\u062f\u064a",
+    u"Russian Premier League":                        u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0631\u0648\u0633\u064a",
+    u"Ukrainian Premier League":                      u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0648\u0643\u0631\u0627\u0646\u064a",
+    u"Romanian Liga I":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0631\u0648\u0645\u0627\u0646\u064a",
+    u"Hungarian NB I":                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0646\u063a\u0627\u0631\u064a",
+    u"Ireland Premier":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u064a\u0631\u0644\u0646\u062f\u064a",
+    u"Cypriot First Division":                        u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0642\u0628\u0631\u0635\u064a",
+    # ── Americas ────────────────────────────────────────────────────────────
+    u"MLS":                                           u"\u062f\u0648\u0631\u064a \u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0623\u0645\u0631\u064a\u0643\u064a",
+    u"USL Championship":                              u"\u0628\u0637\u0648\u0644\u0629 USL",
+    u"USL League One":                                u"\u062f\u0648\u0631\u064a USL \u0627\u0644\u0623\u0648\u0644",
+    u"USL Super League":                              u"\u062f\u0648\u0631\u064a USL \u0627\u0644\u0645\u0645\u062a\u0627\u0632 (\u0646\u0633\u0627\u0621)",
+    u"NWSL":                                          u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0646\u0633\u0627\u0626\u064a \u0627\u0644\u0623\u0645\u0631\u064a\u0643\u064a",
+    u"NWSL Challenge Cup":                            u"\u0643\u0623\u0633 NWSL",
+    u"NWSL X Liga MX Femenil Summer Cup":             u"\u0643\u0623\u0633 \u0635\u064a\u0641 NWSL x Liga MX",
+    u"U.S. Open Cup":                                 u"\u0643\u0623\u0633 \u0627\u0644\u0648\u0644\u0627\u064a\u0627\u062a \u0627\u0644\u0645\u062a\u062d\u062f\u0629 \u0627\u0644\u0645\u0641\u062a\u0648\u062d\u0629",
+    u"Canadian Premier League":                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0643\u0646\u062f\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Northern Super League (Canada)":                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0643\u0646\u062f\u064a \u0627\u0644\u0646\u0633\u0627\u0626\u064a",
+    u"NCAA Men's Soccer":                             u"\u062f\u0648\u0631\u064a NCAA \u0644\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 (\u0631\u062c\u0627\u0644)",
+    u"NCAA Women's Soccer":                           u"\u062f\u0648\u0631\u064a NCAA \u0644\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 (\u0646\u0633\u0627\u0621)",
+    u"Liga MX":                                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0643\u0633\u064a\u0643\u064a",
+    u"Mexican Liga de Expansion MX":                  u"\u062f\u0648\u0631\u064a \u0627\u0644\u062a\u0648\u0633\u0639 \u0627\u0644\u0645\u0643\u0633\u064a\u0643\u064a",
+    u"Mexican Campeon de Campeones":                  u"\u0643\u0623\u0633 \u0628\u0637\u0644 \u0627\u0644\u0623\u0628\u0637\u0627\u0644 \u0627\u0644\u0645\u0643\u0633\u064a\u0643\u064a",
+    u"Mexican Supercopa MX":                          u"\u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0645\u0643\u0633\u064a\u0643\u064a",
+    u"Concacaf Champions Cup":                        u"\u0643\u0623\u0633 \u0623\u0628\u0637\u0627\u0644 \u0627\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641",
+    u"Concacaf Gold Cup":                             u"\u0643\u0623\u0633 \u0627\u0644\u0630\u0647\u0628",
+    u"Concacaf Nations League":                       u"\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0645\u0645 \u0627\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641",
+    u"Concacaf W Gold Cup":                           u"\u0643\u0623\u0633 \u0627\u0644\u0630\u0647\u0628 (\u0646\u0633\u0627\u0621)",
+    u"Concacaf W Champions Cup":                      u"\u0643\u0623\u0633 \u0627\u0644\u0623\u0628\u0637\u0627\u0644 \u0644\u0644\u0646\u0633\u0627\u0621",
+    u"Leagues Cup":                                   u"\u0643\u0623\u0633 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a",
+    u"Campeones Cup":                                 u"\u0643\u0623\u0633 \u0627\u0644\u0623\u0628\u0637\u0627\u0644",
+    u"Brasileirao":                                   u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644\u064a",
+    u"Serie B Brazil":                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644\u064a \u0627\u0644\u062b\u0627\u0646\u064a",
+    u"Copa do Brasil":                                u"\u0643\u0623\u0633 \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644",
+    u"Argentina Primera":                             u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0631\u062c\u0646\u062a\u064a\u0646\u064a",
+    u"Copa Argentina":                                u"\u0643\u0623\u0633 \u0627\u0644\u0623\u0631\u062c\u0646\u062a\u064a\u0646",
+    u"Colombia Primera A":                            u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0643\u0648\u0644\u0648\u0645\u0628\u064a",
+    u"Chilean Primera":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u062a\u0634\u064a\u0644\u064a",
+    u"Ecuador Primera A":                             u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0643\u0648\u0627\u062f\u0648\u0631\u064a",
+    u"Paraguay Primera":                              u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0627\u0631\u0627\u063a\u0648\u0627\u064a\u0627\u0646\u064a",
+    u"Uruguay Primera":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0648\u0631\u0648\u063a\u0648\u0627\u064a\u0627\u0646\u064a",
+    u"Venezuela Primera":                             u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0646\u0632\u0648\u064a\u0644\u064a",
+    u"Peruvian Primera":                              u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u064a\u0631\u0648\u0641\u064a",
+    u"Bolivian Primera":                              u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0648\u0644\u064a\u0641\u064a",
+    u"Copa Libertadores":                             u"\u0643\u0648\u0628\u0627 \u0644\u064a\u0628\u0631\u062a\u0627\u062f\u0648\u0631\u064a\u0633",
+    u"Copa Sudamericana":                             u"\u0643\u0648\u0628\u0627 \u0633\u0648\u062f\u0627\u0645\u064a\u0631\u064a\u0643\u0627\u0646\u0627",
+    u"Copa America":                                  u"\u0643\u0648\u0628\u0627 \u0623\u0645\u0631\u064a\u0643\u0627",
+    u"Copa America Qualifying":                       u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0648\u0628\u0627 \u0623\u0645\u0631\u064a\u0643\u0627",
+    u"Copa America Femenina":                         u"\u0643\u0648\u0628\u0627 \u0623\u0645\u0631\u064a\u0643\u0627 \u0644\u0644\u0646\u0633\u0627\u0621",
+    u"CONMEBOL Recopa":                               u"\u0631\u064a\u0643\u0648\u0628\u0627 \u0627\u0644\u0643\u0648\u0646\u0645\u064a\u0628\u0648\u0644",
+    # ── Middle East & Asia ──────────────────────────────────────────────────
+    u"Saudi Pro League":                              u"\u062f\u0648\u0631\u064a \u0631\u0648\u0634\u0646 \u0627\u0644\u0633\u0639\u0648\u062f\u064a \u0644\u0644\u0645\u062d\u062a\u0631\u0641\u064a\u0646",
+    u"Saudi Kings Cup":                               u"\u0643\u0623\u0633 \u0627\u0644\u0645\u0644\u0643 \u0627\u0644\u0633\u0639\u0648\u062f\u064a",
+    u"J1 League Japan":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u064a\u0627\u0628\u0627\u0646\u064a J1",
+    u"K League 1 Korea":                              u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0643\u0648\u0631\u064a K-League",
+    u"Chinese Super League":                          u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0635\u064a\u0646\u064a",
+    u"Indian Super League":                           u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0646\u062f\u064a",
+    u"Malaysian Super League":                        u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0627\u0644\u064a\u0632\u064a",
+    u"Indonesian Super League":                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062f\u0648\u0646\u064a\u0633\u064a",
+    u"Singaporean Premier League":                    u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0633\u0646\u063a\u0627\u0641\u0648\u0631\u064a",
+    u"AFC Champions League Elite":                    u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0622\u0633\u064a\u0627 \u0627\u0644\u0646\u062e\u0628\u0629",
+    u"AFC Champions League Two":                      u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0622\u0633\u064a\u0627 2",
+    u"AFC Asian Cup":                                 u"\u0643\u0623\u0633 \u0622\u0633\u064a\u0627",
+    # ── Oceania ─────────────────────────────────────────────────────────────
+    u"A-League Australia":                            u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0633\u062a\u0631\u0627\u0644\u064a",
+    u"A-League Women":                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0633\u062a\u0631\u0627\u0644\u064a (\u0646\u0633\u0627\u0621)",
+    # ── Africa ──────────────────────────────────────────────────────────────
+    u"Africa Cup of Nations":                         u"\u0643\u0623\u0633 \u0623\u0645\u0645 \u0623\u0641\u0631\u064a\u0642\u064a\u0627",
+    u"Africa Cup of Nations Qualifying":              u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0623\u0645\u0645 \u0623\u0641\u0631\u064a\u0642\u064a\u0627",
+    u"CAF Champions League":                          u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0623\u0641\u0631\u064a\u0642\u064a\u0627",
+    u"CAF Confederation Cup":                         u"\u0643\u0623\u0633 \u0627\u0644\u0627\u062a\u062d\u0627\u062f \u0627\u0644\u0623\u0641\u0631\u064a\u0642\u064a",
+    u"South African Premier":                         u"\u0627\u0644\u062f\u0648\u0631\u064a \u062c\u0646\u0648\u0628 \u0627\u0644\u0623\u0641\u0631\u064a\u0642\u064a",
+    u"Nigerian Professional League":                  u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0646\u064a\u062c\u064a\u0631\u064a",
+    u"Ghanaian Premier League":                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u063a\u0627\u0646\u064a",
+    u"Moroccan Botola":                               u"\u0627\u0644\u0628\u0637\u0648\u0644\u0629 \u0627\u0644\u0645\u063a\u0631\u0628\u064a\u0629",
+    # ── Basketball ──────────────────────────────────────────────────────────
+    u"NBA":                                           u"\u062f\u0648\u0631\u064a NBA",
+    u"EuroLeague Basketball":                         u"\u062f\u0648\u0631\u064a \u064a\u0648\u0631\u0648\u0644\u064a\u063a \u0644\u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629",
+    u"WNBA":                                          u"\u062f\u0648\u0631\u064a WNBA",
+    u"NCAA Basket (M)":                               u"\u062f\u0648\u0631\u064a NCAA \u0644\u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629 (\u0631\u062c\u0627\u0644)",
+    u"NCAA Basket (W)":                               u"\u062f\u0648\u0631\u064a NCAA \u0644\u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629 (\u0646\u0633\u0627\u0621)",
+    # ── American Football ───────────────────────────────────────────────────
+    u"NFL":                                           u"\u062f\u0648\u0631\u064a NFL",
+    u"NCAA Football":                                 u"\u062f\u0648\u0631\u064a NCAA \u0644\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0623\u0645\u0631\u064a\u0643\u064a\u0629",
+    u"UFL":                                           u"\u062f\u0648\u0631\u064a UFL",
+    # ── Baseball ────────────────────────────────────────────────────────────
+    u"MLB":                                           u"\u062f\u0648\u0631\u064a MLB",
+    # ── Ice Hockey ──────────────────────────────────────────────────────────
+    u"NHL":                                           u"\u062f\u0648\u0631\u064a NHL",
+    # ── Motorsport ──────────────────────────────────────────────────────────
+    u"Formula 1":                                     u"\u0627\u0644\u0641\u0648\u0631\u0645\u0648\u0644\u0627 1",
+    u"NASCAR Cup":                                    u"NASCAR - \u0627\u0644\u0643\u0623\u0633",
+    u"IndyCar":                                       u"\u0625\u0646\u062f\u064a \u0643\u0627\u0631",
+    u"MotoGP":                                        u"\u0645\u0648\u062a\u0648 \u062c\u064a \u0628\u064a",
+    u"Formula E":                                     u"\u0627\u0644\u0641\u0648\u0631\u0645\u0648\u0644\u0627 \u0627\u0644\u0643\u0647\u0631\u0628\u0627\u0626\u064a\u0629",
+    u"NASCAR Xfinity":                                u"NASCAR - Xfinity",
+    u"NASCAR Trucks":                                 u"NASCAR - Trucks",
+    # ── Combat Sports ───────────────────────────────────────────────────────
+    u"UFC / MMA":                                     u"UFC / \u0627\u0644\u0641\u0646\u0648\u0646 \u0627\u0644\u0642\u062a\u0627\u0644\u064a\u0629 \u0627\u0644\u0645\u062e\u062a\u0644\u0637\u0629",
+    u"Boxing":                                        u"\u0627\u0644\u0645\u0644\u0627\u0643\u0645\u0629",
+    # ── Golf ────────────────────────────────────────────────────────────────
+    u"PGA Tour":                                      u"\u0628\u0637\u0648\u0644\u0629 PGA",
+    u"LPGA Tour":                                     u"\u0628\u0637\u0648\u0644\u0629 LPGA",
+    u"Euro Tour":                                     u"\u0627\u0644\u062c\u0648\u0644\u0629 \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a\u0629 \u0644\u0644\u063a\u0648\u0644\u0641",
+    # ── Tennis ──────────────────────────────────────────────────────────────
+    u"ATP Tennis":                                    u"\u0628\u0637\u0648\u0644\u0629 ATP",
+    u"WTA Tennis":                                    u"\u0628\u0637\u0648\u0644\u0629 WTA",
+    u"Davis Cup":                                     u"\u0643\u0623\u0633 \u062f\u064a\u0641\u064a\u0633",
+    u"Billie Jean King Cup":                          u"\u0643\u0623\u0633 \u0628\u064a\u0644\u064a \u062c\u064a\u0646 \u0643\u064a\u0646\u063a",
+    # ── Rugby ───────────────────────────────────────────────────────────────
+    u"Rugby - Six Nations":                           u"\u0627\u0644\u0631\u0643\u0628\u064a - \u0628\u0637\u0648\u0644\u0629 \u0627\u0644\u0633\u062a \u0623\u0645\u0645",
+    u"Rugby - World Cup":                             u"\u0627\u0644\u0631\u0643\u0628\u064a - \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645",
+    u"Rugby - Super Rugby":                           u"\u0627\u0644\u0631\u0643\u0628\u064a - \u0627\u0644\u0633\u0648\u0628\u0631 \u0631\u0643\u0628\u064a",
+    u"Rugby - Premiership":                           u"\u0627\u0644\u0631\u0643\u0628\u064a - \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Rugby - Pro14":                                 u"\u0627\u0644\u0631\u0643\u0628\u064a - Pro14",
+    u"Rugby - Top 14":                                u"\u0627\u0644\u0631\u0643\u0628\u064a - Top 14",
+    u"Rugby - Champions Cup":                         u"\u0627\u0644\u0631\u0643\u0628\u064a - \u0643\u0623\u0633 \u0627\u0644\u0623\u0628\u0637\u0627\u0644",
+    u"Rugby League - NRL":                            u"\u062f\u0648\u0631\u064a \u0627\u0644\u0631\u0643\u0628\u064a - NRL",
+    u"Rugby League - Super League":                   u"\u062f\u0648\u0631\u064a \u0627\u0644\u0631\u0643\u0628\u064a - \u0627\u0644\u0633\u0648\u0628\u0631 \u0644\u064a\u063a",
+    # ── Cricket ─────────────────────────────────────────────────────────────
+    u"Cricket - IPL":                                 u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0646\u062f\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Cricket - T20 World Cup":                       u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 T20",
+    u"Cricket - ODI World Cup":                       u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 ODI",
+    u"Cricket - Test Matches":                        u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631",
+    u"Cricket - ODI":                                 u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - ODI",
+    u"Cricket - T20I":                                u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - T20I",
+    u"Cricket - Big Bash":                            u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - Big Bash",
+    u"Cricket - The Hundred":                         u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - The Hundred",
+    u"Cricket - PSL":                                 u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a - \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0627\u0643\u0633\u062a\u0627\u0646\u064a",
+    # ── Lacrosse ────────────────────────────────────────────────────────────
+    u"Lacrosse - PLL":                                u"\u0627\u0644\u0644\u0627\u0643\u0631\u0648\u0633 - PLL",
+    u"Lacrosse - NCAA Men":                           u"\u0627\u0644\u0644\u0627\u0643\u0631\u0648\u0633 - NCAA (\u0631\u062c\u0627\u0644)",
+    u"Lacrosse - NCAA Women":                         u"\u0627\u0644\u0644\u0627\u0643\u0631\u0648\u0633 - NCAA (\u0646\u0633\u0627\u0621)",
+}
+
+
+def _league_name(name):
+    """Return the translated league name for display in the active language.
+    Falls back to the original English name for any untranslated entry."""
+    global PLUGIN_LANGUAGE
+    if PLUGIN_LANGUAGE == "ar":
+        return LEAGUE_NAMES_AR.get(name, name)
+    return name
 
 
 def _t(key):
@@ -602,6 +904,8 @@ def build_ai_prompt(language, cached_events, match_snapshots, ledger=None):
 XMLTV_EPG_URL = "https://epg.pw/xmltv/epg.xml"
 EPG_SEARCH_CAT_COLOR = 0x0055CC   # blue tint for EPG-sourced entries in the list
 EPG_SEARCH_TIMEOUT   = 30         # seconds per request
+SAT_FEED_CAT_COLOR   = 0xCC7700   # amber tint for satellite-feed entries in the list
+SAT_FEED_TIMEOUT     = 20         # seconds per HTTP request for sat-feed search
 
 
 # ==============================================================================
@@ -636,7 +940,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "5.3"  # Update version to 5.3 -  a new Main UI with new bars and shots.
+CURRENT_VERSION = "5.4"  # Update version to 5.4 - Include EuroLeague basketball, Arabic translation to the notifications and league selection screen, Main screen scoreboard layout.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -836,6 +1140,8 @@ DATA_SOURCES = [
     ("AFC Asian Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/afc.asian.cup/scoreboard"),
     ("Africa Cup of Nations", "https://site.api.espn.com/apis/site/v2/sports/soccer/caf.nations/scoreboard"),
     ("NBA", "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"),
+    # EuroLeague: uses its own API (single-league mode only — not ESPN-compatible)
+    ("EuroLeague Basketball", "euroleague://api"),
     ("WNBA", "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard"),
     ("NCAA Basket (M)", "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard"),
     ("NCAA Basket (W)", "https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard"),
@@ -998,6 +1304,9 @@ def get_sport_id_prefix(league_url):
     """
     if not league_url:
         return "team_"
+    # EuroLeague sentinel URL
+    if league_url.startswith("euroleague://"):
+        return "basketball_"
 
     url_lower = league_url.lower()
     parts = url_lower.split('/')
@@ -1637,21 +1946,21 @@ def SportListEntry(entry):
         bg_accent = c_status if c_status != 0xAAAAAA else 0x2C1040
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 4, h-1, 0, RT_HALIGN_CENTER, "", bg_accent, bg_accent))
 
-        # Status: 30, 80 (+10w) | League: 110, 80 (+10w) | Home: 195, 575 (-40w, shifted +20)
+        # Status: 30, 80 | Home: 110, 660 (league column moved to center)
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 80, h-12, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
 
-        # Draw League Logo or Fallback Text
-        if l_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 125, 20, 50, 50, get_scaled_pixmap(l_png, 50, 50)))
-        else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 660, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
 
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 195, 0, 575, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
-
-        # Center Block: Logos pulled out. Y=5.
-        # Home Logo: 780 (was 800) -> 20px gap to 860.
+        # Center Block: Home logo at 780, score boxes shifted outward for league logo
         if h_png:
             res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 780, 5, 60, 60, get_scaled_pixmap(h_png, 60, 60)))
+
+        # League Logo / Text — centered between score boxes (replaces hyphen)
+        # League logo y=10 so vertical center (35) aligns with team logos (y=5, h=60, center=35)
+        if l_png:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 935, 10, 50, 50, get_scaled_pixmap(l_png, 50, 50)))
+        else:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 930, 0, 60, h-12, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
 
         if "-" in score_text:
             parts = score_text.split('-')
@@ -1662,15 +1971,14 @@ def SportListEntry(entry):
             if max_len > 8: font_idx = 3
             elif max_len > 5: font_idx = 0
 
-            # SCORE BOX: Increased contrast and refined background
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
-            # Hyphen Y=-10
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 940, -10, 40, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
+            # SCORE BOX: shifted outward to make room for league logo at center
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h-12, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
+            # Scheduled match: time/status text below centered league logo
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 62, 220, 22, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
-        # Away Logo: 1080 (was 1060) -> 20px gap from 1060.
+        # Away Logo: 1080
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 5, 60, 60, get_scaled_pixmap(a_png, 60, 60)))
 
         # Away Name: 1150 (was 1130), 520 (Reduced for Time move)
@@ -1680,10 +1988,10 @@ def SportListEntry(entry):
         if status == "LIVE" and (h_shots > 0 or a_shots > 0):
             h_shot_str = "{}({})".format(h_shots, h_on_target)
             a_shot_str = "{}({})".format(a_shots, a_on_target)
-            # Home shots centered under home score box (x=860, w=80)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
-            # Away shots centered under away score box (x=980, w=80)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
+            # Home shots centered under home score box (x=850, w=80)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
+            # Away shots centered under away score box (x=990, w=80)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
 
         # --- Live Possession & Performance Bars ---
         if status == "LIVE":
@@ -1737,8 +2045,8 @@ def SportListEntry(entry):
         c_time = c_live if status == "LIVE" else c_dim
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1710, 0, 180, h-12, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_time, c_sel))
 
-        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
-        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
+        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1070, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
 
         # Red Card Indicators (image or text fallback)
         if h_red_cards > 0 or a_red_cards > 0:
@@ -1754,17 +2062,17 @@ def SportListEntry(entry):
             if h_red_cards > 0:
                 if rc_img:
                     for i in range(h_red_cards):
-                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 842, 34 + 24 * i, 16, 22, rc_img))
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 832, 34 + 24 * i, 16, 22, rc_img))
                 else:
                     rc_txt = "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards)
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
             if a_red_cards > 0:
                 if rc_img:
                     for i in range(a_red_cards):
-                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1062, 34 + 24 * i, 16, 22, rc_img))
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1072, 34 + 24 * i, 16, 22, rc_img))
                 else:
                     rc_txt = "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards)
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1070, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
 
         # Modern Separator: Deep purple hairline
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, h-2, 1880, 1, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
@@ -2022,18 +2330,19 @@ def UCLListEntry(entry):
                 # Zebra stripe for UCL: darker blue
                 res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1920, h, 0, RT_HALIGN_CENTER, "", 0x050a2e, 0x050a2e))
 
-        # Status: 30, 80 (+10w) | League: 110, 80 (+10w) | Home: 195, 575 (-40w, shifted +20)
+        # Status: 30, 80 | Home: 110, 660 (league column moved to center)
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 80, h-12, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, c_status, c_sel))
 
-        # Draw League Logo or Fallback Text
-        if l_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 125, 20, 50, 50, get_scaled_pixmap(l_png, 50, 50)))
-        else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 80, h-12, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
-
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 195, 0, 575, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 660, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
 
         if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 780, 5, 60, 60, get_scaled_pixmap(h_png, 60, 60)))
+
+        # League Logo / Text — centered between score boxes (replaces hyphen)
+        # League logo y=10 so vertical center (35) aligns with team logos (y=5, h=60, center=35)
+        if l_png:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 935, 10, 50, 50, get_scaled_pixmap(l_png, 50, 50)))
+        else:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 930, 0, 60, h-12, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
 
         if "-" in score_text:
             parts = score_text.split('-')
@@ -2044,12 +2353,12 @@ def UCLListEntry(entry):
             if max_len > 8: font_idx = 3
             elif max_len > 5: font_idx = 0
 
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
-            # Hyphen lifted to -10
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 940, -10, 40, h, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "-", c_dim, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
+            # SCORE BOX: shifted outward for league logo at center
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 200, h-12, 2, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
+            # Scheduled match: time/status text below centered league logo
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 62, 220, 22, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 5, 60, 60, get_scaled_pixmap(a_png, 60, 60)))
         # Away Name: 1150, 520
@@ -2059,10 +2368,10 @@ def UCLListEntry(entry):
         if status == "LIVE" and (h_shots > 0 or a_shots > 0):
             h_shot_str = "{}({})".format(h_shots, h_on_target)
             a_shot_str = "{}({})".format(a_shots, a_on_target)
-            # Home shots centered under home score box (x=860, w=80)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
-            # Away shots centered under away score box (x=980, w=80)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
+            # Home shots centered under home score box (x=850, w=80)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
+            # Away shots centered under away score box (x=990, w=80)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
 
         # --- Live Possession & Performance Bars ---
         if status == "LIVE":
@@ -2120,8 +2429,8 @@ def UCLListEntry(entry):
         c_time = c_live if status == "LIVE" else c_dim
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1710, 0, 180, h, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, c_time, c_sel))
 
-        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
-        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
+        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1070, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
 
         # Red Card Indicators (image or text fallback)
         if h_red_cards > 0 or a_red_cards > 0:
@@ -2137,17 +2446,17 @@ def UCLListEntry(entry):
             if h_red_cards > 0:
                 if rc_img:
                     for i in range(h_red_cards):
-                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 842, 34 + 24 * i, 16, 22, rc_img))
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 832, 34 + 24 * i, 16, 22, rc_img))
                 else:
                     rc_txt = "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards)
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
             if a_red_cards > 0:
                 if rc_img:
                     for i in range(a_red_cards):
-                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1062, 34 + 24 * i, 16, 22, rc_img))
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1072, 34 + 24 * i, 16, 22, rc_img))
                 else:
                     rc_txt = "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards)
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1060, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1070, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
 
         # UCL Separator
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, h-2, 1880, 1, 0, RT_HALIGN_CENTER, "", 0x22182c82, 0x22182c82))
@@ -2991,6 +3300,14 @@ class SportsMonitor:
 
     def _on_summary_resolved(self, body, eid, bet):
         try:
+            # ESPN may return gzip-compressed responses
+            if body[:2] == b'\x1f\x8b':
+                import gzip
+                try:
+                    body = gzip.decompress(body)
+                except Exception:
+                    import io
+                    body = gzip.GzipFile(fileobj=io.BytesIO(body)).read()
             data = json.loads(body)
             header = data.get('header', {})
             comps = header.get('competitions', [{}])
@@ -3320,7 +3637,12 @@ class SportsMonitor:
             try:
                 name, url = DATA_SOURCES[self.current_league_index]
                 log_diag("CHECK_GOALS: SINGLE LEAGUE '{}' url_in_active={}".format(name, url in self.active_requests))
-                if url not in self.active_requests:
+                # EuroLeague uses its own separate API (not ESPN)
+                if url.startswith("euroleague://"):
+                    sentinel = "euroleague://api"
+                    if sentinel not in self.active_requests:
+                        self._fetch_euroleague_data(name)
+                elif url not in self.active_requests:
                     self.active_requests.add(url)
                     d = self.agent.request(b'GET', url.encode('utf-8'))
                     d.addCallback(readBody)
@@ -3359,6 +3681,18 @@ class SportsMonitor:
                 #     self.batch_remaining -= 1
                 #     skipped += 1
                 #     continue
+
+                # EuroLeague uses its own non-ESPN API; route through dedicated fetcher
+                if url.startswith("euroleague://"):
+                    sentinel = "euroleague://api"
+                    if sentinel not in self.active_requests:
+                        self._fetch_euroleague_data(name)
+                    else:
+                        # Already fetching — decrement so batch doesn't hang
+                        self.batch_remaining -= 1
+                        skipped += 1
+                    fired += 1
+                    continue
 
                 self.active_requests.add(url)
                 d = self.agent.request(b'GET', url.encode('utf-8'))
@@ -3709,6 +4043,574 @@ class SportsMonitor:
         self.process_events_data([(body, league_name_fixed, league_url)], append_mode=False)
         reactor.callLater(0.5, self.fetch_live_summaries)
 
+    # ==========================================================================
+    # EUROLEAGUE BASKETBALL – dedicated API fetcher (non-ESPN)
+    # ==========================================================================
+    # Season code: "E" + start-year (e.g. E2025 = 2025-26 season)
+    EUROLEAGUE_SEASON   = "E2025"
+    EUROLEAGUE_SENTINEL = "euroleague://api"
+
+    # Real API endpoints (confirmed from open-source wrappers):
+    #   Schedule (XML): api-live.euroleague.net/v1/schedules?seasonCode=E2025
+    #   Results  (XML): api-live.euroleague.net/v1/results/?seasonCode=E2025
+    #   Live header (JSON): live.euroleague.net/api/Header?gamecode=X&seasoncode=E2025
+    #   Standings (JSON): api-live.euroleague.net/v3/competitions/E/seasons/E2025/
+    #                     rounds/{round}/basicstandings
+    EUROLEAGUE_SCHED_URL = "https://api-live.euroleague.net/v1/schedules"
+    EUROLEAGUE_RES_URL   = "https://api-live.euroleague.net/v1/results/"
+    EUROLEAGUE_HDR_URL   = "https://live.euroleague.net/api/Header"
+    EUROLEAGUE_STD_URL   = ("https://api-live.euroleague.net/v3/competitions/E"
+                            "/seasons/{season}/rounds/{round}/basicstandings")
+
+    def _fetch_euroleague_data(self, league_name):
+        """Fetch schedule + results + live headers from the real EuroLeague API.
+
+        Data flow
+        ---------
+        1. GET v1/schedules XML  → game codes, dates, team names (upcoming)
+        2. GET v1/results  XML  → scores and 'played' flag (finished games)
+        3. Merge by gamenumber; filter to the requested date window.
+        4. For each today-game that isn't marked played, GET the live Header
+           JSON (per-game) to get real-time score / period / clock.
+        5. Convert everything to ESPN-compatible event dicts, hand off to the
+           existing process_events_data() pipeline.
+        """
+        sentinel = self.EUROLEAGUE_SENTINEL
+        self.active_requests.add(sentinel)
+        filter_mode = getattr(self, 'filter_mode', 0)
+
+        def _run():
+            try:
+                import xml.etree.ElementTree as ET
+
+                season = self.EUROLEAGUE_SEASON
+                today  = datetime.date.today()
+
+                hdrs = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                    'Accept': '*/*',
+                }
+
+                def _get_xml(url, params=''):
+                    full = url + ('?' + params if params else '')
+                    try:
+                        req = Request(full)
+                        for k, v in hdrs.items():
+                            req.add_header(k, v)
+                        return urlopen(req, timeout=12).read()
+                    except Exception as e:
+                        log_dbg("[EuroLeague] XML GET failed {}: {}".format(full[:80], e))
+                        return None
+
+                def _get_json(url):
+                    try:
+                        req = Request(url)
+                        for k, v in hdrs.items():
+                            req.add_header(k, v)
+                        raw = urlopen(req, timeout=10).read()
+                        return json.loads(raw.decode('utf-8', errors='ignore'))
+                    except Exception as e:
+                        log_dbg("[EuroLeague] JSON GET failed {}: {}".format(url[:80], e))
+                        return None
+
+                def _findtext(el, *tags):
+                    """Try multiple tag names, return first hit."""
+                    for tag in tags:
+                        v = el.findtext(tag)
+                        if v is not None:
+                            return v.strip()
+                    return ''
+
+                def _parse_date(s):
+                    """Parse DD/MM/YYYY or YYYY-MM-DD into a date object."""
+                    if not s:
+                        return None
+                    s = s.strip()
+                    for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d.%m.%Y', '%b %d, %Y'):
+                        try:
+                            return datetime.datetime.strptime(s, fmt).date()
+                        except Exception:
+                            pass
+                    return None
+
+                # ── 1. Fetch schedule XML (upcoming / all games) ───────────
+                sched_raw = _get_xml(self.EUROLEAGUE_SCHED_URL,
+                                     'seasonCode={}'.format(season))
+                sched_games = {}   # gamenumber str → dict
+                if sched_raw:
+                    try:
+                        root = ET.fromstring(sched_raw)
+                        # Items can be at root level or inside <schedule>
+                        items = root.findall('.//item')
+                        if not items:
+                            items = list(root)
+                        for item in items:
+                            # Prefer 'game' (plain number) over 'gamecode' (may have season prefix)
+                            gn = _findtext(item, 'game', 'gamenumber', 'Gamenumber')
+                            if not gn:
+                                gn = _findtext(item, 'gameCode', 'gamecode')
+                                # Strip season prefix like "E2025_" if present
+                                if gn and '_' in gn:
+                                    gn = gn.split('_', 1)[-1]
+                            if not gn:
+                                log_dbg("[EuroLeague] Skipped a match! Could not find gamecode in Schedule XML.")
+                                continue
+                            sched_games[gn] = {
+                                'gamenumber': gn,
+                                'date': _findtext(item, 'date', 'Date', 'gameDate'),
+                                'time': _findtext(item, 'time', 'Time', 'gameTime', 'startime'),
+                                'hometeam':   _findtext(item, 'hometeam', 'HomeTeam', 'localclub'),
+                                'awayteam':   _findtext(item, 'awayteam', 'AwayTeam', 'roadclub'),
+                                'homecode':   _findtext(item, 'homecode', 'HomeCode', 'localcode'),
+                                'awaycode':   _findtext(item, 'awaycode', 'AwayCode', 'roadcode'),
+                                'gameday':    _findtext(item, 'gameday', 'round', 'roundNumber'),
+                                'played':     False,
+                                'homescore':  0,
+                                'awayscore':  0,
+                            }
+                        log_dbg("[EuroLeague] schedule parsed: {} games".format(len(sched_games)))
+                    except Exception as e:
+                        log_dbg("[EuroLeague] Schedule parse error: " + str(e))
+
+                # ── 2. Fetch results XML (played games with scores) ────────
+                res_raw = _get_xml(self.EUROLEAGUE_RES_URL,
+                                   'seasonCode={}'.format(season))
+                res_map = {}   # gamenumber str → dict
+                last_played_round = 1
+                if res_raw:
+                    try:
+                        root = ET.fromstring(res_raw)
+                        games = root.findall('.//game')
+                        if not games:
+                            games = list(root)
+                        for g in games:
+                            # Prefer 'game' (plain number) over 'gamecode' (may have season prefix)
+                            gn = _findtext(g, 'game', 'gamenumber', 'Gamenumber')
+                            if not gn:
+                                gn = _findtext(g, 'gameCode', 'gamecode')
+                                # Strip season prefix like "E2025_" if present
+                                if gn and '_' in gn:
+                                    gn = gn.split('_', 1)[-1]
+                            if not gn:
+                                log_dbg("[EuroLeague] Skipped a match! Could not find gamecode in Results XML.")
+                                continue
+                            played_str = _findtext(g, 'played', 'Played', 'isplayed')
+                            played = played_str.lower() in ('true', '1', 'yes')
+                            gday = _findtext(g, 'gameday', 'round', 'roundNumber')
+                            try:
+                                rn = int(gday)
+                                if played and rn > last_played_round:
+                                    last_played_round = rn
+                            except Exception:
+                                pass
+                            res_map[gn] = {
+                                'gamenumber': gn,
+                                'played':     played,
+                                'homescore':  int(_findtext(g, 'homescore', 'HomeScore') or 0),
+                                'awayscore':  int(_findtext(g, 'awayscore', 'AwayScore') or 0),
+                                'gameday':    gday,
+                                'hometeam':   _findtext(g, 'hometeam', 'HomeTeam'),
+                                'awayteam':   _findtext(g, 'awayteam', 'AwayTeam'),
+                                'date':       _findtext(g, 'date', 'Date', 'gameDate'),
+                                'time':       _findtext(g, 'time', 'Time'),
+                            }
+                        log_dbg("[EuroLeague] results parsed: {} games".format(len(res_map)))
+                    except Exception as e:
+                        log_dbg("[EuroLeague] Results parse error: " + str(e))
+
+                # ── 3. Merge schedule + results ────────────────────────────
+                # Prefer schedule for team names + date; prefer results for scores
+                merged = {}
+                for gn, sg in sched_games.items():
+                    g = dict(sg)
+                    if gn in res_map:
+                        rm = res_map[gn]
+                        g['played']    = rm['played']
+                        g['homescore'] = rm['homescore']
+                        g['awayscore'] = rm['awayscore']
+                        # Use results date if schedule has none
+                        if not g['date'] and rm.get('date'):
+                            g['date'] = rm['date']
+                        if not g['time'] and rm.get('time'):
+                            g['time'] = rm['time']
+                    merged[gn] = g
+
+                # Games in results but not in schedule
+                for gn, rm in res_map.items():
+                    if gn not in merged:
+                        merged[gn] = rm
+
+                # ── 4. Apply date filter ───────────────────────────────────
+                yesterday = today - datetime.timedelta(days=1)
+                tomorrow  = today + datetime.timedelta(days=1)
+
+                filtered = []
+                for gn, g in merged.items():
+                    g_date = _parse_date(g.get('date', ''))
+                    if g_date is None:
+                        continue
+                    if filter_mode == 0:    # Yesterday
+                        if g_date != yesterday: continue
+                    elif filter_mode == 1:  # Live Only (still need today's games to find live)
+                        if g_date != today: continue
+                    elif filter_mode == 2:  # Today (also includes live)
+                        if g_date != today: continue
+                    elif filter_mode == 3:  # Tomorrow
+                        if g_date != tomorrow: continue
+                    else:                   # All (4) — ±1 day window around today
+                        if g_date < yesterday or g_date > tomorrow + datetime.timedelta(days=4):
+                            continue
+                    filtered.append(g)
+
+                log_dbg("[EuroLeague] filtered to {} games (filter_mode={})".format(
+                    len(filtered), filter_mode))
+
+                # ── 5. Fetch live headers for today's unfinished games ─────
+                live_headers = {}
+                for g in filtered:
+                    g_date = _parse_date(g.get('date', ''))
+                    # Only fetch Header for games that are today AND not yet marked played
+                    if g_date == today and not g.get('played', False):
+                        gn = g['gamenumber']
+                        hdr = _get_json(
+                            "{}?gamecode={}&seasoncode={}".format(
+                                self.EUROLEAGUE_HDR_URL, gn, season))
+                        if hdr:
+                            live_headers[gn] = hdr
+                            log_dbg("[EuroLeague] live header for game {}: {}".format(
+                                gn, str(hdr)[:150]))
+
+                # ── 6. Convert to ESPN-compatible events ───────────────────
+                events = []
+                for g in filtered:
+                    ev = self._convert_euroleague_game(g, live_headers, league_name)
+                    if ev:
+                        events.append(ev)
+
+                # Live-Only filter: keep only events with state=='in'
+                if filter_mode == 1:
+                    events = [e for e in events
+                              if e.get('status', {}).get('type', {}).get('state') == 'in']
+
+                events.sort(key=lambda e: e.get('date', ''))
+
+                fake_body = json.dumps({
+                    'events': events,
+                    'leagues': [{'name': league_name, 'id': 'euroleague', 'logos': [{'href': ''}]}],
+                    '_el_last_played_round': last_played_round,
+                }).encode('utf-8')
+
+                reactor.callFromThread(
+                    self._on_euroleague_data, fake_body, league_name, sentinel)
+
+            except Exception as e:
+                log_dbg("[EuroLeague] Fetch error: " + str(e))
+                reactor.callFromThread(self._on_euroleague_error, sentinel)
+
+        t = threading.Thread(target=_run)
+        t.daemon = True
+        t.start()
+
+    def _on_euroleague_data(self, fake_body, league_name, sentinel):
+        # Stash the last played round number for the standings screen
+        try:
+            payload = json.loads(fake_body.decode('utf-8'))
+            lpr = payload.get('_el_last_played_round', 1)
+            self._euroleague_last_round = lpr
+        except Exception:
+            pass
+        # In custom batch mode, use the batch pipeline so batch_remaining is decremented
+        # NOTE: Do NOT discard sentinel before collect_batch_response_incremental —
+        # it checks active_requests and would drop the response as a "ghost" request.
+        if self.is_custom_mode and self.batch_is_active:
+            self.collect_batch_response_incremental(fake_body, league_name, sentinel)
+        else:
+            self.active_requests.discard(sentinel)
+            self.parse_single_json(fake_body, league_name, self.EUROLEAGUE_SENTINEL)
+
+    def _on_euroleague_error(self, sentinel):
+        # In custom batch mode, decrement batch_remaining so the batch can finalize
+        if self.is_custom_mode and self.batch_is_active:
+            self.collect_batch_error(None, sentinel)
+        else:
+            self.active_requests.discard(sentinel)
+            self.status_message = "EuroLeague data temporarily unavailable."
+            self._trigger_callbacks(True)
+
+    def _convert_euroleague_game(self, g, live_headers, league_name):
+        """Convert one merged EuroLeague game dict into an ESPN-compatible event dict.
+
+        Parameters
+        ----------
+        g : dict
+            Merged schedule + results dict for a single game.
+        live_headers : dict
+            gamenumber → Header JSON (from live.euroleague.net/api/Header).
+        league_name : str
+        """
+        try:
+            gn = str(g.get('gamenumber', ''))
+            if not gn:
+                return None
+
+            lh = live_headers.get(gn, {})   # live Header JSON (may be empty)
+
+            # ── Scores ────────────────────────────────────────────────────
+            if lh:
+                # Header JSON field names vary; try several
+                h_score = int(lh.get('HomeScore',
+                              lh.get('localScore',
+                              lh.get('ScoreA',
+                              g.get('homescore', 0)))) or 0)
+                a_score = int(lh.get('AwayScore',
+                              lh.get('roadScore',
+                              lh.get('ScoreB',
+                              g.get('awayscore', 0)))) or 0)
+            else:
+                h_score = int(g.get('homescore', 0) or 0)
+                a_score = int(g.get('awayscore', 0) or 0)
+
+            # ── State ─────────────────────────────────────────────────────
+            played = g.get('played', False)
+            if played:
+                state = 'post'
+            elif lh:
+                # Infer live status from header
+                period = int(lh.get('Period', lh.get('Quarter',
+                             lh.get('CurrentPeriod', 0))) or 0)
+                phase  = str(lh.get('Phase', lh.get('GameStatus',
+                             lh.get('Status', '')))).lower()
+                scores_exist = h_score > 0 or a_score > 0
+                game_ended   = phase in ('result', 'finalizado', 'end', 'finished')
+                if game_ended:
+                    state  = 'post'
+                    played = True
+                elif scores_exist or period > 0:
+                    state  = 'in'
+                else:
+                    state  = 'pre'
+            else:
+                state  = 'pre'
+                period = 0
+
+            # ── Clock / Period ────────────────────────────────────────────
+            if lh:
+                period = int(lh.get('Period', lh.get('Quarter',
+                             lh.get('CurrentPeriod', 0))) or 0)
+                clock_raw = str(lh.get('Clock', lh.get('GameClock',
+                                lh.get('clock', ''))) or '')
+            else:
+                period    = 0
+                clock_raw = ''
+
+            if state == 'in':
+                if period == 5:
+                    period_label = 'OT'
+                elif period > 5:
+                    period_label = '{}OT'.format(period - 4)
+                elif period > 0:
+                    period_label = 'Q{}'.format(period)
+                else:
+                    period_label = ''
+                short_detail = '{} {}'.format(period_label, clock_raw).strip() or 'LIVE'
+            elif state == 'post':
+                short_detail = 'Final'
+            else:
+                short_detail = ''
+
+            # ── Team names ────────────────────────────────────────────────
+            if lh:
+                home_name = (lh.get('HomeTeam') or lh.get('HomeClub') or
+                             lh.get('ClubA')    or g.get('hometeam', 'Home'))
+                away_name = (lh.get('AwayTeam') or lh.get('AwayClub') or
+                             lh.get('ClubB')    or g.get('awayteam', 'Away'))
+                home_code = (lh.get('HomeCode') or lh.get('CodeA') or g.get('homecode', ''))
+                away_code = (lh.get('AwayCode') or lh.get('CodeB') or g.get('awaycode', ''))
+            else:
+                home_name = g.get('hometeam', 'Home')
+                away_name = g.get('awayteam', 'Away')
+                home_code = g.get('homecode', '')
+                away_code = g.get('awaycode', '')
+
+            home_abbr = (home_code[:3].upper() if home_code
+                         else (home_name[:3].upper() if home_name else 'HOM'))
+            away_abbr = (away_code[:3].upper() if away_code
+                         else (away_name[:3].upper() if away_name else 'AWY'))
+
+            # ── Date / Time → ISO 8601 ────────────────────────────────────
+            raw_date = g.get('date', '')
+            raw_time = g.get('time', '')
+            iso_date = ''
+            for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d.%m.%Y', '%b %d, %Y'):
+                try:
+                    d = datetime.datetime.strptime(raw_date.strip(), fmt).date()
+                    if raw_time and ':' in raw_time:
+                        iso_date = '{}T{}:00Z'.format(d.strftime('%Y-%m-%d'),
+                                                       raw_time[:5])
+                    else:
+                        iso_date = '{}T00:00:00Z'.format(d.strftime('%Y-%m-%d'))
+                    break
+                except Exception:
+                    pass
+
+            # ── Assemble ESPN-compatible event ────────────────────────────
+            return {
+                'id':   gn,
+                'date': iso_date,
+                'league_name': league_name,
+                'league_url':  self.EUROLEAGUE_SENTINEL,
+                'status': {
+                    'displayClock': clock_raw,
+                    'period': period,
+                    'type': {
+                        'state':       state,
+                        'name':        ('STATUS_IN_PROGRESS' if state == 'in'
+                                        else 'STATUS_FINAL' if state == 'post'
+                                        else 'STATUS_SCHEDULED'),
+                        'shortDetail': short_detail,
+                        'description': short_detail,
+                    }
+                },
+                'competitions': [{
+                    'id': gn,
+                    'competitors': [
+                        {
+                            'homeAway': 'home',
+                            'score': str(h_score),
+                            'team': {
+                                'id':               gn + '_h',
+                                'displayName':      home_name or 'Home',
+                                'shortDisplayName': home_name or 'Home',
+                                'abbreviation':     home_abbr,
+                                'logo': '',
+                            }
+                        },
+                        {
+                            'homeAway': 'away',
+                            'score': str(a_score),
+                            'team': {
+                                'id':               gn + '_a',
+                                'displayName':      away_name or 'Away',
+                                'shortDisplayName': away_name or 'Away',
+                                'abbreviation':     away_abbr,
+                                'logo': '',
+                            }
+                        },
+                    ]
+                }],
+            }
+
+        except Exception as e:
+            log_dbg("[EuroLeague] Convert error: " + str(e))
+            return None
+
+
+
+        filter_mode = getattr(self, 'filter_mode', 0)
+
+        def _run():
+            try:
+                today = datetime.date.today()
+                season = self.EUROLEAGUE_SEASON
+                base = self.EUROLEAGUE_BASE
+
+                headers = {
+                    'User-Agent': 'Mozilla/5.0',
+                    'Accept': 'application/json',
+                }
+
+                def _get(url):
+                    try:
+                        req = Request(url)
+                        for k, v in headers.items():
+                            req.add_header(k, v)
+                        resp = urlopen(req, timeout=10)
+                        raw = resp.read()
+                        return json.loads(raw.decode('utf-8', errors='ignore'))
+                    except Exception as e:
+                        log_dbg("[EuroLeague] GET failed {}: {}".format(url, e))
+                        return None
+
+                # --- 1. Fetch live games first (always fresh) ---
+                live_data = _get("{}/games/live".format(base)) or {}
+                live_map = {}  # gameId -> live game dict
+                live_list = live_data if isinstance(live_data, list) else live_data.get('data', live_data.get('games', []))
+                for g in (live_list or []):
+                    gid = str(g.get('gameId', g.get('id', '')))
+                    if gid:
+                        live_map[gid] = g
+
+                # --- 2. Fetch scheduled games for the relevant date range ---
+                all_games = {}  # gameId -> scheduled game dict
+
+                if filter_mode == 1:
+                    # Live-only: we already have live_map, skip schedule fetch
+                    pass
+                elif filter_mode == 2:
+                    # Tomorrow
+                    tomorrow = (today + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+                    sched_data = _get("{}/games?seasonCode={}&gameDate={}".format(base, season, tomorrow)) or {}
+                    sched_list = sched_data if isinstance(sched_data, list) else sched_data.get('data', sched_data.get('games', []))
+                    for g in (sched_list or []):
+                        gid = str(g.get('gameId', g.get('id', '')))
+                        if gid:
+                            all_games[gid] = g
+                elif filter_mode == 3:
+                    # All: fetch 7-day window (yesterday → 5 days ahead)
+                    for delta in range(-1, 6):
+                        d = (today + datetime.timedelta(days=delta)).strftime('%Y-%m-%d')
+                        sched_data = _get("{}/games?seasonCode={}&gameDate={}".format(base, season, d)) or {}
+                        sched_list = sched_data if isinstance(sched_data, list) else sched_data.get('data', sched_data.get('games', []))
+                        for g in (sched_list or []):
+                            gid = str(g.get('gameId', g.get('id', '')))
+                            if gid:
+                                all_games[gid] = g
+                else:
+                    # Default / Today
+                    date_str = today.strftime('%Y-%m-%d')
+                    sched_data = _get("{}/games?seasonCode={}&gameDate={}".format(base, season, date_str)) or {}
+                    sched_list = sched_data if isinstance(sched_data, list) else sched_data.get('data', sched_data.get('games', []))
+                    for g in (sched_list or []):
+                        gid = str(g.get('gameId', g.get('id', '')))
+                        if gid:
+                            all_games[gid] = g
+
+                # --- 3. Merge: live data wins over scheduled for same game ---
+                merged = {}
+                for gid, g in all_games.items():
+                    merged[gid] = g
+                for gid, g in live_map.items():
+                    if gid in merged:
+                        merged[gid].update(g)
+                    else:
+                        merged[gid] = g
+
+                # If live-only filter, keep only live games
+                if filter_mode == 1:
+                    merged = {gid: g for gid, g in merged.items() if gid in live_map}
+
+                # --- 4. Convert to ESPN-compatible events ---
+                events = []
+                for gid, g in merged.items():
+                    ev = self._convert_euroleague_game(g, league_name)
+                    if ev:
+                        events.append(ev)
+
+                # Sort by date
+                events.sort(key=lambda e: e.get('date', ''))
+
+                # --- 5. Build a fake ESPN-style body and call process_events_data ---
+                fake_body = json.dumps({'events': events, 'leagues': [{'name': league_name, 'id': 'euroleague', 'logos': []}]}).encode('utf-8')
+                reactor.callFromThread(self._on_euroleague_data, fake_body, league_name, sentinel)
+
+            except Exception as e:
+                log_dbg("[EuroLeague] Fetch error: " + str(e))
+                reactor.callFromThread(self._on_euroleague_error, sentinel)
+
+        t = threading.Thread(target=_run)
+        t.daemon = True
+        t.start()
+
     @profile_function("SportsMonitor")
     def parse_incremental_json(self, body, league_name_fixed, league_url):
         self.process_events_data([(body, league_name_fixed, league_url)], append_mode=True)
@@ -3725,7 +4627,7 @@ class SportsMonitor:
 
         sport_type = snap['sport_type']
         league_url = snap.get('league_url', '').lower()
-        is_basketball = '/basketball/' in league_url
+        is_basketball = '/basketball/' in league_url or 'euroleague' in league_url
         is_soccer = '/soccer/' in league_url
         notification = (match_id, score, scorer, event_type, scoring_team, sound_type)
 
@@ -4331,14 +5233,15 @@ class SportsMonitor:
 
                     prev_state = self.last_states.get(match_id)
                     if prev_state:
+                        stend_sound = 'stend' if self.discovery_mode == 2 else None
                         if state == 'in' and prev_state == 'pre':
                             if (match_id, 'start') not in self.notified_events:
                                 self.notified_events.add((match_id, 'start'))
-                                self.queue_notification(match_id, "", "RACE STARTING", event_type="start")
+                                self.queue_notification(match_id, "", _t("RACE STARTING"), event_type="start", sound_type=stend_sound)
                         elif state == 'post' and prev_state == 'in':
                             if (match_id, 'end') not in self.notified_events:
                                 self.notified_events.add((match_id, 'end'))
-                                self.queue_notification(match_id, "", "RACE FINISHED", event_type="end")
+                                self.queue_notification(match_id, "", _t("RACE FINISHED"), event_type="end", sound_type=stend_sound)
                     self.last_states[match_id] = state
                     continue
 
@@ -4367,7 +5270,7 @@ class SportsMonitor:
 
                 prev_state = self.last_states.get(match_id)
                 if prev_state:
-                    should_play_stend = (self.discovery_mode == 2 and self.get_sport_type(league_name) == 'soccer')
+                    should_play_stend = (self.discovery_mode == 2)
 
                     # Ensure score string is "1-0" not "1 - 0"
                     score_fmt = "{}-{}".format(h_score, a_score)
@@ -4378,7 +5281,7 @@ class SportsMonitor:
                             if event_sport_type != SPORT_TYPE_TENNIS:
                                  self.notified_events.add((match_id, 'start'))
                                  stend_sound = 'stend' if should_play_stend else None
-                                 self.queue_notification(match_id, score_fmt, "MATCH STARTED", event_type="start", sound_type=stend_sound)
+                                 self.queue_notification(match_id, score_fmt, _t("MATCH STARTED"), event_type="start", sound_type=stend_sound)
                                  # AI kickoff commentary — soccer only
                                  if '/soccer/' in league_url.lower():
                                      self._trigger_ai_match_event_commentary(match_id, 'start', score_fmt)
@@ -4387,7 +5290,7 @@ class SportsMonitor:
                         if (match_id, 'end') not in self.notified_events:
                             self.notified_events.add((match_id, 'end'))
                             stend_sound = 'stend' if should_play_stend else None
-                            self.queue_notification(match_id, score_fmt, "FULL TIME", event_type="end", sound_type=stend_sound)
+                            self.queue_notification(match_id, score_fmt, _t("FULL TIME"), event_type="end", sound_type=stend_sound)
                             # AI full-time commentary — soccer only
                             if '/soccer/' in league_url.lower():
                                 self._trigger_ai_match_event_commentary(match_id, 'end', score_fmt)
@@ -4526,7 +5429,7 @@ class SportsMonitor:
                             if (match_id, 'ht_end') not in self.notified_events:
                                 self.notified_events.add((match_id, 'ht_end'))
                                 self.queue_notification(
-                                    match_id, score_fmt, "HALF TIME",
+                                    match_id, score_fmt, _t("HALF TIME"),
                                     event_type="ht_end", sound_type='stend')
 
                         # 2nd Half Started — period ticks from 1 to 2 coming out of halftime
@@ -4535,7 +5438,7 @@ class SportsMonitor:
                             if (match_id, 'ht_start') not in self.notified_events:
                                 self.notified_events.add((match_id, 'ht_start'))
                                 self.queue_notification(
-                                    match_id, score_fmt, "2ND HALF STARTED",
+                                    match_id, score_fmt, _t("2ND HALF STARTED"),
                                     event_type="ht_start", sound_type='stend')
 
                         self.last_periods[match_id] = {
@@ -5213,7 +6116,7 @@ class TeamStandingScreen(Screen):
                 <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
             </screen>"""
 
-        self["title"] = Label(_t(league_name.upper()) if league_name else _t("LEAGUE STANDINGS"))
+        self["title"] = Label(_league_name(league_name) if league_name else _t("LEAGUE STANDINGS"))
         self["subtitle"] = Label(_t("STANDINGS"))
         self["loading"] = Label(_t("Loading Standings..."))
         self["hint"] = Label(_t("Press OK to return to Main Screen"))
@@ -5274,6 +6177,11 @@ class TeamStandingScreen(Screen):
         self["loading"].show()
 
         url = (self.league_url or '').lower()
+
+        # ── EuroLeague: fetch from its own API ────────────────────────────────
+        if (self.league_url or '').startswith("euroleague://"):
+            self._fetch_euroleague_standings()
+            return
 
         # Sports with no ESPN standings endpoint — show message immediately
         NO_STANDINGS_SPORTS = ('tennis', 'golf', 'mma', 'boxing')
@@ -5348,6 +6256,113 @@ class TeamStandingScreen(Screen):
     def on_error(self, error):
         log_dbg("standings fetch error: " + str(error))
         self["loading"].setText("Failed to load standings")
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # EUROLEAGUE STANDINGS
+    # ──────────────────────────────────────────────────────────────────────────
+    def _fetch_euroleague_standings(self):
+        """Fetch EuroLeague standings from the v3 basicstandings endpoint.
+        Uses the last-played round number stored by _on_euroleague_data,
+        falling back to trying recent round numbers if not yet known.
+        """
+        season = "E2025"
+        # Use the last played round stored after a game fetch, default to 34
+        last_round = getattr(global_sports_monitor, '_euroleague_last_round', 34)
+
+        log_dbg("[EuroLeague Standings] fetching round {}".format(last_round))
+
+        def _run():
+            url = None
+            data = None
+            # Try the known round first, then scan downward if it fails
+            for rn in [last_round, last_round - 1, last_round + 1,
+                       last_round - 2, 34, 33, 32, 30, 28, 20, 10, 1]:
+                if rn < 1:
+                    continue
+                candidate = (
+                    "https://api-live.euroleague.net/v3/competitions/E"
+                    "/seasons/{}/rounds/{}/basicstandings".format(season, rn))
+                try:
+                    req = Request(candidate)
+                    req.add_header('User-Agent', 'Mozilla/5.0')
+                    req.add_header('Accept', 'application/json')
+                    resp = urlopen(req, timeout=10)
+                    raw = resp.read()
+                    data = json.loads(raw.decode('utf-8', errors='ignore'))
+                    url = candidate
+                    log_dbg("[EuroLeague Standings] OK round {} url={}".format(rn, candidate[:80]))
+                    break
+                except Exception as e:
+                    log_dbg("[EuroLeague Standings] round {} failed: {}".format(rn, str(e)[:80]))
+
+            if data is not None:
+                reactor.callFromThread(self._on_euroleague_standings, data)
+            else:
+                reactor.callFromThread(self._on_euroleague_standings_error)
+
+        import threading as _threading
+        t = _threading.Thread(target=_run)
+        t.daemon = True
+        t.start()
+
+    def _on_euroleague_standings(self, data):
+        """Render EuroLeague standings rows from the pre-parsed JSON dict."""
+        try:
+            self["loading"].hide()
+            log_dbg("[EuroLeague Standings] data keys: " + str(list(data.keys()) if isinstance(data, dict) else type(data).__name__))
+
+            # v3 basicstandings returns {"teams": [...]} with nested team info
+            rows_raw = []
+            if isinstance(data, dict):
+                rows_raw = data.get('teams', data.get('data', data.get('standings', [])))
+            elif isinstance(data, list):
+                rows_raw = data
+
+            self.standings_rows = []
+            hdr = ("#", "TEAM", "GP", "W", "L", "PCT", "DIFF", "PTS")
+            self.standings_rows.append(StandingTableEntry(
+                hdr[0], hdr[1], hdr[2], hdr[3], hdr[4], hdr[5], hdr[6], hdr[7],
+                self.theme, is_header=True))
+
+            for idx, entry in enumerate(rows_raw):
+                if not isinstance(entry, dict):
+                    continue
+                # v3 basicstandings field names
+                pos    = str(entry.get('position',    entry.get('pos',      idx + 1)))
+                # Club name may be nested under 'club' or directly in 'name'/'team'
+                club   = entry.get('club', {})
+                team   = (club.get('name') if isinstance(club, dict) else None) or \
+                         entry.get('name', entry.get('team', entry.get('teamName', 'Team')))
+                gp     = str(entry.get('gamesPlayed', entry.get('played',   entry.get('gp', '-'))))
+                wins   = str(entry.get('wins',        entry.get('w',        '-')))
+                losses = str(entry.get('losses',      entry.get('l',        '-')))
+                diff   = str(entry.get('pointDifferential', entry.get('diff', entry.get('gd', '-'))))
+                # PCT
+                try:
+                    pct_val = float(wins) / float(gp) if gp not in ('-', '0', '') else 0.0
+                    pct = '{:.3f}'.format(pct_val)
+                except Exception:
+                    pct = str(entry.get('percentage', entry.get('pct', '-')))
+                pts = str(entry.get('points', entry.get('pts', entry.get('totalPoints', '-'))))
+                self.standings_rows.append(StandingTableEntry(
+                    pos, team, gp, wins, losses, pct, diff, pts, self.theme))
+
+            if not rows_raw:
+                self.standings_rows.append(StandingTableEntry(
+                    "-", "EuroLeague standings not available yet.", "-", "-", "-", "-", "-", "-", self.theme))
+
+            self.current_page = 0
+            self.update_display()
+        except Exception as e:
+            log_dbg("[EuroLeague Standings] render error: " + str(e))
+            self["loading"].setText("Error displaying standings")
+
+    def _on_euroleague_standings_error(self):
+        self["loading"].hide()
+        self.standings_rows = [StandingTableEntry(
+            "-", "EuroLeague standings temporarily unavailable.", "-", "-", "-", "-", "-", "-", self.theme)]
+        self.current_page = 0
+        self.update_display()
 
     def parse_standings(self, body):
         try:
@@ -6150,9 +7165,18 @@ class GameInfoScreen(Screen):
 
         base_url = league_url.split('?')[0]
 
+        # ── EuroLeague: uses its own API, not ESPN ────────────────────────────
+        if league_url.startswith("euroleague://"):
+            # Try the EuroLeague play-by-play endpoint for match details.
+            # If it fails, parse_details will fall through to fallback_event_data.
+            self.summary_url = "{}/games/{}/playbyplay".format(
+                "https://api-live.euroleague.net/v1", event_id)
+            self.odds_url    = ""
+            self.cdn_url     = ""
+            self._is_euroleague = True
         # Tennis Special Handling: needs tournament_id as event and match_id as competition
         # Tennis Special Handling: needs tournament_id as event and match_id as competition
-        if self.sport_type == SPORT_TYPE_TENNIS:
+        elif self.sport_type == SPORT_TYPE_TENNIS:
             tournament_id = ""
             competition_id = ""
             api_link = ""
@@ -7389,7 +8413,7 @@ class GameInfoScreen(Screen):
             pass
 
         if game_status == 'pre':
-            self["match_title"].setText(league_name if league_name else "PREVIEW")
+            self["match_title"].setText(_league_name(league_name) if league_name else _t("PREVIEW"))
 
             # 1. Prediction (FB Style Post) - ROBUST & SOCCER ENABLED
             try:
@@ -7513,7 +8537,7 @@ class GameInfoScreen(Screen):
         # MODE B: LIVE/POST GAME (STATS MODE - Unchanged)
         # ==========================================================
         else:
-            self["match_title"].setText(league_name if league_name else "DETAILS")
+            self["match_title"].setText(_league_name(league_name) if league_name else _t("DETAILS"))
 
             # 0. Prediction (Live Win Probability - Added for Live Games too)
             try:
@@ -7831,7 +8855,7 @@ class GameInfoScreen(Screen):
             event_name = header.get('competitions', [{}])[0].get('name', '') or data.get('name', '') or league_name
 
             # Set header display
-            self["match_title"].setText(league_name if league_name else "RACE")
+            self["match_title"].setText(_league_name(league_name) if league_name else _t("RACE"))
             self["h_name"].setText(event_name)
             self["stadium_name"].setText("")
 
@@ -7977,7 +9001,7 @@ class GameInfoScreen(Screen):
             event_name = header.get('competitions', [{}])[0].get('name', '') or data.get('name', '') or league_name
 
             # Set header display
-            self["match_title"].setText(league_name if league_name else "TOURNAMENT")
+            self["match_title"].setText(_league_name(league_name) if league_name else _t("TOURNAMENT"))
             self["h_name"].setText(event_name)
 
             # Course info
@@ -8120,7 +9144,7 @@ class GameInfoScreen(Screen):
                 player1_name, flag1_url = extract_tennis_info_detail(p1)
                 player2_name, flag2_url = extract_tennis_info_detail(p2)
 
-                self["match_title"].setText(league_name if league_name else "TENNIS MATCH")
+                self["match_title"].setText(_league_name(league_name) if league_name else _t("TENNIS MATCH"))
                 self["h_name"].setText(player1_name)
                 self["a_name"].setText(player2_name)
 
@@ -8176,7 +9200,7 @@ class GameInfoScreen(Screen):
 
             else:
                 # Tournament display
-                self["match_title"].setText(league_name if league_name else "TENNIS TOURNAMENT")
+                self["match_title"].setText(_league_name(league_name) if league_name else _t("TENNIS TOURNAMENT"))
                 self["h_name"].setText(event_name)
 
                 # Try to get venue
@@ -8256,7 +9280,7 @@ class GameInfoScreen(Screen):
             header = data.get('header', {})
             event_name = header.get('competitions', [{}])[0].get('name', '') or data.get('name', '') or league_name
 
-            self["match_title"].setText(league_name if league_name else "FIGHT NIGHT")
+            self["match_title"].setText(_league_name(league_name) if league_name else _t("FIGHT NIGHT"))
             self["h_name"].setText(event_name)
 
             # Venue
@@ -8355,7 +9379,7 @@ class GameInfoScreen(Screen):
 
             # Set header display
             match_desc = competitions.get('status', {}).get('type', {}).get('description', '')
-            self["match_title"].setText(match_desc if match_desc else (league_name if league_name else "CRICKET"))
+            self["match_title"].setText(_t(match_desc) if match_desc else (_league_name(league_name) if league_name else _t("CRICKET")))
 
             # Teams and Score extraction
             competitors = competitions.get('competitors', [])
@@ -8441,7 +9465,7 @@ class GameInfoScreen(Screen):
             competitions = header.get('competitions', [{}])[0]
 
             status_txt = competitions.get('status', {}).get('type', {}).get('shortDetail', '')
-            self["match_title"].setText(league_name if league_name else "RUGBY")
+            self["match_title"].setText(_league_name(league_name) if league_name else _t("RUGBY"))
 
             # Logos
             try:
@@ -8694,7 +9718,7 @@ class GoalToast(Screen):
         Screen.__init__(self, session)
         # Register with monitor for live basketball updates
         global_sports_monitor.current_toast = self
-        self["league"] = Label(league_text)
+        self["league"] = Label(_league_name(league_text))
         self["home"] = Label(home_text)
         self["away"] = Label(away_text)
         self["score"] = Label(score_text)
@@ -8989,7 +10013,8 @@ class LeagueSelector(Screen):
         "Eredivisie", "Primeira Liga", "MLS", "Liga MX",
         "FA Cup", "Copa del Rey", "Coppa Italia", "DFB Pokal", "Coupe de France",
         "Scottish Premiership", "Championship", "Serie B", "La Liga 2", "Ligue 2",
-        "NBA", "NFL", "MLB", "NHL", "NCAA Football", "NCAA Basketball"
+        "NBA", "NFL", "MLB", "NHL", "NCAA Football", "NCAA Basketball",
+        "EuroLeague Basketball"
     ]
 
     def __init__(self, session, mode="multi"):
@@ -9081,6 +10106,9 @@ class LeagueSelector(Screen):
 
     def _get_sport_from_url(self, url):
         """Extract sport name from API URL for grouping."""
+        # EuroLeague sentinel URL — classify as basketball
+        if url.startswith("euroleague://"):
+            return 'basketball'
         try:
             parts = url.split('/sports/')
             if len(parts) > 1:
@@ -9108,6 +10136,9 @@ class LeagueSelector(Screen):
             url = DATA_SOURCES[i][1]
             # In multi mode: filter out racing leagues (they only work in single-league)
             if self.mode == "multi" and get_sport_type(url) == SPORT_TYPE_RACING:
+                continue
+            # In multi mode: also filter out EuroLeague (uses its own API, single-league only)
+            if self.mode == "multi" and url.startswith("euroleague://"):
                 continue
             is_selected = i in current_indices
             priority = self.get_league_priority(name)
@@ -9154,6 +10185,9 @@ class LeagueSelector(Screen):
 
     def get_league_logo_url(self, api_url, idx):
         """Generate ESPN logo URL from API endpoint"""
+        # EuroLeague uses its own API — no ESPN logo is available
+        if api_url.startswith("euroleague://"):
+            return None
         KNOWN_LOGOS = {
             '164205': ('rugby', '164205'),
             '242041': ('rugby', '242041'),
@@ -9342,11 +10376,11 @@ class LeagueSelector(Screen):
             sport = self._league_sports[sorted_idx] if hasattr(self, '_league_sports') else None
             if sport and sport != current_sport:
                 current_sport = sport
-                sport_label = self.SPORT_DISPLAY_NAMES.get(sport, sport.upper())
+                sport_label = _t(self.SPORT_DISPLAY_NAMES.get(sport, sport.upper()))
                 # Check if this group also starts women's section
                 is_women_start = self._league_women[sorted_idx] if hasattr(self, '_league_women') else False
                 if is_women_start:
-                    sport_label += u" (WOMEN)"
+                    sport_label += u" " + _t("(WOMEN)")
                 # Create header entry (non-selectable)
                 header = [('__GROUP__', False)]
                 header.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 890, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, "", c_header_bg, c_header_bg, None, None))
@@ -9359,7 +10393,7 @@ class LeagueSelector(Screen):
                 is_women = self._league_women[sorted_idx]
                 prev_women = self._league_women[sorted_idx - 1] if sorted_idx > 0 else False
                 if is_women and not prev_women:
-                    sport_label = self.SPORT_DISPLAY_NAMES.get(sport, sport.upper()) + u" (WOMEN)"
+                    sport_label = _t(self.SPORT_DISPLAY_NAMES.get(sport, sport.upper())) + u" " + _t("(WOMEN)")
                     header = [('__GROUP__', False)]
                     header.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 890, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, "", c_header_bg, c_header_bg, None, None))
                     header.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 0, 860, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, u"\u25B6 " + sport_label, c_header_fg, c_header_fg, None, None))
@@ -9367,7 +10401,7 @@ class LeagueSelector(Screen):
                     list_content.append(header)
                     self._list_to_sorted.append(-1)
 
-            name = DATA_SOURCES[original_idx][0]
+            name = _league_name(DATA_SOURCES[original_idx][0])
             is_selected = self.selections[sorted_idx]
             logo_path = self.league_logos.get(sorted_idx, None)
             list_content.append(SelectionListEntry(name, is_selected, logo_path, mode=self.mode))
@@ -10508,7 +11542,7 @@ class SimpleSportsMiniBar(Screen):
         status_text = str(data.get('status', ''))
 
         self["lbl_status"].setText(status_text)
-        self["lbl_league"].setText(str(data.get('league', '')))
+        self["lbl_league"].setText(_league_name(str(data.get('league', ''))))
         self["lbl_home"].setText(str(data.get('home', '')))
         self["lbl_score"].setText(str(data.get('score', '')))
         self["lbl_away"].setText(str(data.get('away', '')))
@@ -11095,9 +12129,9 @@ class SimpleSportsScreen(Screen):
             <widget name="list_title" position="0,75" size="1920,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="center" zPosition="1" />
             {header}
             <widget name="head_status" position="30,125" size="80,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
-            <widget name="head_league" position="110,125" size="80,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
-            <widget name="head_home" position="195,125" size="575,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="1" />
-            <widget name="head_score" position="860,125" size="200,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
+            <widget name="head_home" position="110,125" size="660,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="1" />
+            <widget name="head_league" position="850,125" size="220,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
+            <widget name="head_score" position="0,0" size="0,0" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="0" />
             <widget name="head_away" position="1150,125" size="520,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="1" />
             <widget name="head_time" position="1710,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
             <widget name="list" position="0,170" size="1920,800" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
@@ -11114,7 +12148,7 @@ class SimpleSportsScreen(Screen):
         self["top_title"] = Label(_t("SIMPLY SPORTS")); self["league_title"] = Label(_t("LOADING...")); self["list_title"] = Label("")
         self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label(_t("MENU: Settings & Tools"))
         self["clock"] = Label("")  # Clock widget
-        self["head_status"] = Label(_t("STATUS")); self["head_league"] = Label(_t("LEAGUE")); self["head_home"] = Label(_t("HOME")); self["head_score"] = Label(_t("SCORE")); self["head_away"] = Label(_t("AWAY")); self["head_time"] = Label(_t("TIME"))
+        self["head_status"] = Label(_t("STATUS")); self["head_home"] = Label(_t("HOME")); self["head_league"] = Label(_t("LEAGUE")); self["head_score"] = Label(""); self["head_away"] = Label(_t("AWAY")); self["head_time"] = Label(_t("TIME"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         # Use Custom font "SimplySportFont" which is guaranteed to map to a valid system font
         self["list"].l.setFont(0, gFont("SimplySportFont", 26))
@@ -11216,7 +12250,7 @@ class SimpleSportsScreen(Screen):
     def update_header(self, count=None, count_live=0, count_fin=0, count_sch=0):
         if self.monitor.is_custom_mode: self["league_title"].setText(_t("Custom League View"))
         else:
-            try: item = DATA_SOURCES[self.monitor.current_league_index]; self["league_title"].setText(item[0])
+            try: item = DATA_SOURCES[self.monitor.current_league_index]; self["league_title"].setText(_league_name(item[0]))
             except: pass
             
         mode = self.monitor.filter_mode
@@ -12735,7 +13769,7 @@ class BroadcastingChannelsScreen(Screen):
         self["hint"] = Label(_t("Select Channel to Zap"))
         self["key_red"] = Label(_t("Broadcasters"))
         self["key_green"] = Label(_t("EPG Search"))
-        self["key_yellow"] = Label(_t("Down"))
+        self["key_yellow"] = Label(_t("Sat Feeds"))
 
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         self["list"].l.setFont(0, gFont("SimplySportFont", 28))
@@ -12744,6 +13778,7 @@ class BroadcastingChannelsScreen(Screen):
 
         self._online_search_active = False
         self._sports_channels_cache = None  # Cache for iptv-org channels
+        self._sat_feed_search_running = False
 
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
             "ok": self.zap_to_channel,
@@ -12753,7 +13788,7 @@ class BroadcastingChannelsScreen(Screen):
             "up": self["list"].up,
             "down": self["list"].down,
             "green": self.search_epg_internet,
-            "yellow": self["list"].down,
+            "yellow": self.search_satellite_feeds,
             "left": self["list"].pageUp,
             "right": self["list"].pageDown
         }, -1)
@@ -13155,6 +14190,403 @@ class BroadcastingChannelsScreen(Screen):
         else:
             self["hint"].setText(_t("No EPG matches found"))
 
+    # ==========================================================================
+    # YELLOW BUTTON: Satellite / Transponder Feed Search
+    # Searches LyngSat, FlySat, and KingOfSat for live / wild feeds matching
+    # the current match event.  Results are added to the broadcast list showing
+    # channel name, satellite, frequency and BISS code.
+    # ==========================================================================
+
+    def search_satellite_feeds(self):
+        """Entry point for Yellow button – search satellite feed databases."""
+        if self._sat_feed_search_running:
+            return  # debounce
+
+        # Build search keywords from the event
+        keywords = []
+        if self.target_event:
+            comps = self.target_event.get('competitors', [])
+            for comp in comps[:2]:
+                if 'athlete' in comp:
+                    t = comp.get('athlete', {}).get('shortName', '')
+                else:
+                    t = comp.get('team', {}).get('displayName', '')
+                if t and len(t) > 2:
+                    keywords.append(_normalize_name(t))
+            if not keywords:
+                name = self.target_event.get('shortName') or self.target_event.get('name', '')
+                if name and len(name) > 2:
+                    keywords.append(_normalize_name(name))
+            league = self.target_event.get('league_name', '')
+            if league and len(league) > 2:
+                keywords.append(_normalize_name(league))
+
+        if not keywords:
+            from Screens.MessageBox import MessageBox
+            self.session.open(MessageBox, "No match data available to search satellite feeds.", MessageBox.TYPE_INFO)
+            return
+
+        self._sat_feed_keywords = keywords
+        self._sat_feed_search_running = True
+        self["key_yellow"].setText(_t("Searching..."))
+        self["hint"].setText(_t("Scanning Sat Databases..."))
+        log_dbg("[SatFeed] Starting feed search for: {}".format(keywords))
+
+        from twisted.internet import threads
+        threads.deferToThread(
+            self._sat_feeds_worker, keywords
+        ).addCallback(
+            self._on_sat_feeds_done
+        ).addErrback(
+            self._sat_feeds_err
+        )
+
+    # ------------------------------------------------------------------
+    # Background worker (runs in a thread – must NOT touch UI)
+    # ------------------------------------------------------------------
+    def _sat_feeds_worker(self, keywords):
+        """Fetch and parse feed listings from LyngSat, FlySat and KingOfSat."""
+        results = []
+        results += self._scrape_lyngsat_feeds(keywords)
+        results += self._scrape_flysat_feeds(keywords)
+        results += self._scrape_kingofsat_feeds(keywords)
+        # Deduplicate by (name_norm, freq) pair
+        seen = set()
+        unique = []
+        for entry in results:
+            key = (_normalize_name(entry['name']), entry.get('freq', ''))
+            if key not in seen:
+                seen.add(key)
+                unique.append(entry)
+        return unique
+
+    # --- LyngSat -----------------------------------------------------------
+    def _scrape_lyngsat_feeds(self, keywords):
+        """Scrape lyngsat.com/feeds.html for matching feed entries."""
+        try:
+            try:
+                import urllib.request as urllib2
+            except ImportError:
+                import urllib2
+            import re
+
+            url = "https://www.lyngsat.com/feeds.html"
+            req = urllib2.Request(url, headers={
+                'User-Agent': 'Mozilla/5.0 (compatible; Enigma2)',
+                'Accept': 'text/html'
+            })
+            resp = urllib2.urlopen(req, timeout=SAT_FEED_TIMEOUT)
+            html = resp.read().decode('utf-8', errors='replace')
+
+            results = []
+            # LyngSat feeds table: rows have <td> cells
+            # Typical columns: Feed Name | Satellite | Freq Pol SR | System | Encryption
+            row_pattern = re.compile(
+                r'<tr[^>]*>(.*?)</tr>', re.DOTALL | re.IGNORECASE)
+            cell_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.DOTALL | re.IGNORECASE)
+            tag_strip = re.compile(r'<[^>]+>')
+            biss_pattern = re.compile(r'BISS[\s:]*([0-9A-Fa-f\s]{8,32})', re.IGNORECASE)
+            freq_pattern = re.compile(r'(\d{4,6})\s*([HVLR])\s*/?\s*(\d{3,6})', re.IGNORECASE)
+
+            for row_m in row_pattern.finditer(html):
+                row_html = row_m.group(1)
+                cells = [tag_strip.sub('', c.group(1)).strip()
+                         for c in cell_pattern.finditer(row_html)]
+                if len(cells) < 3:
+                    continue
+
+                feed_name = cells[0].strip()
+                if not feed_name or len(feed_name) < 3:
+                    continue
+
+                norm_feed = _normalize_name(feed_name)
+                if not any(kw in norm_feed for kw in keywords):
+                    continue
+
+                satellite = cells[1].strip() if len(cells) > 1 else ''
+                freq_raw  = cells[2].strip() if len(cells) > 2 else ''
+                system    = cells[3].strip() if len(cells) > 3 else ''
+                enc_raw   = cells[4].strip() if len(cells) > 4 else ''
+
+                # Parse frequency / pol / SR from the raw cell text
+                freq = pol = sr = ''
+                fm = freq_pattern.search(freq_raw)
+                if fm:
+                    freq = fm.group(1)
+                    pol  = fm.group(2).upper()
+                    sr   = fm.group(3)
+
+                # Parse BISS key
+                biss = ''
+                bm = biss_pattern.search(enc_raw)
+                if bm:
+                    biss = bm.group(1).replace(' ', '').upper()
+
+                results.append({
+                    'name':      feed_name,
+                    'satellite': satellite,
+                    'freq':      freq,
+                    'pol':       pol,
+                    'sr':        sr,
+                    'biss':      biss,
+                    'system':    system,
+                    'source':    'LyngSat',
+                })
+
+            log_dbg("[SatFeed] LyngSat returned {} matches".format(len(results)))
+            return results
+        except Exception as e:
+            log_dbg("[SatFeed] LyngSat error: " + str(e))
+            return []
+
+    # --- FlySat ------------------------------------------------------------
+    def _scrape_flysat_feeds(self, keywords):
+        """Scrape flysat.com for matching feed entries."""
+        try:
+            try:
+                import urllib.request as urllib2
+            except ImportError:
+                import urllib2
+            import re
+
+            url = "https://www.flysat.com/en/feeds.php"
+            req = urllib2.Request(url, headers={
+                'User-Agent': 'Mozilla/5.0 (compatible; Enigma2)',
+                'Accept': 'text/html'
+            })
+            resp = urllib2.urlopen(req, timeout=SAT_FEED_TIMEOUT)
+            html = resp.read().decode('utf-8', errors='replace')
+
+            results = []
+            row_pattern  = re.compile(r'<tr[^>]*>(.*?)</tr>', re.DOTALL | re.IGNORECASE)
+            cell_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.DOTALL | re.IGNORECASE)
+            tag_strip    = re.compile(r'<[^>]+>')
+            biss_pattern = re.compile(r'BISS[\s:]*([0-9A-Fa-f\s]{8,32})', re.IGNORECASE)
+            freq_pattern = re.compile(r'(\d{4,6})\s*([HVLR])\s*[\-/]?\s*(\d{3,6})', re.IGNORECASE)
+
+            for row_m in row_pattern.finditer(html):
+                row_html = row_m.group(1)
+                cells = [tag_strip.sub('', c.group(1)).strip()
+                         for c in cell_pattern.finditer(row_html)]
+                if len(cells) < 3:
+                    continue
+
+                feed_name = cells[0].strip()
+                if not feed_name or len(feed_name) < 3:
+                    continue
+
+                norm_feed = _normalize_name(feed_name)
+                if not any(kw in norm_feed for kw in keywords):
+                    continue
+
+                satellite = cells[1].strip() if len(cells) > 1 else ''
+                freq_raw  = cells[2].strip() if len(cells) > 2 else ''
+                enc_raw   = ' '.join(cells[3:]) if len(cells) > 3 else ''
+
+                freq = pol = sr = ''
+                fm = freq_pattern.search(freq_raw)
+                if fm:
+                    freq = fm.group(1)
+                    pol  = fm.group(2).upper()
+                    sr   = fm.group(3)
+
+                biss = ''
+                bm = biss_pattern.search(enc_raw)
+                if bm:
+                    biss = bm.group(1).replace(' ', '').upper()
+
+                results.append({
+                    'name':      feed_name,
+                    'satellite': satellite,
+                    'freq':      freq,
+                    'pol':       pol,
+                    'sr':        sr,
+                    'biss':      biss,
+                    'system':    '',
+                    'source':    'FlySat',
+                })
+
+            log_dbg("[SatFeed] FlySat returned {} matches".format(len(results)))
+            return results
+        except Exception as e:
+            log_dbg("[SatFeed] FlySat error: " + str(e))
+            return []
+
+    # --- KingOfSat ---------------------------------------------------------
+    def _scrape_kingofsat_feeds(self, keywords):
+        """Search kingofsat.net for matching transponders/feeds."""
+        try:
+            try:
+                import urllib.request as urllib2
+            except ImportError:
+                import urllib2
+            import re
+
+            # KingOfSat search endpoint
+            query = '+'.join(kw[:20] for kw in keywords[:2])
+            url   = "https://en.kingofsat.net/search.php?search={}&type=channel".format(query)
+            req   = urllib2.Request(url, headers={
+                'User-Agent': 'Mozilla/5.0 (compatible; Enigma2)',
+                'Accept': 'text/html'
+            })
+            resp = urllib2.urlopen(req, timeout=SAT_FEED_TIMEOUT)
+            html = resp.read().decode('utf-8', errors='replace')
+
+            results = []
+            row_pattern  = re.compile(r'<tr[^>]*>(.*?)</tr>', re.DOTALL | re.IGNORECASE)
+            cell_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.DOTALL | re.IGNORECASE)
+            tag_strip    = re.compile(r'<[^>]+>')
+            biss_pattern = re.compile(r'BISS[\s:]*([0-9A-Fa-f\s]{8,32})', re.IGNORECASE)
+            freq_pattern = re.compile(r'(\d{4,6})\s*([HVLR])\s*[\-/]?\s*(\d{3,6})', re.IGNORECASE)
+
+            for row_m in row_pattern.finditer(html):
+                row_html = row_m.group(1)
+                cells = [tag_strip.sub('', c.group(1)).strip()
+                         for c in cell_pattern.finditer(row_html)]
+                if len(cells) < 3:
+                    continue
+
+                feed_name = cells[0].strip()
+                if not feed_name or len(feed_name) < 3:
+                    continue
+
+                satellite = cells[1].strip() if len(cells) > 1 else ''
+                freq_raw  = cells[2].strip() if len(cells) > 2 else ''
+                enc_raw   = ' '.join(cells[3:]) if len(cells) > 3 else ''
+
+                freq = pol = sr = ''
+                fm = freq_pattern.search(freq_raw)
+                if fm:
+                    freq = fm.group(1)
+                    pol  = fm.group(2).upper()
+                    sr   = fm.group(3)
+
+                biss = ''
+                bm = biss_pattern.search(enc_raw)
+                if bm:
+                    biss = bm.group(1).replace(' ', '').upper()
+
+                results.append({
+                    'name':      feed_name,
+                    'satellite': satellite,
+                    'freq':      freq,
+                    'pol':       pol,
+                    'sr':        sr,
+                    'biss':      biss,
+                    'system':    '',
+                    'source':    'KingOfSat',
+                })
+
+            log_dbg("[SatFeed] KingOfSat returned {} matches".format(len(results)))
+            return results
+        except Exception as e:
+            log_dbg("[SatFeed] KingOfSat error: " + str(e))
+            return []
+
+    # ------------------------------------------------------------------
+    # Callback / error handlers (run on the reactor thread – safe to touch UI)
+    # ------------------------------------------------------------------
+    def _on_sat_feeds_done(self, feed_results):
+        self._sat_feed_search_running = False
+        self["key_yellow"].setText(_t("Sat Feeds"))
+
+        if not feed_results:
+            self["hint"].setText(_t("No Sat Feeds Found"))
+            from Screens.MessageBox import MessageBox
+            self.session.open(
+                MessageBox,
+                "No satellite feeds found for this match on LyngSat, FlySat or KingOfSat.",
+                MessageBox.TYPE_INFO
+            )
+            return
+
+        new_entries = []
+        for feed in feed_results:
+            entry = self._build_feed_list_entry(feed)
+            if entry:
+                new_entries.append(entry)
+
+        if new_entries:
+            self.channels.extend([e[0] for e in new_entries])   # store raw tuples
+            # Rebuild the list including new feed entries
+            self._add_feed_entries_to_list(new_entries)
+            self["hint"].setText(_t("Found {} Sat Feed(s)").format(len(new_entries)))
+            log_dbg("[SatFeed] Added {} entries to list".format(len(new_entries)))
+        else:
+            self["hint"].setText(_t("No Sat Feeds Found"))
+
+    def _sat_feeds_err(self, error):
+        self._sat_feed_search_running = False
+        self["key_yellow"].setText(_t("Sat Feeds"))
+        self["hint"].setText(_t("Feed Search Failed"))
+        log_dbg("[SatFeed] Worker error: " + str(error))
+        from Screens.MessageBox import MessageBox
+        self.session.open(MessageBox, "Satellite feed search failed. Check connection.", MessageBox.TYPE_ERROR)
+
+    # ------------------------------------------------------------------
+    # List entry builder for feed results
+    # ------------------------------------------------------------------
+    def _build_feed_list_entry(self, feed):
+        """Build a (raw_tuple, rendered_entry) pair for one satellite feed."""
+        name      = feed.get('name', 'Unknown Feed')
+        satellite = feed.get('satellite', '')
+        freq      = feed.get('freq', '')
+        pol       = feed.get('pol', '')
+        sr        = feed.get('sr', '')
+        biss      = feed.get('biss', '')
+        source    = feed.get('source', '')
+
+        # Line 1: "[Source] Feed Name  •  Satellite"
+        line1 = u"[{}] {}".format(source, name)
+        if satellite:
+            line1 += u"  \u2022  " + satellite
+
+        # Line 2: "Freq: 12345 H / SR: 27500  |  BISS: XXXXXXXX"
+        parts = []
+        if freq:
+            f_str = freq
+            if pol:
+                f_str += u" " + pol
+            if sr:
+                f_str += u" / " + sr
+            parts.append(u"Freq: " + f_str)
+        if biss:
+            parts.append(u"BISS: " + biss)
+        elif not biss:
+            parts.append(u"BISS: N/A")
+        line2 = u"  |  ".join(parts) if parts else u""
+
+        # Raw tuple stored in self.channels:
+        # (sref="", display_name=line1, event_info=line2, cat_color)
+        raw = ("", line1, line2, SAT_FEED_CAT_COLOR)
+
+        # Build the rendered multi-content entry (similar to build_entry but
+        # without a picon slot – feeds don't have piconized service refs)
+        c_text = 0xffffff
+        c_dim  = 0xFFCC44   # warm amber for freq/BISS line
+        c_sel  = 0x00FF85 if self.theme != "ucl" else 0x00ffff
+        c_strip = SAT_FEED_CAT_COLOR
+
+        res = [raw]
+        # Color strip
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 5, 5, 8, 50, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER, "", 0x000000, c_strip))
+        # Feed name + satellite (line 1)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 2, 860, 30, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER, line1, c_text, c_sel))
+        # Frequency + BISS info (line 2)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 32, 860, 25, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER, line2, c_dim, c_sel))
+
+        return (raw, res)
+
+    def _add_feed_entries_to_list(self, new_entries):
+        """Append rendered feed entries to the existing list without clearing it."""
+        current = list(self["list"].list) if self["list"].list else []
+        for (_raw, rendered) in new_entries:
+            current.append(rendered)
+        self["list"].setList(current)
+
 
 # ==============================================================================
 # MAIN LAUNCHER (FIXED: Handle Exit/Cancel correctly)
@@ -13408,11 +14840,11 @@ def ProfileListEntry(outcome, h_name, a_name, picked, score_str, date_str, theme
         c_pending = 0xFFAA00
 
         if outcome == "WON":
-            bar_color = c_won;     tag_color = c_won;     tag_txt = u"[WON]"
+            bar_color = c_won;     tag_color = c_won;     tag_txt = u"[" + _t("WON") + u"]"
         elif outcome == "LOST":
-            bar_color = c_lost;    tag_color = c_lost;    tag_txt = u"[LOST]"
+            bar_color = c_lost;    tag_color = c_lost;    tag_txt = u"[" + _t("LOST") + u"]"
         else:
-            bar_color = c_pending; tag_color = c_pending; tag_txt = u"[PENDING]"
+            bar_color = c_pending; tag_color = c_pending; tag_txt = u"[" + _t("PENDING") + u"]"
 
         match_txt = u"{} vs {}".format(h_name, a_name)
 
@@ -13940,7 +15372,7 @@ class PersonalProfileScreen(Screen):
                 h_name      = bet.get("h_name", "Home")
                 a_name      = bet.get("a_name", "Away")
                 ts          = bet.get("timestamp", 0)
-                outcome     = _t("WON") if prediction == result else _t("LOST")
+                outcome     = "WON" if prediction == result else "LOST"
                 picked_lbl  = self._prediction_label(prediction, h_name, a_name)
                 date_lbl    = self._format_timestamp(ts)
                 row = ProfileListEntry(
@@ -13953,7 +15385,7 @@ class PersonalProfileScreen(Screen):
         pending = ledger.get("pending_bets", {})
         if isinstance(pending, dict) and pending:
             rows.append(ProfileSectionHeader(
-                u"  ⏳  Awaiting results  —  {} pending".format(len(pending)),
+                u"  ⏳  {}  —  {} {}".format(_t("Awaiting results"), len(pending), _t("pending")),
                 self._theme))
             for _eid, bet in sorted(pending.items(),
                                     key=lambda x: int(x[1].get("timestamp", 0)),
@@ -13984,14 +15416,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -14006,7 +15438,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, and EPG by reali22",
+            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
