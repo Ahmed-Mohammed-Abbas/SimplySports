@@ -107,7 +107,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "5.4"
+VERSION = "5.5"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -940,7 +940,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "5.4"  # Update version to 5.4 - Include EuroLeague basketball, Arabic translation to the notifications and league selection screen, Main screen scoreboard layout.
+CURRENT_VERSION = "5.5"  # Update version to 5.5 - Include new Main screen scoreboard layout, Channel Feeds and streams within the EPG button, Leagues HOTKEYS in the Main screen.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1431,8 +1431,11 @@ def build_match_snapshot(event):
     league_url   = event.get('league_url', '')
 
     if 'soccer' in league_url:
-        # Soccer: show minute mark "45'"
-        if raw_clock and ":" in raw_clock:
+        # Soccer: use ESPN's shortDetail for rich context
+        # (e.g. "45+5'" stoppage time, "HT" half-time, "2nd Half 60'")
+        if short_detail:
+            clock_display = short_detail
+        elif raw_clock and ":" in raw_clock:
             clock_display = raw_clock.split(':')[0] + "'"
         else:
             clock_display = raw_clock or ''
@@ -1995,27 +1998,32 @@ def SportListEntry(entry):
 
         # --- Live Possession & Performance Bars ---
         if status == "LIVE":
-            if (h_poss > 0 or a_poss > 0 or h_pct_stats or a_pct_stats):
+            # 1. Center Possession Bar
+            if h_poss > 0 or a_poss > 0:
+                bar_total_w = 220
+                bar_x = 850
+                bar_y = 82
+                bar_h = 6
+                
+                total_poss = h_poss + a_poss
+                if total_poss == 0: total_poss = 100.0
+                
+                h_w = int(bar_total_w * (h_poss / total_poss))
+                a_w = bar_total_w - h_w
+                
+                c_home_poss = 0x00FF85 # Green
+                c_away_poss = 0x9933FF # Purple
+                
+                # Left block (Home, Green)
+                if h_w > 0:
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x, bar_y, h_w, bar_h, 0, RT_HALIGN_CENTER, "", c_home_poss, c_home_poss, c_home_poss, c_home_poss))
+                # Right block (Away, Purple)
+                if a_w > 0:
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x + h_w, bar_y, a_w, bar_h, 0, RT_HALIGN_CENTER, "", c_away_poss, c_away_poss, c_away_poss, c_away_poss))
+
+            # 2. Extra Percentage Bars (distinct colors per stat, with dim tracks)
+            if h_pct_stats or a_pct_stats:
                 max_w = 200
-                h_bar_w = int(max_w * (h_poss / 100.0)) if h_poss > 0 else 0
-                a_bar_w = int(max_w * (a_poss / 100.0)) if a_poss > 0 else 0
-                bar_y = 65
-                bar_h = 5
-                c_track = 0x1A1A2E
-
-                # Track backgrounds (full-width dim rail)
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, 570, bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
-
-                # Home Possession Bar (growing leftwards from 770)
-                if h_bar_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 770 - h_bar_w, bar_y, h_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
-
-                # Away Possession Bar (growing rightwards from 1150)
-                if a_bar_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
-
-                # Extra Percentage Bars (distinct colors per stat, with dim tracks)
                 stat_colors = [0x00BBFF, 0xFF9900, 0xFFDD00, 0xBB66FF]
                 stat_track  = [0x002233, 0x261500, 0x262200, 0x1A0D22]
                 stat_y = 72
@@ -12121,7 +12129,7 @@ class SimpleSportsScreen(Screen):
             {bg}
             {top}
             <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
-            <widget name="key_menu" position="40,30" size="300,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
+            <widget name="key_menu" position="40,30" size="1000,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
             <widget name="credit" position="1600,20" size="300,30" font="SimplySportFont;20" foregroundColor="#888888" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
             <widget name="clock" position="{cx},75" size="{cw},35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="{ca}" zPosition="2" />
             {bar}
@@ -12146,8 +12154,9 @@ class SimpleSportsScreen(Screen):
 
         self["top_bar"] = Label(""); self["header_bg"] = Label(""); self["bottom_bar"] = Label(""); self["main_bg"] = Label(""); self["bar_bg"] = Label("")
         self["top_title"] = Label(_t("SIMPLY SPORTS")); self["league_title"] = Label(_t("LOADING...")); self["list_title"] = Label("")
-        self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label(_t("MENU: Settings & Tools"))
+        self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label(_t("MENU: Settings  |  1-9: Leagues"))
         self["clock"] = Label("")  # Clock widget
+        self._last_refreshed = None  # datetime of last successful refresh_ui render
         self["head_status"] = Label(_t("STATUS")); self["head_home"] = Label(_t("HOME")); self["head_league"] = Label(_t("LEAGUE")); self["head_score"] = Label(""); self["head_away"] = Label(_t("AWAY")); self["head_time"] = Label(_t("TIME"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         # Use Custom font "SimplySportFont" which is guaranteed to map to a valid system font
@@ -12174,7 +12183,7 @@ class SimpleSportsScreen(Screen):
         safe_connect(self.ai_ticker_timer, self._advance_ai_ticker)
 
         log_dbg("SimpleSportsScreen: Registering ActionMap...")
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions", "EPGSelectActions", "InfobarEPGActions", "InfobarActions", "GlobalActions"],
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions", "EPGSelectActions", "InfobarEPGActions", "InfobarActions", "GlobalActions", "NumberActions"],
             {
                 "cancel": self.close,
                 "red": self.open_league_menu,
@@ -12189,7 +12198,17 @@ class SimpleSportsScreen(Screen):
                 "epg": self.open_broadcasting,
                 "guide": self.open_broadcasting,
                 "event": self.open_broadcasting,
-                "showEventInfo": self.open_broadcasting
+                "showEventInfo": self.open_broadcasting,
+                "1": self.keyNumber1,
+                "2": self.keyNumber2,
+                "3": self.keyNumber3,
+                "4": self.keyNumber4,
+                "5": self.keyNumber5,
+                "6": self.keyNumber6,
+                "7": self.keyNumber7,
+                "8": self.keyNumber8,
+                "9": self.keyNumber9,
+                "0": self.keyNumber0
             }, -1)
         log_dbg("SimpleSportsScreen: ActionMap Registered")
 
@@ -12199,12 +12218,28 @@ class SimpleSportsScreen(Screen):
         self.onLayoutFinish.append(self.start_ui); self.onClose.append(self.cleanup)
 
     def update_clock(self):
-        """Update clock display with current time"""
+        """Update clock display (HH:MM:SS) and the last-refreshed age in key_menu."""
         try:
             now = datetime.datetime.now()
-            self["clock"].setText(now.strftime("%H:%M"))
-            # log_diag("UPDATE_CLOCK: " + now.strftime("%H:%M"))
-        except: pass
+            self["clock"].setText(now.strftime("%H:%M:%S"))
+
+            if self._last_refreshed is None:
+                # Data hasn't arrived yet — show a neutral waiting hint
+                menu_txt = _t("MENU: Settings  |  1-9: Leagues   ") + u"\u21bb " + _t("Waiting for data…")
+            else:
+                delta_sec = int((now - self._last_refreshed).total_seconds())
+                ts_str    = self._last_refreshed.strftime("%H:%M:%S")
+                if delta_sec < 60:
+                    age_str = u"{}s ago".format(delta_sec)
+                elif delta_sec < 3600:
+                    age_str = u"{}m {}s ago".format(delta_sec // 60, delta_sec % 60)
+                else:
+                    age_str = u"{}h {}m ago".format(delta_sec // 3600, (delta_sec % 3600) // 60)
+                menu_txt = _t("MENU: Settings  |  1-9: Leagues   ") + u"\u21bb {}  (updated {})".format(ts_str, age_str)
+
+            self["key_menu"].setText(menu_txt)
+        except Exception:
+            pass
 
     def start_ui(self):
         log_diag("SCREEN.start_ui: is_custom={} filter_mode={} discovery_mode={} active={}".format(
@@ -12966,6 +13001,8 @@ class SimpleSportsScreen(Screen):
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
             else: self["list"].setList([SportListEntry(dummy_entry)])
             self.current_match_ids = []
+            # Still stamp the refresh time — the fetch itself succeeded, just no matches
+            self._last_refreshed = datetime.datetime.now()
         else:
             self.update_header(len(list_content), count_live, count_fin, count_sch)
             if getattr(self["list"], "list", None) is not None and self.current_match_ids == new_match_ids and len(self["list"].list) == len(list_content):
@@ -12983,6 +13020,9 @@ class SimpleSportsScreen(Screen):
                         new_index = new_match_ids.index(selected_id)
                         self["list"].moveToIndex(new_index)
                     except ValueError: pass
+
+            # Stamp the exact moment this render completed
+            self._last_refreshed = datetime.datetime.now()
 
     # ... (Keep existing Menu, Reminder, and Update methods unchanged) ...
     # [PASTE EXISTING METHODS HERE]
@@ -13305,6 +13345,41 @@ class SimpleSportsScreen(Screen):
             # Re-open screen to apply new skin/theme (F1 background etc)
             self.session.open(SimpleSportsScreen)
             self.close()
+
+    def jump_to_league(self, key_num):
+        if key_num == 0:
+            # Return to custom leagues mode
+            self.monitor.set_custom_leagues(self.monitor.custom_league_indices)
+            self.session.open(SimpleSportsScreen)
+            self.close()
+            return
+
+        mapping = {
+            1: 11,  # UEFA Champions League
+            2: 16,  # Premier League
+            3: 27,  # La Liga
+            4: 33,  # Serie A
+            5: 37,  # Bundesliga
+            6: 42,  # Ligue 1
+            7: 111, # NBA
+            8: 12,  # UEFA Europa League
+            9: 13,  # UEFA Conference League
+        }
+        if key_num in mapping:
+            self.monitor.set_league(mapping[key_num])
+            self.session.open(SimpleSportsScreen)
+            self.close()
+
+    def keyNumber1(self): self.jump_to_league(1)
+    def keyNumber2(self): self.jump_to_league(2)
+    def keyNumber3(self): self.jump_to_league(3)
+    def keyNumber4(self): self.jump_to_league(4)
+    def keyNumber5(self): self.jump_to_league(5)
+    def keyNumber6(self): self.jump_to_league(6)
+    def keyNumber7(self): self.jump_to_league(7)
+    def keyNumber8(self): self.jump_to_league(8)
+    def keyNumber9(self): self.jump_to_league(9)
+    def keyNumber0(self): self.jump_to_league(0)
 
     def open_mini_bar(self):
         # Racing mode: open RacingMiniBar with selected event
@@ -13926,35 +14001,83 @@ class BroadcastingChannelsScreen(Screen):
 
     def zap_to_channel(self):
         idx = self["list"].getSelectedIndex()
-        if idx is not None:
-            item = self["list"].list[idx][0]
-            sref = item[0]
-            if not sref:
-                from Screens.MessageBox import MessageBox
+        if idx is None:
+            return
+        item = self["list"].list[idx][0]
+        sref = item[0]
+
+        # ----------------------------------------------------------------
+        # Satellite feed entry (no sref) – give tuning instructions
+        # ----------------------------------------------------------------
+        if not sref:
+            line2 = item[2] if len(item) > 2 else ''
+            from Screens.MessageBox import MessageBox
+            if 'Freq:' in line2 or 'BISS:' in line2:
+                self.session.open(
+                    MessageBox,
+                    u"Satellite Feed — tune your dish manually:\n\n" + line2,
+                    MessageBox.TYPE_INFO
+                )
+            else:
                 self.session.open(
                     MessageBox,
                     "Channel found in EPG but not in your bouquets.\n"
                     "Add it to a bouquet to zap.",
                     MessageBox.TYPE_INFO
                 )
-                return
+            return
 
-            sname = item[1]
-            event_name = item[2]
+        # ----------------------------------------------------------------
+        # IPTV stream entry (4097:… sref) – play immediately via E2 nav
+        # ----------------------------------------------------------------
+        if sref.startswith('4097:'):
+            self.real_zap(sref)
+            return
 
-            now = int(time.time())
-            if self.match_time_ts > now + 300:
-                self.session.openWithCallback(
-                    self.zap_callback,
-                    ChoiceBox,
-                    title="Future Match Selected",
-                    list=[
-                        ("Zap Now (Check Channel)", "zap"),
-                        ("Remind & Zap (When starts)", "remind_zap")
-                    ]
-                )
-            else:
-                self.real_zap(sref)
+        # ----------------------------------------------------------------
+        # Normal Enigma2 service reference – respect match time
+        # ----------------------------------------------------------------
+        now = int(time.time())
+
+        # Primary check: timestamp says the match is more than 5 minutes away.
+        # Secondary check: the event itself is in 'pre' (scheduled) state.
+        #   This catches two failure modes:
+        #     a) ev_date_str parsing failed → fallback set match_time_ts = time.time()
+        #        which makes match_time_ts == now → primary check fails even though
+        #        the match IS scheduled.
+        #     b) Kick-off was delayed → timestamp is in the past but match hasn't
+        #        started yet (API lag), still showing as 'pre'.
+        event_state = ''
+        if self.target_event:
+            try:
+                event_state = (self.target_event
+                               .get('status', {})
+                               .get('type', {})
+                               .get('state', ''))
+            except Exception:
+                pass
+
+        # Treat a match as "future / not yet live" if:
+        #   - Timestamp is clearly in the future (> 5 min), OR
+        #   - Event is explicitly marked as scheduled ('pre') and its timestamp
+        #     is no more than 4 hours in the past (handles API lag / late kick-offs)
+        is_future = (
+            self.match_time_ts > now + 300
+            or (event_state == 'pre' and self.match_time_ts >= now - 14400)
+        )
+
+        if is_future:
+            self.session.openWithCallback(
+                self.zap_callback,
+                ChoiceBox,
+                title=_t("Match Not Started Yet"),
+                list=[
+                    (_t("Zap Now (Preview Channel)"), "zap"),
+                    (_t("Remind & Zap (When match starts)"), "remind_zap")
+                ]
+            )
+        else:
+            self.real_zap(sref)
 
     def zap_callback(self, answer):
         if not answer:
@@ -13982,8 +14105,10 @@ class BroadcastingChannelsScreen(Screen):
                 self.session.open(MessageBox, "Error setting reminder: " + str(e), MessageBox.TYPE_ERROR)
 
     def real_zap(self, sref):
+        # Play the service but keep the BroadcastingChannelsScreen open so
+        # the user can browse other channels or feeds without having to
+        # re-open the screen.
         self.session.nav.playService(eServiceReference(sref))
-        self.close()
 
     def add_timer(self):
         idx = self["list"].getSelectedIndex()
@@ -14191,116 +14316,238 @@ class BroadcastingChannelsScreen(Screen):
             self["hint"].setText(_t("No EPG matches found"))
 
     # ==========================================================================
-    # YELLOW BUTTON: Satellite / Transponder Feed Search
-    # Searches LyngSat, FlySat, and KingOfSat for live / wild feeds matching
-    # the current match event.  Results are added to the broadcast list showing
-    # channel name, satellite, frequency and BISS code.
+    # YELLOW BUTTON — Today's Live Satellite Feed Search
+    #
+    # Sources (in priority order):
+    #   1. Satelliweb  – primary wild-feed tracker, date-filtered to TODAY
+    #   2. LyngSat     – /feeds.html live/active feeds page (all current entries)
+    #   3. FlySat      – /en/feeds.php live feeds page (all current entries)
+    #   4. KingOfSat   – /newchannels.php  new & live channels section
+    #   5. iptv-org    – GitHub raw sports category m3u playlist
+    #
+    # Filtering: DATE-ONLY (today's date).  NO keyword matching against the
+    # event – the user gets every feed reported today so they can browse and
+    # tune manually.  Deduplication by (normalised-name, frequency) pair.
     # ==========================================================================
 
+    # ------------------------------------------------------------------ entry
     def search_satellite_feeds(self):
-        """Entry point for Yellow button – search satellite feed databases."""
+        """Yellow button handler – fetch ALL feeds reported today from every source."""
         if self._sat_feed_search_running:
-            return  # debounce
+            return  # debounce: ignore second press while busy
 
-        # Build search keywords from the event
-        keywords = []
-        if self.target_event:
-            comps = self.target_event.get('competitors', [])
-            for comp in comps[:2]:
-                if 'athlete' in comp:
-                    t = comp.get('athlete', {}).get('shortName', '')
-                else:
-                    t = comp.get('team', {}).get('displayName', '')
-                if t and len(t) > 2:
-                    keywords.append(_normalize_name(t))
-            if not keywords:
-                name = self.target_event.get('shortName') or self.target_event.get('name', '')
-                if name and len(name) > 2:
-                    keywords.append(_normalize_name(name))
-            league = self.target_event.get('league_name', '')
-            if league and len(league) > 2:
-                keywords.append(_normalize_name(league))
+        import datetime
+        today_str = datetime.date.today().strftime('%Y-%m-%d')
 
-        if not keywords:
-            from Screens.MessageBox import MessageBox
-            self.session.open(MessageBox, "No match data available to search satellite feeds.", MessageBox.TYPE_INFO)
-            return
-
-        self._sat_feed_keywords = keywords
         self._sat_feed_search_running = True
         self["key_yellow"].setText(_t("Searching..."))
-        self["hint"].setText(_t("Scanning Sat Databases..."))
-        log_dbg("[SatFeed] Starting feed search for: {}".format(keywords))
+        self["hint"].setText(_t("Scanning 5 Sat Sources for {}…").format(today_str))
+        log_dbg("[SatFeed] Daily feed scan started for {}".format(today_str))
 
         from twisted.internet import threads
         threads.deferToThread(
-            self._sat_feeds_worker, keywords
+            self._sat_feeds_worker, today_str
         ).addCallback(
             self._on_sat_feeds_done
         ).addErrback(
             self._sat_feeds_err
         )
 
-    # ------------------------------------------------------------------
-    # Background worker (runs in a thread – must NOT touch UI)
-    # ------------------------------------------------------------------
-    def _sat_feeds_worker(self, keywords):
-        """Fetch and parse feed listings from LyngSat, FlySat and KingOfSat."""
+    # --------------------------------------------------------------- worker
+    def _sat_feeds_worker(self, today_str):
+        """
+        Background thread: hit all 5 sources, merge, deduplicate.
+        today_str is 'YYYY-MM-DD'.
+        """
         results = []
-        results += self._scrape_lyngsat_feeds(keywords)
-        results += self._scrape_flysat_feeds(keywords)
-        results += self._scrape_kingofsat_feeds(keywords)
-        # Deduplicate by (name_norm, freq) pair
-        seen = set()
+        results += self._scrape_satelliweb_feeds(today_str)   # primary – date-exact
+        results += self._scrape_lyngsat_feeds()                # live feeds page
+        results += self._scrape_flysat_feeds()                 # live feeds page
+        results += self._scrape_kingofsat_feeds()              # new/live channels
+        results += self._fetch_github_sport_channels()         # iptv-org sports m3u
+
+        # Deduplicate by (normalised_name, freq) – keep first seen (highest priority)
+        seen   = set()
         unique = []
         for entry in results:
             key = (_normalize_name(entry['name']), entry.get('freq', ''))
             if key not in seen:
                 seen.add(key)
                 unique.append(entry)
+
+        log_dbg("[SatFeed] Total unique entries after dedup: {}".format(len(unique)))
         return unique
 
-    # --- LyngSat -----------------------------------------------------------
-    def _scrape_lyngsat_feeds(self, keywords):
-        """Scrape lyngsat.com/feeds.html for matching feed entries."""
+    # ==================================================================
+    # SOURCE 1 — Satelliweb  (https://www.satelliweb.com)
+    # The most active wild-feed tracker for European / Middle-Eastern sky.
+    # Default URL already shows today; older dates: &date=YYYY-MM-DD
+    # ==================================================================
+    def _scrape_satelliweb_feeds(self, today_str):
+        """
+        Fetch live feeds reported on today_str from satelliweb.com.
+        The default landing page already shows today; we also try the
+        explicit date param so the correct day is always requested.
+
+        Each block structure (inferred from live HTML):
+          Reported by <user> on <date> <time>
+          <b><a href="...">Satellite Name (pos)</a></b>
+          Frequency: <b>XXXX</b> - Pol: <b>H</b> - SR: <b>YYYY</b> - FEC: <b>-</b>
+          Category:  <b>Sport - Football</b>  (or other category)
+          Transmitted in: <b>MPEG-4</b>  [ crypté ]
+          ℹ  Description text
+        """
         try:
             try:
-                import urllib.request as urllib2
+                import urllib.request as _ur
             except ImportError:
-                import urllib2
+                import urllib2 as _ur
+            import re
+
+            url = ("https://www.satelliweb.com/index.php"
+                   "?section=livef&langue=en&date={}".format(today_str))
+            req  = _ur.Request(url, headers={
+                'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                               'AppleWebKit/537.36 (KHTML, like Gecko) '
+                               'Chrome/124.0.0.0 Safari/537.36'),
+                'Accept':          'text/html,application/xhtml+xml',
+                'Accept-Language': 'en-GB,en;q=0.9',
+                'Referer':         'https://www.satelliweb.com/',
+            })
+            html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
+
+            results = []
+            tag_strip   = re.compile(r'<[^>]+>')
+
+            # Split at every "Reported by" block header
+            block_sep   = re.compile(r'Reported\s+by\b', re.IGNORECASE)
+            blocks      = block_sep.split(html)
+
+            # Pattern: date confirmation inside the block  (on 2026-04-24)
+            date_chk    = re.compile(r'on\s+' + re.escape(today_str), re.IGNORECASE)
+
+            # Satellite name is in a bold link:  <b><a href="...">Name</a></b>
+            sat_pat     = re.compile(
+                r'<b>\s*<a[^>]+>\s*([^<]{4,80})\s*</a>\s*</b>', re.IGNORECASE)
+
+            # Freq / Pol / SR line
+            freq_pat    = re.compile(
+                r'Frequency\s*:\s*<b>(\d{4,6})</b>'
+                r'.*?Pol\s*:\s*<b>([HVLR])</b>'
+                r'.*?SR\s*:\s*<b>(\d{3,6})</b>',
+                re.IGNORECASE | re.DOTALL)
+
+            # Category line  → e.g.  "Sport - Football"
+            cat_pat     = re.compile(
+                r'Category\s*:.*?<b>([^<]{3,80})</b>', re.IGNORECASE | re.DOTALL)
+
+            # Encrypted flag
+            crypt_pat   = re.compile(r'crypt', re.IGNORECASE)
+
+            # BISS key sometimes appears in the block
+            biss_pat    = re.compile(
+                r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})',
+                re.IGNORECASE)
+
+            # Description after the info-symbol ℹ or after ":" at end
+            desc_pat    = re.compile(
+                r'[ℹ\u2139]\s*([^\n<]{3,120})', re.IGNORECASE)
+
+            for blk in blocks[1:]:           # skip text before first "Reported by"
+                # Confirm this block is from today
+                if not date_chk.search(blk[:120]):
+                    continue
+
+                # Satellite name
+                sm = sat_pat.search(blk)
+                satellite = tag_strip.sub('', sm.group(1)).strip() if sm else ''
+
+                # Frequency / Pol / SR
+                fm = freq_pat.search(blk)
+                if not fm:
+                    continue               # no transponder data → skip
+                freq = fm.group(1)
+                pol  = fm.group(2).upper()
+                sr   = fm.group(3)
+
+                # Category
+                cm   = cat_pat.search(blk)
+                cat  = tag_strip.sub('', cm.group(1)).strip() if cm else ''
+
+                # Encrypted?
+                encrypted = bool(crypt_pat.search(blk))
+
+                # BISS
+                bm   = biss_pat.search(blk)
+                biss = bm.group(1).replace(' ', '').upper() if bm else ''
+
+                # Description (the human note – e.g. "Arsenal vs Chelsea")
+                dm   = desc_pat.search(blk)
+                desc = dm.group(1).strip() if dm else ''
+
+                # Use description as the feed name (it's the most human-readable)
+                name = desc if desc else (cat if cat else u"Feed @ {}".format(freq))
+
+                results.append({
+                    'name':      name,
+                    'satellite': satellite,
+                    'freq':      freq,
+                    'pol':       pol,
+                    'sr':        sr,
+                    'biss':      biss,
+                    'system':    'encrypted' if encrypted else 'FTA',
+                    'category':  cat,
+                    'source':    'Satelliweb',
+                })
+
+            log_dbg("[SatFeed] Satelliweb returned {} entries for {}".format(len(results), today_str))
+            return results
+        except Exception as e:
+            log_dbg("[SatFeed] Satelliweb error: " + str(e))
+            return []
+
+    # ==================================================================
+    # SOURCE 2 — LyngSat  (https://www.lyngsat.com/feeds.html)
+    # Shows all currently active / recently reported wild feeds.
+    # Table columns: Feed Name | Satellite | Freq Pol SR | System | Encryption
+    # ==================================================================
+    def _scrape_lyngsat_feeds(self):
+        """Scrape all active feeds from lyngsat.com/feeds.html (no date filter)."""
+        try:
+            try:
+                import urllib.request as _ur
+            except ImportError:
+                import urllib2 as _ur
             import re
 
             url = "https://www.lyngsat.com/feeds.html"
-            req = urllib2.Request(url, headers={
-                'User-Agent': 'Mozilla/5.0 (compatible; Enigma2)',
-                'Accept': 'text/html'
+            req = _ur.Request(url, headers={
+                'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                               'AppleWebKit/537.36 (KHTML, like Gecko) '
+                               'Chrome/124.0.0.0 Safari/537.36'),
+                'Accept': 'text/html,application/xhtml+xml',
+                'Referer': 'https://www.lyngsat.com/',
             })
-            resp = urllib2.urlopen(req, timeout=SAT_FEED_TIMEOUT)
-            html = resp.read().decode('utf-8', errors='replace')
+            html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
 
-            results = []
-            # LyngSat feeds table: rows have <td> cells
-            # Typical columns: Feed Name | Satellite | Freq Pol SR | System | Encryption
-            row_pattern = re.compile(
-                r'<tr[^>]*>(.*?)</tr>', re.DOTALL | re.IGNORECASE)
-            cell_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.DOTALL | re.IGNORECASE)
-            tag_strip = re.compile(r'<[^>]+>')
-            biss_pattern = re.compile(r'BISS[\s:]*([0-9A-Fa-f\s]{8,32})', re.IGNORECASE)
-            freq_pattern = re.compile(r'(\d{4,6})\s*([HVLR])\s*/?\s*(\d{3,6})', re.IGNORECASE)
+            results     = []
+            row_pat     = re.compile(r'<tr[^>]*>(.*?)</tr>',  re.DOTALL | re.IGNORECASE)
+            cell_pat    = re.compile(r'<td[^>]*>(.*?)</td>',  re.DOTALL | re.IGNORECASE)
+            tag_strip   = re.compile(r'<[^>]+>')
+            biss_pat    = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
+            freq_pat    = re.compile(r'(\d{4,6})\s*([HVLR])\s*[/\-]?\s*(\d{3,6})', re.IGNORECASE)
 
-            for row_m in row_pattern.finditer(html):
+            for row_m in row_pat.finditer(html):
                 row_html = row_m.group(1)
-                cells = [tag_strip.sub('', c.group(1)).strip()
-                         for c in cell_pattern.finditer(row_html)]
+                cells    = [tag_strip.sub('', c.group(1)).strip()
+                            for c in cell_pat.finditer(row_html)]
                 if len(cells) < 3:
                     continue
-
                 feed_name = cells[0].strip()
                 if not feed_name or len(feed_name) < 3:
                     continue
-
-                norm_feed = _normalize_name(feed_name)
-                if not any(kw in norm_feed for kw in keywords):
+                # Skip header rows
+                if feed_name.lower() in ('feed name', 'name', 'channel'):
                     continue
 
                 satellite = cells[1].strip() if len(cells) > 1 else ''
@@ -14308,17 +14555,15 @@ class BroadcastingChannelsScreen(Screen):
                 system    = cells[3].strip() if len(cells) > 3 else ''
                 enc_raw   = cells[4].strip() if len(cells) > 4 else ''
 
-                # Parse frequency / pol / SR from the raw cell text
                 freq = pol = sr = ''
-                fm = freq_pattern.search(freq_raw)
+                fm = freq_pat.search(freq_raw)
                 if fm:
                     freq = fm.group(1)
                     pol  = fm.group(2).upper()
                     sr   = fm.group(3)
 
-                # Parse BISS key
                 biss = ''
-                bm = biss_pattern.search(enc_raw)
+                bm = biss_pat.search(enc_raw)
                 if bm:
                     biss = bm.group(1).replace(' ', '').upper()
 
@@ -14330,53 +14575,56 @@ class BroadcastingChannelsScreen(Screen):
                     'sr':        sr,
                     'biss':      biss,
                     'system':    system,
+                    'category':  '',
                     'source':    'LyngSat',
                 })
 
-            log_dbg("[SatFeed] LyngSat returned {} matches".format(len(results)))
+            log_dbg("[SatFeed] LyngSat returned {} entries".format(len(results)))
             return results
         except Exception as e:
             log_dbg("[SatFeed] LyngSat error: " + str(e))
             return []
 
-    # --- FlySat ------------------------------------------------------------
-    def _scrape_flysat_feeds(self, keywords):
-        """Scrape flysat.com for matching feed entries."""
+    # ==================================================================
+    # SOURCE 3 — FlySat  (https://www.flysat.com/en/feeds.php)
+    # Frequently updated; layout mirrors LyngSat.
+    # ==================================================================
+    def _scrape_flysat_feeds(self):
+        """Scrape all active feeds from flysat.com/en/feeds.php (no date filter)."""
         try:
             try:
-                import urllib.request as urllib2
+                import urllib.request as _ur
             except ImportError:
-                import urllib2
+                import urllib2 as _ur
             import re
 
             url = "https://www.flysat.com/en/feeds.php"
-            req = urllib2.Request(url, headers={
-                'User-Agent': 'Mozilla/5.0 (compatible; Enigma2)',
-                'Accept': 'text/html'
+            req = _ur.Request(url, headers={
+                'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                               'AppleWebKit/537.36 (KHTML, like Gecko) '
+                               'Chrome/124.0.0.0 Safari/537.36'),
+                'Accept': 'text/html,application/xhtml+xml',
+                'Referer': 'https://www.flysat.com/',
             })
-            resp = urllib2.urlopen(req, timeout=SAT_FEED_TIMEOUT)
-            html = resp.read().decode('utf-8', errors='replace')
+            html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
 
-            results = []
-            row_pattern  = re.compile(r'<tr[^>]*>(.*?)</tr>', re.DOTALL | re.IGNORECASE)
-            cell_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.DOTALL | re.IGNORECASE)
-            tag_strip    = re.compile(r'<[^>]+>')
-            biss_pattern = re.compile(r'BISS[\s:]*([0-9A-Fa-f\s]{8,32})', re.IGNORECASE)
-            freq_pattern = re.compile(r'(\d{4,6})\s*([HVLR])\s*[\-/]?\s*(\d{3,6})', re.IGNORECASE)
+            results   = []
+            row_pat   = re.compile(r'<tr[^>]*>(.*?)</tr>',  re.DOTALL | re.IGNORECASE)
+            cell_pat  = re.compile(r'<td[^>]*>(.*?)</td>',  re.DOTALL | re.IGNORECASE)
+            tag_strip = re.compile(r'<[^>]+>')
+            biss_pat  = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
+            freq_pat  = re.compile(r'(\d{4,6})\s*([HVLR])\s*[/\-]?\s*(\d{3,6})', re.IGNORECASE)
 
-            for row_m in row_pattern.finditer(html):
+            for row_m in row_pat.finditer(html):
                 row_html = row_m.group(1)
-                cells = [tag_strip.sub('', c.group(1)).strip()
-                         for c in cell_pattern.finditer(row_html)]
+                cells    = [tag_strip.sub('', c.group(1)).strip()
+                            for c in cell_pat.finditer(row_html)]
                 if len(cells) < 3:
                     continue
-
                 feed_name = cells[0].strip()
                 if not feed_name or len(feed_name) < 3:
                     continue
-
-                norm_feed = _normalize_name(feed_name)
-                if not any(kw in norm_feed for kw in keywords):
+                if feed_name.lower() in ('feed name', 'name', 'channel', 'feeds'):
                     continue
 
                 satellite = cells[1].strip() if len(cells) > 1 else ''
@@ -14384,14 +14632,14 @@ class BroadcastingChannelsScreen(Screen):
                 enc_raw   = ' '.join(cells[3:]) if len(cells) > 3 else ''
 
                 freq = pol = sr = ''
-                fm = freq_pattern.search(freq_raw)
+                fm = freq_pat.search(freq_raw)
                 if fm:
                     freq = fm.group(1)
                     pol  = fm.group(2).upper()
                     sr   = fm.group(3)
 
                 biss = ''
-                bm = biss_pattern.search(enc_raw)
+                bm = biss_pat.search(enc_raw)
                 if bm:
                     biss = bm.group(1).replace(' ', '').upper()
 
@@ -14403,51 +14651,57 @@ class BroadcastingChannelsScreen(Screen):
                     'sr':        sr,
                     'biss':      biss,
                     'system':    '',
+                    'category':  '',
                     'source':    'FlySat',
                 })
 
-            log_dbg("[SatFeed] FlySat returned {} matches".format(len(results)))
+            log_dbg("[SatFeed] FlySat returned {} entries".format(len(results)))
             return results
         except Exception as e:
             log_dbg("[SatFeed] FlySat error: " + str(e))
             return []
 
-    # --- KingOfSat ---------------------------------------------------------
-    def _scrape_kingofsat_feeds(self, keywords):
-        """Search kingofsat.net for matching transponders/feeds."""
+    # ==================================================================
+    # SOURCE 4 — KingOfSat  (https://en.kingofsat.net/newchannels.php)
+    # "New channels" section lists recently added / moved channels with
+    # full transponder data — the closest KingOfSat gets to a live feed list.
+    # ==================================================================
+    def _scrape_kingofsat_feeds(self):
+        """Scrape recently added channels from kingofsat.net/newchannels.php."""
         try:
             try:
-                import urllib.request as urllib2
+                import urllib.request as _ur
             except ImportError:
-                import urllib2
+                import urllib2 as _ur
             import re
 
-            # KingOfSat search endpoint
-            query = '+'.join(kw[:20] for kw in keywords[:2])
-            url   = "https://en.kingofsat.net/search.php?search={}&type=channel".format(query)
-            req   = urllib2.Request(url, headers={
-                'User-Agent': 'Mozilla/5.0 (compatible; Enigma2)',
-                'Accept': 'text/html'
+            url = "https://en.kingofsat.net/newchannels.php"
+            req = _ur.Request(url, headers={
+                'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                               'AppleWebKit/537.36 (KHTML, like Gecko) '
+                               'Chrome/124.0.0.0 Safari/537.36'),
+                'Accept': 'text/html,application/xhtml+xml',
+                'Referer': 'https://en.kingofsat.net/',
             })
-            resp = urllib2.urlopen(req, timeout=SAT_FEED_TIMEOUT)
-            html = resp.read().decode('utf-8', errors='replace')
+            html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
 
-            results = []
-            row_pattern  = re.compile(r'<tr[^>]*>(.*?)</tr>', re.DOTALL | re.IGNORECASE)
-            cell_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.DOTALL | re.IGNORECASE)
-            tag_strip    = re.compile(r'<[^>]+>')
-            biss_pattern = re.compile(r'BISS[\s:]*([0-9A-Fa-f\s]{8,32})', re.IGNORECASE)
-            freq_pattern = re.compile(r'(\d{4,6})\s*([HVLR])\s*[\-/]?\s*(\d{3,6})', re.IGNORECASE)
+            results   = []
+            row_pat   = re.compile(r'<tr[^>]*>(.*?)</tr>',  re.DOTALL | re.IGNORECASE)
+            cell_pat  = re.compile(r'<td[^>]*>(.*?)</td>',  re.DOTALL | re.IGNORECASE)
+            tag_strip = re.compile(r'<[^>]+>')
+            biss_pat  = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
+            freq_pat  = re.compile(r'(\d{4,6})\s*([HVLR])\s*[/\-]?\s*(\d{3,6})', re.IGNORECASE)
 
-            for row_m in row_pattern.finditer(html):
+            for row_m in row_pat.finditer(html):
                 row_html = row_m.group(1)
-                cells = [tag_strip.sub('', c.group(1)).strip()
-                         for c in cell_pattern.finditer(row_html)]
+                cells    = [tag_strip.sub('', c.group(1)).strip()
+                            for c in cell_pat.finditer(row_html)]
                 if len(cells) < 3:
                     continue
-
                 feed_name = cells[0].strip()
                 if not feed_name or len(feed_name) < 3:
+                    continue
+                if feed_name.lower() in ('channel', 'name', 'channels'):
                     continue
 
                 satellite = cells[1].strip() if len(cells) > 1 else ''
@@ -14455,14 +14709,14 @@ class BroadcastingChannelsScreen(Screen):
                 enc_raw   = ' '.join(cells[3:]) if len(cells) > 3 else ''
 
                 freq = pol = sr = ''
-                fm = freq_pattern.search(freq_raw)
+                fm = freq_pat.search(freq_raw)
                 if fm:
                     freq = fm.group(1)
                     pol  = fm.group(2).upper()
                     sr   = fm.group(3)
 
                 biss = ''
-                bm = biss_pattern.search(enc_raw)
+                bm = biss_pat.search(enc_raw)
                 if bm:
                     biss = bm.group(1).replace(' ', '').upper()
 
@@ -14474,31 +14728,150 @@ class BroadcastingChannelsScreen(Screen):
                     'sr':        sr,
                     'biss':      biss,
                     'system':    '',
+                    'category':  '',
                     'source':    'KingOfSat',
                 })
 
-            log_dbg("[SatFeed] KingOfSat returned {} matches".format(len(results)))
+            log_dbg("[SatFeed] KingOfSat returned {} entries".format(len(results)))
             return results
         except Exception as e:
             log_dbg("[SatFeed] KingOfSat error: " + str(e))
             return []
 
-    # ------------------------------------------------------------------
-    # Callback / error handlers (run on the reactor thread – safe to touch UI)
-    # ------------------------------------------------------------------
+    # ==================================================================
+    # SOURCE 5 — GitHub iptv-org  (https://iptv-org.github.io)
+    # The world's largest open-source IPTV collection.
+    # We fetch the "sports" category M3U playlist (rebuilt daily via CI).
+    # Each #EXTINF line may carry (in any order):
+    #   tvg-id, tvg-name, tvg-logo, group-title
+    # The tvg-id is the XMLTV channel ID used by Enigma2's EPG cache.
+    # ==================================================================
+    def _fetch_github_sport_channels(self):
+        """
+        Fetch the iptv-org/iptv sports category playlist from GitHub Pages.
+        URL: https://iptv-org.github.io/iptv/categories/sports.m3u
+        Falls back to the raw GitHub URL if Pages is unreachable.
+        """
+        URLS = [
+            "https://iptv-org.github.io/iptv/categories/sports.m3u",
+            "https://raw.githubusercontent.com/iptv-org/iptv/master/streams/sports.m3u",
+        ]
+        try:
+            try:
+                import urllib.request as _ur
+            except ImportError:
+                import urllib2 as _ur
+            import re
+
+            m3u_text = None
+            for url in URLS:
+                try:
+                    req  = _ur.Request(url, headers={
+                        'User-Agent': 'Mozilla/5.0 (compatible; Enigma2/SimplySports)',
+                        'Accept': '*/*',
+                    })
+                    m3u_text = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
+                    if m3u_text and '#EXTM3U' in m3u_text:
+                        break
+                except Exception:
+                    m3u_text = None
+
+            if not m3u_text:
+                log_dbg("[SatFeed] GitHub iptv-org: no data from either URL")
+                return []
+
+            # ---- M3U parsing ----
+            # Attributes can appear in ANY order on the #EXTINF line.
+            # Use per-attribute regexes applied to the full attribute string,
+            # rather than a single regex that assumes a fixed order.
+            extinf_line_pat = re.compile(
+                r'#EXTINF([^\n]+)\n([^\n]+)',
+                re.IGNORECASE)
+            attr_tvgid  = re.compile(r'tvg-id="([^"]*)"',      re.IGNORECASE)
+            attr_name   = re.compile(r'tvg-name="([^"]*)"',    re.IGNORECASE)
+            attr_group  = re.compile(r'group-title="([^"]*)"', re.IGNORECASE)
+            # Display name is everything after the LAST comma on the #EXTINF line
+            comma_name  = re.compile(r',([^,\n]+)\s*$')
+
+            results    = []
+            seen_urls  = set()
+
+            for m in extinf_line_pat.finditer(m3u_text):
+                attr_str   = m.group(1)         # everything between #EXTINF and the newline
+                stream_url = m.group(2).strip()  # line immediately after #EXTINF
+
+                if not stream_url or stream_url.startswith('#'):
+                    continue
+                if stream_url in seen_urls:
+                    continue
+                seen_urls.add(stream_url)
+
+                # Extract each attribute independently (order-safe)
+                tvg_id_m  = attr_tvgid.search(attr_str)
+                tvg_name_m = attr_name.search(attr_str)
+                group_m   = attr_group.search(attr_str)
+                disp_m    = comma_name.search(attr_str)
+
+                tvg_id   = tvg_id_m.group(1).strip()   if tvg_id_m  else ''
+                tvg_name = tvg_name_m.group(1).strip() if tvg_name_m else ''
+                group    = group_m.group(1).strip()    if group_m   else 'Sports'
+                disp     = disp_m.group(1).strip()     if disp_m    else ''
+
+                name = disp or tvg_name or tvg_id or 'Sport Channel'
+
+                results.append({
+                    'name':       name,
+                    'satellite':  u'IPTV',
+                    'freq':       u'IPTV Stream',
+                    'stream_url': stream_url,
+                    'tvg_id':     tvg_id,    # used for Enigma2 EPG cache lookup
+                    'pol':        '',
+                    'sr':         '',
+                    'biss':       '',
+                    'system':     group,
+                    'category':   group,
+                    'source':     'iptv-org/GitHub',
+                })
+
+            log_dbg("[SatFeed] iptv-org/GitHub returned {} sport channels".format(len(results)))
+            return results
+        except Exception as e:
+            log_dbg("[SatFeed] iptv-org/GitHub error: " + str(e))
+            return []
+
+    # ==================================================================
+    # Callbacks (run on reactor thread → safe to touch UI)
+    # ==================================================================
     def _on_sat_feeds_done(self, feed_results):
         self._sat_feed_search_running = False
         self["key_yellow"].setText(_t("Sat Feeds"))
 
         if not feed_results:
-            self["hint"].setText(_t("No Sat Feeds Found"))
+            self["hint"].setText(_t("No Sat Feeds Today"))
             from Screens.MessageBox import MessageBox
             self.session.open(
                 MessageBox,
-                "No satellite feeds found for this match on LyngSat, FlySat or KingOfSat.",
+                "No satellite feeds found for today from any source.\n"
+                "Sources checked: Satelliweb, LyngSat, FlySat, KingOfSat, iptv-org.",
                 MessageBox.TYPE_INFO
             )
             return
+
+        # Partition by source for the hint label
+        src_counts = {}
+        for f in feed_results:
+            s = f.get('source', '?')
+            src_counts[s] = src_counts.get(s, 0) + 1
+        summary = u"  ".join(u"{}:{}".format(s, n) for s, n in src_counts.items())
+        log_dbg("[SatFeed] Results by source: " + summary)
+
+        # --- EPG enrichment (main/reactor thread — E2 API access is safe here) ---
+        # For every iptv-org entry, query Enigma2's EPG cache for the current
+        # programme.  Result is stored in feed['epg_line2'] and used by
+        # _build_feed_list_entry to replace the raw stream URL on line 2.
+        for feed in feed_results:
+            if feed.get('source') == 'iptv-org/GitHub':
+                feed['epg_line2'] = self._lookup_e2_epg(feed)
 
         new_entries = []
         for feed in feed_results:
@@ -14507,13 +14880,93 @@ class BroadcastingChannelsScreen(Screen):
                 new_entries.append(entry)
 
         if new_entries:
-            self.channels.extend([e[0] for e in new_entries])   # store raw tuples
-            # Rebuild the list including new feed entries
             self._add_feed_entries_to_list(new_entries)
-            self["hint"].setText(_t("Found {} Sat Feed(s)").format(len(new_entries)))
-            log_dbg("[SatFeed] Added {} entries to list".format(len(new_entries)))
+            self["hint"].setText(_t("Today: {} feeds  ({})").format(len(new_entries), summary))
         else:
-            self["hint"].setText(_t("No Sat Feeds Found"))
+            self["hint"].setText(_t("No Sat Feeds Today"))
+
+    # ------------------------------------------------------------------
+    def _lookup_e2_epg(self, feed):
+        """
+        Query Enigma2's EPG cache for the current programme on this IPTV stream.
+
+        Strategy (tried in order):
+          1. Construct the 4097 sref from stream_url and query eEPGCache directly.
+             Works if epgimport or a similar tool has loaded EPG for this channel.
+          2. Search eEPGCache by channel display name using lookupEventListByTime
+             (broad name match, picks the first hit within ±2 h).
+
+        Returns a formatted string like:
+          "▶ Now: Premier League Highlights  (20:00-21:30)"
+        or '' if no EPG data was found.
+        """
+        stream_url = feed.get('stream_url', '')
+        name       = feed.get('name', '')
+        if not stream_url:
+            return ''
+        try:
+            from enigma import eEPGCache, eServiceReference
+            epg = eEPGCache.getInstance()
+            now = int(time.time())
+
+            # ---- Strategy 1: direct sref lookup ----
+            safe_url = stream_url.replace(':', '%3a')
+            sref     = eServiceReference(u"4097:0:0:0:0:0:0:0:0:0:" + safe_url)
+            event    = epg.lookupEventTime(sref, now, 0)
+            if event:
+                return self._fmt_epg_event(event)
+
+            # ---- Strategy 2: search all EPG by name (case-insensitive prefix) ----
+            # eEPGCache.SEARCH_CONTAINS + eEPGCache.CASE_INSENSITIVE
+            if name and len(name) > 3:
+                try:
+                    hits = epg.search(
+                        ('IBDTSEX', 10, eEPGCache.SEARCH_CONTAINS,
+                         name[:30], eEPGCache.CASE_INSENSITIVE)
+                    )
+                    if hits:
+                        # Pick the hit whose start time is closest to now
+                        best = None
+                        best_diff = 99999999
+                        for hit in hits:
+                            # hit tuple: (sref_str, eid, start, duration, title, ...)
+                            h_start = hit[2] if len(hit) > 2 else 0
+                            diff    = abs(h_start - now)
+                            if diff < best_diff and diff < 7200:   # within 2 h
+                                best_diff = diff
+                                best = hit
+                        if best:
+                            h_sref  = eServiceReference(str(best[0]))
+                            h_event = epg.lookupEventTime(h_sref, best[2], 0)
+                            if h_event:
+                                return self._fmt_epg_event(h_event)
+                except Exception:
+                    pass
+
+        except Exception as e:
+            log_dbg("[SatFeed] _lookup_e2_epg error: " + str(e))
+        return ''
+
+    def _fmt_epg_event(self, event):
+        """Format an eServiceEvent into a display string for line 2."""
+        try:
+            title    = event.getEventName() or ''
+            begin    = event.getBeginTime()
+            duration = event.getDuration()
+            if title and begin and duration:
+                end      = begin + duration
+                start_s  = datetime.datetime.fromtimestamp(begin).strftime('%H:%M')
+                end_s    = datetime.datetime.fromtimestamp(end).strftime('%H:%M')
+                desc     = event.getShortDescription() or ''
+                line     = u"\u25b6 Now: {}  ({}-{})".format(title, start_s, end_s)
+                if desc and len(desc) < 60:
+                    line += u"  \u2014  " + desc   # em-dash separator
+                return line
+            elif title:
+                return u"\u25b6 Now: " + title
+        except Exception:
+            pass
+        return ''
 
     def _sat_feeds_err(self, error):
         self._sat_feed_search_running = False
@@ -14521,67 +14974,121 @@ class BroadcastingChannelsScreen(Screen):
         self["hint"].setText(_t("Feed Search Failed"))
         log_dbg("[SatFeed] Worker error: " + str(error))
         from Screens.MessageBox import MessageBox
-        self.session.open(MessageBox, "Satellite feed search failed. Check connection.", MessageBox.TYPE_ERROR)
+        self.session.open(
+            MessageBox,
+            "Satellite feed search failed.\nPlease check your internet connection.",
+            MessageBox.TYPE_ERROR
+        )
 
-    # ------------------------------------------------------------------
-    # List entry builder for feed results
-    # ------------------------------------------------------------------
+    # ==================================================================
+    # List-entry renderer for one feed / channel result
+    # ==================================================================
     def _build_feed_list_entry(self, feed):
-        """Build a (raw_tuple, rendered_entry) pair for one satellite feed."""
-        name      = feed.get('name', 'Unknown Feed')
-        satellite = feed.get('satellite', '')
-        freq      = feed.get('freq', '')
-        pol       = feed.get('pol', '')
-        sr        = feed.get('sr', '')
-        biss      = feed.get('biss', '')
-        source    = feed.get('source', '')
+        """
+        Build a (raw_tuple, rendered_multi_content) pair for display.
 
-        # Line 1: "[Source] Feed Name  •  Satellite"
-        line1 = u"[{}] {}".format(source, name)
+        For satellite feeds (LyngSat / FlySat / KingOfSat / Satelliweb):
+          raw[0] = ""   (no playable sref – user must tune manually)
+          Line 1: [Source]  Feed Name  •  Satellite
+          Line 2: Freq: XXXXX H / YYYYY  |  BISS: ZZZ  |  Category
+
+        For iptv-org/GitHub streams:
+          raw[0] = "4097:0:0:0:0:0:0:0:0:0:<url>"   (Enigma2 URI sref, plays directly)
+          Line 1: [iptv-org]  Channel Name  •  IPTV
+          Line 2: ▶ STREAM  |  <stream URL truncated>  |  Category
+        """
+        name       = feed.get('name', 'Unknown Feed')
+        satellite  = feed.get('satellite', '')
+        freq       = feed.get('freq', '')
+        pol        = feed.get('pol', '')
+        sr         = feed.get('sr', '')
+        biss       = feed.get('biss', '')
+        system     = feed.get('system', '')
+        category   = feed.get('category', '')
+        source     = feed.get('source', '')
+        stream_url = feed.get('stream_url', '')   # iptv-org only
+
+        is_iptv = (source == 'iptv-org/GitHub') and bool(stream_url)
+
+        # ---- Enigma2 service reference ----
+        if is_iptv:
+            # Enigma2 sref fields are colon-delimited, so every colon inside
+            # the URL itself MUST be escaped as %3a — exactly the same pattern
+            # used at lines 6897 and 7623 in this file.
+            safe_url = stream_url.replace(':', '%3a')
+            sref = u"4097:0:0:0:0:0:0:0:0:0:" + safe_url
+        else:
+            sref = u""    # sat feed – no E2 sref, user tunes dish manually
+
+        # ---- Line 1 ----
+        src_tag = u"[{}]".format(source[:14])
+        line1   = u"{} {}".format(src_tag, name)
         if satellite:
-            line1 += u"  \u2022  " + satellite
+            line1 += u"  \u2022  " + satellite   # bullet: name • satellite
 
-        # Line 2: "Freq: 12345 H / SR: 27500  |  BISS: XXXXXXXX"
-        parts = []
-        if freq:
-            f_str = freq
-            if pol:
-                f_str += u" " + pol
-            if sr:
-                f_str += u" / " + sr
-            parts.append(u"Freq: " + f_str)
-        if biss:
-            parts.append(u"BISS: " + biss)
-        elif not biss:
-            parts.append(u"BISS: N/A")
-        line2 = u"  |  ".join(parts) if parts else u""
+        # ---- Line 2 ----
+        parts2 = []
+        if is_iptv:
+            epg_line2 = feed.get('epg_line2', '')
+            if epg_line2:
+                # EPG data found: show programme title and time slot
+                parts2.append(epg_line2)
+            else:
+                # No EPG: show ▶ indicator + group/category (never the raw URL)
+                parts2.append(u"\u25b6 Live Stream")
+                if category:
+                    parts2.append(category[:40])
+                elif system:
+                    parts2.append(system[:40])
+        else:
+            if freq and freq != 'IPTV Stream':
+                f_str = freq
+                if pol:
+                    f_str += u" " + pol
+                if sr:
+                    f_str += u" / " + sr
+                parts2.append(u"Freq: " + f_str)
+            parts2.append(u"BISS: " + (biss if biss else u"N/A"))
+            if category:
+                parts2.append(category[:30])
+            elif system:
+                parts2.append(system[:20])
+        line2 = u"  |  ".join(parts2)
 
-        # Raw tuple stored in self.channels:
-        # (sref="", display_name=line1, event_info=line2, cat_color)
-        raw = ("", line1, line2, SAT_FEED_CAT_COLOR)
+        # ---- colour strip tint: IPTV entries get a distinct cyan/blue tint ----
+        if is_iptv:
+            c_strip = 0x0077CC   # blue strip for IPTV stream entries
+        else:
+            c_strip = SAT_FEED_CAT_COLOR   # amber strip for sat feed entries
 
-        # Build the rendered multi-content entry (similar to build_entry but
-        # without a picon slot – feeds don't have piconized service refs)
         c_text = 0xffffff
-        c_dim  = 0xFFCC44   # warm amber for freq/BISS line
+        c_dim  = 0x00CCFF if is_iptv else 0xFFCC44   # cyan dim for IPTV, amber for sat
         c_sel  = 0x00FF85 if self.theme != "ucl" else 0x00ffff
-        c_strip = SAT_FEED_CAT_COLOR
+
+        # raw tuple: first element is the sref used by zap_to_channel
+        raw = (sref, line1, line2, c_strip)
 
         res = [raw]
-        # Color strip
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 5, 5, 8, 50, 0,
-                    RT_HALIGN_LEFT | RT_VALIGN_CENTER, "", 0x000000, c_strip))
-        # Feed name + satellite (line 1)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 2, 860, 30, 0,
-                    RT_HALIGN_LEFT | RT_VALIGN_CENTER, line1, c_text, c_sel))
-        # Frequency + BISS info (line 2)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, 32, 860, 25, 1,
-                    RT_HALIGN_LEFT | RT_VALIGN_CENTER, line2, c_dim, c_sel))
+        # Left colour strip
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    5, 5, 8, 50, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    u"", 0x000000, c_strip))
+        # Line 1 – name + satellite/IPTV label
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    20, 2, 860, 30, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    line1, c_text, c_sel))
+        # Line 2 – technical details / stream URL
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    20, 32, 860, 25, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    line2, c_dim, c_sel))
 
         return (raw, res)
 
     def _add_feed_entries_to_list(self, new_entries):
-        """Append rendered feed entries to the existing list without clearing it."""
+        """Append rendered feed entries to the existing broadcast list."""
         current = list(self["list"].list) if self["list"].list else []
         for (_raw, rendered) in new_entries:
             current.append(rendered)
