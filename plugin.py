@@ -107,7 +107,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "5.5"
+VERSION = "5.6"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -314,6 +314,31 @@ TRANSLATIONS = {
     "MMA":                            {"ar": u"\u0627\u0644\u0641\u0646\u0648\u0646 \u0627\u0644\u0642\u062a\u0627\u0644\u064a\u0629 \u0627\u0644\u0645\u062e\u062a\u0644\u0637\u0629"},
     "LACROSSE":                       {"ar": u"\u0627\u0644\u0644\u0627\u0643\u0631\u0648\u0633"},
     "(WOMEN)":                        {"ar": u"(\u0646\u0633\u0627\u0621)"},
+    # ── Favorite Teams feature ────────────────────────────────────────────────
+    "My Favorite Teams":              {"ar": u"\u0641\u0631\u0642\u064a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Select a League":                {"ar": u"\u0627\u062e\u062a\u0631 \u062f\u0648\u0631\u064a"},
+    "Select a Team":                  {"ar": u"\u0627\u062e\u062a\u0631 \u0641\u0631\u064a\u0642\u0627\u064b"},
+    "Loading teams...":               {"ar": u"\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0641\u0631\u0642..."},
+    "Team added to favorites":        {"ar": u"\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0641\u0631\u064a\u0642 \u0625\u0644\u0649 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Team removed from favorites":    {"ar": u"\u062a\u0645\u062a \u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0641\u0631\u064a\u0642 \u0645\u0646 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Already in favorites":           {"ar": u"\u0645\u0648\u062c\u0648\u062f \u0628\u0627\u0644\u0641\u0639\u0644 \u0641\u064a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Favorites limit reached (10)":   {"ar": u"\u062a\u0645 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u062d\u062f \u0627\u0644\u0623\u0642\u0635\u0649 (10)"},
+    "No teams found":                 {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0641\u0631\u0642"},
+    "Remove":                         {"ar": u"\u062d\u0630\u0641"},
+    "Manage Favorites":               {"ar": u"\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Add Another Team":               {"ar": u"\u0625\u0636\u0627\u0641\u0629 \u0641\u0631\u064a\u0642 \u0622\u062e\u0631"},
+    "MENU: My Favorite Teams":        {"ar": u"\u0627\u0644\u0642\u0627\u0626\u0645\u0629: \u0641\u0631\u0642\u064a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "No teams added yet.":            {"ar": u"\u0644\u0645 \u064a\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0641\u0631\u0642 \u0628\u0639\u062f."},
+    "teams":                          {"ar": u"\u0641\u0631\u0642"},
+    "Press OK to Select":             {"ar": u"\u0627\u0636\u063a\u0637 \u0645\u0648\u0627\u0641\u0642 \u0644\u0644\u0627\u062e\u062a\u064a\u0627\u0631"},
+    "Tomorrow":                       {"ar": u"\u063a\u062f\u0627\u064b"},
+    "in":                             {"ar": u"\u062e\u0644\u0627\u0644"},
+    "Starting now!":                  {"ar": u"\u064a\u0628\u062f\u0623 \u0627\u0644\u0622\u0646!"},
+    "Goal Sound":                     {"ar": u"\u0635\u0648\u062a \u0627\u0644\u0647\u062f\u0641"},
+    "Goal Sound: ":                   {"ar": u"\u0635\u0648\u062a \u0627\u0644\u0647\u062f\u0641: "},
+    "Select Goal Sound":              {"ar": u"\u0627\u062e\u062a\u0631 \u0635\u0648\u062a \u0627\u0644\u0647\u062f\u0641"},
+    "No sound files found":           {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0644\u0641\u0627\u062a \u0635\u0648\u062a"},
+    "(Preview playing...)":           {"ar": u"(\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u0634\u063a\u064a\u0644...)"},
 }
 
 
@@ -664,6 +689,122 @@ def fetch_sports_headlines(max_items=6):
     return headlines
 
 
+def fetch_soccer_teams_threaded(league_slug, on_result):
+    """
+    Fetch teams for a given soccer league.
+
+    Strategy (tried in order):
+    1. site.api.espn.com  /v2/sports/soccer/{slug}/teams
+       Returns full inline team objects; covers most leagues.
+    2. sports.core.api.espn.com  /v2/sports/soccer/leagues/{slug}/teams
+       Returns $ref stubs; each is resolved individually (capped at 100).
+
+    Calls on_result(teams_list) on the main thread.
+    teams_list is a list of dicts: {id, name, short, logo_url}
+    On complete failure calls on_result([]).
+    """
+    def _run():
+        try:
+            from urllib2 import urlopen, Request as Req
+        except ImportError:
+            from urllib.request import urlopen, Request as Req
+
+        def _fetch_json(url, timeout=10):
+            req = Req(url)
+            req.add_header("Accept", "application/json")
+            req.add_header("User-Agent", "Mozilla/5.0")
+            resp = urlopen(req, timeout=timeout)
+            return json.loads(resp.read().decode("utf-8"))
+
+        def _parse_team_obj(t):
+            team_id   = str(t.get("id", ""))
+            disp_name = t.get("displayName", t.get("name", ""))
+            short     = t.get("shortDisplayName", t.get("abbreviation", ""))
+            logos     = t.get("logos", [])
+            logo_url  = logos[0].get("href", "") if logos else ""
+            if team_id and disp_name:
+                return {"id": team_id, "name": disp_name, "short": short, "logo_url": logo_url}
+            return None
+
+        teams = []
+
+        # Stage 1: site API (full inline objects)
+        try:
+            site_url = (
+                "https://site.api.espn.com/apis/site/v2/sports/soccer"
+                "/{slug}/teams".format(slug=league_slug)
+            )
+            data    = _fetch_json(site_url)
+            sports  = data.get("sports", [])
+            leagues = sports[0].get("leagues", []) if sports else []
+            raw     = leagues[0].get("teams", []) if leagues else []
+            for entry in raw:
+                t_obj  = entry.get("team", entry)
+                parsed = _parse_team_obj(t_obj)
+                if parsed:
+                    teams.append(parsed)
+            log_dbg("[FavTeams] site API returned {} teams for {}".format(len(teams), league_slug))
+        except Exception as e:
+            log_dbg("[FavTeams] site API failed for {}: {}".format(league_slug, e))
+
+        # Stage 2: Core API + $ref resolution (fallback)
+        if not teams:
+            log_dbg("[FavTeams] falling back to core API $ref resolution for {}".format(league_slug))
+            try:
+                core_url = (
+                    "https://sports.core.api.espn.com/v2/sports/soccer"
+                    "/leagues/{slug}/teams?limit=100&page=1&active=true".format(slug=league_slug)
+                )
+                data  = _fetch_json(core_url)
+                items = data.get("items", [])
+                for item in items:
+                    parsed = _parse_team_obj(item)
+                    if parsed:
+                        teams.append(parsed)
+                        continue
+                    ref = item.get("$ref", "")
+                    if not ref:
+                        continue
+                    try:
+                        t_data = _fetch_json(ref, timeout=6)
+                        parsed = _parse_team_obj(t_data)
+                        if parsed:
+                            teams.append(parsed)
+                    except Exception as ref_err:
+                        log_dbg("[FavTeams] $ref resolve failed {}: {}".format(ref, ref_err))
+            except Exception as e:
+                log_dbg("[FavTeams] core API fallback failed for {}: {}".format(league_slug, e))
+
+        reactor.callFromThread(on_result, teams)
+
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+
+def resolve_team_ref_threaded(ref_url, on_result):
+    """Fetch a single team $ref URL and return a minimal dict (used when inline fields are missing)."""
+    def _run():
+        try:
+            from urllib2 import urlopen, Request as Req
+        except ImportError:
+            from urllib.request import urlopen, Request as Req
+        try:
+            req = Req(ref_url)
+            req.add_header("Accept", "application/json")
+            data = json.loads(urlopen(req, timeout=6).read().decode("utf-8"))
+            team = {
+                "id":       str(data.get("id", "")),
+                "name":     data.get("displayName", data.get("name", "")),
+                "short":    data.get("shortDisplayName", data.get("abbreviation", "")),
+                "logo_url": (data.get("logos") or [{}])[0].get("href", ""),
+            }
+            reactor.callFromThread(on_result, team)
+        except Exception as e:
+            log_dbg("[FavTeams] resolve_team_ref failed: {}".format(e))
+            reactor.callFromThread(on_result, None)
+    import threading
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def call_ai_api_threaded(api_key, provider, prompt, on_result):
     """
     Calls the chosen AI provider in a background thread.
@@ -940,7 +1081,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "5.5"  # Update version to 5.5 - Include new Main screen scoreboard layout, Channel Feeds and streams within the EPG button, Leagues HOTKEYS in the Main screen.
+CURRENT_VERSION = "5.6"  # Update version to 5.6 - Include Favorite teams to the menu list, Special favorite teams display and reminders, A new option to choose goal sounds, richer channel Feeds and screen.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1260,6 +1401,13 @@ DATA_SOURCES = [
     ("Singaporean Premier League", "https://site.api.espn.com/apis/site/v2/sports/soccer/sgp.1/scoreboard"),
 ]
 
+# Filtered list of soccer-only DATA_SOURCES — used by FavoriteTeamLeagueSelector.
+# Stays automatically in sync whenever new soccer leagues are added to DATA_SOURCES.
+SOCCER_DATA_SOURCES = [
+    (name, url) for name, url in DATA_SOURCES
+    if "/sports/soccer/" in url
+]
+
 # ==============================================================================
 # SPORT TYPE CLASSIFICATION
 # ==============================================================================
@@ -1271,6 +1419,21 @@ SPORT_TYPE_TENNIS = "tennis"     # ATP, WTA, Davis Cup
 SPORT_TYPE_COMBAT = "combat"     # UFC/MMA, Boxing
 SPORT_TYPE_CRICKET = "cricket"   # IPL, Test, ODI, T20
 SPORT_TYPE_RUGBY = "rugby"       # Six Nations, Super Rugby, NRL
+
+
+def get_soccer_league_slug(url):
+    """Extract the ESPN league slug from a site.api.espn.com soccer scoreboard URL.
+    e.g. 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard' -> 'eng.1'
+    """
+    try:
+        parts = url.rstrip("/").split("/")
+        if "soccer" in parts:
+            idx = parts.index("soccer")
+            if idx + 1 < len(parts):
+                return parts[idx + 1]
+    except Exception:
+        pass
+    return None
 
 
 def get_sport_type(league_url):
@@ -2645,6 +2808,9 @@ class SportsMonitor:
         self.voter_name = "Anonymous"
         self.current_league_index = 0
         self.reminders = []
+        self.favorite_teams = []  # list of dicts — {team_id, team_name, short_name, league_slug, league_name, logo_url}
+        self.fav_notified = set()   # {(match_id, threshold_label)} — prevents duplicate fav alerts
+        self.goal_sound_file = "pop.mp3"  # filename only — must exist in plugin dir
 
         self.timer = eTimer()
         safe_connect(self.timer, self.check_goals)
@@ -3153,11 +3319,20 @@ class SportsMonitor:
                     self.ai_language  = ai_cfg.get("language", "English")
                     self.ai_frequency = int(ai_cfg.get("frequency_min", 30))
 
+                    # Favorite teams
+                    self.favorite_teams = data.get("favorite_teams", [])
+
+                    # Goal sound preference
+                    self.goal_sound_file = data.get("goal_sound_file", "pop.mp3")
+
                     # FIX: Ensure timer state is set correctly (handles active and reminders)
                     try:
                         self.ensure_timer_state()
                     except Exception as e:
                         log_dbg("ensure_timer_state error during load_config: " + str(e))
+
+                    # Pre-warm logo cache for saved favourite teams
+                    self.prefetch_favorite_logos()
             except Exception as e:
                 log_dbg("load_config ERROR: " + str(e))
                 self.defaults()
@@ -3171,6 +3346,9 @@ class SportsMonitor:
         self.ai_enabled = False; self.ai_api_key = ""; self.ai_provider = "gemini"
         self.ai_language = "English"; self.ai_frequency = 30
         self.install_registered = False
+        self.favorite_teams = []
+        self.fav_notified = set()
+        self.goal_sound_file = "pop.mp3"
         # FIX Bug 1: resolved_bets must be a dict (not a list) to support key-based
         # lookups and assignment used throughout the gamification engine.
         # Also ensure total_predictions and correct_predictions are always present.
@@ -3193,7 +3371,9 @@ class SportsMonitor:
                 "provider": self.ai_provider,
                 "language": self.ai_language,
                 "frequency_min": self.ai_frequency
-            }
+            },
+            "favorite_teams": self.favorite_teams[:10],  # enforce max 10
+            "goal_sound_file": self.goal_sound_file,
         }
         try:
             with open(CONFIG_FILE, "w") as f: json.dump(data, f)
@@ -3513,13 +3693,25 @@ class SportsMonitor:
 
     def play_sound(self):
         try:
-            mp3_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/pop.mp3")
-            if os.path.exists(mp3_path): os.system('gst-launch-1.0 playbin uri=file://{} audio-sink="alsasink" > /dev/null 2>&1 &'.format(mp3_path))
+            sound_file = getattr(self, "goal_sound_file", "pop.mp3") or "pop.mp3"
+            mp3_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/{}".format(sound_file))
+            if not os.path.exists(mp3_path):
+                # Fallback to pop.mp3 if chosen file is missing
+                mp3_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/pop.mp3")
+            if os.path.exists(mp3_path):
+                os.system('gst-launch-1.0 playbin uri=file://{} audio-sink="alsasink" > /dev/null 2>&1 &'.format(mp3_path))
         except: pass
     def play_stend_sound(self):
         try:
             mp3_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/stend.mp3")
             if os.path.exists(mp3_path): os.system('gst-launch-1.0 playbin uri=file://{} audio-sink="alsasink" > /dev/null 2>&1 &'.format(mp3_path))
+        except: pass
+
+    def play_fav_sound(self):
+        try:
+            mp3_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/Fav.mp3")
+            if os.path.exists(mp3_path):
+                os.system('gst-launch-1.0 playbin uri=file://{} audio-sink="alsasink" > /dev/null 2>&1 &'.format(mp3_path))
         except: pass
     def set_league(self, index):
         self.is_custom_mode = False
@@ -3594,6 +3786,102 @@ class SportsMonitor:
             else: active_reminders.append(rem)
         if reminders_triggered: self.reminders = active_reminders; self.save_config()
 
+    # Notification thresholds: (seconds_before_ko, label_key, label_en)
+    FAV_NOTIFY_THRESHOLDS = [
+        (86400, "1day",  "Tomorrow"),
+        (21600, "6h",    "6 hours"),
+        (3600,  "1h",    "1 hour"),
+        (900,   "15min", "15 minutes"),
+    ]
+    # Each threshold fires when: (ko - now) is within the window below
+    FAV_NOTIFY_WINDOW_SEC = 120   # fire if we are within 2 min of the threshold crossing
+
+    def check_fav_team_notifications(self):
+        """
+        Called every check_goals tick.
+        Scans match_snapshots for upcoming (state='pre') matches that involve a
+        favourite team and fires a FavTeamToast at 1 day / 6 h / 1 h / 15 min.
+        Uses self.fav_notified = {(match_id, threshold_label)} for dedup.
+        """
+        if not self.favorite_teams or not self.session:
+            return
+
+        fav_ids = {f["team_id"]: f for f in self.favorite_teams}
+        now = time.time()
+
+        for snap_id, snap in list(self.match_snapshots.items()):
+            # Only fire for pre-match events
+            if snap.get("state", "") != "pre":
+                continue
+
+            h_tid = snap.get("h_team_id", "")
+            a_tid = snap.get("a_team_id", "")
+
+            fav_entry = fav_ids.get(h_tid) or fav_ids.get(a_tid)
+            if not fav_entry:
+                continue
+
+            # Parse kick-off timestamp from the 'date' field (UTC ISO string)
+            ko_ts = 0
+            raw_date = snap.get("date", "")
+            if raw_date:
+                try:
+                    if "T" in raw_date:
+                        date_part, time_part = raw_date.split("T")
+                        y, mo, d = map(int, date_part.split("-"))
+                        time_part = time_part.replace("Z", "")
+                        H, M = map(int, time_part.split(":")[:2])
+                        import datetime as _dt2
+                        ko_ts = calendar.timegm(_dt2.datetime(y, mo, d, H, M).timetuple())
+                except Exception as pe:
+                    log_dbg("[FavNotif] date parse error snap_id={} date={} err={}".format(snap_id, raw_date, pe))
+
+            if not ko_ts or ko_ts < now:
+                continue
+
+            delta = ko_ts - now  # seconds until kick-off
+
+            for threshold_sec, label_key, label_en in self.FAV_NOTIFY_THRESHOLDS:
+                dedup_key = (snap_id, label_key)
+                if dedup_key in self.fav_notified:
+                    continue
+
+                # Fire when we are within FAV_NOTIFY_WINDOW_SEC of the threshold crossing
+                lower = threshold_sec - self.FAV_NOTIFY_WINDOW_SEC
+                upper = threshold_sec + self.FAV_NOTIFY_WINDOW_SEC
+                if lower <= delta <= upper:
+                    self.fav_notified.add(dedup_key)
+                    self._fire_fav_toast(snap, fav_entry, label_en, ko_ts)
+                    break
+
+    def _fire_fav_toast(self, snap, fav_entry, label_en, ko_ts):
+        """Opens FavTeamToast on the main thread."""
+        if not self.session:
+            return
+
+        home_name   = snap.get("h_name", "")
+        away_name   = snap.get("a_name", "")
+        league_name = snap.get("league_name", fav_entry.get("league_name", ""))
+        h_logo_url  = snap.get("h_logo_url", "")
+        a_logo_url  = snap.get("a_logo_url", "")
+        h_logo_id   = snap.get("h_logo_id")
+        a_logo_id   = snap.get("a_logo_id")
+        team_name   = fav_entry.get("team_name", "")
+
+        def _open():
+            try:
+                self.session.open(
+                    FavTeamToast,
+                    team_name, home_name, away_name,
+                    league_name, ko_ts, "",
+                    h_logo_url, a_logo_url, h_logo_id, a_logo_id
+                )
+                self.play_fav_sound()
+            except Exception as e:
+                log_dbg("[FavNotif] _open FavTeamToast error: {}".format(e))
+
+        reactor.callLater(0, _open)
+
     def trigger_zap_alert(self, rem):
         if self.session:
             def _open_zap():
@@ -3624,6 +3912,7 @@ class SportsMonitor:
         log_diag("CHECK_GOALS: ENTER from_ui={} active={} is_custom={} discovery_mode={} filter_mode={} cached_events={} batch_remaining={} active_requests={} callbacks={}".format(
             from_ui, self.active, self.is_custom_mode, self.discovery_mode, self.filter_mode, len(self.cached_events), self.batch_remaining, len(self.active_requests), len(self.callbacks)))
         self.check_reminders()
+        self.check_fav_team_notifications()
         self.evaluate_pending_bets()
 
         # Guard: Data fetching happens if:
@@ -4453,8 +4742,23 @@ class SportsMonitor:
                 try:
                     d = datetime.datetime.strptime(raw_date.strip(), fmt).date()
                     if raw_time and ':' in raw_time:
-                        iso_date = '{}T{}:00Z'.format(d.strftime('%Y-%m-%d'),
-                                                       raw_time[:5])
+                        try:
+                            api_dt = datetime.datetime.strptime(raw_time[:5], '%H:%M')
+                            api_dt = datetime.datetime.combine(d, api_dt.time())
+                            
+                            # Determine CET vs CEST (Last Sunday of March to Last Sunday of October)
+                            y = d.year
+                            march_31 = datetime.date(y, 3, 31)
+                            dst_start = march_31 - datetime.timedelta(days=(march_31.weekday() + 1) % 7)
+                            oct_31 = datetime.date(y, 10, 31)
+                            dst_end = oct_31 - datetime.timedelta(days=(oct_31.weekday() + 1) % 7)
+                            
+                            cet_offset = 2 if (dst_start <= d < dst_end) else 1
+                            utc_dt = api_dt - datetime.timedelta(hours=cet_offset)
+                            
+                            iso_date = '{}Z'.format(utc_dt.strftime('%Y-%m-%dT%H:%M:00'))
+                        except Exception:
+                            iso_date = '{}T{}:00Z'.format(d.strftime('%Y-%m-%d'), raw_time[:5])
                     else:
                         iso_date = '{}T00:00:00Z'.format(d.strftime('%Y-%m-%d'))
                     break
@@ -5049,6 +5353,13 @@ class SportsMonitor:
         except:
             self.pending_logos.discard(team_id)
 
+    def prefetch_favorite_logos(self):
+        """Pre-download logos for all saved favourite teams into the logo cache."""
+        for fav in self.favorite_teams:
+            url = fav.get("logo_url", "")
+            tid = fav.get("team_id", "")
+            if url and tid:
+                self.prefetch_logo(url, "soccer_fav_" + tid)
 
     def _extract_tennis_matches(self, ev, league_name, l_url):
         matches = []
@@ -7175,10 +7486,9 @@ class GameInfoScreen(Screen):
 
         # ── EuroLeague: uses its own API, not ESPN ────────────────────────────
         if league_url.startswith("euroleague://"):
-            # Try the EuroLeague play-by-play endpoint for match details.
-            # If it fails, parse_details will fall through to fallback_event_data.
-            self.summary_url = "{}/games/{}/playbyplay".format(
-                "https://api-live.euroleague.net/v1", event_id)
+            season = getattr(global_sports_monitor, 'EUROLEAGUE_SEASON', 'E2024')
+            self.summary_url = "https://api-live.euroleague.net/v3/competitions/E/seasons/{}/games/{}/stats".format(
+                season, event_id)
             self.odds_url    = ""
             self.cdn_url     = ""
             self._is_euroleague = True
@@ -7696,7 +8006,10 @@ class GameInfoScreen(Screen):
             # OPTIMIZATION: Use high-speed CDN endpoint for live matches (avoids 60s ESPN latency)
             getPage(self.cdn_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_cdn)
         elif self.summary_url:
-            getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
+            if getattr(self, '_is_euroleague', False):
+                getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_euroleague_stats).addErrback(self.error_details)
+            else:
+                getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
         else:
             self.error_details(None)
 
@@ -7712,7 +8025,10 @@ class GameInfoScreen(Screen):
         """Fallback to standard summary API if the CDN Live Boxscore request fails"""
         print("[SimplySport] CDN Boxscore fetch failed. Falling back to primary summary endpoint.")
         if self.summary_url:
-            getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
+            if getattr(self, '_is_euroleague', False):
+                getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_euroleague_stats).addErrback(self.error_details)
+            else:
+                getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
         else:
             self.error_details(error)
 
@@ -7721,6 +8037,92 @@ class GameInfoScreen(Screen):
             self.use_fallback_data()
         else:
             self["loading"].setText("Error loading details.")
+
+    def parse_euroleague_stats(self, body):
+        try:
+            self["loading"].hide()
+            json_str = body.decode('utf-8', errors='ignore')
+            data = json.loads(json_str)
+
+            local = data.get('local', {})
+            road = data.get('road', {})
+
+            # Try to get basic details from fallback_event_data
+            ev_data = self.fallback_event_data or global_sports_monitor.event_map.get(str(self.event_id), {})
+            
+            # --- STADIUM ---
+            try:
+                self["stadium_name"].setText("EuroLeague Match")
+            except: pass
+
+            # --- SCORES / TEAMS ---
+            l_score = local.get('total', {}).get('points', 0)
+            r_score = road.get('total', {}).get('points', 0)
+            
+            # Get team names from player's club if available, else from ev_data
+            l_team_name = "HOME"
+            r_team_name = "AWAY"
+            
+            if local.get('players') and len(local['players']) > 0:
+                 l_team_name = local['players'][0].get('player', {}).get('club', {}).get('name', 'HOME')
+            if road.get('players') and len(road['players']) > 0:
+                 r_team_name = road['players'][0].get('player', {}).get('club', {}).get('name', 'AWAY')
+                 
+            # Use fallback if names are still default
+            if l_team_name == "HOME" and ev_data:
+                 comps = ev_data.get('competitions', [{}])
+                 if comps:
+                     for t in comps[0].get('competitors', []):
+                         if t.get('homeAway') == 'home': l_team_name = t.get('team', {}).get('displayName', 'HOME')
+                         if t.get('homeAway') == 'away': r_team_name = t.get('team', {}).get('displayName', 'AWAY')
+            
+            self["h_team_name"].setText(l_team_name.upper()[:20])
+            self["a_team_name"].setText(r_team_name.upper()[:20])
+            self["h_score"].setText(str(int(l_score)))
+            self["a_score"].setText(str(int(r_score)))
+
+            self.full_rows = []
+
+            # --- TEAM STATS ---
+            self.full_rows.append(TextListEntry(u"\U0001F4CA TEAM STATS", self.theme, is_header=True))
+            stats_keys = [
+                ('points', 'Points'),
+                ('totalRebounds', 'Rebounds'),
+                ('assistances', 'Assists'),
+                ('steals', 'Steals'),
+                ('turnovers', 'Turnovers'),
+                ('blocksFavour', 'Blocks'),
+                ('accuracyMade', 'Total FG Made'),
+                ('accuracyAttempted', 'Total FG Att'),
+            ]
+            for key, label in stats_keys:
+                l_val = int(local.get('total', {}).get(key, 0))
+                r_val = int(road.get('total', {}).get(key, 0))
+                row_txt = "{:^5} | {:^20} | {:^5}".format(l_val, label, r_val)
+                self.full_rows.append(TextListEntry(row_txt, self.theme, align="center"))
+                
+            self.full_rows.append(TextListEntry("", self.theme))
+            
+            # --- ROSTERS ---
+            for side, title in [(local, "HOME ROSTER"), (road, "AWAY ROSTER")]:
+                self.full_rows.append(TextListEntry(u"\U0001F465 " + title, self.theme, is_header=True))
+                players = side.get('players', [])
+                if not players:
+                    self.full_rows.append(TextListEntry("No roster available", self.theme, align="left"))
+                for p in players:
+                    p_info = p.get('player', {}).get('person', {})
+                    p_stats = p.get('stats', {})
+                    name = p_info.get('name', 'Unknown')
+                    pts = int(p_stats.get('points', 0))
+                    reb = int(p_stats.get('totalRebounds', 0))
+                    ast = int(p_stats.get('assistances', 0))
+                    self.full_rows.append(TextListEntry("  {} - {} Pts, {} Reb, {} Ast".format(name, pts, reb, ast), self.theme, align="left"))
+                self.full_rows.append(TextListEntry("", self.theme))
+                
+            self["info_list"].setList(self.full_rows)
+            self.update_page_info()
+        except Exception as e:
+            self.error_details(e)
 
     def parse_odds(self, body):
         """Parse core API odds response (multi-provider: Bet365, ESPN BET, etc)"""
@@ -10011,6 +10413,499 @@ class ZapNotificationScreen(Screen):
         self.close(True)
 
 # ==============================================================================
+# FAVORITE TEAMS SCREENS
+# ==============================================================================
+
+class FavoriteTeamsManagerScreen(Screen):
+    """Entry point from Settings → My Favorite Teams.
+    Shows current saved teams; GREEN = add, RED = remove."""
+
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        if global_sports_monitor.theme_mode == "ucl":
+            self.skin = """
+            <screen position="center,center" size="950,800" title="My Favorite Teams" backgroundColor="#00000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,800" backgroundColor="#0e1e5b" zPosition="-1" />
+                <eLabel position="0,0" size="950,4" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="0,796" size="950,4" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="0,0" size="4,800" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="946,0" size="4,800" backgroundColor="#00ffff" zPosition="1" />
+                <widget name="header" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" />
+                <eLabel position="30,75" size="890,2" backgroundColor="#182c82" />
+                <widget name="list" position="30,90" size="890,600" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="30,700" size="890,2" backgroundColor="#182c82" />
+                <widget name="info" position="30,715" size="890,30" font="SimplySportFont;24" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" valign="center" />
+                <eLabel position="30,750" size="890,2" backgroundColor="#182c82" />
+                <widget name="key_red" position="30,760" size="200,30" font="SimplySportFont;26" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="720,760" size="200,30" font="SimplySportFont;26" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+            </screen>
+            """
+        else:
+            self.skin = """
+            <screen position="center,center" size="950,800" title="My Favorite Teams" backgroundColor="#38003C" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
+                <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,796" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="946,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <widget name="header" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00FF85" backgroundColor="#38003C" transparent="1" halign="center" />
+                <eLabel position="30,75" size="890,2" backgroundColor="#505050" />
+                <widget name="list" position="30,90" size="890,600" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="30,700" size="890,2" backgroundColor="#505050" />
+                <widget name="info" position="30,715" size="890,30" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
+                <eLabel position="30,750" size="890,2" backgroundColor="#505050" />
+                <widget name="key_red" position="30,760" size="200,30" font="SimplySportFont;26" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="720,760" size="200,30" font="SimplySportFont;26" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+            </screen>
+            """
+        self["header"]    = Label(_t("My Favorite Teams"))
+        self["list"]      = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
+        self["list"].l.setItemHeight(50)
+        self["key_red"]   = Label(_t("Remove"))
+        self["key_green"] = Label(_t("Add Another Team"))
+        self["info"]      = Label("")
+        self["actions"]   = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions"],
+            {
+                "cancel": self.close,
+                "red":    self.remove_selected,
+                "green":  self.open_league_selector,
+                "ok":     self.remove_selected,
+                "up":     self["list"].up,
+                "down":   self["list"].down,
+            }, -1
+        )
+        self.onLayoutFinish.append(self.refresh_list)
+
+    def refresh_list(self):
+        teams = global_sports_monitor.favorite_teams
+        count = len(teams)
+        self["info"].setText("{}/10 {}".format(count, _t("teams")))
+        items = []
+        for t in teams:
+            items.append(SelectionListEntry(
+                u"\u2605 {} \u2014 {}".format(t["team_name"], t["league_name"]),
+                False, mode="single"
+            ))
+        if not items:
+            items.append(SelectionListEntry(_t("No teams added yet."), False, mode="single"))
+        self["list"].setList(items)
+
+    def remove_selected(self):
+        idx   = self["list"].getSelectedIndex()
+        teams = global_sports_monitor.favorite_teams
+        if not teams or idx >= len(teams):
+            return
+        removed = teams.pop(idx)
+        global_sports_monitor.save_config()
+        self.refresh_list()
+        self.session.open(
+            MessageBox,
+            removed["team_name"] + " " + _t("Team removed from favorites"),
+            MessageBox.TYPE_INFO, timeout=2
+        )
+
+    def open_league_selector(self):
+        if len(global_sports_monitor.favorite_teams) >= 10:
+            self.session.open(MessageBox, _t("Favorites limit reached (10)"),
+                              MessageBox.TYPE_INFO, timeout=3)
+            return
+        self.session.openWithCallback(self.on_team_added, FavoriteTeamLeagueSelector)
+
+    def on_team_added(self, result=None):
+        self.refresh_list()
+
+
+class FavoriteTeamLeagueSelector(Screen):
+    """Shows soccer leagues (from SOCCER_DATA_SOURCES) — pick one to browse teams."""
+
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        if global_sports_monitor.theme_mode == "ucl":
+            self.skin = """
+            <screen position="center,center" size="950,800" title="Select a League" backgroundColor="#00000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,800" backgroundColor="#0e1e5b" zPosition="-1" />
+                <eLabel position="0,0" size="950,4" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="0,796" size="950,4" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="0,0" size="4,800" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="946,0" size="4,800" backgroundColor="#00ffff" zPosition="1" />
+                <widget name="header" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" />
+                <eLabel position="30,75" size="890,2" backgroundColor="#182c82" />
+                <widget name="list" position="30,90" size="890,620" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="30,720" size="890,2" backgroundColor="#182c82" />
+                <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" valign="center" />
+            </screen>
+            """
+        else:
+            self.skin = """
+            <screen position="center,center" size="950,800" title="Select a League" backgroundColor="#38003C" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
+                <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,796" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="946,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <widget name="header" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00FF85" backgroundColor="#38003C" transparent="1" halign="center" />
+                <eLabel position="30,75" size="890,2" backgroundColor="#505050" />
+                <widget name="list" position="30,90" size="890,620" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="30,720" size="890,2" backgroundColor="#505050" />
+                <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
+            </screen>
+            """
+        self["header"]    = Label(_t("Select a League"))
+        self["list"]      = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
+        self["list"].l.setItemHeight(50)
+        self["key_red"]   = Label(_t("Cancel"))
+        self["key_green"] = Label("")
+        self["info"]      = Label(_t("Press OK to Select"))
+        self["actions"]   = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions"],
+            {
+                "cancel": lambda: self.close(None),
+                "red":    lambda: self.close(None),
+                "ok":     self.select,
+                "up":     self["list"].up,
+                "down":   self["list"].down,
+            }, -1
+        )
+        self._entries = []
+        self.onLayoutFinish.append(self.load_list)
+
+    def load_list(self):
+        items = []
+        self._entries = []
+        for name, url in SOCCER_DATA_SOURCES:
+            slug = get_soccer_league_slug(url)
+            if not slug:
+                continue
+            items.append(SelectionListEntry(name, False, mode="single"))
+            self._entries.append((name, slug))
+        self["list"].setList(items)
+
+    def select(self):
+        idx = self["list"].getSelectedIndex()
+        if idx < 0 or idx >= len(self._entries):
+            return
+        league_name, league_slug = self._entries[idx]
+        self.session.openWithCallback(
+            self.on_picker_closed,
+            FavoriteTeamPickerScreen,
+            league_slug=league_slug,
+            league_name=league_name
+        )
+
+    def on_picker_closed(self, result=None):
+        self.close(result)
+
+
+class FavoriteTeamPickerScreen(Screen):
+    """Fetches teams for a given league from ESPN Core API and lets the user add one."""
+
+    def __init__(self, session, league_slug, league_name):
+        Screen.__init__(self, session)
+        self.league_slug = league_slug
+        self.league_name = league_name
+        self.teams       = []
+
+        if global_sports_monitor.theme_mode == "ucl":
+            self.skin = """
+            <screen position="center,center" size="950,800" title="Select a Team" backgroundColor="#00000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,800" backgroundColor="#0e1e5b" zPosition="-1" />
+                <eLabel position="0,0" size="950,4" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="0,796" size="950,4" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="0,0" size="4,800" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="946,0" size="4,800" backgroundColor="#00ffff" zPosition="1" />
+                <widget name="header" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" />
+                <eLabel position="30,75" size="890,2" backgroundColor="#182c82" />
+                <widget name="list" position="30,90" size="890,620" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="30,720" size="890,2" backgroundColor="#182c82" />
+                <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" valign="center" />
+            </screen>
+            """
+        else:
+            self.skin = """
+            <screen position="center,center" size="950,800" title="Select a Team" backgroundColor="#38003C" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
+                <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,796" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="946,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <widget name="header" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00FF85" backgroundColor="#38003C" transparent="1" halign="center" />
+                <eLabel position="30,75" size="890,2" backgroundColor="#505050" />
+                <widget name="list" position="30,90" size="890,620" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="30,720" size="890,2" backgroundColor="#505050" />
+                <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
+            </screen>
+            """
+        self["header"]    = Label(_t("Select a Team") + " \u2014 " + league_name)
+        self["list"]      = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
+        self["list"].l.setItemHeight(50)
+        self["key_red"]   = Label(_t("Cancel"))
+        self["key_green"] = Label("")
+        self["info"]      = Label(_t("Loading teams..."))
+        self["actions"]   = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions"],
+            {
+                "cancel": lambda: self.close(None),
+                "red":    lambda: self.close(None),
+                "ok":     self.add_selected_team,
+                "up":     self["list"].up,
+                "down":   self["list"].down,
+            }, -1
+        )
+        self.onLayoutFinish.append(self.start_fetch)
+
+    def start_fetch(self):
+        self["info"].setText(_t("Loading teams..."))
+        fetch_soccer_teams_threaded(self.league_slug, self.on_teams_loaded)
+
+    def on_teams_loaded(self, teams):
+        self.teams = sorted(teams, key=lambda t: t["name"])
+        if not self.teams:
+            self["info"].setText(_t("No teams found"))
+            self["list"].setList([SelectionListEntry(_t("No teams found"), False, mode="single")])
+            return
+        self["info"].setText(_t("Press OK to Select"))
+        items = []
+        fav_ids = [f["team_id"] for f in global_sports_monitor.favorite_teams]
+        for t in self.teams:
+            is_fav = t["id"] in fav_ids
+            label  = (u"\u2713 " if is_fav else "") + t["name"]
+            items.append(SelectionListEntry(label, is_fav, mode="single"))
+        self["list"].setList(items)
+
+    def add_selected_team(self):
+        idx = self["list"].getSelectedIndex()
+        if idx < 0 or idx >= len(self.teams):
+            return
+        team    = self.teams[idx]
+        monitor = global_sports_monitor
+
+        fav_ids = [f["team_id"] for f in monitor.favorite_teams]
+        if team["id"] in fav_ids:
+            self.session.open(MessageBox, _t("Already in favorites"),
+                              MessageBox.TYPE_INFO, timeout=2)
+            return
+
+        if len(monitor.favorite_teams) >= 10:
+            self.session.open(MessageBox, _t("Favorites limit reached (10)"),
+                              MessageBox.TYPE_INFO, timeout=3)
+            return
+
+        monitor.favorite_teams.append({
+            "team_id":    team["id"],
+            "team_name":  team["name"],
+            "short_name": team["short"],
+            "league_slug": self.league_slug,
+            "league_name": self.league_name,
+            "logo_url":    team["logo_url"],
+        })
+        monitor.save_config()
+
+        self.session.open(
+            MessageBox,
+            team["name"] + " " + _t("Team added to favorites"),
+            MessageBox.TYPE_INFO, timeout=2
+        )
+        self.close(team["id"])
+
+
+
+# ==============================================================================
+# FAVORITE TEAM REMINDER TOAST
+# ==============================================================================
+class FavTeamToast(Screen):
+    """
+    Gold-accented overlay that fires when a favourite team match is approaching.
+    Prominently different from GoalToast so the viewer cannot miss it.
+
+    Layout (950 x 220, slides in from top):
+      gold bar  |  ⭐ MY FAVOURITE TEAM ⭐       [ countdown ]
+      ─────────────────────────────────────────────────────────
+      [h_logo]   HOME NAME   [ VS ]   AWAY NAME   [a_logo]
+                      LEAGUE  •  KO TIME
+      ─────────────────────────────────────────────────────────
+               📺  Broadcasting on:  CHANNEL NAME
+      gold bar
+    """
+
+    DURATION_MS = 15000   # 15 seconds on screen
+
+    def __init__(self, session, team_name, home_name, away_name,
+                 league_name, kick_off_ts, channel_name,
+                 h_logo_url, a_logo_url, h_logo_id, a_logo_id):
+        Screen.__init__(self, session)
+
+        def _s(v):
+            if v is None: return u""
+            try:
+                return v.decode("utf-8", "ignore") if isinstance(v, bytes) else str(v)
+            except: return ""
+
+        self._h_url = _s(h_logo_url)
+        self._a_url = _s(a_logo_url)
+        self._h_id  = h_logo_id
+        self._a_id  = a_logo_id
+
+        team_name    = _s(team_name)
+        home_name    = _s(home_name)
+        away_name    = _s(away_name)
+        league_name  = _s(league_name)
+        channel_name = _s(channel_name)
+
+        import time as _time
+        import datetime as _dt
+        try:    ko_str = _dt.datetime.fromtimestamp(kick_off_ts).strftime("%H:%M")
+        except: ko_str = ""
+
+        delta = int(kick_off_ts - _time.time())
+        if   delta >= 86400: countdown = _t("Tomorrow") + " " + ko_str
+        elif delta >= 3600:  countdown = _t("in") + " {}h".format(delta // 3600)
+        elif delta >= 60:    countdown = _t("in") + " {}min".format(delta // 60)
+        else:                countdown = _t("Starting now!")
+
+        header_lbl  = u"\u2605  " + _t("My Favorite Teams") + u"  \u2605"
+        channel_lbl = (u"\U0001f4fa  " + channel_name) if channel_name else ""
+
+        GOLD      = "#FFD700"
+        GOLD_DARK = "#B8860B"
+        BG        = "#0A0A0A"
+        WHITE     = "#FFFFFF"
+        SILVER    = "#BBBBBB"
+        TRANSP    = "#FF000000"
+
+        self.skin = (
+            u'<screen position="center,30" size="950,220" flags="wfNoBorder" backgroundColor="{transp}">'
+
+            u'<eLabel position="0,0"   size="950,220" backgroundColor="{bg}" zPosition="0" />'
+            u'<eLabel position="0,0"   size="950,5"   backgroundColor="{gold}" zPosition="2" />'
+
+            u'<widget name="header" position="10,8" size="700,30" font="SimplySportFont;26" '
+            u'foregroundColor="{gold}" backgroundColor="{bg}" transparent="1" '
+            u'halign="left" valign="center" zPosition="3" />'
+
+            u'<widget name="countdown" position="755,8" size="185,30" font="SimplySportFont;24" '
+            u'foregroundColor="{gold_d}" backgroundColor="{bg}" transparent="1" '
+            u'halign="right" valign="center" zPosition="3" />'
+
+            u'<eLabel position="0,42"  size="950,2"   backgroundColor="{gold}" zPosition="2" />'
+
+            u'<widget name="h_logo" position="12,50"  size="90,90" alphatest="blend" scale="1" zPosition="5" />'
+            u'<widget name="a_logo" position="848,50" size="90,90" alphatest="blend" scale="1" zPosition="5" />'
+
+            u'<widget name="home" position="110,50" size="300,50" font="SimplySportFont;34" '
+            u'foregroundColor="{white}" backgroundColor="{bg}" transparent="1" '
+            u'halign="right" valign="center" zPosition="4" />'
+
+            u'<eLabel position="420,62" size="110,28" backgroundColor="{gold_d}" zPosition="4" />'
+            u'<widget name="vs" position="420,62" size="110,28" font="SimplySportFont;22" '
+            u'foregroundColor="{bg}" backgroundColor="{gold_d}" '
+            u'halign="center" valign="center" zPosition="5" />'
+
+            u'<widget name="away" position="540,50" size="300,50" font="SimplySportFont;34" '
+            u'foregroundColor="{white}" backgroundColor="{bg}" transparent="1" '
+            u'halign="left" valign="center" zPosition="4" />'
+
+            u'<widget name="league" position="110,105" size="730,28" font="SimplySportFont;22" '
+            u'foregroundColor="{silver}" backgroundColor="{bg}" transparent="1" '
+            u'halign="center" valign="center" zPosition="4" />'
+
+            u'<eLabel position="0,140" size="950,2"   backgroundColor="{gold}" zPosition="2" />'
+
+            u'<widget name="channel" position="10,148" size="930,36" font="SimplySportFont;26" '
+            u'foregroundColor="{gold}" backgroundColor="{bg}" transparent="1" '
+            u'halign="center" valign="center" zPosition="4" />'
+
+            u'<eLabel position="0,215" size="950,5"   backgroundColor="{gold}" zPosition="2" />'
+
+            u'</screen>'
+        ).format(
+            transp=TRANSP, bg=BG, gold=GOLD, gold_d=GOLD_DARK,
+            white=WHITE, silver=SILVER
+        )
+
+        self["header"]    = Label(header_lbl)
+        self["countdown"] = Label(countdown)
+        self["home"]      = Label(home_name)
+        self["vs"]        = Label("VS")
+        self["away"]      = Label(away_name)
+        self["league"]    = Label(u"{} \u2022 {}".format(league_name, ko_str) if ko_str else league_name)
+        self["channel"]   = Label(channel_lbl)
+        self["h_logo"]    = Pixmap()
+        self["a_logo"]    = Pixmap()
+        self._has_channel = bool(channel_name)
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions"],
+            {k: self.close for k in ("ok","cancel","red","green","yellow","blue",
+                                     "up","down","left","right")}, -1
+        )
+
+        self._timer = eTimer()
+        try:    self._timer.callback.append(self.close)
+        except: self._timer.timeout.get().append(self.close)
+
+        self._anim_timer = eTimer()
+        self._current_y  = -220
+        self._target_y   = 30
+        try:    self._anim_timer.callback.append(self._anim_step)
+        except: self._anim_timer.timeout.get().append(self._anim_step)
+
+        try:
+            from enigma import getDesktop
+            dw = getDesktop(0).size().width()
+            self._cx = (dw - 950) // 2
+        except:
+            self._cx = 165
+
+        self.onLayoutFinish.append(self._start)
+        self.onClose.append(self._stop_timers)
+
+    def _start(self):
+        try: self.instance.setZPosition(11)
+        except: pass
+        if not self._has_channel:
+            try: self["channel"].hide()
+            except: pass
+        self._anim_timer.start(10, False)
+        self._load_logos()
+
+    def _anim_step(self):
+        try:
+            if self._current_y < self._target_y:
+                self._current_y += 6
+                self.instance.move(ePoint(self._cx, self._current_y))
+            else:
+                self._anim_timer.stop()
+                if not self._timer.isActive():
+                    self._timer.start(self.DURATION_MS, True)
+        except:
+            self._anim_timer.stop()
+            if not self._timer.isActive():
+                self._timer.start(self.DURATION_MS, True)
+
+    def _stop_timers(self):
+        try:
+            if self._anim_timer.isActive(): self._anim_timer.stop()
+            if self._timer.isActive():      self._timer.stop()
+        except: pass
+
+    def _load_logos(self):
+        load_logo_to_widget(self, "h_logo", self._h_url, self._h_id)
+        load_logo_to_widget(self, "a_logo", self._a_url, self._a_id)
+
+
+# ==============================================================================
 # LEAGUE SELECTOR
 # ==============================================================================
 class LeagueSelector(Screen):
@@ -12034,7 +12929,86 @@ def get_all_services():
     return services_list
 
 
-# Picon Paths
+def _epg_quick_channel_for_match(home_name, away_name, league_name, kick_off_ts, services=None):
+    """
+    Fast synchronous EPG scan to find the best broadcasting channel name for a match.
+    Returns a channel name string, or "" if nothing found.
+    Intentionally lightweight — called from the main thread just before showing the toast.
+    """
+    try:
+        from enigma import eEPGCache, eServiceReference
+        import time as _t
+
+        epg = eEPGCache.getInstance()
+        if not epg:
+            return ""
+
+        if not services:
+            services = get_all_services()
+        if not services:
+            return ""
+
+        h_norm = [normalize_text(kw) for kw in get_search_keywords(home_name)]
+        a_norm = [normalize_text(kw) for kw in get_search_keywords(away_name)]
+        l_norm = [normalize_text(kw) for kw in get_search_keywords(league_name)]
+
+        STOP = {'al','el','the','fc','sc','fk','sk','club','sport','sports','vs',
+                'live','hd','fhd','4k','uhd'}
+
+        def _sig(words):
+            s = [w for w in words if w not in STOP and len(w) > 1]
+            return s if s else words
+
+        h_sig = _sig(h_norm)
+        a_sig = _sig(a_norm)
+        l_sig = _sig(l_norm)
+
+        best_score = 0
+        best_name  = ""
+        offsets    = [0, 900, -900, 3600]
+        now        = int(_t.time())
+
+        # Cap scan at 300 channels to stay fast
+        for sref_raw, ch_name in services[:300]:
+            try:
+                sref_obj = eServiceReference(sref_raw)
+                evt = None
+                for off in offsets:
+                    evt = epg.lookupEventTime(sref_obj, kick_off_ts + off)
+                    if evt:
+                        break
+                if not evt and abs(kick_off_ts - now) < 7200:
+                    evt = epg.lookupEventTime(sref_obj, now)
+                if not evt:
+                    continue
+
+                title = evt.getEventName() or ""
+                desc  = evt.getShortDescription() or ""
+                blob  = normalize_text(title + " " + desc + " " + ch_name)
+
+                h_found = sum(1 for w in h_sig if w in blob)
+                a_found = sum(1 for w in a_sig if w in blob)
+                l_found = sum(1 for w in l_sig if w in blob)
+
+                h_r = h_found / float(len(h_sig)) if h_sig else 0.0
+                a_r = a_found / float(len(a_sig)) if a_sig else 0.0
+                l_r = l_found / float(len(l_sig)) if l_sig else 0.0
+
+                score = h_r * 40 + a_r * 40 + l_r * 20
+                if h_r == 1.0: score += 10
+                if a_r == 1.0: score += 10
+                if h_r == 1.0 and a_r == 1.0: score += 30
+
+                if score > best_score and score > 40:
+                    best_score = score
+                    best_name  = ch_name
+            except:
+                continue
+
+        return best_name
+    except Exception as e:
+        log_dbg("[FavNotif] _epg_quick_channel_for_match error: {}".format(e))
+        return ""
 PICON_PATHS = ["/usr/share/enigma2/picon/", "/media/hdd/picon/", "/media/usb/picon/", "/picon/", "/mnt/hdd/picon/"]
 
 
@@ -12852,8 +13826,11 @@ class SimpleSportsScreen(Screen):
                         if len(name) > max_len: return name[:max_len - 2] + ".."
                         return name
 
-                    left_text = truncate_name(snap['h_name'])
-                    right_text = truncate_name(snap['a_name'])
+                    _fav_set = set(f["team_id"] for f in self.monitor.favorite_teams)
+                    _h_star  = u"\u2605 " if snap.get('h_team_id') in _fav_set and _fav_set else ""
+                    _a_star  = u"\u2605 " if snap.get('a_team_id') in _fav_set and _fav_set else ""
+                    left_text  = _h_star + truncate_name(snap['h_name'], 25 - len(_h_star))
+                    right_text = _a_star + truncate_name(snap['a_name'], 25 - len(_a_star))
                     score_text = snap['score_str']
                     h_score_int = snap['h_score_int']
                     a_score_int = snap['a_score_int']
@@ -12914,6 +13891,7 @@ class SimpleSportsScreen(Screen):
             # Football Priority: 0=Soccer, 1=Others
             l_url = event.get('league_url', '')
             sport_prio = 0 if 'soccer' in l_url else 1
+            sport_prio = 0 if 'soccer' in l_url else 1
 
             if status == "LIVE":
                 excitement = self.monitor.calculate_excitement(event)
@@ -12924,6 +13902,36 @@ class SimpleSportsScreen(Screen):
                 return (2, sport_prio, 0)  # SCH
 
         raw_entries.sort(key=sort_key)
+
+        # ── Favorite Teams: float matches to top ─────────────────────────────
+        fav_ids = set(f["team_id"] for f in self.monitor.favorite_teams)
+        if fav_ids:
+            def _snap_has_fav(snap):
+                return (snap.get("h_team_id") in fav_ids or
+                        snap.get("a_team_id") in fav_ids)
+
+            fav_entries   = []
+            other_entries = []
+            for item in raw_entries:
+                _ed, _mid, _il, _ev = item
+                _snap = self.monitor.match_snapshots.get(str(_ev.get("id", "")), {})
+                if _snap_has_fav(_snap):
+                    fav_entries.append(item)
+                else:
+                    other_entries.append(item)
+
+            # Within favourites: LIVE first, then scheduled, then finished
+            def _fav_sort_key(item):
+                _, _, _, _ev2 = item
+                _sn = self.monitor.match_snapshots.get(str(_ev2.get("id", "")), {})
+                state = _sn.get("state", "pre")
+                if state == "in":  return 0
+                if state == "pre": return 1
+                return 2
+
+            fav_entries.sort(key=_fav_sort_key)
+            raw_entries = fav_entries + other_entries
+        # ── End favourite pinning ─────────────────────────────────────────────
 
         # Convert to list entries after sorting
         list_content = []
@@ -13030,6 +14038,7 @@ class SimpleSportsScreen(Screen):
         in_menu_txt = _t("Yes") if self.monitor.show_in_menu else _t("No")
         ai_status = _t("ON") if self.monitor.ai_enabled else _t("OFF")
         cur_lang_lbl = u"\u0627\u0644\u0639\u0631\u0628\u064a\u0629" if PLUGIN_LANGUAGE == "ar" else "English"
+        cur_sound_lbl = self.monitor.goal_sound_file if self.monitor.goal_sound_file else _t("No Sound")
         menu_options = [
             (_t("Check for Updates"), "update"),
             (_t("Change Interface Theme"), "theme"),
@@ -13037,9 +14046,11 @@ class SimpleSportsScreen(Screen):
             (_t("Main Screen Transparency (Default Theme only)"), "transparency"),
             (_t("Show Plugin in Main Menu: ") + in_menu_txt, "toggle_menu"),
             (_t("Set Voter Name: ") + self.monitor.voter_name, "voter_name"),
+            (_t("Goal Sound: ") + cur_sound_lbl, "goal_sound"),
             (_t("AI Mode: ") + ai_status, "ai_mode"),
             (_t("Notifications Test"), "notif_test"),
-            (u"Language / \u0627\u0644\u0644\u063a\u0629: " + cur_lang_lbl, "change_language"),
+            (u"Language / \u0644\u063a\u0629: " + cur_lang_lbl, "change_language"),
+            (_t("My Favorite Teams"), "favorite_teams"),
         ]
         self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title=_t("Settings & Tools"), list=menu_options)
 
@@ -13058,9 +14069,19 @@ class SimpleSportsScreen(Screen):
                        "Setting saved.\nYou must Restart GUI for menu changes to take effect.")
                 self.session.open(MessageBox, msg, MessageBox.TYPE_INFO)
             elif action == "voter_name": self.open_voter_name_input()
+            elif action == "goal_sound": self.open_goal_sound_selector()
             elif action == "ai_mode": self.open_ai_mode_menu()
             elif action == "notif_test": self.run_notification_test()
             elif action == "change_language": self.open_language_selector()
+            elif action == "favorite_teams":
+                self.session.openWithCallback(
+                    self.on_favorite_teams_closed,
+                    FavoriteTeamsManagerScreen
+                )
+
+    def on_favorite_teams_closed(self, result=None):
+        # No reload needed; pinning is applied on next refresh_ui call
+        pass
 
 
     def open_language_selector(self):
@@ -13074,6 +14095,50 @@ class SimpleSportsScreen(Screen):
             title=u"Select Language / \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0644\u063a\u0629",
             list=lang_options
         )
+
+    def open_goal_sound_selector(self):
+        """
+        Scans the plugin directory for pop*.mp3 files and lets the user pick one.
+        Also offers 'No Sound' to disable the goal alert sound completely.
+        """
+        plugin_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/")
+        sound_files = []
+        try:
+            for fname in sorted(os.listdir(plugin_dir)):
+                if fname.lower().startswith("pop") and fname.lower().endswith(".mp3"):
+                    sound_files.append(fname)
+        except Exception as e:
+            log_dbg("[GoalSound] dir scan error: {}".format(e))
+
+        if not sound_files:
+            self.session.open(MessageBox, _t("No sound files found"), MessageBox.TYPE_INFO, timeout=3)
+            return
+
+        current = self.monitor.goal_sound_file or "pop.mp3"
+        options = []
+        for fname in sound_files:
+            label = fname
+            if fname == current:
+                label = u"\u2713 " + fname   # checkmark on current
+            options.append((label, fname))
+        options.append((_t("No Sound"), ""))
+
+        self.session.openWithCallback(
+            self.goal_sound_selected,
+            ChoiceBox,
+            title=_t("Select Goal Sound"),
+            list=options
+        )
+
+    def goal_sound_selected(self, selection):
+        if selection is None:
+            return
+        chosen = selection[1]  # filename or "" for no sound
+        self.monitor.goal_sound_file = chosen
+        self.monitor.save_config()
+        # Play a quick preview so the user hears the new sound immediately
+        if chosen:
+            self.monitor.play_sound()
 
     def language_selected(self, selection):
         if not selection:
@@ -13126,6 +14191,7 @@ class SimpleSportsScreen(Screen):
             ("ht_start",         "1 - 1", "Second Half Begins",             None,   "2nd Half Kick-off"),
             ("end",              "2 - 1", "Full Time",                      None,   "Full Time"),
             ("ai_toast",         "",      "",                               None,   "AI Toast"),
+            ("fav_toast",        "",      "",                               None,   "Favourite Team Reminder"),
         ]
         self._notif_test_dummy_id = dummy_id
         self._show_next_test_notification()
@@ -13148,6 +14214,22 @@ class SimpleSportsScreen(Screen):
                 "This is an AI-powered sports update notification demo!",
                 5000
             )
+        elif event_type == "fav_toast":
+            import time as _time
+            self.session.openWithCallback(
+                self._show_next_test_notification, FavTeamToast,
+                "Real Madrid",             # team_name
+                "Real Madrid",             # home_name
+                "Barcelona",               # away_name
+                "La Liga",                 # league_name
+                int(_time.time()) + 3600,  # kick_off_ts — 1 hour from now
+                "",                        # channel_name — empty (no EPG)
+                "https://a.espncdn.com/i/teamlogos/soccer/500/86.png",  # h_logo_url
+                "https://a.espncdn.com/i/teamlogos/soccer/500/83.png",  # a_logo_url
+                "test_h",                  # h_logo_id
+                "test_a",                  # a_logo_id
+            )
+            self.monitor.play_fav_sound()
         else:
             dummy_id = getattr(self, '_notif_test_dummy_id', 'notif_test_dummy')
             self.session.openWithCallback(
@@ -14010,12 +15092,13 @@ class BroadcastingChannelsScreen(Screen):
         # Satellite feed entry (no sref) – give tuning instructions
         # ----------------------------------------------------------------
         if not sref:
+            line1 = item[1] if len(item) > 1 else ''
             line2 = item[2] if len(item) > 2 else ''
             from Screens.MessageBox import MessageBox
             if 'Freq:' in line2 or 'BISS:' in line2:
                 self.session.open(
                     MessageBox,
-                    u"Satellite Feed — tune your dish manually:\n\n" + line2,
+                    u"Satellite Feed — tune your dish manually:\n\n" + line1 + u"\n" + line2,
                     MessageBox.TYPE_INFO
                 )
             else:
@@ -14341,7 +15424,7 @@ class BroadcastingChannelsScreen(Screen):
 
         self._sat_feed_search_running = True
         self["key_yellow"].setText(_t("Searching..."))
-        self["hint"].setText(_t("Scanning 5 Sat Sources for {}…").format(today_str))
+        self["hint"].setText(_t("Scanning 2 Sources for {}…").format(today_str))
         log_dbg("[SatFeed] Daily feed scan started for {}".format(today_str))
 
         from twisted.internet import threads
@@ -14356,14 +15439,11 @@ class BroadcastingChannelsScreen(Screen):
     # --------------------------------------------------------------- worker
     def _sat_feeds_worker(self, today_str):
         """
-        Background thread: hit all 5 sources, merge, deduplicate.
+        Background thread: hit Satelliweb and iptv-org, merge, deduplicate.
         today_str is 'YYYY-MM-DD'.
         """
         results = []
         results += self._scrape_satelliweb_feeds(today_str)   # primary – date-exact
-        results += self._scrape_lyngsat_feeds()                # live feeds page
-        results += self._scrape_flysat_feeds()                 # live feeds page
-        results += self._scrape_kingofsat_feeds()              # new/live channels
         results += self._fetch_github_sport_channels()         # iptv-org sports m3u
 
         # Deduplicate by (normalised_name, freq) – keep first seen (highest priority)
@@ -14386,16 +15466,7 @@ class BroadcastingChannelsScreen(Screen):
     def _scrape_satelliweb_feeds(self, today_str):
         """
         Fetch live feeds reported on today_str from satelliweb.com.
-        The default landing page already shows today; we also try the
-        explicit date param so the correct day is always requested.
-
-        Each block structure (inferred from live HTML):
-          Reported by <user> on <date> <time>
-          <b><a href="...">Satellite Name (pos)</a></b>
-          Frequency: <b>XXXX</b> - Pol: <b>H</b> - SR: <b>YYYY</b> - FEC: <b>-</b>
-          Category:  <b>Sport - Football</b>  (or other category)
-          Transmitted in: <b>MPEG-4</b>  [ crypté ]
-          ℹ  Description text
+        Extracts Satellite Name and Activity dynamically by stripping HTML and parsing line-by-line blocks.
         """
         try:
             try:
@@ -14403,93 +15474,122 @@ class BroadcastingChannelsScreen(Screen):
             except ImportError:
                 import urllib2 as _ur
             import re
+            import datetime as _dt
 
-            url = ("https://www.satelliweb.com/index.php"
-                   "?section=livef&langue=en&date={}".format(today_str))
-            req  = _ur.Request(url, headers={
-                'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                               'AppleWebKit/537.36 (KHTML, like Gecko) '
-                               'Chrome/124.0.0.0 Safari/537.36'),
-                'Accept':          'text/html,application/xhtml+xml',
+            url = "https://www.satelliweb.com/index.php?section=livef&langue=en"
+            req = _ur.Request(url, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml',
                 'Accept-Language': 'en-GB,en;q=0.9',
-                'Referer':         'https://www.satelliweb.com/',
+                'Referer': 'https://www.satelliweb.com/',
             })
             html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
 
+            # 1. Extract text, preserving structural newlines
+            text_content = re.sub(r'<(br|tr|/tr|p|/p|div|/div|h\d|/h\d|li|/li|td|/td)[^>]*>', '\n', html, flags=re.IGNORECASE)
+            text_content = re.sub(r'<[^>]+>', ' ', text_content)
+            try:
+                import html as html_lib
+                text_content = html_lib.unescape(text_content)
+            except ImportError:
+                text_content = text_content.replace('&#8505;', 'ℹ').replace('&#x2139;', 'ℹ').replace('&nbsp;', ' ')
+            
+            text_content = re.sub(r'[ \t]+', ' ', text_content)
+            text_content = re.sub(r'\n\s*\n+', '\n', text_content)
+
+            # 2. Split into blocks
+            block_sep = re.compile(u'(?:Signal\u00e9\\s+par\\s+|Reported\\s+by\\s+)', re.IGNORECASE)
+            blocks = block_sep.split(text_content)
+            if len(blocks) > 1:
+                feed_blocks = blocks[1:]
+            else:
+                feed_blocks = []
+
             results = []
-            tag_strip   = re.compile(r'<[^>]+>')
+            
+            _today = _dt.date.today()
+            _yesterday = _today - _dt.timedelta(days=1)
+            def _iso(d): return d.strftime('%Y-%m-%d')
+            
+            date_alts = [
+                re.escape('{:02d}/{:02d}/{}'.format(_today.day, _today.month, _today.year)),
+                re.escape('{:02d}/{:02d}/{}'.format(_yesterday.day, _yesterday.month, _yesterday.year)),
+                re.escape(_iso(_today)),
+                re.escape(_iso(_yesterday)),
+            ]
+            date_chk = re.compile(u'|'.join(date_alts), re.IGNORECASE)
 
-            # Split at every "Reported by" block header
-            block_sep   = re.compile(r'Reported\s+by\b', re.IGNORECASE)
-            blocks      = block_sep.split(html)
+            tech_pat = re.compile(r'Fr[eé]quenc[ey]\s*:\s*(\d+)\s*-\s*Pol\s*:\s*([HVLR])\s*-\s*SR\s*:\s*(\d+)', re.IGNORECASE)
+            cat_pat = re.compile(r'Cat[eé]gori[ey]\s*:\s*(.*)', re.IGNORECASE)
+            info_pat = re.compile(u'(?:[ℹⓘ]|&#8505;|&#x2139;)\\s*(.*)', re.IGNORECASE)
+            crypt_pat = re.compile(r'crypt|encrypted', re.IGNORECASE)
+            biss_pat = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
 
-            # Pattern: date confirmation inside the block  (on 2026-04-24)
-            date_chk    = re.compile(r'on\s+' + re.escape(today_str), re.IGNORECASE)
-
-            # Satellite name is in a bold link:  <b><a href="...">Name</a></b>
-            sat_pat     = re.compile(
-                r'<b>\s*<a[^>]+>\s*([^<]{4,80})\s*</a>\s*</b>', re.IGNORECASE)
-
-            # Freq / Pol / SR line
-            freq_pat    = re.compile(
-                r'Frequency\s*:\s*<b>(\d{4,6})</b>'
-                r'.*?Pol\s*:\s*<b>([HVLR])</b>'
-                r'.*?SR\s*:\s*<b>(\d{3,6})</b>',
-                re.IGNORECASE | re.DOTALL)
-
-            # Category line  → e.g.  "Sport - Football"
-            cat_pat     = re.compile(
-                r'Category\s*:.*?<b>([^<]{3,80})</b>', re.IGNORECASE | re.DOTALL)
-
-            # Encrypted flag
-            crypt_pat   = re.compile(r'crypt', re.IGNORECASE)
-
-            # BISS key sometimes appears in the block
-            biss_pat    = re.compile(
-                r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})',
-                re.IGNORECASE)
-
-            # Description after the info-symbol ℹ or after ":" at end
-            desc_pat    = re.compile(
-                r'[ℹ\u2139]\s*([^\n<]{3,120})', re.IGNORECASE)
-
-            for blk in blocks[1:]:           # skip text before first "Reported by"
-                # Confirm this block is from today
-                if not date_chk.search(blk[:120]):
+            for block in feed_blocks:
+                lines = [line.strip() for line in block.split('\n') if line.strip()]
+                if not lines: continue
+                
+                first_line = lines[0]
+                if not date_chk.search(first_line):
                     continue
 
-                # Satellite name
-                sm = sat_pat.search(blk)
-                satellite = tag_strip.sub('', sm.group(1)).strip() if sm else ''
+                freq_line_idx = -1
+                for i, line in enumerate(lines):
+                    if re.search(r'Fr[eé]quenc[ey]\s*:', line, re.IGNORECASE):
+                        freq_line_idx = i
+                        break
+                
+                if freq_line_idx == -1:
+                    continue
+                
+                tech_match = tech_pat.search(lines[freq_line_idx])
+                if not tech_match:
+                    continue
+                    
+                freq = tech_match.group(1)
+                pol = tech_match.group(2).upper()
+                sr = tech_match.group(3)
 
-                # Frequency / Pol / SR
-                fm = freq_pat.search(blk)
-                if not fm:
-                    continue               # no transponder data → skip
-                freq = fm.group(1)
-                pol  = fm.group(2).upper()
-                sr   = fm.group(3)
+                satellite = ""
+                if freq_line_idx > 0:
+                    sat_cand = lines[freq_line_idx - 1]
+                    if re.search(r'commentaire|comment', sat_cand, re.IGNORECASE) and freq_line_idx > 1:
+                        sat_cand = lines[freq_line_idx - 2]
+                    satellite = sat_cand.replace('[', '').replace(']', '').strip()
 
-                # Category
-                cm   = cat_pat.search(blk)
-                cat  = tag_strip.sub('', cm.group(1)).strip() if cm else ''
+                cat = ""
+                activity = ""
+                encrypted = False
+                biss = ""
+                
+                for line in lines[freq_line_idx:]:
+                    if not cat:
+                        cat_match = cat_pat.search(line)
+                        if cat_match:
+                            cat = cat_match.group(1).replace('[', '').replace(']', '').strip()
+                    
+                    if not activity:
+                        info_match = info_pat.search(line)
+                        if info_match:
+                            activity = info_match.group(1).strip()
+                            
+                    if not encrypted and crypt_pat.search(line):
+                        encrypted = True
+                        
+                    if not biss:
+                        biss_match = biss_pat.search(line)
+                        if biss_match:
+                            biss = biss_match.group(1).replace(' ', '').upper()
 
-                # Encrypted?
-                encrypted = bool(crypt_pat.search(blk))
-
-                # BISS
-                bm   = biss_pat.search(blk)
-                biss = bm.group(1).replace(' ', '').upper() if bm else ''
-
-                # Description (the human note – e.g. "Arsenal vs Chelsea")
-                dm   = desc_pat.search(blk)
-                desc = dm.group(1).strip() if dm else ''
-
-                # Use description as the feed name (it's the most human-readable)
-                name = desc if desc else (cat if cat else u"Feed @ {}".format(freq))
+                details = activity if activity else cat
+                if not details:
+                    details = u'Feed @ {}'.format(freq)
+                    
+                name = details
 
                 results.append({
                     'name':      name,
+                    'activity':  activity,
                     'satellite': satellite,
                     'freq':      freq,
                     'pol':       pol,
@@ -14502,241 +15602,11 @@ class BroadcastingChannelsScreen(Screen):
 
             log_dbg("[SatFeed] Satelliweb returned {} entries for {}".format(len(results), today_str))
             return results
+
         except Exception as e:
             log_dbg("[SatFeed] Satelliweb error: " + str(e))
             return []
 
-    # ==================================================================
-    # SOURCE 2 — LyngSat  (https://www.lyngsat.com/feeds.html)
-    # Shows all currently active / recently reported wild feeds.
-    # Table columns: Feed Name | Satellite | Freq Pol SR | System | Encryption
-    # ==================================================================
-    def _scrape_lyngsat_feeds(self):
-        """Scrape all active feeds from lyngsat.com/feeds.html (no date filter)."""
-        try:
-            try:
-                import urllib.request as _ur
-            except ImportError:
-                import urllib2 as _ur
-            import re
-
-            url = "https://www.lyngsat.com/feeds.html"
-            req = _ur.Request(url, headers={
-                'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                               'AppleWebKit/537.36 (KHTML, like Gecko) '
-                               'Chrome/124.0.0.0 Safari/537.36'),
-                'Accept': 'text/html,application/xhtml+xml',
-                'Referer': 'https://www.lyngsat.com/',
-            })
-            html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
-
-            results     = []
-            row_pat     = re.compile(r'<tr[^>]*>(.*?)</tr>',  re.DOTALL | re.IGNORECASE)
-            cell_pat    = re.compile(r'<td[^>]*>(.*?)</td>',  re.DOTALL | re.IGNORECASE)
-            tag_strip   = re.compile(r'<[^>]+>')
-            biss_pat    = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
-            freq_pat    = re.compile(r'(\d{4,6})\s*([HVLR])\s*[/\-]?\s*(\d{3,6})', re.IGNORECASE)
-
-            for row_m in row_pat.finditer(html):
-                row_html = row_m.group(1)
-                cells    = [tag_strip.sub('', c.group(1)).strip()
-                            for c in cell_pat.finditer(row_html)]
-                if len(cells) < 3:
-                    continue
-                feed_name = cells[0].strip()
-                if not feed_name or len(feed_name) < 3:
-                    continue
-                # Skip header rows
-                if feed_name.lower() in ('feed name', 'name', 'channel'):
-                    continue
-
-                satellite = cells[1].strip() if len(cells) > 1 else ''
-                freq_raw  = cells[2].strip() if len(cells) > 2 else ''
-                system    = cells[3].strip() if len(cells) > 3 else ''
-                enc_raw   = cells[4].strip() if len(cells) > 4 else ''
-
-                freq = pol = sr = ''
-                fm = freq_pat.search(freq_raw)
-                if fm:
-                    freq = fm.group(1)
-                    pol  = fm.group(2).upper()
-                    sr   = fm.group(3)
-
-                biss = ''
-                bm = biss_pat.search(enc_raw)
-                if bm:
-                    biss = bm.group(1).replace(' ', '').upper()
-
-                results.append({
-                    'name':      feed_name,
-                    'satellite': satellite,
-                    'freq':      freq,
-                    'pol':       pol,
-                    'sr':        sr,
-                    'biss':      biss,
-                    'system':    system,
-                    'category':  '',
-                    'source':    'LyngSat',
-                })
-
-            log_dbg("[SatFeed] LyngSat returned {} entries".format(len(results)))
-            return results
-        except Exception as e:
-            log_dbg("[SatFeed] LyngSat error: " + str(e))
-            return []
-
-    # ==================================================================
-    # SOURCE 3 — FlySat  (https://www.flysat.com/en/feeds.php)
-    # Frequently updated; layout mirrors LyngSat.
-    # ==================================================================
-    def _scrape_flysat_feeds(self):
-        """Scrape all active feeds from flysat.com/en/feeds.php (no date filter)."""
-        try:
-            try:
-                import urllib.request as _ur
-            except ImportError:
-                import urllib2 as _ur
-            import re
-
-            url = "https://www.flysat.com/en/feeds.php"
-            req = _ur.Request(url, headers={
-                'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                               'AppleWebKit/537.36 (KHTML, like Gecko) '
-                               'Chrome/124.0.0.0 Safari/537.36'),
-                'Accept': 'text/html,application/xhtml+xml',
-                'Referer': 'https://www.flysat.com/',
-            })
-            html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
-
-            results   = []
-            row_pat   = re.compile(r'<tr[^>]*>(.*?)</tr>',  re.DOTALL | re.IGNORECASE)
-            cell_pat  = re.compile(r'<td[^>]*>(.*?)</td>',  re.DOTALL | re.IGNORECASE)
-            tag_strip = re.compile(r'<[^>]+>')
-            biss_pat  = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
-            freq_pat  = re.compile(r'(\d{4,6})\s*([HVLR])\s*[/\-]?\s*(\d{3,6})', re.IGNORECASE)
-
-            for row_m in row_pat.finditer(html):
-                row_html = row_m.group(1)
-                cells    = [tag_strip.sub('', c.group(1)).strip()
-                            for c in cell_pat.finditer(row_html)]
-                if len(cells) < 3:
-                    continue
-                feed_name = cells[0].strip()
-                if not feed_name or len(feed_name) < 3:
-                    continue
-                if feed_name.lower() in ('feed name', 'name', 'channel', 'feeds'):
-                    continue
-
-                satellite = cells[1].strip() if len(cells) > 1 else ''
-                freq_raw  = cells[2].strip() if len(cells) > 2 else ''
-                enc_raw   = ' '.join(cells[3:]) if len(cells) > 3 else ''
-
-                freq = pol = sr = ''
-                fm = freq_pat.search(freq_raw)
-                if fm:
-                    freq = fm.group(1)
-                    pol  = fm.group(2).upper()
-                    sr   = fm.group(3)
-
-                biss = ''
-                bm = biss_pat.search(enc_raw)
-                if bm:
-                    biss = bm.group(1).replace(' ', '').upper()
-
-                results.append({
-                    'name':      feed_name,
-                    'satellite': satellite,
-                    'freq':      freq,
-                    'pol':       pol,
-                    'sr':        sr,
-                    'biss':      biss,
-                    'system':    '',
-                    'category':  '',
-                    'source':    'FlySat',
-                })
-
-            log_dbg("[SatFeed] FlySat returned {} entries".format(len(results)))
-            return results
-        except Exception as e:
-            log_dbg("[SatFeed] FlySat error: " + str(e))
-            return []
-
-    # ==================================================================
-    # SOURCE 4 — KingOfSat  (https://en.kingofsat.net/newchannels.php)
-    # "New channels" section lists recently added / moved channels with
-    # full transponder data — the closest KingOfSat gets to a live feed list.
-    # ==================================================================
-    def _scrape_kingofsat_feeds(self):
-        """Scrape recently added channels from kingofsat.net/newchannels.php."""
-        try:
-            try:
-                import urllib.request as _ur
-            except ImportError:
-                import urllib2 as _ur
-            import re
-
-            url = "https://en.kingofsat.net/newchannels.php"
-            req = _ur.Request(url, headers={
-                'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                               'AppleWebKit/537.36 (KHTML, like Gecko) '
-                               'Chrome/124.0.0.0 Safari/537.36'),
-                'Accept': 'text/html,application/xhtml+xml',
-                'Referer': 'https://en.kingofsat.net/',
-            })
-            html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
-
-            results   = []
-            row_pat   = re.compile(r'<tr[^>]*>(.*?)</tr>',  re.DOTALL | re.IGNORECASE)
-            cell_pat  = re.compile(r'<td[^>]*>(.*?)</td>',  re.DOTALL | re.IGNORECASE)
-            tag_strip = re.compile(r'<[^>]+>')
-            biss_pat  = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
-            freq_pat  = re.compile(r'(\d{4,6})\s*([HVLR])\s*[/\-]?\s*(\d{3,6})', re.IGNORECASE)
-
-            for row_m in row_pat.finditer(html):
-                row_html = row_m.group(1)
-                cells    = [tag_strip.sub('', c.group(1)).strip()
-                            for c in cell_pat.finditer(row_html)]
-                if len(cells) < 3:
-                    continue
-                feed_name = cells[0].strip()
-                if not feed_name or len(feed_name) < 3:
-                    continue
-                if feed_name.lower() in ('channel', 'name', 'channels'):
-                    continue
-
-                satellite = cells[1].strip() if len(cells) > 1 else ''
-                freq_raw  = cells[2].strip() if len(cells) > 2 else ''
-                enc_raw   = ' '.join(cells[3:]) if len(cells) > 3 else ''
-
-                freq = pol = sr = ''
-                fm = freq_pat.search(freq_raw)
-                if fm:
-                    freq = fm.group(1)
-                    pol  = fm.group(2).upper()
-                    sr   = fm.group(3)
-
-                biss = ''
-                bm = biss_pat.search(enc_raw)
-                if bm:
-                    biss = bm.group(1).replace(' ', '').upper()
-
-                results.append({
-                    'name':      feed_name,
-                    'satellite': satellite,
-                    'freq':      freq,
-                    'pol':       pol,
-                    'sr':        sr,
-                    'biss':      biss,
-                    'system':    '',
-                    'category':  '',
-                    'source':    'KingOfSat',
-                })
-
-            log_dbg("[SatFeed] KingOfSat returned {} entries".format(len(results)))
-            return results
-        except Exception as e:
-            log_dbg("[SatFeed] KingOfSat error: " + str(e))
-            return []
 
     # ==================================================================
     # SOURCE 5 — GitHub iptv-org  (https://iptv-org.github.io)
@@ -14852,7 +15722,7 @@ class BroadcastingChannelsScreen(Screen):
             self.session.open(
                 MessageBox,
                 "No satellite feeds found for today from any source.\n"
-                "Sources checked: Satelliweb, LyngSat, FlySat, KingOfSat, iptv-org.",
+                "Sources checked: Satelliweb, iptv-org.",
                 MessageBox.TYPE_INFO
             )
             return
@@ -14998,6 +15868,7 @@ class BroadcastingChannelsScreen(Screen):
           Line 2: ▶ STREAM  |  <stream URL truncated>  |  Category
         """
         name       = feed.get('name', 'Unknown Feed')
+        activity   = feed.get('activity', '')
         satellite  = feed.get('satellite', '')
         freq       = feed.get('freq', '')
         pol        = feed.get('pol', '')
@@ -15041,6 +15912,9 @@ class BroadcastingChannelsScreen(Screen):
                 elif system:
                     parts2.append(system[:40])
         else:
+            # Sat feed Line 2: frequency details first, then satellite name,
+            # then BISS, then the full category label.
+            # Activity is already surfaced in Line 1 as the feed name.
             if freq and freq != 'IPTV Stream':
                 f_str = freq
                 if pol:
@@ -15048,9 +15922,11 @@ class BroadcastingChannelsScreen(Screen):
                 if sr:
                     f_str += u" / " + sr
                 parts2.append(u"Freq: " + f_str)
+            if satellite:
+                parts2.append(satellite[:50])
             parts2.append(u"BISS: " + (biss if biss else u"N/A"))
             if category:
-                parts2.append(category[:30])
+                parts2.append(category[:35])
             elif system:
                 parts2.append(system[:20])
         line2 = u"  |  ".join(parts2)
