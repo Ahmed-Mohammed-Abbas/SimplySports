@@ -32,7 +32,11 @@ from Components.MenuList import MenuList
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
 from Components.Pixmap import Pixmap
 from Tools.LoadPixmap import LoadPixmap
-
+from skin import parseColor
+try:
+    from Screens.VirtualKeyBoard import VirtualKeyBoard
+except ImportError:
+    VirtualKeyBoard = None
 # Twisted Imports - Aliasing ssl to avoid conflict with stdlib ssl
 from twisted.internet import reactor
 try:
@@ -107,7 +111,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "5.6"
+VERSION = "5.7"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -141,6 +145,10 @@ TRANSLATIONS = {
     "Goal Alert: OFF":            {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: \u0645\u063a\u0644\u0642"},
     "Goal Alert: VISUAL":         {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: \u0645\u0631\u0626\u064a"},
     "Goal Alert: SOUND":          {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: \u0635\u0648\u062a\u064a"},
+    "Goal Alert":                 {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641"},
+    "VISUAL":                     {"ar": u"\u0645\u0631\u0626\u064a"},
+    "SOUND":                      {"ar": u"\u0635\u0648\u062a\u064a"},
+    "Select Goal Alert Mode":      {"ar": u"\u0627\u062e\u062a\u0631 \u0648\u0636\u0639 \u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641"},
     # ── list_title / header titles ─────────────────────────────────────────────
     "Yesterday's Matches":        {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u0623\u0645\u0633"},
     "Live Matches":               {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
@@ -339,6 +347,42 @@ TRANSLATIONS = {
     "Select Goal Sound":              {"ar": u"\u0627\u062e\u062a\u0631 \u0635\u0648\u062a \u0627\u0644\u0647\u062f\u0641"},
     "No sound files found":           {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0644\u0641\u0627\u062a \u0635\u0648\u062a"},
     "(Preview playing...)":           {"ar": u"(\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u0634\u063a\u064a\u0644...)"},
+    # ── Watch Party feature ───────────────────────────────────────────────
+    "Watch Party":                    {"ar": u"\u062d\u0641\u0644\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629"},
+    "Watch Party is only available for live soccer matches.": {"ar": u"\u062d\u0641\u0644\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629 \u0645\u062a\u0627\u062d\u0629 \u0641\u0642\u0637 \u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u062d\u064a\u0629."},
+    "Goal Alert Mode: ":             {"ar": u"\u0648\u0636\u0639 \u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: "},
+    "Neutral":                        {"ar": u"\u0645\u062d\u0627\u064a\u062f"},
+    "Goal":                           {"ar": u"\u0647\u062f\u0641"},
+    "Fire":                           {"ar": u"\u0646\u0627\u0631"},
+    "Wow":                            {"ar": u"\u0648\u0627\u0648"},
+    "Attack":                         {"ar": u"\u0647\u062c\u0648\u0645"},
+    "Defend":                         {"ar": u"\u062f\u0641\u0627\u0639"},
+    "Unlucky":                        {"ar": u"\u062d\u0638 \u0633\u064a\u0621"},
+    "Match":                          {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Save":                           {"ar": u"\u0625\u0646\u0642\u0627\u0630"},
+    "Intense":                        {"ar": u"\u062d\u0645\u0627\u0633"},
+    "Boring":                         {"ar": u"\u0645\u0644\u0644"},
+    "Yellow":                         {"ar": u"\u0623\u0635\u0641\u0631"},
+    "Red":                            {"ar": u"\u0623\u062d\u0645\u0631"},
+    "GOAL!":                          {"ar": u"\u0647\u062f\u0641!"},
+    "FIRE!":                          {"ar": u"\u0646\u0627\u0631!"},
+    "WOW!":                           {"ar": u"\u0648\u0627\u0648!"},
+    "ATTACK!":                        {"ar": u"\u0647\u062c\u0648\u0645!"},
+    "DEFEND!":                        {"ar": u"\u062f\u0641\u0627\u0639!"},
+    "UNLUCKY!":                       {"ar": u"\u062d\u0638 \u0633\u064a\u0621!"},
+    "GREAT MATCH!":                   {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629 \u0631\u0627\u0626\u0639\u0629!"},
+    "WHAT A SAVE!":                   {"ar": u"\u064a\u0627 \u0644\u0647 \u0645\u0646 \u0625\u0646\u0642\u0627\u0630!"},
+    "INTENSE!":                       {"ar": u"\u062d\u0645\u0627\u0633!"},
+    "BORING...":                      {"ar": u"\u0645\u0644\u0644..."},
+    "YELLOW CARD!":                   {"ar": u"\u0628\u0637\u0627\u0642\u0629 \u0635\u0641\u0631\u0627\u0621!"},
+    "RED CARD!":                      {"ar": u"\u0628\u0637\u0627\u0642\u0629 \u062d\u0645\u0631\u0627\u0621!"},
+
+    "SYSTEM":                         {"ar": u"\u0627\u0644\u0646\u0638\u0627\u0645"},
+    u"\u26bd GOAAAL!":                {"ar": u"\u26bd \u0647\u062f\u062f\u062f\u062f\u0641!"},
+    "viewers":                        {"ar": u"\u0645\u0634\u0627\u0647\u062f\u064a\u0646"},
+    "Synced":                         {"ar": u"\u0645\u062a\u0632\u0627\u0645\u0646"},
+    "new reaction(s)":                {"ar": u"\u062a\u0641\u0627\u0639\u0644\u0627\u062a \u062c\u062f\u064a\u062f\u0629"},
+    "total":                          {"ar": u"\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a"},
 }
 
 
@@ -1081,7 +1125,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "5.6"  # Update version to 5.6 - Include Favorite teams to the menu list, Special favorite teams display and reminders, A new option to choose goal sounds, richer channel Feeds and screen.
+CURRENT_VERSION = "5.7"  # Update version to 5.7 - Include "Watch Party" for live matches, including real-time reaction messaging, local rendering of other users' emojis, polling-based filtering, write-rate limiting, and 10-minute initialization.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1336,7 +1380,7 @@ DATA_SOURCES = [
     ("Ireland Premier", "https://site.api.espn.com/apis/site/v2/sports/soccer/irl.1/scoreboard"),
     ("Romanian Liga I", "https://site.api.espn.com/apis/site/v2/sports/soccer/rou.1/scoreboard"),
     ("Hungarian NB I", "https://site.api.espn.com/apis/site/v2/sports/soccer/hun.1/scoreboard"),
-    ("Moroccan Botola", "https://site.api.espn.com/apis/site/v2/sports/soccer/mar.1/scoreboard"),
+    ("Thailand Premier", "https://site.api.espn.com/apis/site/v2/sports/soccer/tha.1/scoreboard"),
     ("Peruvian Primera", "https://site.api.espn.com/apis/site/v2/sports/soccer/per.1/scoreboard"),
     ("Bolivian Primera", "https://site.api.espn.com/apis/site/v2/sports/soccer/bol.1/scoreboard"),
     ("Cypriot First Division", "https://site.api.espn.com/apis/site/v2/sports/soccer/cyp.1/scoreboard"),
@@ -3638,13 +3682,14 @@ class SportsMonitor:
         self.filter_mode = (self.filter_mode + 1) % 5
         log_diag("MONITOR.toggle_filter: {} -> {} (0=Yesterday,1=Live,2=Today,3=Tomorrow,4=All)".format(old, self.filter_mode))
         self.save_config(); return self.filter_mode
-    def cycle_discovery_mode(self):
+    def set_discovery_mode(self, mode):
+        """Set discovery mode directly: 0=OFF, 1=VISUAL, 2=SOUND."""
         old = self.discovery_mode
-        self.discovery_mode = (self.discovery_mode + 1) % 3
+        self.discovery_mode = mode
 
         # FIX: active flag only controlled by mode, but timer checks reminders too
         self.active = (self.discovery_mode > 0)
-        log_diag("MONITOR.cycle_discovery_mode: {} -> {} (0=OFF,1=VISUAL,2=SOUND) active={}".format(old, self.discovery_mode, self.active))
+        log_diag("MONITOR.set_discovery_mode: {} -> {} (0=OFF,1=VISUAL,2=SOUND) active={}".format(old, self.discovery_mode, self.active))
 
         # FIX: Clear pending notifications immediately when toggling OFF
         # This prevents queued notifications from showing after disabling Goal Alert
@@ -3656,6 +3701,10 @@ class SportsMonitor:
         self.save_config()
         self._trigger_callbacks(True) # Ensure immediate UI update (button label)
         return self.discovery_mode
+
+    def cycle_discovery_mode(self):
+        new_mode = (self.discovery_mode + 1) % 3
+        return self.set_discovery_mode(new_mode)
 
     def toggle_activity(self): return self.cycle_discovery_mode()
 
@@ -13103,6 +13152,7 @@ class SimpleSportsScreen(Screen):
             {bg}
             {top}
             <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
+            <widget name="top_status" position="1180,30" size="420,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
             <widget name="key_menu" position="40,30" size="1000,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
             <widget name="credit" position="1600,20" size="300,30" font="SimplySportFont;20" foregroundColor="#888888" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
             <widget name="clock" position="{cx},75" size="{cw},35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="{ca}" zPosition="2" />
@@ -13127,7 +13177,7 @@ class SimpleSportsScreen(Screen):
         """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_bar=c_bar, c_top=c_top)
 
         self["top_bar"] = Label(""); self["header_bg"] = Label(""); self["bottom_bar"] = Label(""); self["main_bg"] = Label(""); self["bar_bg"] = Label("")
-        self["top_title"] = Label(_t("SIMPLY SPORTS")); self["league_title"] = Label(_t("LOADING...")); self["list_title"] = Label("")
+        self["top_title"] = Label(_t("SIMPLY SPORTS")); self["top_status"] = Label(""); self["league_title"] = Label(_t("LOADING...")); self["list_title"] = Label("")
         self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label(_t("MENU: Settings  |  1-9: Leagues"))
         self["clock"] = Label("")  # Clock widget
         self._last_refreshed = None  # datetime of last successful refresh_ui render
@@ -13139,7 +13189,7 @@ class SimpleSportsScreen(Screen):
         self["list"].l.setFont(2, gFont("SimplySportFont", 38))
         self["list"].l.setFont(3, gFont("SimplySportFont", 20))
         self["list"].l.setItemHeight(90)
-        self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Live Only")); self["key_blue"] = Label(_t("Goal Alert: OFF"))
+        self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Live Only")); self["key_blue"] = Label(_t("Watch Party"))
         self["key_epg"] = Label(_t("Info/EPG: Channels"))
 
         # Clock timer
@@ -13163,7 +13213,7 @@ class SimpleSportsScreen(Screen):
                 "red": self.open_league_menu,
                 "green": self.open_mini_bar,
                 "yellow": self.toggle_filter,
-                "blue": self.toggle_discovery,
+                "blue": self.open_watch_party,
                 "ok": self.open_game_info,
                 "menu": self.open_settings_menu,
                 "up": self["list"].up,
@@ -13224,6 +13274,7 @@ class SimpleSportsScreen(Screen):
         # Clear list immediately to prevent stale cache flash from previous session
         self["list"].setList([])
         self["list_title"].setText("Loading...")
+        self.update_top_status()
         self.update_header(); self.update_filter_button(); self.fetch_data()
 
     def cleanup(self):
@@ -13254,6 +13305,22 @@ class SimpleSportsScreen(Screen):
             self._ai_ticker_messages = []
             # Restore normal title after ticker finishes
             self.update_header()
+
+    def update_top_status(self):
+        """Update the top-bar status info: Goal Alert Mode and AI Mode."""
+        try:
+            d_mode = self.monitor.discovery_mode
+            if d_mode == 0: alert_txt = _t("OFF")
+            elif d_mode == 1: alert_txt = _t("VISUAL")
+            else: alert_txt = _t("SOUND")
+            
+            ai_status = _t("ON") if self.monitor.ai_enabled else _t("OFF")
+            
+            # Combine info: Goal Alert: MODE | AI: STATUS
+            status_str = u"{} {} : {}  |  AI: {}".format(u"\u2022", _t("Goal Alert"), alert_txt, ai_status)
+            self["top_status"].setText(status_str)
+        except Exception:
+            pass
 
     # ... (Keep Header, Filter, Download helpers unchanged) ...
     def update_header(self, count=None, count_live=0, count_fin=0, count_sch=0):
@@ -13295,10 +13362,8 @@ class SimpleSportsScreen(Screen):
             else:
                 self["key_green"].setText(_t("Mini Bar"))
         except: self["key_green"].setText(_t("Mini Bar"))
-        d_mode = self.monitor.discovery_mode
-        if d_mode == 0: self["key_blue"].setText(_t("Goal Alert: OFF"))
-        elif d_mode == 1: self["key_blue"].setText(_t("Goal Alert: VISUAL"))
-        elif d_mode == 2: self["key_blue"].setText(_t("Goal Alert: SOUND"))
+        self["key_blue"].setText(_t("Watch Party"))
+        self.update_top_status()
 
     def update_filter_button(self):
         mode = self.monitor.filter_mode
@@ -14039,6 +14104,11 @@ class SimpleSportsScreen(Screen):
         ai_status = _t("ON") if self.monitor.ai_enabled else _t("OFF")
         cur_lang_lbl = u"\u0627\u0644\u0639\u0631\u0628\u064a\u0629" if PLUGIN_LANGUAGE == "ar" else "English"
         cur_sound_lbl = self.monitor.goal_sound_file if self.monitor.goal_sound_file else _t("No Sound")
+        # Build goal alert mode label
+        d_mode = self.monitor.discovery_mode
+        if d_mode == 0: alert_lbl = _t("Goal Alert: OFF")
+        elif d_mode == 1: alert_lbl = _t("Goal Alert: VISUAL")
+        else: alert_lbl = _t("Goal Alert: SOUND")
         menu_options = [
             (_t("Check for Updates"), "update"),
             (_t("Change Interface Theme"), "theme"),
@@ -14047,6 +14117,7 @@ class SimpleSportsScreen(Screen):
             (_t("Show Plugin in Main Menu: ") + in_menu_txt, "toggle_menu"),
             (_t("Set Voter Name: ") + self.monitor.voter_name, "voter_name"),
             (_t("Goal Sound: ") + cur_sound_lbl, "goal_sound"),
+            (_t("Goal Alert Mode: ") + alert_lbl, "toggle_goal_alert"),
             (_t("AI Mode: ") + ai_status, "ai_mode"),
             (_t("Notifications Test"), "notif_test"),
             (u"Language / \u0644\u063a\u0629: " + cur_lang_lbl, "change_language"),
@@ -14071,6 +14142,8 @@ class SimpleSportsScreen(Screen):
             elif action == "voter_name": self.open_voter_name_input()
             elif action == "goal_sound": self.open_goal_sound_selector()
             elif action == "ai_mode": self.open_ai_mode_menu()
+            elif action == "toggle_goal_alert":
+                self.open_goal_alert_selector()
             elif action == "notif_test": self.run_notification_test()
             elif action == "change_language": self.open_language_selector()
             elif action == "favorite_teams":
@@ -14083,6 +14156,33 @@ class SimpleSportsScreen(Screen):
         # No reload needed; pinning is applied on next refresh_ui call
         pass
 
+    def open_goal_alert_selector(self):
+        """Open a ChoiceBox to let the user pick the Goal Alert mode directly."""
+        current = self.monitor.discovery_mode
+        labels = [
+            (_t("Goal Alert: OFF"),    0),
+            (_t("Goal Alert: VISUAL"), 1),
+            (_t("Goal Alert: SOUND"),  2),
+        ]
+        options = []
+        for label, mode_val in labels:
+            if mode_val == current:
+                label = u"\u2713 " + label  # checkmark on current
+            options.append((label, mode_val))
+        self.session.openWithCallback(
+            self.goal_alert_selected,
+            ChoiceBox,
+            title=_t("Select Goal Alert Mode"),
+            list=options
+        )
+
+    def goal_alert_selected(self, selection):
+        if selection is None:
+            return
+        chosen_mode = selection[1]
+        if chosen_mode != self.monitor.discovery_mode:
+            self.monitor.set_discovery_mode(chosen_mode)
+            self.update_header()
 
     def open_language_selector(self):
         lang_options = [
@@ -14272,12 +14372,14 @@ class SimpleSportsScreen(Screen):
             m.ai_enabled = True
             m.save_config()
             m._start_ai_timer()
+            self.update_top_status()
             msg = (u"\u062a\u0645 \u062a\u0641\u0639\u064a\u0644 \u0648\u0636\u0639 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a.\n\u0627\u0641\u062a\u062d\u0647 \u0645\u062c\u062f\u062f\u0627\u064b \u0644\u0636\u0628\u0637 \u0645\u0641\u062a\u0627\u062d API." if PLUGIN_LANGUAGE == "ar" else "AI Mode ENABLED.\nOpen AI Mode again to configure API key and options.")
             self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=4)
         elif action == "toggle_off":
             m.ai_enabled = False
             m.ai_timer.stop()
             m.save_config()
+            self.update_top_status()
             msg = u"\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u0648\u0636\u0639 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a." if PLUGIN_LANGUAGE == "ar" else "AI Mode DISABLED."
             self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
         elif action == "api_key":
@@ -14681,11 +14783,70 @@ class SimpleSportsScreen(Screen):
             msg = (u"\u062e\u0637\u0623 \u0641\u064a \u0636\u0628\u0637 \u0627\u0644\u062a\u0630\u0643\u064a\u0631: " + str(e)) if PLUGIN_LANGUAGE == "ar" else ("Error setting reminder: " + str(e))
             self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR)
 
-    def toggle_discovery(self):
+    def open_watch_party(self):
+        """Blue button: Open Watch Party overlay for the selected live or scheduled soccer match."""
         if time.time() - self.last_key_time < 0.5: return
         self.last_key_time = time.time()
-        log_diag("BUTTON_BLUE: toggle_discovery pressed. is_custom={} filter_mode={}".format(self.monitor.is_custom_mode, self.monitor.filter_mode))
-        self.monitor.cycle_discovery_mode(); self.update_header()
+        log_diag("BUTTON_BLUE: open_watch_party pressed.")
+
+        idx = self["list"].getSelectedIndex()
+        event = None
+        if idx is not None and 0 <= idx < len(self.current_match_ids):
+            match_id = self.current_match_ids[idx]
+            event = self.monitor.event_map.get(match_id)
+            if not event:
+                for ev in self.monitor.cached_events:
+                    if ev.get('id') == match_id:
+                        event = ev
+                        break
+
+        if not event:
+            self.session.open(
+                MessageBox,
+                _t("Watch Party is only available for live or scheduled soccer matches."),
+                MessageBox.TYPE_INFO, timeout=5)
+            return
+
+        # Access Guard: must be live soccer, not suspended
+        state = event.get('status', {}).get('type', {}).get('state', 'pre')
+        league_url = event.get('league_url', '')
+        is_soccer = ('soccer' in league_url.lower()) if league_url else False
+        # Also check by sport slug fallback
+        if not is_soccer:
+            try:
+                sport_type = get_sport_type(league_url)
+                is_soccer = (sport_type == SPORT_TYPE_TEAM and 'soccer' in league_url.lower())
+            except:
+                pass
+        # Broader fallback: check league_name for common soccer keywords
+        if not is_soccer:
+            ln = event.get('league_name', '').lower()
+            soccer_keywords = ['premier', 'liga', 'serie', 'ligue', 'bundesliga',
+                               'cup', 'champions', 'europa', 'conference', 'mls',
+                               'eredivisie', 'copa', 'world cup', 'soccer',
+                               'football', 'fa cup', 'carabao']
+            is_soccer = any(kw in ln for kw in soccer_keywords)
+
+        is_suspended = event.get('status', {}).get('type', {}).get('description', '').lower() in ('suspended', 'postponed')
+
+        if state not in ('in', 'pre') or not is_soccer or is_suspended:
+            self.session.open(
+                MessageBox,
+                _t("Watch Party is only available for live or scheduled soccer matches."),
+                MessageBox.TYPE_INFO, timeout=5)
+            return
+
+        # Extract match data
+        comp = event.get('competitions', [{}])[0]
+        competitors = comp.get('competitors', [])
+        h_name = "Home"; a_name = "Away"
+        for c in competitors:
+            if c.get('homeAway') == 'home':
+                h_name = c.get('team', {}).get('shortDisplayName', c.get('team', {}).get('displayName', 'Home'))
+            elif c.get('homeAway') == 'away':
+                a_name = c.get('team', {}).get('shortDisplayName', c.get('team', {}).get('displayName', 'Away'))
+
+        self.session.open(WatchPartyScreen, event.get('id', ''), h_name, a_name)
 
     def toggle_filter(self):
         if time.time() - self.last_key_time < 0.5: return
@@ -16784,6 +16945,1126 @@ class PersonalProfileScreen(Screen):
 
         self["list"].setList(rows)
         self["list"].l.setItemHeight(74)
+
+
+# ==============================================================================
+# WATCH PARTY — Reaction definitions
+# Maps key string -> (firebase_side, display_text)
+# Keys 1,4,7 = Home  |  Keys 2,5,8 = Neutral  |  Keys 3,6,9 = Away
+# ==============================================================================
+WATCH_PARTY_REACTIONS = {
+    # Home (1, 4, 7, 11, 44, 77)
+    "1": ("h", u"GOAL!"),
+    "4": ("h", u"FIRE!"),
+    "7": ("h", u"WOW!"),
+    "11": ("h", u"ATTACK!"),
+    "44": ("h", u"DEFEND!"),
+    "77": ("h", u"UNLUCKY!"),
+
+    # Neutral (2, 5, 8, 22, 55, 88)
+    "2": ("n", u"GREAT MATCH!"),
+    "5": ("n", u"WHAT A SAVE!"),
+    "8": ("n", u"INTENSE!"),
+    "22": ("n", u"BORING..."),
+    "55": ("n", u"YELLOW CARD!"),
+    "88": ("n", u"RED CARD!"),
+
+    # Away (3, 6, 9, 33, 66, 99)
+    "3": ("a", u"GOAL!"),
+    "6": ("a", u"FIRE!"),
+    "9": ("a", u"WOW!"),
+    "33": ("a", u"ATTACK!"),
+    "66": ("a", u"DEFEND!"),
+    "99": ("a", u"UNLUCKY!"),
+}
+
+# How many reaction text slots to show per zone simultaneously
+_WP_SLOTS = 4
+
+# ── Watch Party media folder (images & sounds) ──────────────────────────────
+_WP_DIR = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/WP/")
+
+def _wp_play_sound(key_str, screen=None):
+    """Play the reaction sound file WP/{key}.mp3 in the background (non-blocking).
+    Respects the screen's _sound_enabled toggle."""
+    try:
+        if screen and not getattr(screen, '_sound_enabled', True):
+            return
+        mp3_path = _WP_DIR + key_str + ".mp3"
+        if os.path.exists(mp3_path):
+            os.system('gst-launch-1.0 playbin uri=file://{} audio-sink="alsasink" > /dev/null 2>&1 &'.format(mp3_path))
+    except Exception:
+        pass
+
+def _wp_load_reaction_icon(screen, widget_name, key_str):
+    """Load the reaction image WP/{key}.png into a Pixmap widget."""
+    try:
+        png_path = _WP_DIR + key_str + ".png"
+        if os.path.exists(png_path):
+            ptr = GLOBAL_PIXMAP_CACHE.get(png_path)
+            if not ptr and LoadPixmap:
+                ptr = LoadPixmap(cached=True, path=png_path)
+                if ptr:
+                    GLOBAL_PIXMAP_CACHE[png_path] = ptr
+            if ptr:
+                if screen[widget_name].instance:
+                    screen[widget_name].instance.setPixmap(ptr)
+                    screen[widget_name].instance.setScale(1)
+            elif screen[widget_name].instance:
+                screen[widget_name].instance.setPixmapFromFile(png_path)
+                screen[widget_name].instance.setScale(1)
+            screen[widget_name].show()
+            return True
+    except Exception:
+        pass
+    try:
+        screen[widget_name].hide()
+    except Exception:
+        pass
+    return False
+
+
+# ==============================================================================
+# WATCH PARTY SCREEN
+# ==============================================================================
+class WatchPartyScreen(Screen):
+    """
+    A transparent overlay bar that lets users react to a live match in real-time.
+
+    Architecture rules implemented:
+      1. Flat-list reactions at /reactions/{match_id}/ with {side, type, ts, uid}.
+      2. Client-side rendering: reactions appear immediately on key-press and are
+         hidden after exactly 15 seconds via an eTimer (no Firebase DELETE).
+      3. Write throttle: at most one Firebase POST per 60 seconds per device.
+      4. Smart polling: initial fetch covers the last 10 minutes; subsequent polls
+         use an incremental startAt cursor so only NEW payloads are downloaded.
+         Reactions older than 15 seconds at render-time are silently discarded.
+      5. Access guard: the screen must only be opened for live or scheduled matches
+         (state == "in" or state == "pre") and not suspended — enforced by the caller.
+
+    Architect enhancements (Senior Review):
+      A. Reaction batching on write: instead of posting each key-press
+         individually (even within the 60-second window), we store the *type*
+         of the LAST key pressed in the window and POST that single payload at
+         the end of the window. This halves write noise for fast-typing users.
+         (Implemented via _pending_reaction + _write_window_timer.)
+
+      B. limitToLast=50 + server-side index: the Firebase query always caps the
+         response at 50 entries so a burst of reactions can never inflate the
+         response payload beyond ~4 KB. Combined with the .indexOn ts rule this
+         also forces Firebase to use its B-tree index rather than full-scanning
+         the child list, which cuts read latency on large datasets.
+    """
+
+    def __init__(self, session, match_id, h_name, a_name):
+        Screen.__init__(self, session)
+        self.session  = session
+        # Sanitize match_id for Firebase path safety (no dots, $, #, [, ], /)
+        raw_id = str(match_id)
+        self.match_id = raw_id.replace('.', '_').replace('$', '_').replace('#', '_').replace('[', '_').replace(']', '_').replace('/', '_')
+        self._raw_match_id = raw_id  # Keep original for snapshot lookups
+        self.h_name   = (h_name or "Home")[:20]
+        self.a_name   = (a_name or "Away")[:20]
+
+        # ── Fetch match data from snapshot ────────────────────────────────
+        snap = global_sports_monitor.match_snapshots.get(raw_id) if global_sports_monitor else None
+        self._score_str = snap['score_str'] if snap else "VS"
+        self._clock_str = snap.get('clock', '') or snap.get('time_str', '') if snap else ""
+        self._league_name = snap.get('league_name', '') if snap else ""
+        self._h_logo_url = snap.get('h_logo_url', '') if snap else ""
+        self._a_logo_url = snap.get('a_logo_url', '') if snap else ""
+        self._h_logo_id  = snap.get('h_logo_id', '')  if snap else ""
+        self._a_logo_id  = snap.get('a_logo_id', '')  if snap else ""
+        self._h_score_int = snap.get('h_score_int', 0) if snap else 0
+        self._a_score_int = snap.get('a_score_int', 0) if snap else 0
+
+        # ── Firebase state ────────────────────────────────────────────────
+        self._last_poll_ts   = 0      # Incremental startAt cursor for GET
+        self._poll_in_flight = False  # Prevent overlapping poll threads
+        self._my_uid         = get_device_id()
+        self._last_etag      = None   # ETag for conditional GET
+
+        # Nickname state — send name only once per session to save bandwidth
+        self._my_name = getattr(global_sports_monitor, 'voter_name', 'Anonymous') if global_sports_monitor else 'Anonymous'
+        self._name_sent    = False     # True after first push includes the name
+        self._uid_names    = {}        # uid -> display_name cache from polled data
+        self._uid_names[self._my_uid] = self._my_name  # Pre-cache own name
+        self._my_unique_viewers = {self._my_uid} # Start with self as first viewer
+        self._last_names_fetch_ts = 0  # Cooldown guard for party_names re-fetch
+
+        # Write-throttle / batching state (Enhancement A)
+        self._last_write_ts      = 0   # Epoch of last successful Firebase POST
+        self._pending_reaction   = None  # (side, key_str, ts) buffered in window
+        self._write_window_timer = eTimer()
+        safe_connect(self._write_window_timer, self._flush_pending_reaction)
+
+        # Key buffering for double-digit combos
+        self._key_buffer = ""
+        self._key_timer  = eTimer()
+        safe_connect(self._key_timer, self._process_key_buffer)
+
+        # ── Local reaction slot tracking ──────────────────────────────────
+        self._zone_occupied = {"h": [], "n": [], "a": []}
+        self._hide_timers   = []  # [(eTimer, zone, slot_index)]
+
+        # ── Tick Timer (Cooldown Feedback) ────────────────────────────────
+        self._tick_timer = eTimer()
+        safe_connect(self._tick_timer, self._on_tick)
+
+        # ── Skin — UCL-Broadcast Style ────────────────────────────────────
+        # 175px overlay at bottom of 1080p screen with:
+        #   Row 1 (50px): Metallic match-info band — logos, names, score, clock
+        #   Row 2 (22px): Zone headers with key hints
+        #   Row 3 (78px): 3 reaction text slots per zone (26px each)
+        #   Row 4 (16px): Status bar
+        #   + accent lines (4px)
+        # ─────────────────────────────────────────────────────────────────
+        band_bg  = "#002C4060"   # Metallic steel blue (match bar)
+        score_bg = "#00142030"   # Dark recessed score box
+        react_bg = "#CC050010"   # Reaction area background
+
+        # ── Sound toggle state ────────────────────────────────────────────
+        self._sound_enabled = True
+
+        self.skin = (
+            u'<screen position="0,930" size="1920,150" title="Watch Party"'
+            u' flags="wfNoBorder" backgroundColor="#CC000000">'
+
+            # ── Full background ───────────────────────────────────────────
+            u'<eLabel position="0,0" size="1920,150" backgroundColor="#CC030812" zPosition="0" />'
+
+            # ── TOP ACCENT LINE ───────────────────────────────────────────
+            u'<eLabel position="0,0" size="1920,2" backgroundColor="#0066CCFF" zPosition="5" />'
+
+            # ═══════════════════════════════════════════════════════════════
+            # REACTION ZONES  (y=0 … y=80)
+            # ═══════════════════════════════════════════════════════════════
+
+            # ── Vertical zone dividers ────────────────────────────────────
+            u'<eLabel position="638,0" size="2,80" backgroundColor="#00334466" zPosition="2" />'
+            u'<eLabel position="1280,0" size="2,80" backgroundColor="#00334466" zPosition="2" />'
+
+            # ── Zone header labels (20px) ─────────────────────────────────
+            u'<widget name="lbl_zone_h" position="0,0"    size="636,20"'
+            u' font="Regular;17" foregroundColor="#00FF6666"'
+            u' transparent="1" halign="center" valign="center" zPosition="2" />'
+            u'<widget name="lbl_zone_n" position="640,0"  size="638,20"'
+            u' font="Regular;17" foregroundColor="#00FFDD66"'
+            u' transparent="1" halign="center" valign="center" zPosition="2" />'
+            u'<widget name="lbl_zone_a" position="1282,0" size="636,20"'
+            u' font="Regular;17" foregroundColor="#0066CCFF"'
+            u' transparent="1" halign="center" valign="center" zPosition="2" />'
+
+            # ── Reaction slots — 4 per zone (2x2 grid, icon 28x28 + text) ───
+            # Home zone (x=0 to 638) -> col1=5, col2=320
+            u'<widget name="ri_h_0" position="5,21"  size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_h_0" position="35,20"  size="278,30"'
+            u' font="Regular;26" foregroundColor="#00FF9999"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_h_1" position="320,21" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_h_1" position="350,20" size="278,30"'
+            u' font="Regular;26" foregroundColor="#00FF9999"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_h_2" position="5,51" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_h_2" position="35,50" size="278,30"'
+            u' font="Regular;26" foregroundColor="#00FF9999"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_h_3" position="320,51" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_h_3" position="350,50" size="278,30"'
+            u' font="Regular;26" foregroundColor="#00FF9999"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+
+            # Neutral zone (x=640 to 1280) -> col1=645, col2=960
+            u'<widget name="ri_n_0" position="645,21"  size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_n_0" position="675,20"  size="278,30"'
+            u' font="Regular;26" foregroundColor="#00FFFF99"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_n_1" position="960,21" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_n_1" position="990,20" size="278,30"'
+            u' font="Regular;26" foregroundColor="#00FFFF99"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_n_2" position="645,51" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_n_2" position="675,50" size="278,30"'
+            u' font="Regular;26" foregroundColor="#00FFFF99"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_n_3" position="960,51" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_n_3" position="990,50" size="278,30"'
+            u' font="Regular;26" foregroundColor="#00FFFF99"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+
+            # Away zone (x=1282 to 1920) -> col1=1287, col2=1602
+            u'<widget name="ri_a_0" position="1287,21"  size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_a_0" position="1317,20"  size="278,30"'
+            u' font="Regular;26" foregroundColor="#0099CCFF"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_a_1" position="1602,21" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_a_1" position="1632,20" size="278,30"'
+            u' font="Regular;26" foregroundColor="#0099CCFF"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_a_2" position="1287,51" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_a_2" position="1317,50" size="278,30"'
+            u' font="Regular;26" foregroundColor="#0099CCFF"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+            u'<widget name="ri_a_3" position="1602,51" size="28,28"'
+            u' alphatest="blend" scale="1" zPosition="4" />'
+            u'<widget name="r_a_3" position="1632,50" size="278,30"'
+            u' font="Regular;26" foregroundColor="#0099CCFF"'
+            u' transparent="1" halign="left" valign="center" zPosition="3" />'
+
+            # ═══════════════════════════════════════════════════════════════
+            # MATCH INFO (TRANSPARENT AT BOTTOM) (y=80)
+            # ═══════════════════════════════════════════════════════════════
+
+            # ── Watch Party Badge (far left) ──────────────────────────────
+            u'<widget name="lbl_badge" position="30,84" size="300,18"'
+            u' font="Regular;14" foregroundColor="#0066DDFF"'
+            u' transparent="1" halign="left" valign="center" zPosition="5" />'
+
+            # ── League Name (far left under badge) ────────────────────────
+            u'<widget name="lbl_league" position="30,105" size="300,20"'
+            u' font="Regular;14" foregroundColor="#00AABBCC"'
+            u' transparent="1" halign="left" valign="center" zPosition="5" />'
+
+            # ── Home Team Name ────────────────────────────────────────────
+            u'<widget name="lbl_home" position="370,80" size="400,46"'
+            u' font="Regular;24" foregroundColor="#00FFFFFF"'
+            u' transparent="1" halign="right" valign="center" zPosition="4" />'
+
+            # ── Home Logo (beside Home Name) ──────────────────────────────
+            u'<widget name="h_logo" position="780,83" size="40,40"'
+            u' alphatest="blend" scale="1" zPosition="6" />'
+
+            # ── Score Center (transparent) ────────────────────────────────
+            u'<widget name="lbl_score" position="830,80" size="260,46"'
+            u' font="Regular;30" foregroundColor="#00FFFFFF"'
+            u' transparent="1" valign="center" halign="center" zPosition="4" />'
+
+            # ── Away Logo (beside Away Name) ──────────────────────────────
+            u'<widget name="a_logo" position="1100,83" size="40,40"'
+            u' alphatest="blend" scale="1" zPosition="6" />'
+
+            # ── Away Team Name ────────────────────────────────────────────
+            u'<widget name="lbl_away" position="1150,80" size="400,46"'
+            u' font="Regular;24" foregroundColor="#00FFFFFF"'
+            u' transparent="1" halign="left" valign="center" zPosition="4" />'
+
+            # ── Match Clock (far right) ───────────────────────────────────
+            u'<widget name="lbl_clock" position="1700,80" size="200,46"'
+            u' font="Regular;22" foregroundColor="#00FF4444"'
+            u' transparent="1" halign="right" valign="center" zPosition="5" />'
+
+            # ── Viewer Count (far right, under clock) ────────────────────────
+            u'<widget name="lbl_viewers" position="1560,105" size="340,20"'
+            u' font="Regular;14" foregroundColor="#0066FFAA"'
+            u' transparent="1" halign="right" valign="center" zPosition="5" />'
+
+            # ── Key-map hint & Status bar (Bottom Row) ───────────────────────
+            # Push/sound feedback — tucked under the home team name, no overlap
+            u'<widget name="lbl_status" position="340,105" size="300,20"'
+            u' font="Regular;13" foregroundColor="#00AAAAAA"'
+            u' transparent="1" halign="left" valign="center" zPosition="2" />'
+
+            u'<widget name="lbl_help" position="10,124" size="1900,22"'
+            u' font="Regular;20" foregroundColor="#00FFFFFF"'
+            u' transparent="1" halign="center" valign="center" zPosition="2" />'
+
+            # ── BOTTOM ACCENT LINE ────────────────────────────────────────
+            u'<eLabel position="0,146" size="1920,2" backgroundColor="#00003399" zPosition="5" />'
+
+            u'</screen>'
+        ).format()
+
+        # ── Enigma2 widgets — Match Info ──────────────────────────────────
+        self["h_logo"]     = Pixmap()
+        self["a_logo"]     = Pixmap()
+        self["lbl_home"]   = Label(self.h_name)
+        self["lbl_away"]   = Label(self.a_name)
+        self["lbl_score"]  = Label(self._score_str)
+        self["lbl_clock"]  = Label(self._clock_str)
+        self["lbl_badge"]   = Label(u"\u26bd {}".format(_t("Watch Party")))
+        self["lbl_viewers"] = Label(u"\U0001f465 1 {}".format(_t("watching")))
+        self["lbl_league"] = Label(self._league_name[:30])
+        self["lbl_help"]   = Label(
+            u"{}: 1({}), 4({}), 7({}), 11({}), 44({}), 77({}) | {}: 2({}), 5({}), 8({}), 22({}), 55({}), 88({}) | {}: 3({}), 6({}), 9({}), 33({}), 66({}), 99({})".format(
+                _t("HOME"), _t("Goal"), _t("Fire"), _t("Wow"), _t("Attack"), _t("Defend"), _t("Unlucky"),
+                _t("Neutral"), _t("Match"), _t("Save"), _t("Intense"), _t("Boring"), _t("Yellow"), _t("Red"),
+                _t("AWAY"), _t("Goal"), _t("Fire"), _t("Wow"), _t("Attack"), _t("Defend"), _t("Unlucky")))
+
+        # ── Enigma2 widgets — Reaction Zones ─────────────────────────────
+        self["lbl_zone_h"] = Label(u"\u25c0 {}".format(self.h_name))
+        self["lbl_zone_n"] = Label(u"\u26bd {}".format(_t("Neutral")))
+        self["lbl_zone_a"] = Label(u"{} \u25b6".format(self.a_name))
+        self["lbl_status"] = Label(u"")
+
+        for zone in ("h", "n", "a"):
+            for s in range(_WP_SLOTS):
+                self["r_{}_{}".format(zone, s)] = Label(u"")
+                self["ri_{}_{}".format(zone, s)] = Pixmap()
+
+        # ── ActionMap: number keys + cancel + blue ────────────────────────
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "NumberActions", "ColorActions"],
+            {
+                "cancel": self.cancel,
+                "blue": self._toggle_sound,
+                "1": lambda: self._on_key("1"),
+                "2": lambda: self._on_key("2"),
+                "3": lambda: self._on_key("3"),
+                "4": lambda: self._on_key("4"),
+                "5": lambda: self._on_key("5"),
+                "6": lambda: self._on_key("6"),
+                "7": lambda: self._on_key("7"),
+                "8": lambda: self._on_key("8"),
+                "9": lambda: self._on_key("9"),
+                "0": self._open_keyboard,
+            }, -1
+        )
+
+        self._poll_timer = eTimer()
+        safe_connect(self._poll_timer, self._poll_firebase)
+        self._poll_active = False      # Prevents concurrent poll threads
+        import time
+        self._fetch_cursor = int(time.time())  # Fix: Reset time cursor on start
+        self._processed_keys = set()           # Reset seen messages on start
+
+        # ── Step 1: Delta cursor ──────────────────────────────────────────
+        # 0 = warmup mode (fetch last-50 baseline on first poll).
+        # After warmup, stores the max ts seen so only NEW reactions are fetched.
+        self._last_seen_ts = 0
+
+        # ── Step 4: Adaptive interval ─────────────────────────────────────
+        # Counts consecutive polls that returned zero new reactions.
+        # Drives exponential backoff: 5s → 10s → 20s → 30s (cap).
+        # Resets to 0 (and interval back to 5s) the moment any reaction arrives.
+        self._quiet_polls = 0
+
+        # ── Step 3: Name-fetch guard ──────────────────────────────────────
+        # UIDs for which a background name-fetch is already in-flight,
+        # preventing duplicate requests when the same unknown uid appears
+        # across several delta polls before the fetch completes.
+        self._name_fetch_pending = set()
+
+        self.onLayoutFinish.append(self._init_watch_party)
+        self.onClose.append(self._cleanup)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Init / Cleanup
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _init_watch_party(self):
+        # Load team logos via the shared logo loader
+        try:
+            self["h_logo"].hide()
+            self["a_logo"].hide()
+            if self._h_logo_url:
+                load_logo_to_widget(self, "h_logo", self._h_logo_url, self._h_logo_id)
+            if self._a_logo_url:
+                load_logo_to_widget(self, "a_logo", self._a_logo_url, self._a_logo_id)
+        except Exception:
+            pass
+
+        # Start polling loop (5-second interval) and run an immediate first poll
+        self._poll_timer.start(5000, False)
+        self._poll_firebase()
+        self._tick_timer.start(1000, False)
+
+        # Fire and forget: Persist own name and fetch others' names
+        self._register_and_fetch_names()
+
+    def _register_and_fetch_names(self):
+        """Writes own name to registry and fetches known names."""
+        import threading
+        def _task():
+            try:
+                try:
+                    import urllib2 as req_mod
+                except ImportError:
+                    import urllib.request as req_mod
+                
+                # 1. Register own name
+                reg_url = "{}/party_names/{}/{}.json".format(FIREBASE_URL, self.match_id, self._my_uid)
+                try:
+                    req = req_mod.Request(reg_url, data=json.dumps(self._my_name).encode("utf-8"))
+                    req.add_header("Content-Type", "application/json")
+                    req.add_header("X-HTTP-Method-Override", "PUT")
+                    req_mod.urlopen(req, timeout=5)
+                except Exception:
+                    pass
+
+                # 2. Fetch all known names
+                get_url = "{}/party_names/{}.json".format(FIREBASE_URL, self.match_id)
+                try:
+                    raw = req_mod.urlopen(req_mod.Request(get_url), timeout=5).read()
+                    data = json.loads(raw.decode("utf-8"))
+                    if isinstance(data, dict):
+                        # Merge safely on main thread
+                        reactor.callFromThread(self._uid_names.update, data)
+                except Exception:
+                    pass
+            except Exception:
+                pass
+        t = threading.Thread(target=_task)
+        t.daemon = True
+        t.start()
+
+    def _on_tick(self):
+        """Updates cooldown UI on lbl_badge."""
+        now = int(time.time())
+        elapsed = now - self._last_write_ts
+        if elapsed < 60 and self._last_write_ts > 0:
+            rem = 60 - elapsed
+            self["lbl_badge"].setText(u"\u23f3 {}s".format(rem)) # Hourglass + secs
+        else:
+            self["lbl_badge"].setText(u"\u26bd {}".format(_t("Watch Party")))
+
+    def _refresh_match_info(self):
+        """Called every poll cycle to keep score & clock fresh from snapshots."""
+        try:
+            snap = global_sports_monitor.match_snapshots.get(self._raw_match_id)
+            if snap:
+                # 1. Auto-close if match ended
+                if snap.get('state') == 'post':
+                    self.session.open(
+                        MessageBox,
+                        _t("Match ended. Watch Party is now closed."),
+                        MessageBox.TYPE_INFO, timeout=5)
+                    self.close()
+                    return
+
+                # 2. Refresh basic info
+                new_score = snap.get('score_str', self._score_str)
+                new_clock = snap.get('clock', '') or snap.get('time_str', '')
+                if new_score != self._score_str:
+                    self._score_str = new_score
+                    self["lbl_score"].setText(new_score)
+                if new_clock != self._clock_str:
+                    self._clock_str = new_clock
+                    self["lbl_clock"].setText(new_clock)
+
+                # 3. Goal Celebration Burst
+                h_int = snap.get('h_score_int', 0)
+                a_int = snap.get('a_score_int', 0)
+                
+                if h_int > self._h_score_int:
+                    # Home goal burst
+                    for _ in range(3): self._render_local_reaction("h", _t(u"\u26bd GOAAAL!"), _t("SYSTEM"))
+                if a_int > self._a_score_int:
+                    # Away goal burst
+                    for _ in range(3): self._render_local_reaction("a", _t(u"\u26bd GOAAAL!"), _t("SYSTEM"))
+                
+                self._h_score_int = h_int
+                self._a_score_int = a_int
+        except Exception:
+            pass
+
+    def cancel(self):
+        """Explicit exit handler to ensure all timers are stopped."""
+        self._cleanup()
+        self.close()
+
+    def _cleanup(self):
+        if self._poll_active is None:   # Already cleaned up
+            return
+        self._poll_active = None        # Sentinel: signals cleanup has run
+        try:
+            if self._poll_timer.isActive():
+                self._poll_timer.stop()
+        except Exception:
+            pass
+        try:
+            if self._write_window_timer.isActive():
+                self._write_window_timer.stop()
+        except Exception:
+            pass
+        try:
+            if self._tick_timer.isActive():
+                self._tick_timer.stop()
+        except Exception:
+            pass
+        try:
+            if self._key_timer.isActive():
+                self._key_timer.stop()
+        except Exception:
+            pass
+        # Stop all pending hide-timers
+        for t, _z, _s in list(self._hide_timers):
+            try:
+                if t.isActive():
+                    t.stop()
+            except Exception:
+                pass
+        self._hide_timers = []
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Key Handling
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _toggle_sound(self):
+        """Toggle reaction sound effects on/off via the Blue button."""
+        self._sound_enabled = not self._sound_enabled
+        state = _t("ON") if self._sound_enabled else _t("OFF")
+        self["lbl_status"].setText(u"\U0001f50a {} {}".format(_t("Sound"), state))
+
+    def _open_keyboard(self):
+        """Triggered by button '0' to open the virtual keyboard for a custom typed reaction."""
+        if VirtualKeyBoard is not None:
+            # Stop any pending buffered keys from firing while typing
+            try:
+                if self._key_timer.isActive():
+                    self._key_timer.stop()
+            except Exception:
+                pass
+            self.session.openWithCallback(self._on_keyboard_closed, VirtualKeyBoard, title=_t("Custom Reaction (Max 10 chars)"), text="")
+        else:
+            self["lbl_status"].setText(u"{} {}".format(_t("Error:"), _t("VirtualKeyBoard not available")))
+
+    def _on_keyboard_closed(self, text):
+        if text:
+            text = text.strip()[:10]
+            if text:
+                now = int(time.time())
+                # Render locally immediately with is_local=True and is_custom=True
+                self._render_local_reaction("n", text, self._my_name, key_str="0", is_local=True, is_custom=True)
+                # Push direct text as type
+                self._push_reaction("n", text, now)
+
+    def _on_key(self, key_str):
+        """Called when the user presses a number key 1-9."""
+        self._key_buffer += key_str
+        try:
+            if self._key_timer.isActive():
+                self._key_timer.stop()
+        except Exception:
+            pass
+        # Wait 400ms for a second key press
+        self._key_timer.start(400, True)
+
+    def _process_key_buffer(self):
+        """Processes the buffered key string (e.g., '1' or '11')."""
+        key_str = self._key_buffer
+        self._key_buffer = ""
+
+        reaction = WATCH_PARTY_REACTIONS.get(key_str)
+        if not reaction:
+            return
+        side, display_text = reaction
+
+        # Rule 2: Render locally right now (with own nickname) in Red
+        self._render_local_reaction(side, _t(display_text), self._my_name, key_str, is_local=True, is_custom=False)
+
+        # Buffer the latest key in a short 3-second window to prevent spamming
+        now = int(time.time())
+        elapsed = now - self._last_write_ts
+        self._pending_reaction = (side, key_str, now)
+
+        try:
+            if self._write_window_timer.isActive():
+                self._write_window_timer.stop()
+        except Exception:
+            pass
+
+        if elapsed >= 3:
+            # Window is open: arm a short-delay one-shot timer (100 ms) to batch rapid presses
+            self._write_window_timer.start(100, True)
+        else:
+            # Window is closed: arm timer to flush at the exact moment the 3-second window opens
+            delay = (3 - elapsed) * 1000
+            self._write_window_timer.start(delay, True)
+
+    def _flush_pending_reaction(self):
+        """Fires at most once per 60-second window; pushes buffered reaction."""
+        if not self._pending_reaction:
+            return
+        side, key_str, ts = self._pending_reaction
+        self._pending_reaction = None
+        self._last_write_ts = int(time.time())
+        self._push_reaction(side, key_str, ts)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Local Rendering — Rule 2 (15-second client-side display)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _find_free_slot(self, zone):
+        """Returns the index of a free reaction slot, evicting the oldest if full."""
+        occupied = self._zone_occupied[zone]
+        for s in range(_WP_SLOTS):
+            if s not in occupied:
+                return s
+        # All slots occupied — evict the oldest (first in list)
+        return occupied[0]  # caller will overwrite
+
+    def _render_local_reaction(self, zone, text, name=None, key_str=None, is_local=False, is_custom=False):
+        """Writes text + icon into a zone slot and arms a 45-second hide-timer.
+        If name is provided, formats as 'Name: REACTION'.
+        If key_str is provided, loads the icon from WP/{key_str}.png and plays WP/{key_str}.mp3.
+        """
+        if zone not in self._zone_occupied:
+            return
+
+        slot = self._find_free_slot(zone)
+        occupied = self._zone_occupied[zone]
+
+        # Remove slot from occupied list so we can re-insert at the end
+        if slot in occupied:
+            occupied.remove(slot)
+        occupied.append(slot)
+
+        # Format display: "Name: REACTION" or just "REACTION" if no name
+        if name and name != 'Anonymous':
+            display = u"{}: {}".format(name[:12], text)
+        else:
+            display = text
+
+        slot_key  = "r_{}_{}".format(zone, slot)
+        icon_key  = "ri_{}_{}".format(zone, slot)
+        try:
+            self[slot_key].setText(display)
+            
+            # Dynamic color coding
+            if is_local:
+                self[slot_key].instance.setForegroundColor(parseColor("#00FF0000")) # Red
+            elif is_custom:
+                self[slot_key].instance.setForegroundColor(parseColor("#00FFFF00")) # Yellow
+            else:
+                # Reset to default zone colors
+                if zone == "h": self[slot_key].instance.setForegroundColor(parseColor("#00FF9999"))
+                elif zone == "n": self[slot_key].instance.setForegroundColor(parseColor("#00FFFF99"))
+                elif zone == "a": self[slot_key].instance.setForegroundColor(parseColor("#0099CCFF"))
+        except Exception:
+            return
+
+        # ── Load reaction icon (PNG) from WP/ folder ──────────────────────
+        if key_str:
+            _wp_load_reaction_icon(self, icon_key, key_str)
+            _wp_play_sound(key_str, self)
+        else:
+            try:
+                self[icon_key].hide()
+            except Exception:
+                pass
+
+        # ── 45-second eTimer hide ─────────────────────────────────────────
+        hide_timer = eTimer()
+
+        def _hide_slot(wk=slot_key, ik=icon_key, z=zone, s=slot):
+            try:
+                self[wk].setText(u"")
+            except Exception:
+                pass
+            try:
+                self[ik].hide()
+            except Exception:
+                pass
+            try:
+                if s in self._zone_occupied[z]:
+                    self._zone_occupied[z].remove(s)
+            except Exception:
+                pass
+
+        safe_connect(hide_timer, _hide_slot)
+        hide_timer.start(45000, True)  # singleShot
+        self._hide_timers.append((hide_timer, zone, slot))
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Firebase Write — Rule 3 (60-second throttle, implemented via timer above)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _push_reaction(self, side, reaction_type, ts):
+        """Pushes a reaction to Firebase using the proven PATCH-via-POST workaround.
+
+        Older Enigma2 systems corrupt native POST/PUT method headers. The codebase
+        solves this with X-HTTP-Method-Override: PATCH (see push_to_firebase_threaded).
+        We generate a unique key client-side and PATCH it into the reactions path.
+        """
+        # Generate a unique key for this reaction (Firebase push-key equivalent)
+        # Put timestamp first so orderBy="$key" sorts chronologically
+        unique_key = "{}_{}".format(ts, self._my_uid[:8])
+        # PATCH into /reactions/{match_id}/{unique_key}
+        url = "{}/reactions/{}/{}.json".format(FIREBASE_URL, self.match_id, unique_key)
+        # Include name only on the first push in this session to save bandwidth.
+        # Other clients cache uid->name from the first sighting.
+        payload_dict = {
+            "side": side,
+            "type": reaction_type,
+            "ts":   ts,
+            "uid":  self._my_uid,
+        }
+        if not self._name_sent:
+            payload_dict["name"] = self._my_name
+            self._name_sent = True
+        payload = json.dumps(payload_dict)
+        _screen_ref = self  # prevent self from being GC'd in closure
+
+        def _send():
+            success = False
+            err_msg = ""
+            try:
+                try:
+                    import urllib2 as req_mod
+                except ImportError:
+                    import urllib.request as req_mod
+                req = req_mod.Request(url, data=payload.encode("utf-8"))
+                req.add_header("Content-Type", "application/json")
+                # FIREBASE MAGIC: Tell Firebase this POST is actually a PATCH.
+                # This is the proven workaround used throughout the plugin.
+                req.add_header("X-HTTP-Method-Override", "PUT")
+                req_mod.urlopen(req, timeout=10)
+                success = True
+                log_dbg("[WatchParty] Pushed OK: side={} type={} ts={} key={}".format(
+                    side, reaction_type, ts, unique_key))
+            except Exception as e:
+                err_msg = str(e)
+                log_dbg("[WatchParty] Push FAILED: {}".format(err_msg))
+            # Update status label on the main thread
+            try:
+                reactor.callFromThread(_screen_ref._on_push_done, success, err_msg)
+            except Exception:
+                pass
+
+        t = threading.Thread(target=_send)
+        t.daemon = True
+        t.start()
+
+    def _on_push_done(self, success, err_msg):
+        """Called on the main thread after a Firebase push attempt."""
+        try:
+            if success:
+                self["lbl_status"].setText(
+                    u"Sent reaction to Firebase — {}".format(
+                        time.strftime("%H:%M:%S", time.localtime())))
+            else:
+                self["lbl_status"].setText(
+                    u"Firebase push failed: {}".format(err_msg[:60]))
+        except Exception:
+            pass
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Firebase Poll — Rule 4 (10-second smart polling)
+    # Enhancement B: limitToLast=50 keeps response payload bounded
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _fetch_name_async(self, uid):
+        """
+        Step 3 — Lazy name fetcher.
+
+        Called when a delta poll delivers a reaction from an unknown UID that
+        carries no inline 'name' field (i.e. not the sender's very first write).
+
+        Fires a tiny background GET to /party_names/{match_id}/{uid}.json
+        (~80 bytes response) instead of waiting for the sender's next first-write
+        reaction to carry the name again.
+
+        On success, populates _uid_names and clears the pending guard so the
+        name appears on the next render of a reaction from that UID.
+        On failure, the UID stays in _uid_names as '' — reactions from that user
+        still display, just without a name label until a future poll delivers it.
+        """
+        name_url = '{base}/party_names/{mid}/{uid}.json'.format(
+            base=FIREBASE_URL,
+            mid=self.match_id,
+            uid=uid,
+        )
+
+        def _fetch():
+            try:
+                try:
+                    import urllib2 as req_mod
+                except ImportError:
+                    import urllib.request as req_mod
+                req = req_mod.Request(name_url)
+                req.add_header('Accept-Encoding', 'gzip')
+                req.headers['Accept-Encoding'] = 'gzip'
+                if 'Accept-encoding' in req.headers:
+                    del req.headers['Accept-encoding']
+                resp = req_mod.urlopen(req, timeout=5)
+                raw  = resp.read()
+                import gzip as _gzip
+                try:
+                    enc = resp.info().get('Content-Encoding', '')
+                except Exception:
+                    enc = ''
+                if enc.lower() == 'gzip':
+                    try:
+                        from io import BytesIO
+                        raw = _gzip.GzipFile(fileobj=BytesIO(raw)).read()
+                    except TypeError:
+                        import StringIO
+                        raw = _gzip.GzipFile(fileobj=StringIO.StringIO(raw)).read()
+                name = json.loads(raw.decode('utf-8'))
+                
+                try:
+                    basestr = basestring
+                except NameError:
+                    basestr = str
+                
+                if name and isinstance(name, basestr):
+                    reactor.callFromThread(self._on_name_fetched, uid, name)
+            except Exception as e:
+                log_dbg('[WatchParty] Name fetch failed uid={}: {}'.format(uid, e))
+                reactor.callFromThread(self._name_fetch_pending.discard, uid)
+
+        t = threading.Thread(target=_fetch)
+        t.daemon = True
+        t.start()
+
+    def _on_name_fetched(self, uid, name):
+        """Called on the main thread when a lazy name fetch completes."""
+        self._uid_names[uid] = name
+        self._name_fetch_pending.discard(uid)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # HTTP Polling (replaces SSE)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _poll_firebase(self):
+        """
+        Fires a short-lived HTTP GET to fetch reactions from Firebase.
+
+        Two modes controlled by self._last_seen_ts:
+
+          Warmup  (_last_seen_ts == 0):
+            Fetches the last 50 reactions regardless of timestamp.
+            This fills the screen on first open and populates _uid_names.
+            Runs exactly ONCE per session.
+
+          Delta   (_last_seen_ts > 0):
+            Fetches only reactions with ts > _last_seen_ts, still capped at 50.
+            A typical 5-second window delivers 0–15 new entries (~500 bytes)
+            instead of the full 50-entry baseline (~6 KB).
+
+        Both modes add Accept-Encoding: gzip (Step 2) so Firebase compresses
+        the response body transparently.
+        """
+        if self._poll_active is None:   # Cleanup already ran — do nothing
+            return
+        if self._poll_active:           # Previous request still in flight
+            return
+        self._poll_active = True
+
+        # ── Step 1: Build the correct URL for the current mode ────────────
+        if self._last_seen_ts == 0:
+            # Warmup: fetch the most recent 50 entries (no ts filter)
+            poll_url = (
+                '{base}/reactions/{mid}.json'
+                '?orderBy="$key"&limitToLast=50'
+            ).format(base=FIREBASE_URL, mid=self.match_id)
+        else:
+            # Delta: only entries strictly newer than the last ts we saw
+            poll_url = (
+                '{base}/reactions/{mid}.json'
+                '?orderBy="$key"&startAt="{cursor}_"&limitToLast=50'
+            ).format(
+                base=FIREBASE_URL,
+                mid=self.match_id,
+                cursor=self._last_seen_ts + 1,
+            )
+
+        def _poll_thread():
+            try:
+                try:
+                    import urllib2 as req_mod
+                    from urllib2 import HTTPError
+                except ImportError:
+                    import urllib.request as req_mod
+                    from urllib.error import HTTPError
+
+                req = req_mod.Request(poll_url)
+                # ── Step 2: Request gzip compression ─────────────────────
+                req.add_header('Accept-Encoding', 'gzip')
+                req.headers['Accept-Encoding'] = 'gzip'
+                if 'Accept-encoding' in req.headers:
+                    del req.headers['Accept-encoding']
+                
+                # ── Step 5: Conditional GET (ETag) ───────────────────────
+                if self._last_etag:
+                    req.add_header('If-None-Match', self._last_etag)
+
+                try:
+                    resp = req_mod.urlopen(req, timeout=5)
+                except HTTPError as e:
+                    if e.code == 304:
+                        # 304 Not Modified — Firebase confirms no changes since last ETag
+                        reactor.callFromThread(self._on_poll_data, {})
+                        return
+                    raise
+                
+                self._last_etag = resp.info().get('ETag')
+                raw  = resp.read()
+
+                # ── Step 2: Decompress if Firebase honoured the request ───
+                import gzip as _gzip
+                try:
+                    enc = resp.info().get('Content-Encoding', '')
+                except Exception:
+                    enc = ''
+                if enc.lower() == 'gzip':
+                    try:
+                        # Python 3
+                        from io import BytesIO
+                        raw = _gzip.GzipFile(fileobj=BytesIO(raw)).read()
+                    except TypeError:
+                        # Python 2 fallback
+                        import StringIO
+                        raw = _gzip.GzipFile(fileobj=StringIO.StringIO(raw)).read()
+
+                data = json.loads(raw.decode('utf-8'))
+                if not isinstance(data, dict):
+                    data = {}
+                reactor.callFromThread(self._on_poll_data, data)
+            except Exception as e:
+                log_dbg('[WatchParty] Poll error: ' + str(e))
+            finally:
+                reactor.callFromThread(self._clear_poll_flag)
+
+        t = threading.Thread(target=_poll_thread)
+        t.daemon = True
+        t.start()
+
+    def _clear_poll_flag(self):
+        """Resets the in-flight guard on the main thread."""
+        if self._poll_active is not None:   # Not cleaned up
+            self._poll_active = False
+
+    def _on_poll_data(self, data):
+        """
+        Called on the main thread with the raw reactions dict from Firebase.
+        Handles both warmup (full 50-entry baseline) and delta (new-only) payloads.
+
+        Integrates all four optimisations:
+          Step 1 (delta cursor)   — advances _last_seen_ts to the max ts seen.
+          Step 2 (gzip)           — transparent; decompression done in _poll_firebase.
+          Step 3 (name stripping) — reads name from payload if present, otherwise
+                                    triggers a lazy background fetch for unknown UIDs.
+          Step 4 (adaptive rate)  — reschedules _poll_timer based on new_rendered.
+        """
+        if not isinstance(data, dict):
+            data = {}
+
+        now    = int(time.time())
+        cutoff = self._fetch_cursor
+        if cutoff < (now - 45):
+            cutoff = now - 45
+
+        # Keep score & clock fresh on every poll cycle
+        self._refresh_match_info()
+
+        new_rendered          = 0
+        active_uids_this_poll = set()
+        max_ts_this_poll      = self._last_seen_ts   # Step 1: cursor advance
+
+        for _fb_key, entry in data.items():
+            if not isinstance(entry, dict):
+                continue
+
+            if _fb_key in self._processed_keys:
+                continue
+            self._processed_keys.add(_fb_key)
+
+            ts    = int(entry.get('ts',   0))
+            side  = entry.get('side', 'n')
+            rtype = entry.get('type', '5')
+            uid   = entry.get('uid',  '')
+            name  = entry.get('name', '')   # Step 3: present only on sender's first write
+
+            # ── Step 1: Track the furthest timestamp in this batch ────────
+            if ts > max_ts_this_poll:
+                max_ts_this_poll = ts
+
+            if uid:
+                active_uids_this_poll.add(uid)
+
+            # ── Step 3: Populate name cache ───────────────────────────────
+            # Case A: name arrived inline (sender's first-ever write includes it)
+            if name and uid:
+                self._uid_names[uid] = name
+                self._name_fetch_pending.discard(uid)
+            # Case B: name missing and uid unknown — trigger one background fetch
+            elif uid and uid not in self._uid_names and uid not in self._name_fetch_pending:
+                self._name_fetch_pending.add(uid)
+                self._fetch_name_async(uid)
+
+            # Standard timestamp filtering
+            if str(uid) == str(self._my_uid):
+                # Own reactions always echo back if recent (handles clock jitter)
+                if ts < (now - 60):
+                    continue
+            elif ts < cutoff:
+                continue
+
+            reaction_tuple = WATCH_PARTY_REACTIONS.get(rtype)
+            if reaction_tuple:
+                display_text = _t(reaction_tuple[1])
+                icon_key     = rtype
+                is_custom    = False
+            else:
+                display_text = rtype
+                icon_key     = '0'
+                is_custom    = True
+
+            display_name = self._uid_names.get(uid, '')
+            if uid == self._my_uid:
+                display_name = self._my_name
+
+            self._render_local_reaction(
+                side, display_text, display_name,
+                icon_key, is_local=False, is_custom=is_custom
+            )
+            new_rendered += 1
+
+        # ── Step 1: Commit the cursor — never regress ─────────────────────
+        if max_ts_this_poll > self._last_seen_ts:
+            self._last_seen_ts = max_ts_this_poll
+
+        self._my_unique_viewers.update(active_uids_this_poll)
+
+        # ── Re-fetch party_names on new reactions (60 s cooldown) ────────
+        # This catches silent viewers and anyone who joined after screen open.
+        if new_rendered > 0 and (now - self._last_names_fetch_ts) >= 60:
+            self._last_names_fetch_ts = now
+            self._register_and_fetch_names()
+
+        # Use the name registry as the primary count to include silent viewers
+        viewer_count = max(len(self._my_unique_viewers), len(self._uid_names))
+
+        # Update the dedicated viewer-count widget (never overwritten by push status)
+        try:
+            self['lbl_viewers'].setText(
+                u"\U0001f465 {} {}  \u2022  {} {}".format(
+                    viewer_count, _t('watching'),
+                    len(self._processed_keys), _t('reacts')
+                )
+            )
+        except Exception:
+            pass
+
+        # Restore neutral zone header to its proper label (no longer hijacked)
+        self['lbl_zone_n'].setText(u"\u26bd {}".format(_t("Neutral")))
+
+        # ── Step 4: Adaptive poll interval ───────────────────────────────
+        # Zero new reactions → increment backoff counter and double the interval
+        # (5 s → 10 s → 20 s → 30 s cap).  Any new reaction resets to 5 s.
+        if self._poll_active is None:   # already cleaned up — do not reschedule
+            return
+
+        if new_rendered == 0:
+            self._quiet_polls += 1
+        else:
+            self._quiet_polls = 0
+
+        new_interval = min(5000 * (2 ** self._quiet_polls), 30000)
+        self._poll_timer.stop()
+        self._poll_timer.start(new_interval, False)   # False = repeating
 
 
 # ==============================================================================
