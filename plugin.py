@@ -111,7 +111,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "5.7"
+VERSION = "5.8"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -349,6 +349,12 @@ TRANSLATIONS = {
     "(Preview playing...)":           {"ar": u"(\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u0634\u063a\u064a\u0644...)"},
     # ── Watch Party feature ───────────────────────────────────────────────
     "Watch Party":                    {"ar": u"\u062d\u0641\u0644\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629"},
+    "Who are you cheering for?":      {"ar": u"\u0645\u0646 \u062a\u0634\u062c\u0651\u0639\u061f"},
+    "Who's watching?":                {"ar": u"\u0645\u0646 \u064a\u0634\u0627\u0647\u062f\u061f"},
+    "Home":                           {"ar": u"\u0627\u0644\u0641\u0631\u064a\u0642 \u0627\u0644\u0645\u0636\u064a\u0641"},
+    "Away":                           {"ar": u"\u0627\u0644\u0641\u0631\u064a\u0642 \u0627\u0644\u0636\u064a\u0641"},
+    "Skip":                           {"ar": u"\u062a\u062e\u0637\u064a"},
+    "No viewers yet":                 {"ar": u"\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0634\u0627\u0647\u062f\u0648\u0646 \u0628\u0639\u062f"},
     "Watch Party is only available for live soccer matches.": {"ar": u"\u062d\u0641\u0644\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629 \u0645\u062a\u0627\u062d\u0629 \u0641\u0642\u0637 \u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u062d\u064a\u0629."},
     "Goal Alert Mode: ":             {"ar": u"\u0648\u0636\u0639 \u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: "},
     "Neutral":                        {"ar": u"\u0645\u062d\u0627\u064a\u062f"},
@@ -1125,7 +1131,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "5.7"  # Update version to 5.7 - Include "Watch Party" for live matches, including real-time reaction messaging, local rendering of other users' emojis, polling-based filtering, write-rate limiting, and 10-minute initialization.
+CURRENT_VERSION = "5.8"  # Update version to 5.8 - WATCH PARTY — MAJOR UPGRADES, Who's cheering who?, Press OK to see who's watching,  The Neutral zone, if a satellite feed for the match is found on SatelliWeb, it shows the feed info: satellite name, frequency, polarisation, symbol rate, and encryption status, Live fan counts beside each zone header.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -15036,6 +15042,156 @@ def get_picon(service_ref, channel_name=None):
     return None
 
 
+# ==================================================================
+# SOURCE 1 — Satelliweb  (https://www.satelliweb.com)
+# ==================================================================
+def _scrape_satelliweb_feeds(today_str):
+    """
+    Fetch live feeds reported on today_str from satelliweb.com.
+    Extracts Satellite Name and Activity dynamically by stripping HTML and parsing line-by-line blocks.
+    """
+    try:
+        try:
+            import urllib.request as _ur
+        except ImportError:
+            import urllib2 as _ur
+        import re
+        import datetime as _dt
+
+        url = "https://www.satelliweb.com/index.php?section=livef&langue=en"
+        req = _ur.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'en-GB,en;q=0.9',
+            'Referer': 'https://www.satelliweb.com/',
+        })
+        html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
+
+        # 1. Extract text, preserving structural newlines
+        text_content = re.sub(r'<(br|tr|/tr|p|/p|div|/div|h\d|/h\d|li|/li|td|/td)[^>]*>', '\n', html, flags=re.IGNORECASE)
+        text_content = re.sub(r'<[^>]+>', ' ', text_content)
+        try:
+            import html as html_lib
+            text_content = html_lib.unescape(text_content)
+        except ImportError:
+            text_content = text_content.replace('&#8505;', 'ℹ').replace('&#x2139;', 'ℹ').replace('&nbsp;', ' ')
+        
+        text_content = re.sub(r'[ \t]+', ' ', text_content)
+        text_content = re.sub(r'\n\s*\n+', '\n', text_content)
+
+        # 2. Split into blocks
+        block_sep = re.compile(u'(?:Signal\u00e9\\s+par\\s+|Reported\\s+by\\s+)', re.IGNORECASE)
+        blocks = block_sep.split(text_content)
+        if len(blocks) > 1:
+            feed_blocks = blocks[1:]
+        else:
+            feed_blocks = []
+
+        results = []
+        
+        _today = _dt.date.today()
+        _yesterday = _today - _dt.timedelta(days=1)
+        def _iso(d): return d.strftime('%Y-%m-%d')
+        
+        date_alts = [
+            re.escape('{:02d}/{:02d}/{}'.format(_today.day, _today.month, _today.year)),
+            re.escape('{:02d}/{:02d}/{}'.format(_yesterday.day, _yesterday.month, _yesterday.year)),
+            re.escape(_iso(_today)),
+            re.escape(_iso(_yesterday)),
+        ]
+        date_chk = re.compile(u'|'.join(date_alts), re.IGNORECASE)
+
+        tech_pat = re.compile(r'Fr[eé]quenc[ey]\s*:\s*(\d+)\s*-\s*Pol\s*:\s*([HVLR])\s*-\s*SR\s*:\s*(\d+)', re.IGNORECASE)
+        cat_pat = re.compile(r'Cat[eé]gori[ey]\s*:\s*(.*)', re.IGNORECASE)
+        info_pat = re.compile(u'(?:[ℹⓘ]|&#8505;|&#x2139;)\\s*(.*)', re.IGNORECASE)
+        crypt_pat = re.compile(r'crypt|encrypted', re.IGNORECASE)
+        biss_pat = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
+
+        for block in feed_blocks:
+            lines = [line.strip() for line in block.split('\n') if line.strip()]
+            if not lines: continue
+            
+            first_line = lines[0]
+            if not date_chk.search(first_line):
+                continue
+
+            freq_line_idx = -1
+            for i, line in enumerate(lines):
+                if re.search(r'Fr[eé]quenc[ey]\s*:', line, re.IGNORECASE):
+                    freq_line_idx = i
+                    break
+            
+            if freq_line_idx == -1:
+                continue
+            
+            tech_match = tech_pat.search(lines[freq_line_idx])
+            if not tech_match:
+                continue
+                
+            freq = tech_match.group(1)
+            pol = tech_match.group(2).upper()
+            sr = tech_match.group(3)
+
+            satellite = ""
+            if freq_line_idx > 0:
+                sat_cand = lines[freq_line_idx - 1]
+                if re.search(r'commentaire|comment', sat_cand, re.IGNORECASE) and freq_line_idx > 1:
+                    sat_cand = lines[freq_line_idx - 2]
+                satellite = sat_cand.replace('[', '').replace(']', '').strip()
+
+            cat = ""
+            activity = ""
+            encrypted = False
+            biss = ""
+            
+            for line in lines[freq_line_idx:]:
+                if not cat:
+                    cat_match = cat_pat.search(line)
+                    if cat_match:
+                        cat = cat_match.group(1).replace('[', '').replace(']', '').strip()
+                
+                if not activity:
+                    info_match = info_pat.search(line)
+                    if info_match:
+                        activity = info_match.group(1).strip()
+                        
+                if not encrypted and crypt_pat.search(line):
+                    encrypted = True
+                    
+                if not biss:
+                    biss_match = biss_pat.search(line)
+                    if biss_match:
+                        biss = biss_match.group(1).replace(' ', '').upper()
+
+            details = activity if activity else cat
+            if not details:
+                details = u'Feed @ {}'.format(freq)
+                
+            name = details
+
+            results.append({
+                'name':      name,
+                'activity':  activity,
+                'satellite': satellite,
+                'freq':      freq,
+                'pol':       pol,
+                'sr':        sr,
+                'biss':      biss,
+                'system':    'encrypted' if encrypted else 'FTA',
+                'category':  cat,
+                'source':    'Satelliweb',
+            })
+
+        log_dbg("[SatFeed] Satelliweb returned {} entries for {}".format(len(results), today_str))
+        return results
+
+    except Exception as e:
+        log_dbg("[SatFeed] Satelliweb error: " + str(e))
+        return []
+
+
+
+
 class BroadcastingChannelsScreen(Screen):
     def __init__(self, session, channels, match_time_ts=0, trigger_iptv_cb=None, target_event=None):
         Screen.__init__(self, session)
@@ -15605,7 +15761,19 @@ class BroadcastingChannelsScreen(Screen):
         """
         results = []
         results += self._scrape_satelliweb_feeds(today_str)   # primary – date-exact
-        results += self._fetch_github_sport_channels()         # iptv-org sports m3u
+        iptv_entries = self._fetch_github_sport_channels()      # iptv-org sports m3u
+        channel_db   = self._fetch_iptv_channel_db()            # iptv-org channels.json metadata
+        if channel_db:
+            for entry in iptv_entries:
+                meta = channel_db.get(entry.get('tvg_id', '')) or {}
+                if meta:
+                    if not entry['tvg_country']:  entry['tvg_country']    = meta.get('country', '')
+                    if not entry['tvg_language']: entry['tvg_language']   = ', '.join(meta.get('languages') or [])
+                    entry['network']        = meta.get('network', '')
+                    entry['broadcast_area'] = ', '.join(meta.get('broadcast_area') or [])
+                    entry['website']        = meta.get('website', '')
+                    if not entry['tvg_logo']: entry['tvg_logo'] = meta.get('logo', '')
+        results += iptv_entries
 
         # Deduplicate by (normalised_name, freq) – keep first seen (highest priority)
         seen   = set()
@@ -15620,154 +15788,10 @@ class BroadcastingChannelsScreen(Screen):
         return unique
 
     # ==================================================================
-    # SOURCE 1 — Satelliweb  (https://www.satelliweb.com)
-    # The most active wild-feed tracker for European / Middle-Eastern sky.
-    # Default URL already shows today; older dates: &date=YYYY-MM-DD
+    # SOURCE 1 — Satelliweb  (delegated to module-level _scrape_satelliweb_feeds)
     # ==================================================================
     def _scrape_satelliweb_feeds(self, today_str):
-        """
-        Fetch live feeds reported on today_str from satelliweb.com.
-        Extracts Satellite Name and Activity dynamically by stripping HTML and parsing line-by-line blocks.
-        """
-        try:
-            try:
-                import urllib.request as _ur
-            except ImportError:
-                import urllib2 as _ur
-            import re
-            import datetime as _dt
-
-            url = "https://www.satelliweb.com/index.php?section=livef&langue=en"
-            req = _ur.Request(url, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml',
-                'Accept-Language': 'en-GB,en;q=0.9',
-                'Referer': 'https://www.satelliweb.com/',
-            })
-            html = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
-
-            # 1. Extract text, preserving structural newlines
-            text_content = re.sub(r'<(br|tr|/tr|p|/p|div|/div|h\d|/h\d|li|/li|td|/td)[^>]*>', '\n', html, flags=re.IGNORECASE)
-            text_content = re.sub(r'<[^>]+>', ' ', text_content)
-            try:
-                import html as html_lib
-                text_content = html_lib.unescape(text_content)
-            except ImportError:
-                text_content = text_content.replace('&#8505;', 'ℹ').replace('&#x2139;', 'ℹ').replace('&nbsp;', ' ')
-            
-            text_content = re.sub(r'[ \t]+', ' ', text_content)
-            text_content = re.sub(r'\n\s*\n+', '\n', text_content)
-
-            # 2. Split into blocks
-            block_sep = re.compile(u'(?:Signal\u00e9\\s+par\\s+|Reported\\s+by\\s+)', re.IGNORECASE)
-            blocks = block_sep.split(text_content)
-            if len(blocks) > 1:
-                feed_blocks = blocks[1:]
-            else:
-                feed_blocks = []
-
-            results = []
-            
-            _today = _dt.date.today()
-            _yesterday = _today - _dt.timedelta(days=1)
-            def _iso(d): return d.strftime('%Y-%m-%d')
-            
-            date_alts = [
-                re.escape('{:02d}/{:02d}/{}'.format(_today.day, _today.month, _today.year)),
-                re.escape('{:02d}/{:02d}/{}'.format(_yesterday.day, _yesterday.month, _yesterday.year)),
-                re.escape(_iso(_today)),
-                re.escape(_iso(_yesterday)),
-            ]
-            date_chk = re.compile(u'|'.join(date_alts), re.IGNORECASE)
-
-            tech_pat = re.compile(r'Fr[eé]quenc[ey]\s*:\s*(\d+)\s*-\s*Pol\s*:\s*([HVLR])\s*-\s*SR\s*:\s*(\d+)', re.IGNORECASE)
-            cat_pat = re.compile(r'Cat[eé]gori[ey]\s*:\s*(.*)', re.IGNORECASE)
-            info_pat = re.compile(u'(?:[ℹⓘ]|&#8505;|&#x2139;)\\s*(.*)', re.IGNORECASE)
-            crypt_pat = re.compile(r'crypt|encrypted', re.IGNORECASE)
-            biss_pat = re.compile(r'BISS[\s:]*([0-9A-Fa-f]{4}(?:\s?[0-9A-Fa-f]{4}){1,3})', re.IGNORECASE)
-
-            for block in feed_blocks:
-                lines = [line.strip() for line in block.split('\n') if line.strip()]
-                if not lines: continue
-                
-                first_line = lines[0]
-                if not date_chk.search(first_line):
-                    continue
-
-                freq_line_idx = -1
-                for i, line in enumerate(lines):
-                    if re.search(r'Fr[eé]quenc[ey]\s*:', line, re.IGNORECASE):
-                        freq_line_idx = i
-                        break
-                
-                if freq_line_idx == -1:
-                    continue
-                
-                tech_match = tech_pat.search(lines[freq_line_idx])
-                if not tech_match:
-                    continue
-                    
-                freq = tech_match.group(1)
-                pol = tech_match.group(2).upper()
-                sr = tech_match.group(3)
-
-                satellite = ""
-                if freq_line_idx > 0:
-                    sat_cand = lines[freq_line_idx - 1]
-                    if re.search(r'commentaire|comment', sat_cand, re.IGNORECASE) and freq_line_idx > 1:
-                        sat_cand = lines[freq_line_idx - 2]
-                    satellite = sat_cand.replace('[', '').replace(']', '').strip()
-
-                cat = ""
-                activity = ""
-                encrypted = False
-                biss = ""
-                
-                for line in lines[freq_line_idx:]:
-                    if not cat:
-                        cat_match = cat_pat.search(line)
-                        if cat_match:
-                            cat = cat_match.group(1).replace('[', '').replace(']', '').strip()
-                    
-                    if not activity:
-                        info_match = info_pat.search(line)
-                        if info_match:
-                            activity = info_match.group(1).strip()
-                            
-                    if not encrypted and crypt_pat.search(line):
-                        encrypted = True
-                        
-                    if not biss:
-                        biss_match = biss_pat.search(line)
-                        if biss_match:
-                            biss = biss_match.group(1).replace(' ', '').upper()
-
-                details = activity if activity else cat
-                if not details:
-                    details = u'Feed @ {}'.format(freq)
-                    
-                name = details
-
-                results.append({
-                    'name':      name,
-                    'activity':  activity,
-                    'satellite': satellite,
-                    'freq':      freq,
-                    'pol':       pol,
-                    'sr':        sr,
-                    'biss':      biss,
-                    'system':    'encrypted' if encrypted else 'FTA',
-                    'category':  cat,
-                    'source':    'Satelliweb',
-                })
-
-            log_dbg("[SatFeed] Satelliweb returned {} entries for {}".format(len(results), today_str))
-            return results
-
-        except Exception as e:
-            log_dbg("[SatFeed] Satelliweb error: " + str(e))
-            return []
-
+        return _scrape_satelliweb_feeds(today_str)
 
     # ==================================================================
     # SOURCE 5 — GitHub iptv-org  (https://iptv-org.github.io)
@@ -15818,11 +15842,14 @@ class BroadcastingChannelsScreen(Screen):
             extinf_line_pat = re.compile(
                 r'#EXTINF([^\n]+)\n([^\n]+)',
                 re.IGNORECASE)
-            attr_tvgid  = re.compile(r'tvg-id="([^"]*)"',      re.IGNORECASE)
-            attr_name   = re.compile(r'tvg-name="([^"]*)"',    re.IGNORECASE)
-            attr_group  = re.compile(r'group-title="([^"]*)"', re.IGNORECASE)
+            attr_tvgid    = re.compile(r'tvg-id="([^"]*)"',       re.IGNORECASE)
+            attr_name     = re.compile(r'tvg-name="([^"]*)"',     re.IGNORECASE)
+            attr_group    = re.compile(r'group-title="([^"]*)"',  re.IGNORECASE)
+            attr_country  = re.compile(r'tvg-country="([^"]*)"',  re.IGNORECASE)
+            attr_language = re.compile(r'tvg-language="([^"]*)"', re.IGNORECASE)
+            attr_logo     = re.compile(r'tvg-logo="([^"]*)"',     re.IGNORECASE)
             # Display name is everything after the LAST comma on the #EXTINF line
-            comma_name  = re.compile(r',([^,\n]+)\s*$')
+            comma_name    = re.compile(r',([^,\n]+)\s*$')
 
             results    = []
             seen_urls  = set()
@@ -15848,20 +15875,34 @@ class BroadcastingChannelsScreen(Screen):
                 group    = group_m.group(1).strip()    if group_m   else 'Sports'
                 disp     = disp_m.group(1).strip()     if disp_m    else ''
 
+                country_m  = attr_country.search(attr_str)
+                language_m = attr_language.search(attr_str)
+                logo_m     = attr_logo.search(attr_str)
+                tvg_country  = country_m.group(1).strip()  if country_m  else ''
+                tvg_language = language_m.group(1).strip() if language_m else ''
+                tvg_logo     = logo_m.group(1).strip()     if logo_m     else ''
+
                 name = disp or tvg_name or tvg_id or 'Sport Channel'
 
                 results.append({
-                    'name':       name,
-                    'satellite':  u'IPTV',
-                    'freq':       u'IPTV Stream',
-                    'stream_url': stream_url,
-                    'tvg_id':     tvg_id,    # used for Enigma2 EPG cache lookup
-                    'pol':        '',
-                    'sr':         '',
-                    'biss':       '',
-                    'system':     group,
-                    'category':   group,
-                    'source':     'iptv-org/GitHub',
+                    'name':         name,
+                    'satellite':    u'IPTV',
+                    'freq':         u'IPTV Stream',
+                    'stream_url':   stream_url,
+                    'tvg_id':       tvg_id,
+                    'tvg_country':  tvg_country,
+                    'tvg_language': tvg_language,
+                    'tvg_logo':     tvg_logo,
+                    'pol':          '',
+                    'sr':           '',
+                    'biss':         '',
+                    'system':       group,
+                    'category':     group,
+                    'source':       'iptv-org/GitHub',
+                    # enriched later by _fetch_iptv_channel_db
+                    'network':      '',
+                    'broadcast_area': '',
+                    'website':      '',
                 })
 
             log_dbg("[SatFeed] iptv-org/GitHub returned {} sport channels".format(len(results)))
@@ -15869,6 +15910,37 @@ class BroadcastingChannelsScreen(Screen):
         except Exception as e:
             log_dbg("[SatFeed] iptv-org/GitHub error: " + str(e))
             return []
+
+    def _fetch_iptv_channel_db(self):
+        """
+        Fetch iptv-org channels.json and return a dict keyed by channel id.
+        Uses _sports_channels_cache to avoid re-fetching within the same session.
+        Each value contains: network, country, languages, broadcast_area, website, logo.
+        """
+        if self._sports_channels_cache is not None:
+            return self._sports_channels_cache
+        try:
+            try:
+                import urllib.request as _ur
+            except ImportError:
+                import urllib2 as _ur
+            import json as _json
+            url = "https://iptv-org.github.io/iptv/channels.json"
+            req = _ur.Request(url, headers={
+                "User-Agent": "Mozilla/5.0 (compatible; Enigma2/SimplySports)",
+                "Accept": "application/json",
+            })
+            raw  = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode("utf-8", errors="replace")
+            data = _json.loads(raw)
+            # Build lookup dict: channel_id -> metadata dict
+            db = {ch["id"]: ch for ch in data if "id" in ch}
+            self._sports_channels_cache = db
+            log_dbg("[SatFeed] iptv-org channels.json loaded: {} channels".format(len(db)))
+            return db
+        except Exception as e:
+            log_dbg("[SatFeed] channels.json fetch error: " + str(e))
+            self._sports_channels_cache = {}  # mark as attempted so we don't retry
+            return {}
 
     # ==================================================================
     # Callbacks (run on reactor thread → safe to touch UI)
@@ -16066,12 +16138,28 @@ class BroadcastingChannelsScreen(Screen):
                 # EPG data found: show programme title and time slot
                 parts2.append(epg_line2)
             else:
-                # No EPG: show ▶ indicator + group/category (never the raw URL)
-                parts2.append(u"\u25b6 Live Stream")
-                if category:
-                    parts2.append(category[:40])
-                elif system:
-                    parts2.append(system[:40])
+                # No EPG: build a rich metadata line from all available fields
+                network       = feed.get('network', '')
+                tvg_country   = feed.get('tvg_country', '')
+                tvg_language  = feed.get('tvg_language', '')
+                broadcast_area = feed.get('broadcast_area', '')
+                website       = feed.get('website', '')
+                meta_parts    = []
+                if network:
+                    meta_parts.append(network[:30])
+                elif category and category.lower() != 'sports':
+                    meta_parts.append(category[:30])
+                if tvg_country:
+                    meta_parts.append(u"\U0001f310 " + tvg_country)
+                if tvg_language:
+                    meta_parts.append(u"\U0001f5e3 " + tvg_language[:20])
+                if broadcast_area and len(broadcast_area) < 40:
+                    meta_parts.append(broadcast_area)
+                if website and not meta_parts:
+                    meta_parts.append(website[:40])
+                if not meta_parts:
+                    meta_parts.append(system[:30] if system else u"Sports")
+                parts2.append(u"\u25b6 Live  \u2022  " + u"  |  ".join(meta_parts))
         else:
             # Sat feed Line 2: frequency details first, then satellite name,
             # then BISS, then the full category label.
@@ -17091,6 +17179,10 @@ class WatchPartyScreen(Screen):
         self._uid_names[self._my_uid] = self._my_name  # Pre-cache own name
         self._my_unique_viewers = {self._my_uid} # Start with self as first viewer
         self._last_names_fetch_ts = 0  # Cooldown guard for party_names re-fetch
+        self._last_cheer_fetch_ts = 0  # Cooldown guard for cheer-count re-fetch
+        self._my_cheer = "N"            # Default neutral until user chooses
+        self._cheer_data = {}           # uid -> "H"/"N"/"A" from last fetch
+        self._neutral_feed_name = None  # Feed name found on SatelliWeb for this match
 
         # Write-throttle / batching state (Enhancement A)
         self._last_write_ts      = 0   # Epoch of last successful Firebase POST
@@ -17141,8 +17233,29 @@ class WatchPartyScreen(Screen):
             # ═══════════════════════════════════════════════════════════════
 
             # ── Vertical zone dividers ────────────────────────────────────
-            u'<eLabel position="638,0" size="2,80" backgroundColor="#00334466" zPosition="2" />'
-            u'<eLabel position="1280,0" size="2,80" backgroundColor="#00334466" zPosition="2" />'
+            u'<eLabel position="638,0" size="2,80" backgroundColor="#CC334466" zPosition="2" />'
+            u'<eLabel position="1280,0" size="2,80" backgroundColor="#CC334466" zPosition="2" />'
+
+            # ── Zone background tints (react_bg base + per-zone colour) ──
+            u'<eLabel position="0,0" size="638,80" backgroundColor="' + react_bg + '" zPosition="1" />'
+            u'<eLabel position="640,0" size="638,80" backgroundColor="' + react_bg + '" zPosition="1" />'
+            u'<eLabel position="1282,0" size="638,80" backgroundColor="' + react_bg + '" zPosition="1" />'
+            # ── Cheer-count labels (right side of each zone header) ────────
+            u'<widget name="lbl_cheer_h" position="468,0" size="164,20"'
+            u' font="Regular;13" foregroundColor="#00FF6666"'
+            u' transparent="1" halign="right" valign="center" zPosition="3" />'
+            u'<widget name="lbl_cheer_n" position="1112,0" size="164,20"'
+            u' font="Regular;13" foregroundColor="#00FFDD66"'
+            u' transparent="1" halign="right" valign="center" zPosition="3" />'
+
+            # ── Feed-info overlay (neutral zone body, visible when feed found) ─
+            u'<widget name="lbl_feed_info" position="640,0" size="638,80"'
+            u' font="Regular;14" foregroundColor="#00FFDD66"'
+            u' backgroundColor="#CC001020"'
+            u' halign="center" valign="center" zPosition="2" />'
+            u'<widget name="lbl_cheer_a" position="1750,0" size="164,20"'
+            u' font="Regular;13" foregroundColor="#0066CCFF"'
+            u' transparent="1" halign="right" valign="center" zPosition="3" />'
 
             # ── Zone header labels (20px) ─────────────────────────────────
             u'<widget name="lbl_zone_h" position="0,0"    size="636,20"'
@@ -17160,66 +17273,66 @@ class WatchPartyScreen(Screen):
             u'<widget name="ri_h_0" position="5,21"  size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_h_0" position="35,20"  size="278,30"'
-            u' font="Regular;26" foregroundColor="#00FF9999"'
+            u' font="Regular;31" foregroundColor="#00FF9999"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_h_1" position="320,21" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_h_1" position="350,20" size="278,30"'
-            u' font="Regular;26" foregroundColor="#00FF9999"'
+            u' font="Regular;31" foregroundColor="#00FF9999"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_h_2" position="5,51" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_h_2" position="35,50" size="278,30"'
-            u' font="Regular;26" foregroundColor="#00FF9999"'
+            u' font="Regular;31" foregroundColor="#00FF9999"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_h_3" position="320,51" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_h_3" position="350,50" size="278,30"'
-            u' font="Regular;26" foregroundColor="#00FF9999"'
+            u' font="Regular;31" foregroundColor="#00FF9999"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
 
             # Neutral zone (x=640 to 1280) -> col1=645, col2=960
             u'<widget name="ri_n_0" position="645,21"  size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_n_0" position="675,20"  size="278,30"'
-            u' font="Regular;26" foregroundColor="#00FFFF99"'
+            u' font="Regular;31" foregroundColor="#00FFFF99"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_n_1" position="960,21" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_n_1" position="990,20" size="278,30"'
-            u' font="Regular;26" foregroundColor="#00FFFF99"'
+            u' font="Regular;31" foregroundColor="#00FFFF99"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_n_2" position="645,51" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_n_2" position="675,50" size="278,30"'
-            u' font="Regular;26" foregroundColor="#00FFFF99"'
+            u' font="Regular;31" foregroundColor="#00FFFF99"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_n_3" position="960,51" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_n_3" position="990,50" size="278,30"'
-            u' font="Regular;26" foregroundColor="#00FFFF99"'
+            u' font="Regular;31" foregroundColor="#00FFFF99"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
 
             # Away zone (x=1282 to 1920) -> col1=1287, col2=1602
             u'<widget name="ri_a_0" position="1287,21"  size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_a_0" position="1317,20"  size="278,30"'
-            u' font="Regular;26" foregroundColor="#0099CCFF"'
+            u' font="Regular;31" foregroundColor="#0099CCFF"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_a_1" position="1602,21" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_a_1" position="1632,20" size="278,30"'
-            u' font="Regular;26" foregroundColor="#0099CCFF"'
+            u' font="Regular;31" foregroundColor="#0099CCFF"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_a_2" position="1287,51" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_a_2" position="1317,50" size="278,30"'
-            u' font="Regular;26" foregroundColor="#0099CCFF"'
+            u' font="Regular;31" foregroundColor="#0099CCFF"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
             u'<widget name="ri_a_3" position="1602,51" size="28,28"'
             u' alphatest="blend" scale="1" zPosition="4" />'
             u'<widget name="r_a_3" position="1632,50" size="278,30"'
-            u' font="Regular;26" foregroundColor="#0099CCFF"'
+            u' font="Regular;31" foregroundColor="#0099CCFF"'
             u' transparent="1" halign="left" valign="center" zPosition="3" />'
 
             # ═══════════════════════════════════════════════════════════════
@@ -17242,7 +17355,7 @@ class WatchPartyScreen(Screen):
             u' transparent="1" halign="right" valign="center" zPosition="4" />'
 
             # ── Home Logo (beside Home Name) ──────────────────────────────
-            u'<widget name="h_logo" position="780,83" size="40,40"'
+            u'<widget name="h_logo" position="774,81" size="52,52"'
             u' alphatest="blend" scale="1" zPosition="6" />'
 
             # ── Score Center (transparent) ────────────────────────────────
@@ -17251,7 +17364,7 @@ class WatchPartyScreen(Screen):
             u' transparent="1" valign="center" halign="center" zPosition="4" />'
 
             # ── Away Logo (beside Away Name) ──────────────────────────────
-            u'<widget name="a_logo" position="1100,83" size="40,40"'
+            u'<widget name="a_logo" position="1094,81" size="52,52"'
             u' alphatest="blend" scale="1" zPosition="6" />'
 
             # ── Away Team Name ────────────────────────────────────────────
@@ -17276,10 +17389,24 @@ class WatchPartyScreen(Screen):
             u' transparent="1" halign="left" valign="center" zPosition="2" />'
 
             u'<widget name="lbl_help" position="10,124" size="1900,22"'
-            u' font="Regular;20" foregroundColor="#00FFFFFF"'
+            u' font="Regular;17" foregroundColor="#00FFFFFF"'
             u' transparent="1" halign="center" valign="center" zPosition="2" />'
 
             # ── BOTTOM ACCENT LINE ────────────────────────────────────────
+            # ── Who’s Watching tooltip overlay (hidden until OK pressed) ────
+            u'<widget name="lbl_tooltip_h" position="0,0" size="638,80"'
+            u' font="Regular;16" foregroundColor="#00FF6666"'
+            u' backgroundColor="#EE001020"'
+            u' halign="center" valign="center" zPosition="10" />'
+            u'<widget name="lbl_tooltip_n" position="640,0" size="638,80"'
+            u' font="Regular;16" foregroundColor="#00FFDD66"'
+            u' backgroundColor="#EE001020"'
+            u' halign="center" valign="center" zPosition="10" />'
+            u'<widget name="lbl_tooltip_a" position="1282,0" size="636,80"'
+            u' font="Regular;16" foregroundColor="#0066CCFF"'
+            u' backgroundColor="#EE001020"'
+            u' halign="center" valign="center" zPosition="10" />'
+
             u'<eLabel position="0,146" size="1920,2" backgroundColor="#00003399" zPosition="5" />'
 
             u'</screen>'
@@ -17292,6 +17419,9 @@ class WatchPartyScreen(Screen):
         self["lbl_away"]   = Label(self.a_name)
         self["lbl_score"]  = Label(self._score_str)
         self["lbl_clock"]  = Label(self._clock_str)
+        self["lbl_tooltip_h"] = Label(u"")
+        self["lbl_tooltip_n"] = Label(u"")
+        self["lbl_tooltip_a"] = Label(u"")
         self["lbl_badge"]   = Label(u"\u26bd {}".format(_t("Watch Party")))
         self["lbl_viewers"] = Label(u"\U0001f465 1 {}".format(_t("watching")))
         self["lbl_league"] = Label(self._league_name[:30])
@@ -17299,12 +17429,16 @@ class WatchPartyScreen(Screen):
             u"{}: 1({}), 4({}), 7({}), 11({}), 44({}), 77({}) | {}: 2({}), 5({}), 8({}), 22({}), 55({}), 88({}) | {}: 3({}), 6({}), 9({}), 33({}), 66({}), 99({})".format(
                 _t("HOME"), _t("Goal"), _t("Fire"), _t("Wow"), _t("Attack"), _t("Defend"), _t("Unlucky"),
                 _t("Neutral"), _t("Match"), _t("Save"), _t("Intense"), _t("Boring"), _t("Yellow"), _t("Red"),
-                _t("AWAY"), _t("Goal"), _t("Fire"), _t("Wow"), _t("Attack"), _t("Defend"), _t("Unlucky")))
+                _t("AWAY"), _t("Goal"), _t("Fire"), _t("Wow"), _t("Attack"), _t("Defend"), _t("Unlucky")) + u"  |  OK: " + _t("Who's watching?"))
 
         # ── Enigma2 widgets — Reaction Zones ─────────────────────────────
         self["lbl_zone_h"] = Label(u"\u25c0 {}".format(self.h_name))
         self["lbl_zone_n"] = Label(u"\u26bd {}".format(_t("Neutral")))
         self["lbl_zone_a"] = Label(u"{} \u25b6".format(self.a_name))
+        self["lbl_cheer_h"] = Label(u"")
+        self["lbl_cheer_n"] = Label(u"")
+        self["lbl_cheer_a"] = Label(u"")
+        self["lbl_feed_info"] = Label(u"")
         self["lbl_status"] = Label(u"")
 
         for zone in ("h", "n", "a"):
@@ -17317,6 +17451,7 @@ class WatchPartyScreen(Screen):
             ["OkCancelActions", "NumberActions", "ColorActions"],
             {
                 "cancel": self.cancel,
+                "ok": self._show_viewers_tooltip,
                 "blue": self._toggle_sound,
                 "1": lambda: self._on_key("1"),
                 "2": lambda: self._on_key("2"),
@@ -17333,6 +17468,8 @@ class WatchPartyScreen(Screen):
 
         self._poll_timer = eTimer()
         safe_connect(self._poll_timer, self._poll_firebase)
+        self._tooltip_timer = eTimer()
+        safe_connect(self._tooltip_timer, self._hide_viewers_tooltip)
         self._poll_active = False      # Prevents concurrent poll threads
         import time
         self._fetch_cursor = int(time.time())  # Fix: Reset time cursor on start
@@ -17374,13 +17511,118 @@ class WatchPartyScreen(Screen):
         except Exception:
             pass
 
+        # Ensure tooltip is hidden on open — it has a solid background and
+        # would otherwise cover the entire reaction zone until first dismissed
+        self["lbl_tooltip_h"].hide()
+        self["lbl_tooltip_n"].hide()
+        self["lbl_tooltip_a"].hide()
+        self["lbl_feed_info"].hide()
+
+        # Show one-time team-selection dialog if no stored choice for this match
+        if not self._load_cheer_choice():
+            reactor.callLater(0.8, self._ask_cheer_team)
+
+        # Fetch initial cheer counts so labels are populated immediately
+        self._fetch_cheer_counts()
+
         # Start polling loop (5-second interval) and run an immediate first poll
         self._poll_timer.start(5000, False)
         self._poll_firebase()
         self._tick_timer.start(1000, False)
 
+        # Search SatelliWeb for a feed matching this match (updates neutral zone label)
+        self._search_match_feed()
+
         # Fire and forget: Persist own name and fetch others' names
         self._register_and_fetch_names()
+
+    def _search_match_feed(self):
+        """Kick off SatelliWeb feed search using deferToThread (same as yellow button)."""
+        import datetime
+        today_str = datetime.date.today().strftime('%Y-%m-%d')
+        from twisted.internet import threads
+        threads.deferToThread(
+            self._search_match_feed_worker, today_str
+        ).addCallback(
+            self._on_feed_found
+        ).addErrback(
+            self._on_feed_search_err
+        )
+
+    def _search_match_feed_worker(self, today_str):
+        """
+        Worker (runs in Twisted thread pool): call the shared Satelliweb scraper
+        then match feed activity lines against both team name tokens.
+        Returns the best-matching feed name string, or None.
+        """
+        import re as _re
+        feeds = _scrape_satelliweb_feeds(today_str)
+        if not feeds:
+            return None
+
+        def _tok(name):
+            return {w.lower() for w in _re.split(r"\W+", name) if len(w) > 2}
+        h_tok = _tok(self.h_name)
+        a_tok = _tok(self.a_name)
+
+        best_feed  = None
+        best_score = 0
+        for feed in feeds:
+            candidate = feed.get('activity') or feed.get('name', '')
+            if not candidate or len(candidate) < 4:
+                continue
+            low     = candidate.lower()
+            h_hits  = sum(1 for t in h_tok if t in low)
+            a_hits  = sum(1 for t in a_tok if t in low)
+            # Both teams must have at least one token hit
+            if h_hits > 0 and a_hits > 0:
+                score = h_hits + a_hits
+                if score > best_score:
+                    best_score = score
+                    best_feed  = feed
+        return best_feed  # Full dict, or None
+
+    def _on_feed_found(self, feed):
+        """Twisted callback (main thread): update neutral zone with full feed details."""
+        if not feed:
+            return  # No match — keep "Neutral"
+
+        activity  = feed.get('activity') or feed.get('name', '')
+        satellite = feed.get('satellite', '')
+        freq      = feed.get('freq', '')
+        pol       = feed.get('pol', '')
+        sr        = feed.get('sr', '')
+        system    = feed.get('system', '')
+        biss      = feed.get('biss', '')
+
+        # Line 1: activity replaces "Neutral" — clear the zone header
+        title = activity[:30].strip() + (u"\u2026" if len(activity) > 30 else u"")
+        self._neutral_feed_name = title
+        self["lbl_zone_n"].setText(u"")  # cleared — lbl_feed_info owns this area now
+
+        # Build 3-line feed info block
+        line1 = u"\U0001f4e1  {}".format(title)
+        line2_parts = []
+        if satellite:
+            line2_parts.append(u"\U0001f6f0 {}".format(satellite))
+        if freq:
+            line2_parts.append(freq)
+        if pol:
+            line2_parts.append(pol)
+        if sr:
+            line2_parts.append(u"SR:{}".format(sr))
+        if system:
+            line2_parts.append(system.upper())
+        line2 = u"  \u2022  ".join(line2_parts)
+        line3 = u"BISS: {}".format(biss) if biss else u""
+
+        info_text = u"\n".join(l for l in (line1, line2, line3) if l)
+        self["lbl_feed_info"].setText(info_text)
+        self["lbl_feed_info"].show()
+
+    def _on_feed_search_err(self, failure):
+        """Twisted errback: silently ignore — neutral zone keeps its default label."""
+        log_dbg("[WatchParty] Feed search error: " + str(failure))
 
     def _register_and_fetch_names(self):
         """Writes own name to registry and fetches known names."""
@@ -17497,6 +17739,11 @@ class WatchPartyScreen(Screen):
                 self._key_timer.stop()
         except Exception:
             pass
+        try:
+            if self._tooltip_timer.isActive():
+                self._tooltip_timer.stop()
+        except Exception:
+            pass
         # Stop all pending hide-timers
         for t, _z, _s in list(self._hide_timers):
             try:
@@ -17515,6 +17762,145 @@ class WatchPartyScreen(Screen):
         self._sound_enabled = not self._sound_enabled
         state = _t("ON") if self._sound_enabled else _t("OFF")
         self["lbl_status"].setText(u"\U0001f50a {} {}".format(_t("Sound"), state))
+
+    def _show_viewers_tooltip(self):
+        """Show per-zone fan names grouped by cheer choice; auto-hides after 4 s."""
+        def _zone_text(zone_key, fallback):
+            uids = [uid for uid, ch in self._cheer_data.items() if ch == zone_key]
+            names = [self._uid_names[uid] for uid in uids
+                     if uid in self._uid_names and self._uid_names[uid]]
+            if self._my_cheer == zone_key and self._my_name and self._my_name not in names:
+                names.insert(0, self._my_name)
+            if not names:
+                return fallback
+            cap = names[:5]
+            suffix = u" +{}".format(len(names) - 5) if len(names) > 5 else u""
+            return u"\u2665\n" + u"\n".join(cap) + suffix
+
+        self["lbl_tooltip_h"].setText(_zone_text("H", u"\u2014"))
+        self["lbl_tooltip_n"].setText(_zone_text("N", u"\u2014"))
+        self["lbl_tooltip_a"].setText(_zone_text("A", u"\u2014"))
+        for key in ("lbl_tooltip_h", "lbl_tooltip_n", "lbl_tooltip_a"):
+            self[key].show()
+        self._tooltip_timer.stop()
+        self._tooltip_timer.start(4000, True)  # single-shot: auto-hide after 4 s
+
+    def _hide_viewers_tooltip(self):
+        """Called by the tooltip timer to dismiss all zone overlays."""
+        for key in ("lbl_tooltip_h", "lbl_tooltip_n", "lbl_tooltip_a"):
+            self[key].hide()
+            self[key].setText(u"")
+
+    _WP_CHEER_FILE = "/etc/enigma2/wp_cheer.json"
+
+    def _load_cheer_choice(self):
+        """Return stored cheer choice for this match, or None if first visit."""
+        try:
+            with open(self._WP_CHEER_FILE, "r") as f:
+                cache = json.load(f)
+            choice = cache.get(str(self.match_id))
+            if choice in ("H", "N", "A"):
+                self._my_cheer = choice
+                return choice
+        except Exception:
+            pass
+        return None
+
+    def _save_cheer_choice(self, choice):
+        """Persist cheer choice keyed by match_id so the dialog never repeats."""
+        try:
+            try:
+                with open(self._WP_CHEER_FILE, "r") as f:
+                    cache = json.load(f)
+            except Exception:
+                cache = {}
+            cache[str(self.match_id)] = choice
+            with open(self._WP_CHEER_FILE, "w") as f:
+                json.dump(cache, f)
+        except Exception:
+            pass
+
+    def _ask_cheer_team(self):
+        """Open a one-time ChoiceBox asking which team the user supports."""
+        choices = [
+            (u"1. " + self.h_name,   "H"),
+            (u"2. " + _t("Neutral"), "N"),
+            (u"3. " + self.a_name,   "A"),
+            (u"4. " + _t("Skip"),    "N"),  # skip → counted as neutral
+        ]
+        self.session.openWithCallback(
+            self._on_cheer_chosen,
+            ChoiceBox,
+            title=_t("Who are you cheering for?"),
+            list=choices
+        )
+
+    def _on_cheer_chosen(self, choice):
+        """Handle ChoiceBox result: persist locally and push to Firebase."""
+        # choice is (label, value) tuple, or None if dialog was closed
+        value = choice[1] if (choice and choice[1] in ("H", "N", "A")) else "N"
+        self._my_cheer = value
+        self._save_cheer_choice(value)
+        threading.Thread(
+            target=self._push_cheer_async,
+            args=(value,),
+            daemon=True
+        ).start()
+
+    def _push_cheer_async(self, value):
+        """Background thread: PUT cheer choice to Firebase party_cheer node."""
+        try:
+            import urllib2 as _req
+        except ImportError:
+            import urllib.request as _req
+        try:
+            url = "{}/party_cheer/{}/{}.json".format(
+                FIREBASE_URL, self.match_id, self._my_uid
+            )
+            payload = json.dumps(value).encode("utf-8")
+            req = _req.Request(url, data=payload)
+            req.add_header("Content-Type", "application/json")
+            req.get_method = lambda: "PUT"
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            _req.urlopen(req, context=ctx, timeout=8)
+        except Exception:
+            pass
+
+    def _fetch_cheer_counts(self):
+        """Background fetch of party_cheer/{match_id} to update zone fan counts."""
+        threading.Thread(
+            target=self._fetch_cheer_counts_async,
+            daemon=True
+        ).start()
+
+    def _fetch_cheer_counts_async(self):
+        try:
+            try:
+                import urllib2 as _req
+            except ImportError:
+                import urllib.request as _req
+            url = "{}/party_cheer/{}.json".format(FIREBASE_URL, self.match_id)
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            raw = _req.urlopen(url, context=ctx, timeout=8).read()
+            data = json.loads(raw.decode("utf-8")) or {}
+            h = sum(1 for v in data.values() if v == "H")
+            n = sum(1 for v in data.values() if v == "N")
+            a = sum(1 for v in data.values() if v == "A")
+            reactor.callFromThread(self._update_cheer_data, data, h, n, a)
+        except Exception:
+            pass
+
+    def _update_cheer_data(self, cheer_map, h, n, a):
+        """Cache cheer mapping and update the three cheer-count labels."""
+        self._cheer_data = cheer_map  # uid → "H"/"N"/"A"
+        # ♥ symbol with count — blank when zero so the header stays clean
+        self["lbl_cheer_h"].setText(u"\u2665 {}".format(h) if h else u"")
+        self["lbl_cheer_n"].setText(u"\u2665 {}".format(n) if n else u"")
+        self["lbl_cheer_a"].setText(u"\u2665 {}".format(a) if a else u"")
 
     def _open_keyboard(self):
         """Triggered by button '0' to open the virtual keyboard for a custom typed reaction."""
@@ -18033,6 +18419,11 @@ class WatchPartyScreen(Screen):
         if new_rendered > 0 and (now - self._last_names_fetch_ts) >= 60:
             self._last_names_fetch_ts = now
             self._register_and_fetch_names()
+
+        # ── Re-fetch cheer counts on new reactions (30 s cooldown) ────────
+        if new_rendered > 0 and (now - self._last_cheer_fetch_ts) >= 30:
+            self._last_cheer_fetch_ts = now
+            self._fetch_cheer_counts()
 
         # Use the name registry as the primary count to include silent viewers
         viewer_count = max(len(self._my_unique_viewers), len(self._uid_names))
