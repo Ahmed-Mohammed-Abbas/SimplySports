@@ -111,7 +111,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "5.8"
+VERSION = "5.9"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -156,6 +156,7 @@ TRANSLATIONS = {
     "Tomorrow's Matches":         {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u063a\u062f"},
     "All Matches":                {"ar": u"\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
     "Custom League View":         {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
+    "Favorite League View":       {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     # ── Header breakdown labels ───────────────────────────────────────────────
     "Live":                       {"ar": u"\u0645\u0628\u0627\u0634\u0631"},
     "Fin":                        {"ar": u"\u0627\u0646\u062a\u0647\u062a"},
@@ -183,6 +184,13 @@ TRANSLATIONS = {
     "League Options":             {"ar": u"\u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u062f\u0648\u0631\u064a"},
     "Select Single League":       {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u062f\u0648\u0631\u064a \u0648\u0627\u062d\u062f"},
     "Custom Leagues (View/Edit)": {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629 (\u0639\u0631\u0636/\u062a\u0639\u062f\u064a\u0644)"},
+    "Favorite Leagues":           {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Mark Favorites":             {"ar": u"\u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "RED: Heart  GREEN: Save Favs": {"ar": u"\u0623\u062d\u0645\u0631: \u0642\u0644\u0628  \u0623\u062e\u0636\u0631: \u062d\u0641\u0638 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Favorites saved!":           {"ar": u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0645\u0641\u0636\u0644\u0629!"},
+    "No favorites yet. Use Select Single League to mark hearts.": {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0641\u0636\u0644\u0629 \u0628\u0639\u062f. \u0627\u0633\u062a\u062e\u062f\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 \u062f\u0648\u0631\u064a \u0648\u0627\u062d\u062f \u0644\u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0641\u0636\u0644\u0629."},
+    "Select Favorite Leagues":    {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Locked (always active)":     {"ar": u"\u0645\u062b\u0628\u062a (\u0646\u0634\u0637 \u062f\u0627\u0626\u0645\u0627)"},
     # ── Theme / Transparency / MiniBar selectors ──────────────────────────────
     "Select Theme":               {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u0638\u0647\u0631"},
     "Default":                    {"ar": u"\u0627\u0641\u062a\u0631\u0627\u0636\u064a"},
@@ -389,6 +397,7 @@ TRANSLATIONS = {
     "Synced":                         {"ar": u"\u0645\u062a\u0632\u0627\u0645\u0646"},
     "new reaction(s)":                {"ar": u"\u062a\u0641\u0627\u0639\u0644\u0627\u062a \u062c\u062f\u064a\u062f\u0629"},
     "total":                          {"ar": u"\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a"},
+    "WP Commentary: Every {} min":    {"ar": u"\u062a\u0639\u0644\u064a\u0642 \u062d\u0641\u0644\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629: \u0643\u0644 {} \u062f\u0642"},
 }
 
 
@@ -1131,10 +1140,11 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "5.8"  # Update version to 5.8 - WATCH PARTY — MAJOR UPGRADES, Who's cheering who?, Press OK to see who's watching,  The Neutral zone, if a satellite feed for the match is found on SatelliWeb, it shows the feed info: satellite name, frequency, polarisation, symbol rate, and encryption status, Live fan counts beside each zone header.
+CURRENT_VERSION = "5.9"  # Update version to 5.9 - include smart AI WatchParty commentary, an independent Favorite Leagues system with heart selection, upgraded Favorite Teams with logos and translations, and key bug fixes.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
+FAVORITE_LEAGUES_FILE = "/etc/enigma2/simplysports_favoriteleagues.json"
 LOGO_CACHE_DIR = "/tmp/simplysports/logos"
 
 
@@ -2724,7 +2734,12 @@ def InfoListEntry(entry):
 
 
 
-def SelectionListEntry(name, is_selected, logo_path=None, mode="multi"):
+def SelectionListEntry(name, is_selected, logo_path=None, mode="multi", heart=None):
+    """
+    heart=None  → no heart shown  (multi / normal single mode)
+    heart=False → empty heart ♡  (not yet a favourite — very dim)
+    heart=True  → filled heart ♥  (marked as favourite — bright red)
+    """
     col_sel = 0x00FF85 if is_selected else 0x9E9E9E
     text_col = 0xFFFFFF if is_selected else 0x9E9E9E
     res = [(name, is_selected)]
@@ -2755,7 +2770,24 @@ def SelectionListEntry(name, is_selected, logo_path=None, mode="multi"):
             except:
                 pass
 
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, 5, 700 - (text_x - 70), 40, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, name, text_col, text_col, None, None))
+    # Name text — leave space on the right for the heart if needed
+    name_width = 700 - (text_x - 70)
+    if heart is not None:
+        name_width -= 55  # reserve space for heart symbol on the right
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, 5, name_width, 40, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, name, text_col, text_col, None, None))
+
+    # Heart symbol on the right edge
+    # heart=True  → filled ♥ in bright red (league IS a favourite)
+    # heart=False → empty  ♡ in near-invisible dark (not a favourite — just a placeholder)
+    if heart is not None:
+        if heart:
+            heart_char = u"\u2665"   # ♥ filled  (selected)
+            heart_col  = 0xCC2222    # safe dark-red: avoids the ARGB-transparent 0x00xxxxxx trap
+        else:
+            heart_char = u"\u2661"   # ♡ empty   (not selected)
+            heart_col  = 0x2D2D2D    # nearly invisible on dark background
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 820, 5, 50, 40, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, heart_char, heart_col, heart_col, None, None))
+
     return res
 
 def LeaderboardListEntry(rank, name, score, is_me=False):
@@ -2841,6 +2873,13 @@ class SportsMonitor:
         self.current_league_index = 0
         self.custom_league_indices = []
         self.is_custom_mode = False
+        # Separate storage for the two independent multi-league modes:
+        #   saved_custom_league_indices  — last selection made via Custom Leagues (View/Edit)
+        #   favorite_league_indices      — last selection made via Favorite Leagues
+        #   is_favorite_mode             — True when the main screen is showing favorites
+        self.saved_custom_league_indices = []
+        self.favorite_league_indices = []
+        self.is_favorite_mode = False
         self.last_scores = {}
         self.last_red_cards = {}
         self.goal_flags = {}
@@ -2872,6 +2911,7 @@ class SportsMonitor:
         self.ai_provider = "gemini"
         self.ai_language = "English"
         self.ai_frequency = 30  # minutes
+        self.wp_commentary_interval = 4  # minutes — Watch Party AI commentary interval
         self.ai_timer = eTimer()
         safe_connect(self.ai_timer, self._ai_timer_fired)
         self._ai_last_call_ts = 0
@@ -3352,6 +3392,9 @@ class SportsMonitor:
                     self.active = (self.discovery_mode > 0)
                     self.custom_league_indices = data.get("custom_indices", [])
                     self.is_custom_mode = bool(data.get("is_custom_mode", False))
+                    self.saved_custom_league_indices = data.get("saved_custom_indices", list(self.custom_league_indices))
+                    self.favorite_league_indices = data.get("favorite_league_indices", [])
+                    self.is_favorite_mode = bool(data.get("is_favorite_mode", False))
                     self.reminders = data.get("reminders", [])
                     self.menu_section = data.get("menu_section", "all")
                     self.show_in_menu = bool(data.get("show_in_menu", True))
@@ -3368,6 +3411,7 @@ class SportsMonitor:
                     self.ai_provider  = ai_cfg.get("provider", "gemini")
                     self.ai_language  = ai_cfg.get("language", "English")
                     self.ai_frequency = int(ai_cfg.get("frequency_min", 30))
+                    self.wp_commentary_interval = int(ai_cfg.get("wp_commentary_interval", 4))
 
                     # Favorite teams
                     self.favorite_teams = data.get("favorite_teams", [])
@@ -3394,11 +3438,14 @@ class SportsMonitor:
         self.show_in_menu = True; self.minibar_color_mode = "default"
         self.voter_name = "Anonymous"
         self.ai_enabled = False; self.ai_api_key = ""; self.ai_provider = "gemini"
-        self.ai_language = "English"; self.ai_frequency = 30
+        self.ai_language = "English"; self.ai_frequency = 30; self.wp_commentary_interval = 4
         self.install_registered = False
         self.favorite_teams = []
         self.fav_notified = set()
         self.goal_sound_file = "pop.mp3"
+        self.saved_custom_league_indices = []
+        self.favorite_league_indices = []
+        self.is_favorite_mode = False
         # FIX Bug 1: resolved_bets must be a dict (not a list) to support key-based
         # lookups and assignment used throughout the gamification engine.
         # Also ensure total_predictions and correct_predictions are always present.
@@ -3410,6 +3457,9 @@ class SportsMonitor:
             "theme_mode": self.theme_mode, "transparency": self.transparency,
             "discovery_mode": self.discovery_mode, "active": self.active,
             "custom_indices": self.custom_league_indices, "is_custom_mode": self.is_custom_mode,
+            "saved_custom_indices": self.saved_custom_league_indices,
+            "favorite_league_indices": self.favorite_league_indices,
+            "is_favorite_mode": self.is_favorite_mode,
             "reminders": self.reminders, "menu_section": self.menu_section,
             "show_in_menu": self.show_in_menu, "minibar_color_mode": self.minibar_color_mode,
             "voter_name": self.voter_name,
@@ -3420,7 +3470,8 @@ class SportsMonitor:
                 "api_key": self.ai_api_key,
                 "provider": self.ai_provider,
                 "language": self.ai_language,
-                "frequency_min": self.ai_frequency
+                "frequency_min": self.ai_frequency,
+                "wp_commentary_interval": self.wp_commentary_interval
             },
             "favorite_teams": self.favorite_teams[:10],  # enforce max 10
             "goal_sound_file": self.goal_sound_file,
@@ -3786,7 +3837,11 @@ class SportsMonitor:
             if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
             self.check_goals()
     def set_custom_leagues(self, indices):
-        self.custom_league_indices = indices; self.is_custom_mode = True; self.last_scores = {}; self.last_red_cards = {}; self.last_states = {}; self.last_periods = {}; self.last_details_seen = {}; self.notified_events = set()
+        self.custom_league_indices = indices
+        self.saved_custom_league_indices = indices  # keep custom backup in sync
+        self.is_custom_mode = True
+        self.is_favorite_mode = False
+        self.last_scores = {}; self.last_red_cards = {}; self.last_states = {}; self.last_periods = {}; self.last_details_seen = {}; self.notified_events = set()
 
         # FIX: Stop any running batch operations from previous custom mode
         self.batch_is_active = False
@@ -3798,6 +3853,23 @@ class SportsMonitor:
         self.event_map = {}; self.cached_events = []
         self.save_config()
         # Restart timer with custom-mode interval (180s)
+        if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
+        self.check_goals()
+    def set_favorite_leagues(self, indices):
+        """Activate a Favourite Leagues selection without touching saved_custom_league_indices."""
+        self.favorite_league_indices = indices
+        self.custom_league_indices = indices  # feed the existing batch/fetch engine
+        self.is_custom_mode = True
+        self.is_favorite_mode = True
+        self.last_scores = {}; self.last_red_cards = {}; self.last_states = {}
+        self.last_periods = {}; self.last_details_seen = {}; self.notified_events = set()
+
+        self.batch_is_active = False
+        if self.batch_timer.isActive(): self.batch_timer.stop()
+        self.batch_queue = []
+        self.active_requests.clear()
+        self.event_map = {}; self.cached_events = []
+        self.save_config()
         if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
         self.check_goals()
     def add_reminder(self, match_name, trigger_time, league_name, h_logo, a_logo, label, sref=None, h_id=None, a_id=None):
@@ -10515,8 +10587,9 @@ class FavoriteTeamsManagerScreen(Screen):
             """
         self["header"]    = Label(_t("My Favorite Teams"))
         self["list"]      = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
-        self["list"].l.setItemHeight(50)
+        self["list"].l.setFont(0, gFont("SimplySportFont", 28))   # team name
+        self["list"].l.setFont(1, gFont("SimplySportFont", 21))   # league name (smaller)
+        self["list"].l.setItemHeight(60)                           # two-line rows
         self["key_red"]   = Label(_t("Remove"))
         self["key_green"] = Label(_t("Add Another Team"))
         self["info"]      = Label("")
@@ -10531,33 +10604,117 @@ class FavoriteTeamsManagerScreen(Screen):
                 "down":   self["list"].down,
             }, -1
         )
+        # One-shot timer: refresh list after logos finish downloading
+        self._logo_refresh_timer = eTimer()
+        safe_connect(self._logo_refresh_timer, self._on_logo_timer)
+        self._logo_refresh_pending = False
         self.onLayoutFinish.append(self.refresh_list)
+
+    def _on_logo_timer(self):
+        """Called ~3 s after refresh_list found missing logos — redraw with newly cached art."""
+        self._logo_refresh_timer.stop()
+        self._logo_refresh_pending = False
+        self.refresh_list()
 
     def refresh_list(self):
         teams = global_sports_monitor.favorite_teams
         count = len(teams)
         self["info"].setText("{}/10 {}".format(count, _t("teams")))
+
+        needs_logo_refresh = False
         items = []
+
         for t in teams:
-            items.append(SelectionListEntry(
-                u"\u2605 {} \u2014 {}".format(t["team_name"], t["league_name"]),
-                False, mode="single"
-            ))
+            team_name   = t.get("team_name",  "?")
+            league_name = _league_name(t.get("league_name", "?"))   # translated
+            team_id     = t.get("team_id",    "")
+            logo_url    = t.get("logo_url",   "")
+            cache_key   = "soccer_fav_" + str(team_id)
+            logo_cache  = global_sports_monitor.logo_path_cache
+
+            # ── resolve logo path ────────────────────────────────────────────
+            logo_path = logo_cache.get(cache_key)
+            if not logo_path:
+                # Check disk directly (in case prefetch finished but cache not updated)
+                candidate = "/tmp/simplysports/logos/{}.png".format(cache_key)
+                if os.path.exists(candidate) and os.path.getsize(candidate) > 0:
+                    logo_path = candidate
+                    logo_cache[cache_key] = candidate
+                    GLOBAL_VALID_LOGO_PATHS.add(candidate)
+                elif logo_url and team_id:
+                    # Kick off async download; refresh the list after a short delay
+                    global_sports_monitor.prefetch_logo(logo_url, cache_key)
+                    needs_logo_refresh = True
+
+            # ── build row ────────────────────────────────────────────────────
+            row = [(team_name, False)]
+
+            logo_ok = False
+            if logo_path:
+                # Validate before attempting to render
+                if logo_path not in GLOBAL_VALID_LOGO_PATHS:
+                    if os.path.exists(logo_path) and os.path.getsize(logo_path) > 0:
+                        GLOBAL_VALID_LOGO_PATHS.add(logo_path)
+                if logo_path in GLOBAL_VALID_LOGO_PATHS:
+                    try:
+                        pix = get_scaled_pixmap(logo_path, 40, 40)
+                        if pix:
+                            row.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST,
+                                        15, 10, 40, 40, pix))
+                            logo_ok = True
+                    except Exception:
+                        pass
+
+            text_x = 65 if logo_ok else 15
+
+            if not logo_ok:
+                # Gold star placeholder when logo is absent / still downloading
+                row.append((eListboxPythonMultiContent.TYPE_TEXT,
+                             15, 10, 40, 40, 0,
+                             RT_HALIGN_CENTER | RT_VALIGN_CENTER,
+                             u"\u2605", 0xCCAA00, 0xCCAA00, None, None))
+
+            # Line 1 — team name (font 0, 28 px)
+            row.append((eListboxPythonMultiContent.TYPE_TEXT,
+                         text_x, 4, 860 - text_x, 28, 0,
+                         RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                         team_name, 0xFFFFFF, 0xFFFFFF, None, None))
+
+            # Line 2 — league name, translated (font 1, 21 px)
+            row.append((eListboxPythonMultiContent.TYPE_TEXT,
+                         text_x, 34, 860 - text_x, 22, 1,
+                         RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                         league_name, 0x9E9E9E, 0x9E9E9E, None, None))
+
+            items.append(row)
+
         if not items:
-            items.append(SelectionListEntry(_t("No teams added yet."), False, mode="single"))
+            row = [(_t("No teams added yet."), False)]
+            row.append((eListboxPythonMultiContent.TYPE_TEXT,
+                         15, 10, 860, 40, 0,
+                         RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                         _t("No teams added yet."), 0x9E9E9E, 0x9E9E9E, None, None))
+            items.append(row)
+
         self["list"].setList(items)
+
+        # Schedule one deferred refresh so logos that finish downloading appear
+        if needs_logo_refresh and not self._logo_refresh_pending:
+            self._logo_refresh_pending = True
+            self._logo_refresh_timer.start(3000, True)
 
     def remove_selected(self):
         idx   = self["list"].getSelectedIndex()
         teams = global_sports_monitor.favorite_teams
-        if not teams or idx >= len(teams):
+        # Guard: idx can be None on some Enigma2 builds; also guard empty list
+        if idx is None or not teams or idx >= len(teams):
             return
         removed = teams.pop(idx)
         global_sports_monitor.save_config()
         self.refresh_list()
         self.session.open(
             MessageBox,
-            removed["team_name"] + " " + _t("Team removed from favorites"),
+            removed.get("team_name", "Team") + " " + _t("Team removed from favorites"),
             MessageBox.TYPE_INFO, timeout=2
         )
 
@@ -11018,23 +11175,40 @@ class LeagueSelector(Screen):
         self["list"].l.setFont(0, gFont("SimplySportFont", 28))
         self["list"].l.setItemHeight(50)
 
-        self["key_red"] = Label(_t("Cancel"))
-        self["key_green"] = Label(_t("Save") if mode == "multi" else "")
-        self["info"] = Label(_t("Press OK to Toggle") if mode == "multi" else _t("Press OK to Select"))
+        self["key_red"] = Label(_t("Cancel") if mode == "multi" else _t("Mark Favorites"))
+        self["key_green"] = Label(_t("Save") if mode == "multi" else _t("Save") if mode == "favorite" else "")
+        self["info"] = Label(_t("Press OK to Toggle") if mode == "multi" else (_t("RED: Heart  GREEN: Save Favs") if mode == "single" else _t("Press OK to Select")))
 
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
-            "cancel": self.cancel,
-            "red": self.cancel,
-            "green": self.save if mode == "multi" else self.dummy,
-            "ok": self.toggle,
-            "up": self["list"].up,
-            "down": self["list"].down,
-        }, -1)
+        # In single mode: RED toggles heart, GREEN saves hearts, OK selects league
+        # In multi  mode: RED cancels,       GREEN saves selection
+        # In favorite mode: RED cancels,      GREEN applies active selection
+        if mode == "single":
+            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+                "cancel": self.cancel,
+                "red": self.toggle_heart,
+                "green": self.save_favorites,
+                "ok": self.toggle,
+                "up": self["list"].up,
+                "down": self["list"].down,
+            }, -1)
+        else:
+            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+                "cancel": self.cancel,
+                "red": self.cancel,
+                "green": self.save if mode == "multi" else (self.apply_favorites if mode == "favorite" else self.dummy),
+                "ok": self.toggle,
+                "up": self["list"].up,
+                "down": self["list"].down,
+            }, -1)
 
         self.selections = []
         self.sorted_indices = []  # Track original indices after sorting
         self.league_logos = {}  # Cache for downloaded league logos
         self.logo_path = "/tmp/simplysports/league_logos/"
+        # Heart selections: parallel list to sorted_indices (True = favourite)
+        self.heart_selections = []
+        # Raw favorites data loaded from file (used in favorite mode)
+        self._favorites_data = []
         if not os.path.exists(self.logo_path):
             try: os.makedirs(self.logo_path)
             except: pass
@@ -11085,7 +11259,27 @@ class LeagueSelector(Screen):
         return False
 
     def load_list(self):
-        current_indices = global_sports_monitor.custom_league_indices
+        # Multi mode reads saved_custom_league_indices so the Custom Leagues editor
+        # always reflects the actual custom selection, even if Favorite Leagues has
+        # temporarily overwritten custom_league_indices for display.
+        current_indices = (
+            global_sports_monitor.saved_custom_league_indices
+            if self.mode == "multi"
+            else global_sports_monitor.custom_league_indices
+        )
+
+        # Load saved favourites from file for heart display
+        saved_fav_names = set()
+        self._favorites_data = []
+        try:
+            if os.path.exists(FAVORITE_LEAGUES_FILE):
+                with open(FAVORITE_LEAGUES_FILE, "r") as _f:
+                    _fdata = json.load(_f)
+                    self._favorites_data = _fdata.get("favorite_leagues", [])
+                    for _entry in self._favorites_data:
+                        saved_fav_names.add(_entry.get("name", ""))
+        except Exception:
+            pass
 
         # Create list of (original_idx, name, is_selected, priority, sport, is_women) for sorting
         league_items = []
@@ -11118,6 +11312,12 @@ class LeagueSelector(Screen):
         # Store sport info for group headers
         self._league_sports = [item[4] for item in league_items]
         self._league_women = [item[5] for item in league_items]
+
+        # Build heart_selections: True if this league is in saved favourites
+        self.heart_selections = []
+        for orig_idx in self.sorted_indices:
+            league_name = DATA_SOURCES[orig_idx][0]
+            self.heart_selections.append(league_name in saved_fav_names)
 
         self.download_league_logos()
         self.refresh_list()
@@ -11362,7 +11562,11 @@ class LeagueSelector(Screen):
             name = _league_name(DATA_SOURCES[original_idx][0])
             is_selected = self.selections[sorted_idx]
             logo_path = self.league_logos.get(sorted_idx, None)
-            list_content.append(SelectionListEntry(name, is_selected, logo_path, mode=self.mode))
+            # Determine heart state for single mode
+            heart = None
+            if self.mode == "single" and hasattr(self, 'heart_selections') and sorted_idx < len(self.heart_selections):
+                heart = self.heart_selections[sorted_idx]
+            list_content.append(SelectionListEntry(name, is_selected, logo_path, mode=self.mode, heart=heart))
             self._list_to_sorted.append(sorted_idx)
         self["list"].setList(list_content)
 
@@ -11401,9 +11605,281 @@ class LeagueSelector(Screen):
             global_sports_monitor.set_custom_leagues(new_indices)
             self.close(True)
 
+    # ------------------------------------------------------------------
+    # FAVOURITE LEAGUES — heart toggle & persistence
+    # ------------------------------------------------------------------
+
+    def toggle_heart(self):
+        """RED button in single mode: toggle the heart on the focused item."""
+        list_idx = self["list"].getSelectedIndex()
+        if list_idx is None: return
+        if not hasattr(self, '_list_to_sorted') or list_idx >= len(self._list_to_sorted):
+            return
+        sorted_idx = self._list_to_sorted[list_idx]
+        if sorted_idx < 0: return  # group header
+
+        self.heart_selections[sorted_idx] = not self.heart_selections[sorted_idx]
+        self.refresh_list()
+        try: self["list"].moveToIndex(list_idx)
+        except: pass
+
+    def save_favorites(self):
+        """GREEN button in single mode: persist all hearts to FAVORITE_LEAGUES_FILE."""
+        favorites = []
+        for sorted_idx, original_idx in enumerate(self.sorted_indices):
+            if self.heart_selections[sorted_idx]:
+                name = DATA_SOURCES[original_idx][0]
+                url  = DATA_SOURCES[original_idx][1]
+                favorites.append({"name": name, "url": url, "active": True})
+
+        try:
+            with open(FAVORITE_LEAGUES_FILE, "w") as ffile:
+                json.dump({"favorite_leagues": favorites}, ffile, indent=2)
+            self["info"].setText(_t("Favorites saved!"))
+        except Exception as e:
+            self["info"].setText("Error saving: " + str(e))
+
+    def apply_favorites(self):
+        """GREEN button in favorite mode: activate checked favourite leagues."""
+        # Update active flags in the JSON file and apply to monitor
+        active_names = set()
+        for sorted_idx, is_sel in enumerate(self.selections):
+            original_idx = self.sorted_indices[sorted_idx]
+            name = DATA_SOURCES[original_idx][0]
+            url  = DATA_SOURCES[original_idx][1]
+            if is_sel or url.startswith("euroleague://"):
+                active_names.add(name)
+
+        # Rebuild favorites list with updated active flags
+        try:
+            fav_list = []
+            if os.path.exists(FAVORITE_LEAGUES_FILE):
+                with open(FAVORITE_LEAGUES_FILE, "r") as ff:
+                    fav_list = json.load(ff).get("favorite_leagues", [])
+            for entry in fav_list:
+                entry["active"] = entry.get("locked", False) or (entry.get("name", "") in active_names)
+            with open(FAVORITE_LEAGUES_FILE, "w") as ff:
+                json.dump({"favorite_leagues": fav_list}, ff, indent=2)
+        except Exception:
+            pass
+
+        # Map active favourite names to DATA_SOURCES indices
+        new_indices = []
+        for sorted_idx, original_idx in enumerate(self.sorted_indices):
+            name = DATA_SOURCES[original_idx][0]
+            if name in active_names:
+                new_indices.append(original_idx)
+
+        if not new_indices:
+            self.session.open(MessageBox, "Please select at least one favourite league.", MessageBox.TYPE_ERROR)
+        else:
+            global_sports_monitor.set_custom_leagues(new_indices)
+            self.close(True)
+
+
 # ==============================================================================
-# RACING MINI BAR (Bottom) - Driver Standings Ticker
+# FAVORITE LEAGUE SELECTOR  — shows only leagues saved as favourites
 # ==============================================================================
+class FavoriteLeagueSelector(Screen):
+    """
+    Presents only the leagues saved in FAVORITE_LEAGUES_FILE.
+    The user checks / unchecks which favourites they want displayed on the
+    main screen (similar to LeagueSelector in multi mode).
+    EuroLeague Basketball, if present, is always locked active.
+    GREEN button applies the selection (calls set_custom_leagues).
+    """
+
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        theme = global_sports_monitor.theme_mode
+
+        if theme == "ucl":
+            self.skin = """
+            <screen position="center,center" size="950,800" title="Favourite Leagues" backgroundColor="#00000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,800" backgroundColor="#0e1e5b" zPosition="-1" />
+                <eLabel position="0,0" size="950,4" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="0,796" size="950,4" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="0,0" size="4,800" backgroundColor="#00ffff" zPosition="1" />
+                <eLabel position="946,0" size="4,800" backgroundColor="#00ffff" zPosition="1" />
+                <widget name="header" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" />
+                <eLabel position="30,75" size="890,2" backgroundColor="#182c82" />
+                <widget name="list" position="30,90" size="890,620" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="30,720" size="890,2" backgroundColor="#182c82" />
+                <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#00ffff" backgroundColor="#0e1e5b" transparent="1" halign="center" valign="center" />
+            </screen>
+            """
+        else:
+            self.skin = """
+            <screen position="center,center" size="950,800" title="Favourite Leagues" backgroundColor="#38003C" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
+                <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,796" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="946,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <widget name="header" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00FF85" backgroundColor="#38003C" transparent="1" halign="center" />
+                <eLabel position="30,75" size="890,2" backgroundColor="#505050" />
+                <widget name="list" position="30,90" size="890,620" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="30,720" size="890,2" backgroundColor="#505050" />
+                <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
+            </screen>
+            """
+
+        self["header"] = Label(_t("Select Favorite Leagues"))
+        self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
+        self["list"].l.setItemHeight(50)
+        self["key_red"] = Label(_t("Cancel"))
+        self["key_green"] = Label(_t("Save"))
+        self["info"] = Label(_t("Press OK to Toggle"))
+
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+            "cancel": self.close,
+            "red": self.close,
+            "green": self.apply_and_close,
+            "ok": self.toggle_item,
+            "up": self["list"].up,
+            "down": self["list"].down,
+        }, -1)
+
+        # Internal data: list of dicts from JSON + parallel selection state
+        self._fav_entries = []   # original dicts from JSON (ordered)
+        self._selections  = []   # bool: True = user wants this active
+        self._indices     = []   # DATA_SOURCES indices (or -1 if not found)
+
+        self.onLayoutFinish.append(self._load)
+
+    # ------------------------------------------------------------------ helpers
+
+    def _load(self):
+        """Load favourites from JSON and match them to DATA_SOURCES."""
+        self._fav_entries = []
+        try:
+            if os.path.exists(FAVORITE_LEAGUES_FILE):
+                with open(FAVORITE_LEAGUES_FILE, "r") as ff:
+                    self._fav_entries = json.load(ff).get("favorite_leagues", [])
+        except Exception:
+            pass
+
+        if not self._fav_entries:
+            self.session.open(
+                MessageBox,
+                _t("No favorites yet. Use Select Single League to mark hearts."),
+                MessageBox.TYPE_INFO, timeout=6
+            )
+            self.close(None)
+            return
+
+        # Build name -> DATA_SOURCES index map for fast lookup
+        name_to_idx = {}
+        for ds_idx, (ds_name, _ds_url) in enumerate(DATA_SOURCES):
+            name_to_idx[ds_name] = ds_idx
+
+        self._selections = []
+        self._indices    = []
+        # Use the previously-active favourite selection to pre-check entries
+        active_fav_set = set(
+            DATA_SOURCES[i][0]
+            for i in global_sports_monitor.favorite_league_indices
+            if i < len(DATA_SOURCES)
+        )
+        for entry in self._fav_entries:
+            name   = entry.get("name", "")
+            ds_idx = name_to_idx.get(name, -1)
+            self._indices.append(ds_idx)
+            # Pre-tick if it was active last time, otherwise use stored "active" flag
+            was_active = name in active_fav_set if active_fav_set else entry.get("active", True)
+            self._selections.append(was_active)
+
+        # Load logos from the shared cache (pre-downloaded by LeagueSelector)
+        self._logo_path = "/tmp/simplysports/league_logos/"
+        self._logos = {}  # ds_idx -> file path
+        for i, ds_idx in enumerate(self._indices):
+            if ds_idx < 0: continue
+            logo_file = "{}league_{}.png".format(self._logo_path, ds_idx)
+            if os.path.exists(logo_file) and os.path.getsize(logo_file) > 0:
+                self._logos[i] = logo_file
+
+        self._refresh_list()
+
+    def _refresh_list(self):
+        list_content = []
+        for i, entry in enumerate(self._fav_entries):
+            name   = _league_name(entry.get("name", ""))
+            is_sel = self._selections[i]
+            col_sel = 0x00FF85 if is_sel else 0x9E9E9E
+            txt_col = 0xFFFFFF if is_sel else 0xAAAAAA
+
+            check = "[x]" if is_sel else "[ ]"
+            row = [(name, is_sel)]
+            # Checkbox
+            row.append((eListboxPythonMultiContent.TYPE_TEXT, 15, 5, 40, 40, 0,
+                         RT_HALIGN_CENTER|RT_VALIGN_CENTER, check, col_sel, col_sel, None, None))
+
+            # Logo (Bug 5: reuse shared cache)
+            text_x = 70
+            logo_file = self._logos.get(i)
+            if logo_file:
+                try:
+                    pixmap = get_scaled_pixmap(logo_file, 35, 35)
+                    if pixmap:
+                        row.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 70, 7, 35, 35, pixmap))
+                        text_x = 115
+                except Exception:
+                    pass
+
+            # League name
+            row.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, 5, 750 - text_x, 40, 0,
+                         RT_HALIGN_LEFT|RT_VALIGN_CENTER, name, txt_col, txt_col, None, None))
+
+            # Heart on the right — always filled because every entry IS a favourite
+            row.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 5, 40, 40, 0,
+                         RT_HALIGN_CENTER|RT_VALIGN_CENTER, u"\u2665",
+                         0xCC2222, 0xCC2222, None, None))
+            list_content.append(row)
+
+        self["list"].setList(list_content)
+
+    def toggle_item(self):
+        idx = self["list"].getSelectedIndex()
+        if idx is None or idx >= len(self._fav_entries): return
+        self._selections[idx] = not self._selections[idx]
+        self._refresh_list()
+        try: self["list"].moveToIndex(idx)
+        except: pass
+
+    def apply_and_close(self):
+        """Save active flags back to JSON and activate via set_favorite_leagues (Bug 6)."""
+        active_names = set()
+        for i, entry in enumerate(self._fav_entries):
+            if self._selections[i]:
+                active_names.add(entry.get("name", ""))
+
+        # Persist updated active flags (no locked logic — Bug 4 fix)
+        try:
+            for entry in self._fav_entries:
+                entry["active"] = (entry.get("name", "") in active_names)
+            with open(FAVORITE_LEAGUES_FILE, "w") as ff:
+                json.dump({"favorite_leagues": self._fav_entries}, ff, indent=2)
+        except Exception:
+            pass
+
+        # Map to DATA_SOURCES indices
+        name_to_idx = {ds_name: ds_idx for ds_idx, (ds_name, _) in enumerate(DATA_SOURCES)}
+        new_indices = [name_to_idx[n] for n in active_names if n in name_to_idx]
+
+        if not new_indices:
+            self.session.open(MessageBox, "Please select at least one favourite league.",
+                              MessageBox.TYPE_ERROR)
+        else:
+            # Bug 6: use set_favorite_leagues, not set_custom_leagues
+            global_sports_monitor.set_favorite_leagues(new_indices)
+            self.close(True)
+
+
 class RacingMiniBar(Screen):
     """Bottom bar that shows driver standings for a selected racing event."""
     def __init__(self, session, event_data):
@@ -13330,7 +13806,8 @@ class SimpleSportsScreen(Screen):
 
     # ... (Keep Header, Filter, Download helpers unchanged) ...
     def update_header(self, count=None, count_live=0, count_fin=0, count_sch=0):
-        if self.monitor.is_custom_mode: self["league_title"].setText(_t("Custom League View"))
+        if self.monitor.is_favorite_mode: self["league_title"].setText(_t("Favorite League View"))
+        elif self.monitor.is_custom_mode: self["league_title"].setText(_t("Custom League View"))
         else:
             try: item = DATA_SOURCES[self.monitor.current_league_index]; self["league_title"].setText(_league_name(item[0]))
             except: pass
@@ -14127,7 +14604,6 @@ class SimpleSportsScreen(Screen):
             (_t("AI Mode: ") + ai_status, "ai_mode"),
             (_t("Notifications Test"), "notif_test"),
             (u"Language / \u0644\u063a\u0629: " + cur_lang_lbl, "change_language"),
-            (_t("My Favorite Teams"), "favorite_teams"),
         ]
         self.session.openWithCallback(self.settings_menu_callback, ChoiceBox, title=_t("Settings & Tools"), list=menu_options)
 
@@ -14152,11 +14628,6 @@ class SimpleSportsScreen(Screen):
                 self.open_goal_alert_selector()
             elif action == "notif_test": self.run_notification_test()
             elif action == "change_language": self.open_language_selector()
-            elif action == "favorite_teams":
-                self.session.openWithCallback(
-                    self.on_favorite_teams_closed,
-                    FavoriteTeamsManagerScreen
-                )
 
     def on_favorite_teams_closed(self, result=None):
         # No reload needed; pinning is applied on next refresh_ui call
@@ -14365,6 +14836,7 @@ class SimpleSportsScreen(Screen):
                 (_t("Provider: ") + provider_label, "provider"),
                 (_t("Language: ") + m.ai_language, "language"),
                 (_t("Frequency: Every {} min").format(m.ai_frequency), "frequency"),
+                (_t("WP Commentary: Every {} min").format(m.wp_commentary_interval), "wp_commentary"),
                 (_t("Test AI Now"), "test"),
             ]
         self.session.openWithCallback(self.ai_mode_callback, ChoiceBox, title=_t("AI Mode Settings"), list=options)
@@ -14412,6 +14884,11 @@ class SimpleSportsScreen(Screen):
             title_str = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u062a\u0643\u0631\u0627\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a" if PLUGIN_LANGUAGE == "ar" else "Select AI Frequency"
             self.session.openWithCallback(self.ai_freq_selected, ChoiceBox,
                 title=title_str, list=options)
+        elif action == "wp_commentary":
+            options = [((u"\u0643\u0644 {} \u062f\u0642\u064a\u0642\u0629" if PLUGIN_LANGUAGE == "ar" else "Every {} minutes").format(f), f) for f in [2, 4, 5, 10, 15, 30]]
+            title_str = u"\u062a\u0643\u0631\u0627\u0631 \u062a\u0639\u0644\u064a\u0642 \u062d\u0641\u0644\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629" if PLUGIN_LANGUAGE == "ar" else "Watch Party Commentary Interval"
+            self.session.openWithCallback(self.ai_wp_commentary_selected, ChoiceBox,
+                title=title_str, list=options)
         elif action == "test":
             m.test_ai_now()
 
@@ -14448,6 +14925,13 @@ class SimpleSportsScreen(Screen):
             self.monitor.save_config()
             self.monitor._start_ai_timer()
             msg = (u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u062a\u0643\u0631\u0627\u0631: \u0643\u0644 {} \u062f\u0642\u064a\u0642\u0629".format(selection[1])) if PLUGIN_LANGUAGE == "ar" else ("Frequency saved: Every {} min".format(selection[1]))
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
+
+    def ai_wp_commentary_selected(self, selection):
+        if selection:
+            self.monitor.wp_commentary_interval = selection[1]
+            self.monitor.save_config()
+            msg = (u"\u062a\u0645 \u062d\u0641\u0638: \u062a\u0639\u0644\u064a\u0642 \u062d\u0641\u0644\u0629 \u0643\u0644 {} \u062f\u0642".format(selection[1])) if PLUGIN_LANGUAGE == "ar" else ("Watch Party commentary: every {} min".format(selection[1]))
             self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
     def open_voter_name_input(self):
@@ -14513,6 +14997,8 @@ class SimpleSportsScreen(Screen):
         options = [
             (_t("Select Single League"), "single"),
             (_t("Custom Leagues (View/Edit)"), "custom_leagues"),
+            (_t("Favorite Leagues"), "favorite_leagues"),
+            (_t("My Favorite Teams"), "favorite_teams"),
         ]
         self.session.openWithCallback(self.league_menu_callback, ChoiceBox, title=_t("League Options"), list=options)
 
@@ -14520,6 +15006,9 @@ class SimpleSportsScreen(Screen):
         if selection:
             if selection[1] == "single": self.open_single_league_select()
             elif selection[1] == "custom_leagues": self.session.openWithCallback(self.on_selector_closed, LeagueSelector)
+            elif selection[1] == "favorite_leagues": self.session.openWithCallback(self.on_selector_closed, FavoriteLeagueSelector)
+            elif selection[1] == "favorite_teams":
+                self.session.openWithCallback(self.on_favorite_teams_closed, FavoriteTeamsManagerScreen)
 
     def on_selector_closed(self, result=None):
         if result: self.update_header(); self.fetch_data()
@@ -17409,6 +17898,12 @@ class WatchPartyScreen(Screen):
 
             u'<eLabel position="0,146" size="1920,2" backgroundColor="#00003399" zPosition="5" />'
 
+            # ── AI Commentary Overlay (shown when reaction zone is quiet) ──────
+            u'<widget name="lbl_ai_commentary" position="0,5" size="1920,70"'
+            u' font="Regular;33" foregroundColor="#00FFE880"'
+            u' backgroundColor="#EE001428"'
+            u' halign="center" valign="center" zPosition="9" />'
+
             u'</screen>'
         ).format()
 
@@ -17440,6 +17935,7 @@ class WatchPartyScreen(Screen):
         self["lbl_cheer_a"] = Label(u"")
         self["lbl_feed_info"] = Label(u"")
         self["lbl_status"] = Label(u"")
+        self["lbl_ai_commentary"] = Label(u"")
 
         for zone in ("h", "n", "a"):
             for s in range(_WP_SLOTS):
@@ -17486,6 +17982,20 @@ class WatchPartyScreen(Screen):
         # Resets to 0 (and interval back to 5s) the moment any reaction arrives.
         self._quiet_polls = 0
 
+        # ── AI Commentary ─────────────────────────────────────────────────
+        # Fetches a short AI commentary line every wp_commentary_interval minutes
+        # and shows it as a full-width overlay when the reaction zone is quiet.
+        self._pending_commentary    = None   # Text ready to display
+        self._commentary_in_flight  = False  # Prevents concurrent API calls
+        self._last_reaction_ts      = 0      # Epoch of last _render_local_reaction
+        self._commentary_visible    = False  # True while overlay is on screen
+        self._ai_commentary_timer   = eTimer()
+        safe_connect(self._ai_commentary_timer, self._on_commentary_timer)
+        self._commentary_check_timer = eTimer()
+        safe_connect(self._commentary_check_timer, self._try_show_commentary)
+        self._commentary_hide_timer  = eTimer()
+        safe_connect(self._commentary_hide_timer, self._hide_ai_commentary)
+
         # ── Step 3: Name-fetch guard ──────────────────────────────────────
         # UIDs for which a background name-fetch is already in-flight,
         # preventing duplicate requests when the same unknown uid appears
@@ -17517,6 +18027,10 @@ class WatchPartyScreen(Screen):
         self["lbl_tooltip_n"].hide()
         self["lbl_tooltip_a"].hide()
         self["lbl_feed_info"].hide()
+        try:
+            self["lbl_ai_commentary"].hide()
+        except Exception:
+            pass
 
         # Show one-time team-selection dialog if no stored choice for this match
         if not self._load_cheer_choice():
@@ -17529,6 +18043,13 @@ class WatchPartyScreen(Screen):
         self._poll_timer.start(5000, False)
         self._poll_firebase()
         self._tick_timer.start(1000, False)
+
+        # AI commentary — start repeating timer and schedule first fetch after 30 s
+        mon = global_sports_monitor
+        if mon and mon.ai_enabled and mon.ai_api_key:
+            interval_ms = int(getattr(mon, 'wp_commentary_interval', 4)) * 60 * 1000
+            self._ai_commentary_timer.start(interval_ms, False)
+            reactor.callLater(30.0, self._on_commentary_timer)
 
         # Search SatelliWeb for a feed matching this match (updates neutral zone label)
         self._search_match_feed()
@@ -17742,6 +18263,21 @@ class WatchPartyScreen(Screen):
         try:
             if self._tooltip_timer.isActive():
                 self._tooltip_timer.stop()
+        except Exception:
+            pass
+        try:
+            if self._ai_commentary_timer.isActive():
+                self._ai_commentary_timer.stop()
+        except Exception:
+            pass
+        try:
+            if self._commentary_check_timer.isActive():
+                self._commentary_check_timer.stop()
+        except Exception:
+            pass
+        try:
+            if self._commentary_hide_timer.isActive():
+                self._commentary_hide_timer.stop()
         except Exception:
             pass
         # Stop all pending hide-timers
@@ -17998,6 +18534,27 @@ class WatchPartyScreen(Screen):
         if zone not in self._zone_occupied:
             return
 
+        # ── AI Commentary: track last activity and interrupt overlay if showing ──
+        self._last_reaction_ts = int(time.time())
+        if getattr(self, '_commentary_visible', False):
+            try:
+                if self._commentary_hide_timer.isActive():
+                    self._commentary_hide_timer.stop()
+            except Exception:
+                pass
+            self._commentary_visible = False
+            try:
+                self["lbl_ai_commentary"].setText(u"")
+                self["lbl_ai_commentary"].hide()
+            except Exception:
+                pass
+            # Re-arm check timer so commentary can re-appear after a quiet period
+            try:
+                if self._pending_commentary and not self._commentary_check_timer.isActive():
+                    self._commentary_check_timer.start(1000, False)
+            except Exception:
+                pass
+
         slot = self._find_free_slot(zone)
         occupied = self._zone_occupied[zone]
 
@@ -18061,6 +18618,202 @@ class WatchPartyScreen(Screen):
         safe_connect(hide_timer, _hide_slot)
         hide_timer.start(45000, True)  # singleShot
         self._hide_timers.append((hide_timer, zone, slot))
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # AI Commentary — periodic insight overlay
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _on_commentary_timer(self):
+        """Fires every wp_commentary_interval minutes; kicks off a background AI fetch."""
+        if self._poll_active is None:          # Screen is closing — abort
+            return
+        mon = global_sports_monitor
+        if not mon or not mon.ai_enabled or not mon.ai_api_key:
+            return
+        if self._commentary_in_flight:         # Previous call still running
+            return
+        self._commentary_in_flight = True
+        prompt = self._build_wp_commentary_prompt()
+        call_ai_api_threaded(mon.ai_api_key, mon.ai_provider, prompt, self._on_commentary_result)
+
+    def _build_wp_commentary_prompt(self):
+        """Build a focused, match-specific commentary prompt enriched with live stats and news."""
+        mon  = global_sports_monitor
+        snap = mon.match_snapshots.get(self._raw_match_id) if mon else None
+        lang_inst = get_ai_language_instruction(mon.ai_language if mon else "English")
+
+        # ── Match context from snapshot ───────────────────────────────────
+        if snap:
+            state      = snap.get('state', 'pre')
+            score      = snap.get('score_str', 'VS')
+            clock      = snap.get('clock', '') or snap.get('time_str', '')
+            league     = snap.get('league_name', '')
+            possession = snap.get('possession', '')
+            shots_h    = snap.get('shots_h', '')
+            shots_a    = snap.get('shots_a', '')
+            goals_h    = snap.get('goals_h', [])
+            goals_a    = snap.get('goals_a', [])
+            h_form     = snap.get('h_form', '')
+            a_form     = snap.get('a_form', '')
+
+            if state == 'in':
+                match_line = u"LIVE: {} vs {} | Score: {} | Clock: {} | {}".format(
+                    self.h_name, self.a_name, score, clock, league)
+            elif state == 'pre':
+                match_line = u"UPCOMING: {} vs {} | Kick-off: {} | {}".format(
+                    self.h_name, self.a_name, clock, league)
+            else:
+                match_line = u"FINISHED: {} vs {} | {} | {}".format(
+                    self.h_name, self.a_name, score, league)
+
+            stats_parts = []
+            if possession:
+                stats_parts.append(u"Possession: {}".format(possession))
+            if shots_h or shots_a:
+                stats_parts.append(u"Shots: {} {}, {} {}".format(
+                    self.h_name, shots_h or 'N/A', self.a_name, shots_a or 'N/A'))
+            if goals_h:
+                try:
+                    stats_parts.append(u"{} goals: {}".format(
+                        self.h_name, u", ".join(unicode(g) if hasattr(__builtins__, 'unicode') else str(g) for g in goals_h[:5])))
+                except Exception:
+                    pass
+            if goals_a:
+                try:
+                    stats_parts.append(u"{} goals: {}".format(
+                        self.a_name, u", ".join(unicode(g) if hasattr(__builtins__, 'unicode') else str(g) for g in goals_a[:5])))
+                except Exception:
+                    pass
+            if h_form:
+                stats_parts.append(u"{} form: {}".format(self.h_name, h_form))
+            if a_form:
+                stats_parts.append(u"{} form: {}".format(self.a_name, a_form))
+
+            stats_block = u"\n".join(stats_parts) if stats_parts else u"No detailed stats available"
+        else:
+            match_line  = u"{} vs {} (match data loading)".format(self.h_name, self.a_name)
+            stats_block = u"No stats available yet"
+
+        # ── ESPN news headlines specific to this match ────────────────────
+        news_block = u""
+        try:
+            headlines = fetch_sports_headlines(6)
+            if headlines:
+                h_low  = self.h_name.lower()
+                a_low  = self.a_name.lower()
+                relevant = [h for h in headlines
+                            if h_low.split()[0] in h.lower() or a_low.split()[0] in h.lower()]
+                all_hl   = (relevant or headlines)[:4]
+                news_block = u"\n".join(u"- " + h for h in all_hl)
+        except Exception:
+            pass
+
+        prompt = (
+            u"You are a live sports broadcaster providing short Watch Party commentary.\n"
+            u"Generate exactly 1 short commentary line (max 20 words) about this match.\n\n"
+            u"RULES:\n"
+            u"1. Base the line on the MATCH DATA and LIVE STATS provided.\n"
+            u"2. You may also use your own knowledge for head-to-head history, "
+            u"team records, player trivia, or interesting facts.\n"
+            u"3. Reference real names and facts only — never invent scores or events.\n"
+            u"4. {lang_inst}.\n"
+            u"5. No markdown, no asterisks, no emojis, no numbering.\n\n"
+            u"=== MATCH ===\n{match_line}\n\n"
+            u"=== LIVE STATS ===\n{stats_block}"
+        ).format(lang_inst=lang_inst, match_line=match_line, stats_block=stats_block)
+
+        if news_block:
+            prompt += u"\n\n=== RELATED NEWS ===\n" + news_block
+
+        return prompt
+
+    def _on_commentary_result(self, text):
+        """Called on the main thread with the AI result text (or None on silent fail)."""
+        self._commentary_in_flight = False
+        if self._poll_active is None:           # Screen already closed
+            return
+        if not text or str(text).startswith("ERROR:"):
+            return                              # Silent fail per spec
+        import re
+        clean = re.sub(r'\s+', u' ', text.strip())
+        # Strip any AI-generated markdown artefacts
+        clean = re.sub(r'[*_#`]', u'', clean).strip()
+        if not clean:
+            return
+        self._pending_commentary = clean
+        self._try_show_commentary()
+
+    def _has_active_reactions(self):
+        """Returns True if any reaction slot is currently occupied in any zone."""
+        try:
+            return any(bool(self._zone_occupied[z]) for z in ('h', 'n', 'a'))
+        except Exception:
+            return False
+
+    def _try_show_commentary(self):
+        """Checks whether the reaction zone is quiet; shows commentary when it is."""
+        if self._poll_active is None:
+            try:
+                if self._commentary_check_timer.isActive():
+                    self._commentary_check_timer.stop()
+            except Exception:
+                pass
+            return
+        if not self._pending_commentary:
+            try:
+                if self._commentary_check_timer.isActive():
+                    self._commentary_check_timer.stop()
+            except Exception:
+                pass
+            return
+        if self._commentary_visible:
+            return
+
+        now       = int(time.time())
+        quiet_gap = (now - self._last_reaction_ts) if self._last_reaction_ts else 999
+
+        if self._has_active_reactions() or quiet_gap < 5:
+            # Zone still busy — keep the 1-second check loop running
+            try:
+                if not self._commentary_check_timer.isActive():
+                    self._commentary_check_timer.start(1000, False)
+            except Exception:
+                pass
+            return
+
+        # Zone is quiet — display commentary and clear pending slot
+        self._show_ai_commentary(self._pending_commentary)
+        self._pending_commentary = None
+        try:
+            if self._commentary_check_timer.isActive():
+                self._commentary_check_timer.stop()
+        except Exception:
+            pass
+
+    def _show_ai_commentary(self, text):
+        """Display the commentary overlay; auto-hides after 8 seconds."""
+        try:
+            self["lbl_ai_commentary"].setText(text)
+            self["lbl_ai_commentary"].show()
+            self._commentary_visible = True
+            try:
+                if self._commentary_hide_timer.isActive():
+                    self._commentary_hide_timer.stop()
+            except Exception:
+                pass
+            self._commentary_hide_timer.start(8000, True)  # singleShot
+            log_dbg(u"[WatchParty] AI commentary shown: {}".format(text[:80]))
+        except Exception:
+            self._commentary_visible = False
+
+    def _hide_ai_commentary(self):
+        """Hide the commentary overlay (called by hide-timer or reaction interrupt)."""
+        self._commentary_visible = False
+        try:
+            self["lbl_ai_commentary"].setText(u"")
+            self["lbl_ai_commentary"].hide()
+        except Exception:
+            pass
 
     # ─────────────────────────────────────────────────────────────────────────
     # Firebase Write — Rule 3 (60-second throttle, implemented via timer above)
