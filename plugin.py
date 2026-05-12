@@ -11754,6 +11754,15 @@ class FavoriteLeagueSelector(Screen):
 
     # ------------------------------------------------------------------ helpers
 
+    def _deferred_close(self):
+        """Called by timer after layout is complete — safe to close now."""
+        self.session.open(
+            MessageBox,
+            _t("No favorites yet. Use Select Single League to mark hearts."),
+            MessageBox.TYPE_INFO, timeout=6
+        )
+        self.close(None)
+
     def _load(self):
         """Load favourites from JSON and match them to DATA_SOURCES."""
         self._fav_entries = []
@@ -11765,12 +11774,11 @@ class FavoriteLeagueSelector(Screen):
             pass
 
         if not self._fav_entries:
-            self.session.open(
-                MessageBox,
-                _t("No favorites yet. Use Select Single League to mark hearts."),
-                MessageBox.TYPE_INFO, timeout=6
-            )
-            self.close(None)
+            # Defer both MessageBox and close — neither session.open() nor
+            # self.close() may be called during onLayoutFinish/applySkin.
+            self._close_timer = eTimer()
+            safe_connect(self._close_timer, self._deferred_close)
+            self._close_timer.start(50, True)
             return
 
         # Build name -> DATA_SOURCES index map for fast lookup
