@@ -2174,6 +2174,7 @@ def safe_connect(timer_obj, func):
 GLOBAL_PIXMAP_CACHE = collections.OrderedDict()
 GLOBAL_PIXMAP_CACHE_LIMIT = 200
 GLOBAL_VALID_LOGO_PATHS = set()
+GLOBAL_EPICLOAD_DECODERS = []
 
 
 def get_scaled_pixmap(path, width, height):
@@ -2189,23 +2190,32 @@ def get_scaled_pixmap(path, width, height):
     try:
         from enigma import ePicLoad
         sc = ePicLoad()
-        sc.setPara((width, height, 1, 1, 0, 1, "#ff000000"))
+        global GLOBAL_EPICLOAD_DECODERS
+        GLOBAL_EPICLOAD_DECODERS.append(sc)
+        if len(GLOBAL_EPICLOAD_DECODERS) > 30:
+            GLOBAL_EPICLOAD_DECODERS.pop(0)
+
+        # 6th param = 0 (disable background padding color to force transparent scaling)
+        sc.setPara((width, height, 1, 1, 0, 0, "#00000000"))
         if sc.startDecode(path, 0, 0, False) == 0:
             ptr = sc.getData()
-            if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
-                GLOBAL_PIXMAP_CACHE.popitem(last=False)
-            GLOBAL_PIXMAP_CACHE[cache_key] = ptr
-            return ptr
+            if ptr:
+                if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
+                    GLOBAL_PIXMAP_CACHE.popitem(last=False)
+                GLOBAL_PIXMAP_CACHE[cache_key] = ptr
+                return ptr
     except: pass
 
     # Fallback to standard LoadPixmap if ePicLoad fails
     if LoadPixmap:
-        ptr = LoadPixmap(cached=True, path=path)
-        if ptr:
-            if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
-                GLOBAL_PIXMAP_CACHE.popitem(last=False)
-            GLOBAL_PIXMAP_CACHE[cache_key] = ptr
-        return ptr
+        try:
+            ptr = LoadPixmap(cached=True, path=path)
+            if ptr:
+                if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
+                    GLOBAL_PIXMAP_CACHE.popitem(last=False)
+                GLOBAL_PIXMAP_CACHE[cache_key] = ptr
+                return ptr
+        except: pass
     return None
 
 
@@ -13322,7 +13332,7 @@ class TeamRostersScreen(Screen):
             self._render_team(fakes, side)
             self._render_subs([], side)
         if self.image_queue:
-            self.image_timer.start(20, False)
+            self.image_timer.start(120, False)
 
     def _on_data(self, body):
         try:
@@ -13354,7 +13364,7 @@ class TeamRostersScreen(Screen):
         self._render_subs(h_s, "home")
         self._render_subs(a_s, "away")
         if self.image_queue:
-            self.image_timer.start(20, False)
+            self.image_timer.start(120, False)
 
     def _parse_lineups(self, data):
         h_id = ""; a_id = ""
