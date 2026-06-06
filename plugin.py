@@ -30,6 +30,7 @@ from Components.Label import Label
 from Components.ActionMap import ActionMap
 from Components.MenuList import MenuList
 from Tools.Directories import resolveFilename, SCOPE_PLUGINS
+PLAYERS_IMG_DIR = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/WorldCup_players_Images/")
 from Components.Pixmap import Pixmap
 from Tools.LoadPixmap import LoadPixmap
 from skin import parseColor
@@ -111,7 +112,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.0"
+VERSION = "6.1"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -119,9 +120,11 @@ VERSION = "6.0"
 PLUGIN_LANGUAGE = "en"   # "en" or "ar" — loaded from config at start-up
 
 TRANSLATIONS = {
+    "< > / << >> Browse Days":    {"ar": u"\u062a\u0635\u0641\u062d \u0627\u0644\u0623\u064a\u0627\u0645 < > / << >>"},
     # ── Main screen static labels ──────────────────────────────────────────────
     "SIMPLY SPORTS":              {"ar": u"\u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633"},
     "MENU: Settings & Tools":     {"ar": u"\u0627\u0644\u0642\u0627\u0626\u0645\u0629: \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a"},
+    "MENU: Settings  |  1-8: Leagues  |  9: Custom  |  0: Lineups": {"ar": u"\u0627\u0644\u0642\u0627\u0626\u0645\u0629: \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a  |  1-8: \u0627\u0644\u0628\u0637\u0648\u0644\u0627\u062a  |  9: \u0645\u062e\u0635\u0635  |  0: \u0627\u0644\u062a\u0634\u0643\u064a\u0644\u0629"},
     "LOADING...":                 {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644..."},
     "Loading...":                 {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644..."},
     "STATUS":                     {"ar": u"\u0627\u0644\u062d\u0627\u0644\u0629"},
@@ -155,6 +158,7 @@ TRANSLATIONS = {
     "Today's Matches":            {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
     "Tomorrow's Matches":         {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u063a\u062f"},
     "All Matches":                {"ar": u"\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    "Matches":                    {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
     "Custom League View":         {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
     "Favorite League View":       {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     # ── Header breakdown labels ───────────────────────────────────────────────
@@ -163,6 +167,27 @@ TRANSLATIONS = {
     "Sch":                        {"ar": u"\u0642\u0627\u062f\u0645\u0629"},
     # ── Status / empty-state messages ─────────────────────────────────────────
     "No Matches Found":           {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    # ── Days of the Week ────────────────────────────────────────────────────────
+    "Monday":                     {"ar": u"\u0627\u0644\u0627\u062b\u0646\u064a\u0646"},
+    "Tuesday":                    {"ar": u"\u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621"},
+    "Wednesday":                  {"ar": u"\u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621"},
+    "Thursday":                   {"ar": u"\u0627\u0644\u062e\u0645\u064a\u0633"},
+    "Friday":                     {"ar": u"\u0627\u0644\u062c\u0645\u0639\u0629"},
+    "Saturday":                   {"ar": u"\u0627\u0644\u0633\u0628\u062a"},
+    "Sunday":                     {"ar": u"\u0627\u0644\u0623\u062d\u062f"},
+    # ── Months of the Year ──────────────────────────────────────────────────────
+    "January":                    {"ar": u"\u064a\u0646\u0627\u064a\u0631"},
+    "February":                   {"ar": u"\u0641\u0628\u0631\u0627\u064a\u0631"},
+    "March":                      {"ar": u"\u0645\u0627\u0631\u0633"},
+    "April":                      {"ar": u"\u0623\u0628\u0631\u064a\u0644"},
+    "May":                        {"ar": u"\u0645\u0627\u064a\u0648"},
+    "June":                       {"ar": u"\u064a\u0648\u0646\u064a\u0648"},
+    "July":                       {"ar": u"\u064a\u0648\u0644\u064a\u0648"},
+    "August":                     {"ar": u"\u0623\u063a\u0633\u0637\u0633"},
+    "September":                  {"ar": u"\u0633\u0628\u062a\u0645\u0628\u0631"},
+    "October":                    {"ar": u"\u0623\u0643\u062a\u0648\u0628\u0631"},
+    "November":                   {"ar": u"\u0646\u0648\u0641\u0645\u0628\u0631"},
+    "December":                   {"ar": u"\u062f\u064a\u0633\u0645\u0628\u0631"},
     "Check Filters":              {"ar": u"\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0641\u0644\u0627\u062a\u0631"},
     "Updating Data...":           {"ar": u"\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a..."},
     "Please Wait":                {"ar": u"\u064a\u064f\u0631\u062c\u0649 \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631"},
@@ -373,7 +398,7 @@ TRANSLATIONS = {
     "Defend":                         {"ar": u"\u062f\u0641\u0627\u0639"},
     "Unlucky":                        {"ar": u"\u062d\u0638 \u0633\u064a\u0621"},
     "Match":                          {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629"},
-    "Save":                           {"ar": u"\u0625\u0646\u0642\u0627\u0630"},
+    "Save_wp":                        {"ar": u"\u0625\u0646\u0642\u0627\u0630"},
     "Intense":                        {"ar": u"\u062d\u0645\u0627\u0633"},
     "Boring":                         {"ar": u"\u0645\u0644\u0644"},
     "Yellow":                         {"ar": u"\u0623\u0635\u0641\u0631"},
@@ -592,6 +617,7 @@ LEAGUE_NAMES_AR = {
     u"Malaysian Super League":                        u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0627\u0644\u064a\u0632\u064a",
     u"Indonesian Super League":                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062f\u0648\u0646\u064a\u0633\u064a",
     u"Singaporean Premier League":                    u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0633\u0646\u063a\u0627\u0641\u0648\u0631\u064a",
+    u"Thailand Premier":                           u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u062a\u0627\u064a\u0644\u0627\u0646\u062f\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
     u"AFC Champions League Elite":                    u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0622\u0633\u064a\u0627 \u0627\u0644\u0646\u062e\u0628\u0629",
     u"AFC Champions League Two":                      u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0622\u0633\u064a\u0627 2",
     u"AFC Asian Cup":                                 u"\u0643\u0623\u0633 \u0622\u0633\u064a\u0627",
@@ -1140,7 +1166,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.0"  # Update version to 6.0 - New Gold World Cup theme with multiple backgrounds, Mini bars now show the cities where the match held beside the league name, new point system for the World Cup match prediction.
+CURRENT_VERSION = "6.1"  # Update version to 6.1 - New Team roster screen with icons, international teams' names translated to Arabic, and a new +-7 <<>> days selection feature, updated game info screen, Broadcast channel screen.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1634,6 +1660,8 @@ def build_match_snapshot(event):
     state       = s_type.get('state', 'pre')
 
     # --- Status Flags ---
+    is_canceled   = (s_type.get('name') in ['STATUS_CANCELED', 'STATUS_CANCELLED', 'STATUS_ABANDONED'] or
+                     any(x in s_type.get('description', '').lower() for x in ['canceled', 'cancelled', 'abandoned', 'forfeit']))
     is_postponed  = (s_type.get('name') == 'STATUS_POSTPONED' or
                      'postponed' in s_type.get('description', '').lower())
     is_suspended  = (s_type.get('name') in ['STATUS_SUSPENDED', 'STATUS_DELAYED'] or
@@ -1642,7 +1670,8 @@ def build_match_snapshot(event):
                      'delay'     in s_type.get('description', '').lower())
 
     # --- Status Short Label (Single Definition) ---
-    if is_postponed:              status_short = 'PPD'
+    if is_canceled:               status_short = 'CAN'
+    elif is_postponed:            status_short = 'PPD'
     elif is_suspended:            status_short = 'SUSP'
     elif state == 'in':           status_short = 'LIVE'
     elif state == 'post':         status_short = 'FIN'
@@ -1775,7 +1804,9 @@ def build_match_snapshot(event):
         except: a_score_int = 0
 
     # --- Score Display String (Single Definition) ---
-    if is_postponed:
+    if is_canceled:
+        score_str = 'C - C'
+    elif is_postponed:
         score_str = 'P - P'
     elif state in ('in', 'post') or is_suspended:
         score_str = '{} - {}'.format(h_score_str, a_score_str)
@@ -2158,7 +2189,7 @@ def get_scaled_pixmap(path, width, height):
     try:
         from enigma import ePicLoad
         sc = ePicLoad()
-        sc.setPara((width, height, 1, 1, 0, 1, "#00000000"))
+        sc.setPara((width, height, 1, 1, 0, 1, "#ff000000"))
         if sc.startDecode(path, 0, 0, False) == 0:
             ptr = sc.getData()
             if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
@@ -3081,7 +3112,8 @@ class SportsMonitor:
         self.last_periods = {}       # Track halftime/period state per match_id
         self.last_details_seen = {}  # Track VAR/disallowed counts per match_id
         self.notified_events = set()  # Track fired notifications: {(match_id, event_type)}
-        self.filter_mode = 1
+        self.filter_mode = 2
+        self.ch_day_offset = 0   # 0 = today; +N = N days ahead; -N = N days ago
         self.theme_mode = "default"
         self.transparency = "59"
 
@@ -3129,6 +3161,8 @@ class SportsMonitor:
         self.batch_is_active = False
         self.batch_timer = eTimer()
         safe_connect(self.batch_timer, self.finalize_batch)
+        self.processing_queue = []
+        self.processing_active = False
 
         self.logo_cache = LogoCacheManager()
         self.last_update = 0
@@ -3627,7 +3661,7 @@ class SportsMonitor:
         else: self.defaults()
 
     def defaults(self):
-        self.filter_mode = 1; self.theme_mode = "default"; self.transparency = "59"
+        self.filter_mode = 2; self.theme_mode = "default"; self.transparency = "59"
         self.discovery_mode = 0; self.reminders = []; self.menu_section = "all"
         self.show_in_menu = True; self.minibar_color_mode = "default"
         self.voter_name = "Anonymous"
@@ -3983,10 +4017,120 @@ class SportsMonitor:
         else: self.theme_mode = "default"
         self.save_config(); return self.theme_mode
     def toggle_filter(self):
-        old = self.filter_mode
-        self.filter_mode = (self.filter_mode + 1) % 5
-        log_diag("MONITOR.toggle_filter: {} -> {} (0=Yesterday,1=Live,2=Today,3=Tomorrow,4=All)".format(old, self.filter_mode))
+        if self.filter_mode == 1:
+            self.filter_mode = 2
+        else:
+            self.filter_mode = 1
+        log_diag("MONITOR.toggle_filter: switched to {}".format(self.filter_mode))
         self.save_config(); return self.filter_mode
+
+    def _build_dated_url(self, url):
+        """
+        Append ?dates=YYYYMMDD to an ESPN scoreboard URL when ch_day_offset != 0.
+        - offset=0  → return url unchanged  (ESPN returns its default "current" window)
+        - offset=+N → append today + N days
+        - offset=-N → append today - N days
+        EuroLeague URLs (euroleague://) are passed through unchanged.
+        """
+        if self.ch_day_offset == 0 or url.startswith('euroleague://'):
+            return url
+        target   = datetime.date.today() + datetime.timedelta(days=self.ch_day_offset)
+        date_str = target.strftime('%Y%m%d')   # ESPN format: YYYYMMDD, no dashes
+        sep      = '&' if '?' in url else '?'
+        return url + sep + 'dates=' + date_str
+
+    def navigate_day(self, delta):
+        """
+        Shift ch_day_offset by delta (+1 = CH+, -1 = CH-).
+        Clamps to [-7, +7]. Clears the event cache so a fresh fetch goes out
+        immediately for the target date.
+        Returns the new offset value (used by the screen for the hint label).
+        """
+        MAX_OFFSET = 7
+        self.ch_day_offset = max(-MAX_OFFSET, min(MAX_OFFSET,
+                                                  self.ch_day_offset + delta))
+        # Flush stale cache — we're looking at a different day now
+        self.cached_events    = []
+        self.event_map        = {}
+        self.match_snapshots  = {}
+        self.status_message   = "Loading..."
+        self._trigger_callbacks(False)      # show loading state immediately
+        self.check_goals(from_ui=True)      # fire the dated request right away
+        return self.ch_day_offset
+
+    def cancel_active_requests(self):
+        """Cancel all in-flight Twisted Deferred requests."""
+        if hasattr(self, 'active_deferreds') and self.active_deferreds:
+            log_dbg("[SportsMonitor] Cancelling {} in-flight requests".format(len(self.active_deferreds)))
+            for d in list(self.active_deferreds):
+                try:
+                    if not d.called:
+                        d.cancel()
+                except:
+                    pass
+            self.active_deferreds = []
+        self.active_requests.clear()
+        self.batch_is_active = False
+        if self.batch_timer.isActive():
+            self.batch_timer.stop()
+
+        self.processing_queue = []
+        if hasattr(self, 'lazy_processor') and self.lazy_processor and self.lazy_processor.active():
+            try:
+                self.lazy_processor.cancel()
+            except:
+                pass
+            self.lazy_processor = None
+        self.processing_active = False
+
+    def _on_single_request_finished(self, result, url, d):
+        self.active_requests.discard(url)
+        if hasattr(self, 'active_deferreds') and d in self.active_deferreds:
+            self.active_deferreds.remove(d)
+        return result
+
+    def _on_batch_request_finished(self, result, url, d):
+        self.active_requests.discard(url)
+        if hasattr(self, 'active_deferreds') and d in self.active_deferreds:
+            self.active_deferreds.remove(d)
+        return result
+
+    def _fire_batch_request(self, name, url):
+        # Guard: if the batch is no longer active (cancelled because user moved to another day), abort!
+        if not self.batch_is_active:
+            return
+
+        # EuroLeague uses its own non-ESPN API; route through dedicated fetcher
+        if url.startswith("euroleague://"):
+            sentinel = "euroleague://api"
+            if sentinel not in self.active_requests:
+                self._fetch_euroleague_data(name)
+            else:
+                self.batch_remaining -= 1
+            return
+
+        fetch_url = self._build_dated_url(url)
+        self.active_requests.add(url)
+        try:
+            d = self.agent.request(b'GET', fetch_url.encode('utf-8'))
+        except Exception as e:
+            log_dbg("[SportsMonitor] Request failed immediately: " + str(e))
+            self.batch_remaining -= 1
+            return
+
+        if not hasattr(self, 'active_deferreds'):
+            self.active_deferreds = []
+        self.active_deferreds.append(d)
+
+        d.addCallback(readBody)
+        d.addCallback(self.collect_batch_response_incremental, name, url)
+        d.addErrback(self.collect_batch_error, url)
+        d.addBoth(self._on_batch_request_finished, url, d)
+
+        # 10-second per-request timeout
+        timeout_call = reactor.callLater(10, d.cancel)
+        d.addBoth(lambda x, tc=timeout_call: tc.cancel() if tc.active() else None)
+
     def set_discovery_mode(self, mode):
         """Set discovery mode directly: 0=OFF, 1=VISUAL, 2=SOUND."""
         old = self.discovery_mode
@@ -4313,14 +4457,20 @@ class SportsMonitor:
                 if url.startswith("euroleague://"):
                     sentinel = "euroleague://api"
                     if sentinel not in self.active_requests:
+                        self.cancel_active_requests()
                         self._fetch_euroleague_data(name)
                 elif url not in self.active_requests:
+                    self.cancel_active_requests()
+                    fetch_url = self._build_dated_url(url)
                     self.active_requests.add(url)
-                    d = self.agent.request(b'GET', url.encode('utf-8'))
+                    d = self.agent.request(b'GET', fetch_url.encode('utf-8'))
+                    if not hasattr(self, 'active_deferreds'):
+                        self.active_deferreds = []
+                    self.active_deferreds.append(d)
                     d.addCallback(readBody)
                     d.addCallback(self.parse_single_json, name, url)
                     d.addErrback(self.handle_error)
-                    d.addBoth(lambda x: self.active_requests.discard(url))
+                    d.addBoth(self._on_single_request_finished, url, d)
             except: pass
 
 
@@ -4331,6 +4481,9 @@ class SportsMonitor:
                 self.cached_events = []
                 self._trigger_callbacks(True)
                 return
+
+            # Cancel previous active requests before starting a new batch
+            self.cancel_active_requests()
 
             # Mark batch as active
             self.batch_is_active = True
@@ -4343,42 +4496,14 @@ class SportsMonitor:
             self.batch_timer.start(10000, True)
             self.batch_first_response = None
 
-            fired = 0; skipped = 0
+            fired = 0
+            delay = 0.0
             for idx in selected_indices:
                 name, url = DATA_SOURCES[idx]
-                # FIX: We want a fresh copy. We shouldn't skip if it's already in active_requests
-                # otherwise batch_remaining drops immediately and batch finalizes prematurely
-                # while ghost old requests are still ticking.
-                # if url in self.active_requests:
-                #     self.batch_remaining -= 1
-                #     skipped += 1
-                #     continue
-
-                # EuroLeague uses its own non-ESPN API; route through dedicated fetcher
-                if url.startswith("euroleague://"):
-                    sentinel = "euroleague://api"
-                    if sentinel not in self.active_requests:
-                        self._fetch_euroleague_data(name)
-                    else:
-                        # Already fetching — decrement so batch doesn't hang
-                        self.batch_remaining -= 1
-                        skipped += 1
-                    fired += 1
-                    continue
-
-                self.active_requests.add(url)
-                d = self.agent.request(b'GET', url.encode('utf-8'))
-                d.addCallback(readBody)
-                d.addCallback(self.collect_batch_response_incremental, name, url)
-                d.addErrback(self.collect_batch_error, url)
-                d.addBoth(lambda x, u=url: self.active_requests.discard(u))
-
-                # 10-second per-request timeout
-                timeout_call = reactor.callLater(10, d.cancel)
-                d.addBoth(lambda x, tc=timeout_call: tc.cancel() if tc.active() else None)
-
+                reactor.callLater(delay, self._fire_batch_request, name, url)
+                delay += 0.1  # Stagger requests by 100ms
                 fired += 1
-            log_diag("CHECK_GOALS: CUSTOM MODE - Fired {} requests (10s timeout), skipped {}, batch_remaining={}".format(fired, skipped, self.batch_remaining))
+            log_diag("CHECK_GOALS: CUSTOM MODE - Queued {} staggered requests (10s timeout), batch_remaining={}".format(fired, self.batch_remaining))
 
     def _save_cache_bg(self):
         try:
@@ -4455,7 +4580,6 @@ class SportsMonitor:
                 self.active_requests.discard(url)
                 return
 
-            # FIX: Ignore ghost requests entirely (do not decrement batch_remaining)
             if url not in self.active_requests:
                 log_diag("BATCH_RESPONSE: DROPPED (ghost deferred) url={}".format(url))
                 return
@@ -4465,7 +4589,7 @@ class SportsMonitor:
 
             self.active_requests.discard(url)
 
-            # Process data
+            # Process data incrementally immediately!
             try:
                 self.process_events_data([(body, name, url)], append_mode=True)
             except Exception as e:
@@ -4477,7 +4601,6 @@ class SportsMonitor:
             if self.batch_remaining <= 0:
                 self.finalize_batch()
         except Exception as e:
-            # Never let exceptions propagate to the deferred chain
             log_diag("BATCH_RESPONSE: UNEXPECTED ERROR in '{}': {}".format(name, e))
             self.active_requests.discard(url)
             self.batch_remaining -= 1
@@ -4522,7 +4645,7 @@ class SportsMonitor:
         for k in stale_keys:
             del self.match_snapshots[k]
 
-        log_dbg("FINALIZE_BATCH: Final snapshot rebuild \u2014 {} snapshots".format(len(self.match_snapshots)))
+        log_dbg("FINALIZE_BATCH: Final snapshot rebuild -- {} snapshots".format(len(self.match_snapshots)))
 
         # Evaluate goals ONCE after all batch data is complete
         self.evaluate_goals()
@@ -4675,7 +4798,7 @@ class SportsMonitor:
         self._trigger_callbacks(True)
     def handle_error_silent(self, failure): pass
 
-    def _trigger_callbacks(self, data_ready=True, force_refresh=False):
+    def _trigger_callbacks(self, data_ready=True, force_refresh=False, bypass_debounce=False):
         """
         Debounced callback triggering
         Only fires once per 300ms to prevent UI flicker
@@ -4688,7 +4811,7 @@ class SportsMonitor:
             self.pending_force_refresh = True
 
         # If less than 300ms since last callback, schedule delayed
-        if now - self.last_callback_time < 0.3:
+        if not bypass_debounce and now - self.last_callback_time < 0.3:
             self.pending_callback = data_ready
             if not self.callback_debounce_timer.isActive():
                 self.callback_debounce_timer.start(300, True)
@@ -4769,6 +4892,9 @@ class SportsMonitor:
 
                 season = self.EUROLEAGUE_SEASON
                 today  = datetime.date.today()
+                offset = getattr(self, 'ch_day_offset', 0)
+                if offset != 0:
+                    today = today + datetime.timedelta(days=offset)
 
                 hdrs = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -5210,6 +5336,9 @@ class SportsMonitor:
         def _run():
             try:
                 today = datetime.date.today()
+                offset = getattr(self, 'ch_day_offset', 0)
+                if offset != 0:
+                    today = today + datetime.timedelta(days=offset)
                 season = self.EUROLEAGUE_SEASON
                 base = self.EUROLEAGUE_BASE
 
@@ -5245,7 +5374,25 @@ class SportsMonitor:
                 if filter_mode == 1:
                     # Live-only: we already have live_map, skip schedule fetch
                     pass
+                elif filter_mode == 0:
+                    # Yesterday
+                    yesterday = (today - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+                    sched_data = _get("{}/games?seasonCode={}&gameDate={}".format(base, season, yesterday)) or {}
+                    sched_list = sched_data if isinstance(sched_data, list) else sched_data.get('data', sched_data.get('games', []))
+                    for g in (sched_list or []):
+                        gid = str(g.get('gameId', g.get('id', '')))
+                        if gid:
+                            all_games[gid] = g
                 elif filter_mode == 2:
+                    # Today/Selected Day
+                    date_str = today.strftime('%Y-%m-%d')
+                    sched_data = _get("{}/games?seasonCode={}&gameDate={}".format(base, season, date_str)) or {}
+                    sched_list = sched_data if isinstance(sched_data, list) else sched_data.get('data', sched_data.get('games', []))
+                    for g in (sched_list or []):
+                        gid = str(g.get('gameId', g.get('id', '')))
+                        if gid:
+                            all_games[gid] = g
+                elif filter_mode == 3:
                     # Tomorrow
                     tomorrow = (today + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
                     sched_data = _get("{}/games?seasonCode={}&gameDate={}".format(base, season, tomorrow)) or {}
@@ -5254,7 +5401,7 @@ class SportsMonitor:
                         gid = str(g.get('gameId', g.get('id', '')))
                         if gid:
                             all_games[gid] = g
-                elif filter_mode == 3:
+                else:
                     # All: fetch 7-day window (yesterday → 5 days ahead)
                     for delta in range(-1, 6):
                         d = (today + datetime.timedelta(days=delta)).strftime('%Y-%m-%d')
@@ -5264,15 +5411,6 @@ class SportsMonitor:
                             gid = str(g.get('gameId', g.get('id', '')))
                             if gid:
                                 all_games[gid] = g
-                else:
-                    # Default / Today
-                    date_str = today.strftime('%Y-%m-%d')
-                    sched_data = _get("{}/games?seasonCode={}&gameDate={}".format(base, season, date_str)) or {}
-                    sched_list = sched_data if isinstance(sched_data, list) else sched_data.get('data', sched_data.get('games', []))
-                    for g in (sched_list or []):
-                        gid = str(g.get('gameId', g.get('id', '')))
-                        if gid:
-                            all_games[gid] = g
 
                 # --- 3. Merge: live data wins over scheduled for same game ---
                 merged = {}
@@ -5888,6 +6026,22 @@ class SportsMonitor:
         if not matches and not groupings:
             matches.append(ev)
 
+        # Apply strict date filter for tennis matches on non-today days
+        if self.ch_day_offset != 0:
+            filtered_matches = []
+            target_date = datetime.date.today() + datetime.timedelta(days=self.ch_day_offset)
+            for m in matches:
+                try:
+                    m_date_raw = m.get('date', '')
+                    if m_date_raw:
+                        m_date_str = m_date_raw[:10]
+                        m_date = datetime.datetime.strptime(m_date_str, "%Y-%m-%d").date()
+                        if m_date == target_date:
+                            filtered_matches.append(m)
+                except Exception:
+                    pass
+            return filtered_matches
+
         return matches
 
     def _debounced_evaluate_goals(self):
@@ -6212,10 +6366,18 @@ class SportsMonitor:
         except Exception as e:
             print("[SimplySport] Error in evaluate_goals: {}".format(e))
 
-    @profile_function("SportsMonitor")
     def process_events_data(self, data_list, single_league_name="", append_mode=False):
-        if hasattr(self, 'lazy_processor') and self.lazy_processor and self.lazy_processor.active():
-            self.lazy_processor.cancel()
+        self.processing_queue.append((data_list, single_league_name, append_mode))
+        self.ensure_processing_active()
+
+    def ensure_processing_active(self):
+        if self.processing_active:
+            return
+        if not self.processing_queue:
+            self.processing_active = False
+            return
+        self.processing_active = True
+        data_list, single_league_name, append_mode = self.processing_queue.pop(0)
         self.lazy_gen = self._run_lazy_process_events_data(data_list, single_league_name, append_mode)
         self.do_lazy_process()
 
@@ -6226,16 +6388,27 @@ class SportsMonitor:
             self.lazy_processor = reactor.callLater(0.01, self.do_lazy_process)
         except StopIteration:
             self.lazy_processor = None
-            # Notifications already evaluated in _run_lazy_process_events_data
-            # Prevent UI storm: Only trigger callbacks if we aren't mid-batch.
-            # (Batch mode will call _trigger_callbacks inside finalize_batch)
-            if getattr(self, 'batch_is_active', False):
-                pass
-            else:
-                self._trigger_callbacks(True)
+            self.processing_active = False
+            
+            # Show the incremental results parsed so far to satisfy immediate main screen loading
+            self._trigger_callbacks(True, bypass_debounce=getattr(self, 'batch_is_active', False))
+            
+            if not getattr(self, 'batch_is_active', False):
+                self.save_cache()
+                try:
+                    live_count = sum(1 for ev in self.cached_events if ev.get('status', {}).get('type', {}).get('state', '') == 'in')
+                    if live_count > 0:
+                        from twisted.internet import reactor
+                        reactor.callLater(0.5, self.fetch_live_summaries)
+                except:
+                    pass
+            
+            self.ensure_processing_active()
         except Exception as e:
             print("[SimplySport] Error in background lazy UI sync:", e)
             self.lazy_processor = None
+            self.processing_active = False
+            self.ensure_processing_active()
 
     def _run_lazy_process_events_data(self, data_list, single_league_name="", append_mode=False):
         self.last_update = time.time()
@@ -6265,8 +6438,8 @@ class SportsMonitor:
                     sport_type = get_sport_type(l_url)
 
                     for i, ev in enumerate(events):
-                        # Yield Enigma2 processor control every 5 events
-                        if i > 0 and i % 5 == 0: yield
+                        # Yield Enigma2 processor control every 20 events
+                        if i > 0 and i % 20 == 0: yield
 
                         ev['league_name'] = league_name
                         ev['league_url'] = l_url
@@ -6526,36 +6699,36 @@ class SportsMonitor:
                 has_changes = True
             self.has_changes = has_changes
 
-            live_count = 0
+            if not self.batch_is_active:
+                live_count = 0
+                now = time.time()
+                for i, event in enumerate(unique_list):
+                    # Yield Enigma2 processor control every 10 parsed events
+                    if i > 0 and i % 10 == 0: yield
 
-            now = time.time()
-            for i, event in enumerate(unique_list):
-                # Yield Enigma2 processor control every 10 parsed events
-                if i > 0 and i % 10 == 0: yield
+                    status = event.get('status', {})
+                    state = status.get('type', {}).get('state', 'pre')
+                    if state == 'in':
+                        live_count += 1
+                    elif state == 'pre':
+                        # SMART POLLING: Count matches starting in the next 15 minutes as "live"
+                        try:
+                            m_date = event.get('date', '')
+                            if m_date:
+                                dt = datetime.datetime.strptime(m_date[:16], "%Y-%m-%dT%H:%M")
+                                m_ts = calendar.timegm(dt.timetuple())
+                                if 0 <= (m_ts - now) <= 900: # 900s = 15m
+                                    live_count += 1
+                        except: pass
 
-                status = event.get('status', {})
-                state = status.get('type', {}).get('state', 'pre')
-                if state == 'in':
-                    live_count += 1
-                elif state == 'pre':
-                    # SMART POLLING: Count matches starting in the next 15 minutes as "live"
-                    try:
-                        m_date = event.get('date', '')
-                        if m_date:
-                            dt = datetime.datetime.strptime(m_date[:16], "%Y-%m-%dT%H:%M")
-                            m_ts = calendar.timegm(dt.timetuple())
-                            if 0 <= (m_ts - now) <= 900: # 900s = 15m
-                                live_count += 1
-                    except: pass
-
-            # ADAPTIVE POLLING: 60s for Live/Near-start, 300s for Idle
-            # FIX: Ensure timer restarts if UI is active (callbacks) or reminders exist
-            should_run = self.active or (len(self.callbacks) > 0) or (len(self.reminders) > 0)
-            if should_run and not self.batch_is_active:
-                new_interval = self._get_timer_interval(live_count)
-                log_diag("LAZY_PROCESS: Restarting timer in {}ms (active={} callbacks={} reminders={})".format(
-                    new_interval, self.active, len(self.callbacks), len(self.reminders)))
-                self.timer.start(new_interval, False)
+                # ADAPTIVE POLLING: 60s for Live/Near-start, 300s for Idle
+                # FIX: Ensure timer restarts if UI is active (callbacks) or reminders exist
+                should_run = self.active or (len(self.callbacks) > 0) or (len(self.reminders) > 0)
+                if should_run:
+                    new_interval = self._get_timer_interval(live_count)
+                    log_diag("LAZY_PROCESS: Restarting timer in {}ms (active={} callbacks={} reminders={})".format(
+                        new_interval, self.active, len(self.callbacks), len(self.reminders)))
+                    self.timer.start(new_interval, False)
         except Exception:
             self.status_message = "JSON Parse Error"
             if not self.batch_is_active:
@@ -6611,6 +6784,18 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
     h_x, h_w = 90, 640    # Home events on left, right-aligned towards center
     a_x, a_w = 870, 640   # Away events on right, left-aligned from center
 
+    is_h_goal = any(x in str(home_val) for x in ["[Goal]", "[Pen]", "[OG]"])
+    is_a_goal = any(x in str(away_val) for x in ["[Goal]", "[Pen]", "[OG]"])
+    is_h_rc = "[RC]" in str(home_val)
+    is_a_rc = "[RC]" in str(away_val)
+
+    display_h = str(home_val).replace("[Goal] ", "").replace("[RC] ", "")
+    display_a = str(away_val).replace("[Goal] ", "").replace("[RC] ", "")
+
+    h_text_w = 610 if (is_h_goal or is_h_rc) else h_w
+    a_text_x = 900 if (is_a_goal or is_a_rc) else a_x
+    a_text_w = 610 if (is_a_goal or is_a_rc) else a_w
+
     res = [payload]
     # Full Row Highlight (base)
     res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
@@ -6620,9 +6805,36 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
     # Time/Label (Center)
     res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label), col_label, col_label, col_bg, col_sel))
     # Home Event (Right)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_h, col_h, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_text_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, display_h, col_h, col_h, col_bg, col_sel))
     # Away Event (Left)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_a, col_a, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_text_x, 0, a_text_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, display_a, col_a, col_a, col_bg, col_sel))
+
+    # Draw transparent soccer ball icon if it is a goal event
+    ball_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ball.png")
+    if (is_h_goal or is_a_goal) and os.path.exists(ball_path):
+        try:
+            ball_pix = get_scaled_pixmap(ball_path, 20, 20)
+            if ball_pix:
+                if is_h_goal:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 710, 15, 20, 20, ball_pix))
+                if is_a_goal:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 870, 15, 20, 20, ball_pix))
+        except:
+            pass
+
+    # Draw red card icon if it is a red card event
+    rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+    if (is_h_rc or is_a_rc) and os.path.exists(rc_path):
+        try:
+            rc_pix = get_scaled_pixmap(rc_path, 14, 20)
+            if rc_pix:
+                if is_h_rc:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 713, 15, 14, 20, rc_pix))
+                if is_a_rc:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 873, 15, 14, 20, rc_pix))
+        except:
+            pass
+
     return res
 
 def RosterListEntry(home_player, away_player, theme_mode):
@@ -8383,8 +8595,8 @@ class GameInfoScreen(Screen):
         snap = global_sports_monitor.match_snapshots.get(str(self.event_id))
         if snap:
             try:
-                self["h_name"].setText(snap['h_name'])
-                self["a_name"].setText(snap['a_name'])
+                self["h_name"].setText(_team_name(snap['h_name']))
+                self["a_name"].setText(_team_name(snap['a_name']))
                 self["h_score"].setText(snap['h_score_str'])
                 self["a_score"].setText(snap['a_score_str'])
                 load_logo_to_widget(self, "h_logo", snap['h_logo_url'], snap['h_logo_id'])
@@ -8392,7 +8604,7 @@ class GameInfoScreen(Screen):
                 # Set match title for individual sports
                 if snap['sport_type'] in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT]:
                     self["match_title"].setText(snap['league_name'])
-                    self["h_name"].setText(snap['h_name'])
+                    self["h_name"].setText(_team_name(snap['h_name']))
                 self.league_name = snap['league_name']
             except: pass
 
@@ -8809,8 +9021,8 @@ class GameInfoScreen(Screen):
                 if not h_name: h_name = "Player 1"
                 if not a_name: a_name = "Player 2"
 
-                self["h_name"].setText(str(h_name))
-                self["a_name"].setText(str(a_name))
+                self["h_name"].setText(str(_team_name(h_name)))
+                self["a_name"].setText(str(_team_name(a_name)))
                 try:
                     h_id = h_team.get('athlete', {}).get('id', '')
                     a_id = a_team.get('athlete', {}).get('id', '')
@@ -8823,8 +9035,8 @@ class GameInfoScreen(Screen):
                 # Standard Logic
                 h_name = h_team.get('athlete', {}).get('displayName') or h_team.get('team', {}).get('displayName', 'Home')
                 a_name = a_team.get('athlete', {}).get('displayName') or a_team.get('team', {}).get('displayName', 'Away')
-                self["h_name"].setText(str(h_name))
-                self["a_name"].setText(str(a_name))
+                self["h_name"].setText(str(_team_name(h_name)))
+                self["a_name"].setText(str(_team_name(a_name)))
 
                 try:
                     h_id = h_team.get('team', {}).get('id', '') or h_team.get('athlete', {}).get('id', '')
@@ -8960,10 +9172,10 @@ class GameInfoScreen(Screen):
                     if a_box: away_team.update(a_box)
 
                 def get_name(t): return t.get('team', {}).get('shortDisplayName') or t.get('team', {}).get('displayName') or "Team"
-                self["h_name"].setText(get_name(home_team))
-                self["a_name"].setText(get_name(away_team))
-                self.h_team_name = get_name(home_team)
-                self.a_team_name = get_name(away_team)
+                self["h_name"].setText(_team_name(get_name(home_team)))
+                self["a_name"].setText(_team_name(get_name(away_team)))
+                self.h_team_name = _team_name(get_name(home_team))
+                self.a_team_name = _team_name(get_name(away_team))
             else:
                 def get_name(t): return t.get('team', {}).get('shortDisplayName') or t.get('team', {}).get('displayName') or "Team"
             self["h_score"].setText(str(home_team.get('score', '0')))
@@ -10199,8 +10411,8 @@ class GameInfoScreen(Screen):
             home_comp = next((c for c in competitors if c.get('homeAway') == 'home'), {})
             away_comp = next((c for c in competitors if c.get('homeAway') == 'away'), {})
 
-            self["h_name"].setText(home_comp.get('team', {}).get('displayName', 'Home'))
-            self["a_name"].setText(away_comp.get('team', {}).get('displayName', 'Away'))
+            self["h_name"].setText(_team_name(home_comp.get('team', {}).get('displayName', 'Home')))
+            self["a_name"].setText(_team_name(away_comp.get('team', {}).get('displayName', 'Away')))
             self["h_score"].setText(home_comp.get('score', ''))
             self["a_score"].setText(away_comp.get('score', ''))
 
@@ -10395,8 +10607,8 @@ class GoalToast(Screen):
             except: return u""
 
         league_text = to_str(league_text)
-        home_text   = to_str(home_text)
-        away_text   = to_str(away_text)
+        home_text   = _team_name(to_str(home_text))
+        away_text   = _team_name(to_str(away_text))
         score_text  = to_str(score_text)
         scorer_text = to_str(scorer_text)
 
@@ -12378,6 +12590,1193 @@ class RacingMiniBar(Screen):
         self["lbl_status"].setText(str(d['status']))
 
 # ==============================================================================
+# WORLD CUP PLAYER IMAGE HELPERS
+# ==============================================================================
+
+_POS_GK  = {'GK', 'G', 'P', 'POR', 'GR', 'GOR'}
+_POS_DEF = {'CB', 'LB', 'RB', 'SW', 'LWB', 'RWB', 'DF', 'D', 'DEF',
+            'RCB', 'LCB', 'CD', 'WB', 'FB', 'RDF', 'LDF',
+            'CD-R', 'CD-L', 'CDR', 'CDL'}
+_POS_MID = {'CDM', 'CM', 'CAM', 'LM', 'RM', 'DM', 'AM', 'M', 'MF',
+            'DMF', 'CMF', 'AMF', 'MCO', 'MED', 'VOL', 'MC', 'MO'}
+_POS_FWD = {'LW', 'RW', 'CF', 'ST', 'SS', 'F', 'W', 'FW', 'AT',
+            'DEL', 'EXT', 'DC', 'SA', 'SD'}
+
+def smart_match_team(name1, name2):
+    if not name1 or not name2:
+        return False
+    n1 = name1.strip().lower()
+    n2 = name2.strip().lower()
+
+    try:
+        if isinstance(n1, bytes):
+            n1 = n1.decode('utf-8', 'ignore')
+    except:
+        pass
+    try:
+        if isinstance(n2, bytes):
+            n2 = n2.decode('utf-8', 'ignore')
+    except:
+        pass
+
+    for c_from, c_to in [
+        (u"\u00e7", u"c"), (u"\u00e1", u"a"), (u"\u00e0", u"a"), (u"\u00e2", u"a"), (u"\u00e4", u"a"), (u"\u00e3", u"a"),
+        (u"\u00e9", u"e"), (u"\u00e8", u"e"), (u"\u00ea", u"e"), (u"\u00eb", u"e"),
+        (u"\u00ed", u"i"), (u"\u00ec", u"i"), (u"\u00ee", u"i"), (u"\u00ef", u"i"),
+        (u"\u00f3", u"o"), (u"\u00f2", u"o"), (u"\u00f4", u"o"), (u"\u00f6", u"o"), (u"\u00f5", u"o"),
+        (u"\u00fa", u"u"), (u"\u00f9", u"u"), (u"\u00fb", u"u"), (u"\u00fc", u"u"),
+        (u"\u00f1", u"n"), (u"\u00fd", u"y"), (u"\u00ff", u"y")
+    ]:
+        n1 = n1.replace(c_from, c_to)
+        n2 = n2.replace(c_from, c_to)
+
+    if n1 == n2:
+        return True
+    synonyms = {
+        "cote d'ivoire": "ivory coast",
+        "cabo verde": "cape verde",
+        "türkiye": "turkey",
+        "czechia": "czech republic",
+        "ksa": "saudi arabia",
+        "usa": "united states",
+        "uae": "united arab emirates",
+        "eng": "england",
+        "wal": "wales",
+        "sco": "scotland",
+        "nir": "northern ireland",
+        "rsa": "south africa",
+        "sui": "switzerland",
+        "ger": "germany",
+        "ned": "netherlands",
+        "cro": "croatia",
+        "den": "denmark",
+        "uru": "uruguay",
+        "mex": "mexico",
+        "cmr": "cameroon",
+        "sen": "senegal",
+        "mar": "morocco",
+        "tun": "tunisia",
+        "gha": "ghana",
+        "pol": "poland",
+    }
+    n1 = synonyms.get(n1, n1)
+    n2 = synonyms.get(n2, n2)
+    if n1 == n2:
+        return True
+
+    # 3-letter abbreviation prefix match (e.g. "arg" vs "argentina", "bra" vs "brazil")
+    if len(n1) == 3 and n2.startswith(n1):
+        return True
+    if len(n2) == 3 and n1.startswith(n2):
+        return True
+
+    for char in ["-", "'", ".", ",", "(", ")"]:
+        n1 = n1.replace(char, " ")
+        n2 = n2.replace(char, " ")
+    tokens1 = [w for w in n1.split() if w]
+    tokens2 = [w for w in n2.split() if w]
+    if not tokens1 or not tokens2:
+        return False
+    def get_initials(tokens):
+        stops = {"of", "and", "the", "for"}
+        return "".join([w[0] for w in tokens if w not in stops])
+    if len(tokens1) == 1 and len(tokens1[0]) >= 3:
+        if tokens1[0] == get_initials(tokens2):
+            return True
+    if len(tokens2) == 1 and len(tokens2[0]) >= 3:
+        if tokens2[0] == get_initials(tokens1):
+            return True
+    stop_words = {
+        "and", "of", "the", "republic", "islamic", "democratic", "union", "state", "states", "islands", "de", "la",
+        "united", "utd", "city", "town", "county", "club", "fc", "afc", "sc", "ac", "cf", "c.f.", "deportivo", "sporting",
+        "athletic", "ath", "real", "rovers", "wanderers", "albion", "association", "football", "soccer", "clube", "futbol",
+        "futebol", "sports", "sport", "racing", "boys", "junior", "juniors", "youth", "university", "u23", "u21", "u20", "u19", "u17",
+        "saint", "st"
+    }
+    t1_filtered = set([w for w in tokens1 if w not in stop_words])
+    t2_filtered = set([w for w in tokens2 if w not in stop_words])
+    if t1_filtered and t2_filtered:
+        intersection = t1_filtered.intersection(t2_filtered)
+        if intersection:
+            # Require the intersection to completely cover at least one of the token sets.
+            # This prevents false positives like "South Korea" matching "South Sudan" (intersection is just {"south"}).
+            if intersection == t1_filtered or intersection == t2_filtered:
+                for word in intersection:
+                    if len(word) >= 4:
+                        return True
+
+            for w1 in t1_filtered:
+                for w2 in t2_filtered:
+                    if len(w1) >= 5 and len(w2) >= 5:
+                        if w1.startswith(w2[:5]) or w2.startswith(w1[:5]):
+                            # Also apply the containment check for prefix matches to avoid matching e.g. "North..." and "South..."
+                            other_t1 = t1_filtered - {w1}
+                            other_t2 = t2_filtered - {w2}
+                            if not other_t1 or not other_t2:
+                                return True
+    return False
+
+
+def find_player_image(country_name, player_name, shirt_no=""):
+    try:
+        images_root = resolveFilename(SCOPE_PLUGINS,
+            "Extensions/SimplySports/WorldCup_players_Images/")
+        fallback = os.path.join(images_root, "player.png")
+        if not os.path.isdir(images_root):
+            return fallback
+
+        lookup_name = country_name.strip()
+        country_folder = os.path.join(images_root, lookup_name)
+        if not os.path.isdir(country_folder):
+            try:
+                for entry in os.listdir(images_root):
+                    entry_path = os.path.join(images_root, entry)
+                    if os.path.isdir(entry_path):
+                        if smart_match_team(lookup_name, entry):
+                            country_folder = entry_path
+                            break
+                else:
+                    return fallback
+            except Exception:
+                return fallback
+
+        try:
+            files = [f for f in os.listdir(country_folder)
+                     if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        except Exception:
+            return fallback
+
+        # Strategy 1: shirt number (unique per squad)
+        if shirt_no:
+            for fname in files:
+                parts = os.path.splitext(fname)[0].split('_')
+                if len(parts) >= 3 and parts[-2] == str(shirt_no):
+                    return os.path.join(country_folder, fname)
+
+        # Strategy 2: full name token match
+        norm_name = (player_name or '').lower().replace('.', '').replace("'", '').replace('-', ' ')
+        name_tokens = [t for t in norm_name.split() if len(t) > 2]
+        if name_tokens:
+            for fname in files:
+                fname_norm = os.path.splitext(fname)[0].lower().replace('_', ' ')
+                if all(tok in fname_norm for tok in name_tokens):
+                    return os.path.join(country_folder, fname)
+            # Strategy 3: last name only
+            last = name_tokens[-1]
+            for fname in files:
+                fname_norm = os.path.splitext(fname)[0].lower().replace('_', ' ')
+                if last in fname_norm:
+                    return os.path.join(country_folder, fname)
+
+        return fallback
+    except Exception:
+        try:
+            images_root = resolveFilename(SCOPE_PLUGINS,
+                "Extensions/SimplySports/WorldCup_players_Images/")
+            return os.path.join(images_root, "player.png")
+        except Exception:
+            return None
+
+
+def get_formation_layout(players):
+    groups = {'GK': [], 'DEF': [], 'MID': [], 'FWD': []}
+    for p in players:
+        pos = (p.get('position') or '').upper().strip()
+        if pos in _POS_GK:
+            groups['GK'].append(p)
+        elif pos in _POS_DEF:
+            groups['DEF'].append(p)
+        elif pos in _POS_MID:
+            groups['MID'].append(p)
+        elif pos in _POS_FWD:
+            groups['FWD'].append(p)
+        else:
+            if not groups['GK']:
+                groups['GK'].append(p)
+            elif len(groups['FWD']) <= len(groups['MID']) - 2:
+                groups['FWD'].append(p)
+            else:
+                groups['MID'].append(p)
+    formation = '{}-{}-{}'.format(
+        len(groups['DEF']), len(groups['MID']), len(groups['FWD']))
+    return groups, formation
+
+
+# ==============================================================================
+# INTERNATIONAL TEAM TRANSLATIONS (Arabic)
+# ==============================================================================
+TEAM_TRANSLATIONS_AR = {
+    "Afghanistan": u"أفغانستان",
+    "Albania": u"ألبانيا",
+    "Algeria": u"الجزائر",
+    "American Samoa": u"ساموا الأمريكية",
+    "Andorra": u"أندورا",
+    "Angola": u"أنغولا",
+    "Anguilla": u"أنغويلا",
+    "Antigua and Barbuda": u"أنتيجوا وباربودا",
+    "Argentina": u"الأرجنتين",
+    "Armenia": u"أرمينيا",
+    "Aruba": u"أروبا",
+    "Australia": u"أستراليا",
+    "Austria": u"النمسا",
+    "Azerbaijan": u"أذربيجان",
+    "Bahamas": u"الباهاماس",
+    "Bahrain": u"البحرين",
+    "Bangladesh": u"بنغلاديش",
+    "Barbados": u"باربادوس",
+    "Belarus": u"بيلاروسيا",
+    "Belgium": u"بلجيكا",
+    "Belize": u"بليز",
+    "Benin": u"بنين",
+    "Bermuda": u"برمودا",
+    "Bhutan": u"بوتان",
+    "Bolivia": u"بوليفيا",
+    "Bosnia and Herzegovina": u"البوسنة والهرسك",
+    "Botswana": u"بوتسوانا",
+    "Brazil": u"البرازيل",
+    "British Virgin Islands": u"جزر العذراء البريطانية",
+    "Brunei": u"بروناي",
+    "Bulgaria": u"بلغاريا",
+    "Burkina Faso": u"بوركينا فاسو",
+    "Burundi": u"بوروندي",
+    "Cabo Verde": u"الرأس الأخضر",
+    "Cambodia": u"كمبوديا",
+    "Cameroon": u"الكاميرون",
+    "Canada": u"كندا",
+    "Cape Verde": u"الرأس الأخضر",
+    "Cayman Island": u"جزر كايمان",
+    "Cayman Islands": u"جزر كايمان",
+    "Central African Republic": u"جمهورية أفريقيا الوسطى",
+    "Chad": u"تشاد",
+    "Chile": u"تشيلي",
+    "China": u"الصين",
+    "Colombia": u"كولومبيا",
+    "Comoros": u"جزر القمر",
+    "Congo": u"الكونغو",
+    "Congo DR": u"جمهورية الكونغو الديمقراطية",
+    "Cook Islands": u"جزر كوك",
+    "Costa Rica": u"كوستاريكا",
+    "Cote d'Ivoire": u"ساحل العاج",
+    "Croatia": u"كرواتيا",
+    "Cuba": u"كوبا",
+    "Curacao": u"كوراساو",
+    "Curaçao": u"كوراساو",
+    "Cyprus": u"قبرص",
+    "Czech Republic": u"جمهورية التشيك",
+    "Czechia": u"جمهورية التشيك",
+    "Democratic Republic of the Congo": u"جمهورية الكونغو الديمقراطية",
+    "Denmark": u"الدنمارك",
+    "Djibouti": u"جيبوتي",
+    "Dominica": u"دومينيكا",
+    "Dominican Republic": u"جمهورية الدومينيكان",
+    "Ecuador": u"الإكوادور",
+    "Egypt": u"مصر",
+    "El Salvador": u"السلفادور",
+    "England": u"إنجلترا",
+    "Equatorial Guinea": u"غينيا الاستوائية",
+    "Eritrea": u"إريتريا",
+    "Estonia": u"إستونيا",
+    "Eswatini": u"إسواتيني",
+    "Ethiopia": u"إثيوبيا",
+    "Faroe Islands": u"جزر فارو",
+    "Fiji": u"فيجي",
+    "Finland": u"فنلندا",
+    "France": u"فرنسا",
+    "Gabon": u"الغابون",
+    "Gambia": u"غامبيا",
+    "Georgia": u"جورجيا",
+    "Germany": u"ألمانيا",
+    "Ghana": u"غانا",
+    "Gibraltar": u"جبل طارق",
+    "Gibralter": u"جبل طارق",
+    "Greece": u"اليونان",
+    "Greenland": u"غرينلاند",
+    "Grenada": u"غرينادا",
+    "Guam": u"غوام",
+    "Guatemala": u"غواتيمالا",
+    "Guinea": u"غينيا",
+    "Guinea-Bissau": u"غينيا بيساو",
+    "Guyana": u"غيانا",
+    "Haiti": u"هايتي",
+    "Honduras": u"هندوراس",
+    "Hong Kong": u"هونغ كونغ",
+    "Hungary": u"المجر",
+    "IR Iran": u"إيران",
+    "Iceland": u"آيسلندا",
+    "India": u"الهند",
+    "Indonesia": u"إندونيسيا",
+    "Iran": u"إيران",
+    "Iraq": u"العراق",
+    "Ireland": u"أيرلندا",
+    "Israel": u"إسرائيل",
+    "Italy": u"إيطاليا",
+    "Ivory Coast": u"ساحل العاج",
+    "Jamaica": u"جامايكا",
+    "Japan": u"اليابان",
+    "Jordan": u"الأردن",
+    "KSA": u"السعودية",
+    "Kazakhstan": u"كازاخستان",
+    "Kenya": u"كينيا",
+    "Kiribati": u"كيريباتي",
+    "Korea North": u"كوريا الشمالية",
+    "Korea Republic": u"كوريا الجنوبية",
+    "Korea South": u"كوريا الجنوبية",
+    "Kosovo": u"كوسوفو",
+    "Kuwait": u"الكويت",
+    "Kyrgyzstan": u"قيرغيزستان",
+    "Laos": u"لاوس",
+    "Latvia": u"لاتفيا",
+    "Lebanon": u"لبنان",
+    "Lesotho": u"ليسوتو",
+    "Liberia": u"ليبيريا",
+    "Libya": u"ليبيا",
+    "Liechtenstein": u"ليختنشتاين",
+    "Lithuania": u"ليتوانيا",
+    "Luxembourg": u"لوكسمبورغ",
+    "Macau": u"ماكاو",
+    "Macedonia": u"مقدونيا",
+    "Madagascar": u"مدغشقر",
+    "Malawi": u"ملاوي",
+    "Malaysia": u"ماليزيا",
+    "Maldives": u"جزر المالديف",
+    "Mali": u"مالي",
+    "Malta": u"مالطا",
+    "Marshall Islands": u"جزر مارشال",
+    "Mauritania": u"موريتانيا",
+    "Mauritius": u"موريشيوس",
+    "Mexico": u"المكسيك",
+    "Micronesia": u"ميكرونيزيا",
+    "Moldova": u"مولدوفا",
+    "Monaco": u"موناكو",
+    "Mongolia": u"منغوليا",
+    "Montenegro": u"الجبل الأسود",
+    "Montserrat": u"مونتسرات",
+    "Morocco": u"المغرب",
+    "Mozambique": u"موزمبيق",
+    "Myanmar": u"ميانمار",
+    "Namibia": u"ناميبيا",
+    "Nauru": u"ناورو",
+    "Nepal": u"نيبال",
+    "Netherlands": u"هولندا",
+    "New Caledonia": u"كاليدونيا الجديدة",
+    "New Zealand": u"نيوزيلندا",
+    "Nicaragua": u"نيكاراغوا",
+    "Niger": u"النيجر",
+    "Nigeria": u"نيجيريا",
+    "North Korea": u"كوريا الشمالية",
+    "North Macedonia": u"مقدونيا الشمالية",
+    "Northern Ireland": u"أيرلندا الشمالية",
+    "Norway": u"النرويج",
+    "Oman": u"عمان",
+    "Pakistan": u"باكستان",
+    "Palau": u"بالاو",
+    "Palestine": u"فلسطين",
+    "Panama": u"بنما",
+    "Papua New Guinea": u"بابوا غينيا الجديدة",
+    "Paraguay": u"باراغواي",
+    "Peru": u"بيرو",
+    "Philippines": u"الفلبين",
+    "Poland": u"بولندا",
+    "Portugal": u"البرتغال",
+    "Puerto Rico": u"بورتوريكو",
+    "Qatar": u"قطر",
+    "Romania": u"رومانيا",
+    "Russia": u"روسيا",
+    "Rwanda": u"رواندا",
+    "Saint Kitts and Nevis": u"سانت كيتس ونيفيس",
+    "Saint Lucia": u"سانت لوسيا",
+    "Saint Vincent and the Grenadines": u"سانت فينسنت والغرينادين",
+    "Samoa": u"ساموا",
+    "San Marino": u"سان مارينو",
+    "Sao Tome and Principe": u"ساو تومي وبرينسيب",
+    "Saudi Arabia": u"السعودية",
+    "Scotland": u"اسكتلندا",
+    "Senegal": u"السنغال",
+    "Serbia": u"صربيا",
+    "Seychelles": u"سيشل",
+    "Sierra Leone": u"سيراليون",
+    "Singapore": u"سنغافورة",
+    "Slovakia": u"سلوفاكيا",
+    "Slovenia": u"سلوفينيا",
+    "Solomon Islands": u"جزر سليمان",
+    "Somalia": u"الصومال",
+    "South Africa": u"جنوب أفريقيا",
+    "South Korea": u"كوريا الجنوبية",
+    "South Sudan": u"جنوب السودان",
+    "Spain": u"إسبانيا",
+    "Sri Lanka": u"سريلانكا",
+    "Sudan": u"السودان",
+    "Suriname": u"سورينام",
+    "Sweden": u"السويد",
+    "Switzerland": u"سويسرا",
+    "Syria": u"سوريا",
+    "Tahiti": u"تاهيتي",
+    "Taiwan": u"تايوان",
+    "Tajikistan": u"طاجيكستان",
+    "Tanzania": u"تنزانيا",
+    "Thailand": u"تايلاند",
+    "Timor-Leste": u"تيمور الشرقية",
+    "Togo": u"توغو",
+    "Tonga": u"تونغا",
+    "Trinidad and Tobago": u"ترينيداد وتوباغو",
+    "Tunisia": u"تونس",
+    "Turkey": u"تركيا",
+    "Turkmenistan": u"تركمانستان",
+    "Turks and Caicos Islands": u"جزر توركس وكايكوس",
+    "Tuvalu": u"توفالو",
+    "Türkiye": u"تركيا",
+    "UAE": u"الإمارات",
+    "UK": u"المملكة المتحدة",
+    "US Virgin Islands": u"جزر العذراء الأمريكية",
+    "USA": u"الولايات المتحدة",
+    "Uganda": u"أوغندا",
+    "Ukraine": u"أوكرانيا",
+    "United Arab Emirates": u"الإمارات",
+    "United Kingdom": u"المملكة المتحدة",
+    "United States": u"الولايات المتحدة",
+    "Uruguay": u"أوروغواي",
+    "Uzbekistan": u"أوزبكستان",
+    "Vanuatu": u"فانواتو",
+    "Vatican City": u"الفاتيكان",
+    "Venezuela": u"فنزويلا",
+    "Vietnam": u"فيتنام",
+    "Wales": u"ويلز",
+    "Yemen": u"اليمن",
+    "Zambia": u"زامبيا",
+    "Zimbabwe": u"زيمبابوي",
+}
+
+def _team_name(name):
+    global PLUGIN_LANGUAGE
+    if PLUGIN_LANGUAGE == "ar" and name:
+        for k, v in TEAM_TRANSLATIONS_AR.items():
+            if smart_match_team(name, k):
+                return v
+    return name
+
+def is_duplicate_player(p1, p2):
+    pos1 = (p1.get('position') or '').upper().strip()
+    pos2 = (p2.get('position') or '').upper().strip()
+    if pos1 != pos2:
+        return False
+    
+    def get_tokens(name):
+        n = (name or '').lower()
+        for char in ["-", "'", ".", ",", "(", ")"]:
+            n = n.replace(char, " ")
+        return [w for w in n.split() if w]
+    
+    t1 = get_tokens(p1.get('name', ''))
+    t2 = get_tokens(p2.get('name', ''))
+    if not t1 or not t2:
+        return False
+        
+    if t1 == t2:
+        return True
+        
+    t1_clean = {w for w in t1 if len(w) > 1}
+    t2_clean = {w for w in t2 if len(w) > 1}
+    
+    if not t1_clean or not t2_clean:
+        if t1[-1] == t2[-1]:
+            return True
+        return False
+        
+    if t1_clean.issubset(t2_clean) or t2_clean.issubset(t1_clean):
+        return True
+        
+    return False
+
+
+# ==============================================================================
+# TEAM ROSTERS SCREEN
+# ==============================================================================
+class TeamRostersScreen(Screen):
+    """Full-screen 50% transparent overlay showing both teams' starting XIs and subs."""
+
+    def __init__(self, session, h_name, a_name, event_id, league_url,
+                 h_logo_url="", a_logo_url=""):
+        Screen.__init__(self, session)
+        self.session    = session
+        self.h_name     = h_name
+        self.a_name     = a_name
+        self.event_id   = event_id
+        self.league_url = league_url
+        self.h_logo_url = h_logo_url
+        self.a_logo_url = a_logo_url
+
+        self.red_card_ids = set()
+        self.scorer_goals = {}
+
+        d_size   = getDesktop(0).size()
+        self.sw  = d_size.width()
+        self.sh  = d_size.height()
+        self._compute_layout()
+        self.skin = self._build_skin()
+
+        self["h_team_name"] = Label(_team_name(h_name))
+        self["a_team_name"] = Label(_team_name(a_name))
+        self["h_logo"]      = Pixmap()
+        self["a_logo"]      = Pixmap()
+        self["h_formation"] = Label("")
+        self["a_formation"] = Label("")
+        loading_text = u"جاري تحميل التشكيلة\u2026" if PLUGIN_LANGUAGE == "ar" else u"Loading lineups\u2026"
+        self["loading"]     = Label(loading_text)
+
+        for i in range(11):
+            self["h_img_{}".format(i)]   = Pixmap()
+            self["a_img_{}".format(i)]   = Pixmap()
+            self["h_lbl_{}".format(i)]   = Label("")
+            self["a_lbl_{}".format(i)]   = Label("")
+            self["h_shirt_{}".format(i)] = Label("")
+            self["a_shirt_{}".format(i)] = Label("")
+            self["h_rc_{}".format(i)]    = Pixmap()
+            self["a_rc_{}".format(i)]    = Pixmap()
+            self["h_img_{}".format(i)].hide()
+            self["a_img_{}".format(i)].hide()
+            self["h_lbl_{}".format(i)].hide()
+            self["a_lbl_{}".format(i)].hide()
+            self["h_shirt_{}".format(i)].hide()
+            self["a_shirt_{}".format(i)].hide()
+            self["h_rc_{}".format(i)].hide()
+            self["a_rc_{}".format(i)].hide()
+
+            for g in range(3):
+                self["h_ball_{}_{}".format(i, g)] = Pixmap()
+                self["a_ball_{}_{}".format(i, g)] = Pixmap()
+                self["h_ball_{}_{}".format(i, g)].hide()
+                self["a_ball_{}_{}".format(i, g)].hide()
+
+        for j in range(12):
+            self["h_sub_img_{}".format(j)]  = Pixmap()
+            self["h_sub_lbl_{}".format(j)]  = Label("")
+            self["h_sub_rc_{}".format(j)]   = Pixmap()
+            self["a_sub_img_{}".format(j)]  = Pixmap()
+            self["a_sub_lbl_{}".format(j)]  = Label("")
+            self["a_sub_rc_{}".format(j)]   = Pixmap()
+            self["h_sub_img_{}".format(j)].hide()
+            self["h_sub_lbl_{}".format(j)].hide()
+            self["h_sub_rc_{}".format(j)].hide()
+            self["a_sub_img_{}".format(j)].hide()
+            self["a_sub_lbl_{}".format(j)].hide()
+            self["a_sub_rc_{}".format(j)].hide()
+
+            for g in range(3):
+                self["h_sub_ball_{}_{}".format(j, g)] = Pixmap()
+                self["a_sub_ball_{}_{}".format(j, g)] = Pixmap()
+                self["h_sub_ball_{}_{}".format(j, g)].hide()
+                self["a_sub_ball_{}_{}".format(j, g)].hide()
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "ColorActions", "WizardActions"], {
+                "cancel": self.close,
+                "back":   self.close,
+                "ok":     self.close,
+                "green":  self.close,
+            }, -1)
+
+        self.image_queue = []
+        self.image_timer = eTimer()
+        safe_connect(self.image_timer, self._load_next_image)
+
+        self.onLayoutFinish.append(self._start)
+
+    def close(self, *args):
+        try:
+            self.image_timer.stop()
+        except:
+            pass
+        Screen.close(self, *args)
+
+    def _compute_layout(self):
+        sw, sh         = self.sw, self.sh
+        self.hdr_h     = int(sh * 0.10)
+        self.img_w     = int(sw * 0.043)
+        self.img_h     = int(sh * 0.115)
+        self.lbl_h     = int(sh * 0.035)
+        self.shirt_h   = int(sh * 0.025)
+        self.cell_h    = self.img_h + self.lbl_h + self.shirt_h + 6
+        self.play_area_top = self.hdr_h + int(sh * 0.03)
+        self.play_area_h   = sh - self.play_area_top - int(sh * 0.02)
+        self.half_w    = sw // 2
+        self.col_w     = (self.half_w - 20) // 5
+
+    def _build_skin(self):
+        sw, sh   = self.sw, self.sh
+        hdr_h    = self.hdr_h
+        img_w    = self.img_w
+        img_h    = self.img_h
+        lbl_h    = self.lbl_h
+        shirt_h  = self.shirt_h
+        half_w   = self.half_w
+        lgs      = min(hdr_h - 10, 80)
+        px       = -200  # off-screen placeholder
+
+        player_widgets = u""
+        for i in range(11):
+            h_balls_xml = u""
+            a_balls_xml = u""
+            for g in range(3):
+                h_balls_xml += u'<widget name="h_ball_{i}_{g}" position="{x},{y}" size="28,28" alphatest="blend" scale="1" transparent="1" zPosition="{z}" />'.format(i=i, g=g, x=px, y=px, z=7+g)
+                a_balls_xml += u'<widget name="a_ball_{i}_{g}" position="{x},{y}" size="28,28" alphatest="blend" scale="1" transparent="1" zPosition="{z}" />'.format(i=i, g=g, x=px, y=px, z=7+g)
+
+            player_widgets += (
+                u'<widget name="h_img_{i}" position="{x},{y}" size="{w},{h}" alphatest="blend" scale="1" transparent="1" zPosition="5" />'
+                u'<widget name="h_shirt_{i}" position="{x},{y}" size="{cw},{ls}" font="Regular;16" foregroundColor="#00FFD700" backgroundColor="#00000000" transparent="1" valign="center" halign="center" zPosition="6" />'
+                u'<widget name="h_lbl_{i}" position="{x},{y}" size="{cw},{lh}" font="Regular;19" foregroundColor="#00FFFFFF" backgroundColor="#00000000" transparent="1" valign="center" halign="center" zPosition="6" />'
+                u'<widget name="h_rc_{i}" position="{x},{y}" size="20,28" alphatest="blend" scale="1" transparent="1" zPosition="7" />'
+                + h_balls_xml +
+                u'<widget name="a_img_{i}" position="{x},{y}" size="{w},{h}" alphatest="blend" scale="1" transparent="1" zPosition="5" />'
+                u'<widget name="a_shirt_{i}" position="{x},{y}" size="{cw},{ls}" font="Regular;16" foregroundColor="#00FFD700" backgroundColor="#00000000" transparent="1" valign="center" halign="center" zPosition="6" />'
+                u'<widget name="a_lbl_{i}" position="{x},{y}" size="{cw},{lh}" font="Regular;19" foregroundColor="#00FFFFFF" backgroundColor="#00000000" transparent="1" valign="center" halign="center" zPosition="6" />'
+                u'<widget name="a_rc_{i}" position="{x},{y}" size="20,28" alphatest="blend" scale="1" transparent="1" zPosition="7" />'
+                + a_balls_xml
+            ).format(i=i, x=px, y=px, w=img_w, h=img_h, lh=lbl_h, ls=shirt_h, cw=self.col_w - 4)
+
+        sub_widgets = u""
+        for j in range(12):
+            h_sub_balls_xml = u""
+            a_sub_balls_xml = u""
+            for g in range(3):
+                h_sub_balls_xml += u'<widget name="h_sub_ball_{j}_{g}" position="{x},{y}" size="22,22" alphatest="blend" scale="1" transparent="1" zPosition="{z}" />'.format(j=j, g=g, x=px, y=px, z=7+g)
+                a_sub_balls_xml += u'<widget name="a_sub_ball_{j}_{g}" position="{x},{y}" size="22,22" alphatest="blend" scale="1" transparent="1" zPosition="{z}" />'.format(j=j, g=g, x=px, y=px, z=7+g)
+
+            sub_widgets += (
+                u'<widget name="h_sub_img_{j}" position="{x},{y}" size="40,40" alphatest="blend" scale="1" transparent="1" zPosition="5" />'
+                u'<widget name="h_sub_lbl_{j}" position="{x},{y}" size="{scw},40" font="Regular;17" foregroundColor="#00FFFFFF" backgroundColor="#00000000" transparent="1" valign="center" halign="left" zPosition="6" />'
+                u'<widget name="h_sub_rc_{j}" position="{x},{y}" size="15,21" alphatest="blend" scale="1" transparent="1" zPosition="7" />'
+                + h_sub_balls_xml +
+                u'<widget name="a_sub_img_{j}" position="{x},{y}" size="40,40" alphatest="blend" scale="1" transparent="1" zPosition="5" />'
+                u'<widget name="a_sub_lbl_{j}" position="{x},{y}" size="{scw},40" font="Regular;17" foregroundColor="#00FFFFFF" backgroundColor="#00000000" transparent="1" valign="center" halign="left" zPosition="6" />'
+                u'<widget name="a_sub_rc_{j}" position="{x},{y}" size="15,21" alphatest="blend" scale="1" transparent="1" zPosition="7" />'
+                + a_sub_balls_xml
+            ).format(j=j, x=px, y=px, scw=self.col_w - 50)
+
+        return (
+            u'<screen position="0,0" size="{sw},{sh}" title="Team Rosters" flags="wfNoBorder" backgroundColor="#00000000">'
+            u'<eLabel position="0,0" size="{sw},{sh}" backgroundColor="#80062A0F" zPosition="0" />'
+            u'<eLabel position="{cx},0" size="4,{sh}" backgroundColor="#22FFFFFF" zPosition="1" />'
+            u'<eLabel position="0,{hh}" size="{sw},3" backgroundColor="#00FFD700" zPosition="3" />'
+            u'<eLabel position="0,0" size="{sw},{hh}" backgroundColor="#E0000000" zPosition="2" />'
+            u'<widget name="h_logo" position="10,5" size="{lgs},{lgs}" alphatest="blend" scale="1" transparent="1" zPosition="4" />'
+            u'<widget name="a_logo" position="{alx},5" size="{lgs},{lgs}" alphatest="blend" scale="1" transparent="1" zPosition="4" />'
+            u'<widget name="h_team_name" position="110,0" size="{htnw},{hh}" font="Regular;32" foregroundColor="#00FFFFFF" transparent="1" valign="center" halign="left" zPosition="4" />'
+            u'<widget name="a_team_name" position="{atnx},0" size="{atnw},{hh}" font="Regular;32" foregroundColor="#00FFFFFF" transparent="1" valign="center" halign="right" zPosition="4" />'
+            u'<widget name="h_formation" position="110,{fy}" size="160,28" font="Regular;20" foregroundColor="#00FFD700" transparent="1" valign="center" halign="left" zPosition="4" />'
+            u'<widget name="a_formation" position="{afx},{fy}" size="160,28" font="Regular;20" foregroundColor="#00FFD700" transparent="1" valign="center" halign="right" zPosition="4" />'
+            u'<widget name="loading" position="0,{ly}" size="{sw},50" font="Regular;26" foregroundColor="#00FFD700" transparent="1" valign="center" halign="center" zPosition="8" />'
+            + player_widgets + sub_widgets +
+            u'</screen>'
+        ).format(
+            sw=sw, sh=sh,
+            cx=half_w - 2,
+            hh=hdr_h,
+            lgs=lgs,
+            alx=sw - lgs - 10,
+            htnw=half_w - 130,
+            atnw=half_w - 130,
+            atnx=half_w + 20,
+            fy=hdr_h - 30,
+            afx=sw - 270,
+            ly=(sh // 2) - 25,
+        )
+
+    def _start(self):
+        if self.h_logo_url:
+            load_logo_to_widget(self, "h_logo", self.h_logo_url)
+        if self.a_logo_url:
+            load_logo_to_widget(self, "a_logo", self.a_logo_url)
+        self._fetch_lineups()
+
+    def _fetch_lineups(self):
+        try:
+            base_url = self.league_url.split('?')[0]
+            if "scoreboard" in base_url:
+                url = base_url.replace("scoreboard", "summary") + "?event=" + str(self.event_id)
+            else:
+                parts  = base_url.rstrip('/').split('/')
+                sport  = 'soccer'; league = 'fifa.world'
+                for i, p in enumerate(parts):
+                    if p == 'sports' and i + 2 < len(parts):
+                        sport = parts[i+1]; league = parts[i+2]; break
+                url = ("https://site.api.espn.com/apis/site/v2/sports"
+                       "/{}/{}/summary?event={}".format(sport, league, self.event_id))
+            getPage(url.encode('utf-8'), timeout=15).addCallback(
+                self._on_data).addErrback(self._on_error)
+        except Exception as e:
+            self._on_error(e)
+
+    def _on_error(self, error):
+        try:
+            self.image_timer.stop()
+        except:
+            pass
+        self.image_queue = []
+        err_text = u"بيانات التشكيلة غير متوفرة" if PLUGIN_LANGUAGE == "ar" else u"Lineup data unavailable"
+        self["loading"].setText(err_text)
+        self.red_card_ids = set()
+        self.scorer_goals = {}
+        for side, name in [("home", self.h_name), ("away", self.a_name)]:
+            fakes = [{'name': '', 'jersey': '', 'position': p}
+                     for p in ['GK','CB','CB','CB','CB','CM','CM','CM','ST','ST','LW']]
+            self._render_team(fakes, side)
+            self._render_subs([], side)
+        if self.image_queue:
+            self.image_timer.start(20, False)
+
+    def _on_data(self, body):
+        try:
+            self.image_timer.stop()
+        except:
+            pass
+        self.image_queue = []
+        try:
+            data = json.loads(body.decode('utf-8', errors='ignore'))
+            h_p, h_s, a_p, a_s = self._parse_lineups(data)
+        except Exception:
+            h_p, h_s, a_p, a_s = [], [], [], []
+
+        if not h_p and not a_p:
+            no_rosters_text = u"لم يتم توفير تشكيلة الفريقين بعد" if PLUGIN_LANGUAGE == "ar" else u"No team rosters provided yet"
+            self["loading"].setText(no_rosters_text)
+            self["loading"].show()
+        else:
+            self["loading"].hide()
+
+        if not h_p:
+            h_p = [{'name':'','jersey':'','position':pos}
+                   for pos in ['GK','CB','CB','CB','CB','CM','CM','CM','ST','ST','LW']]
+        if not a_p:
+            a_p = [{'name':'','jersey':'','position':pos}
+                   for pos in ['GK','CB','CB','CB','CB','CM','CM','CM','ST','ST','LW']]
+        self._render_team(h_p, "home")
+        self._render_team(a_p, "away")
+        self._render_subs(h_s, "home")
+        self._render_subs(a_s, "away")
+        if self.image_queue:
+            self.image_timer.start(20, False)
+
+    def _parse_lineups(self, data):
+        h_id = ""; a_id = ""
+        try:
+            for c in data.get('header',{}).get('competitions',[{}])[0].get('competitors',[]):
+                t = c.get('team', c.get('athlete', {}))
+                if c.get('homeAway') == 'home':   h_id = str(t.get('id',''))
+                elif c.get('homeAway') == 'away': a_id = str(t.get('id',''))
+        except Exception: pass
+
+        red_card_ids = set()
+        scorer_goals = {}
+        try:
+            details = []
+            comps_data = data.get('competitions', [{}])[0]
+            if 'details' in comps_data:
+                details = comps_data['details']
+            elif 'details' in data.get('header', {}).get('competitions', [{}])[0]:
+                details = data.get('header', {}).get('competitions', [{}])[0]['details']
+            
+            for play in details:
+                text_desc = play.get('type', {}).get('text', '').lower()
+                is_rc = play.get('redCard', False) or ('card' in text_desc and 'red' in text_desc)
+                is_og = play.get('ownGoal', False)
+                is_pk = play.get('penaltyKick', False)
+                is_score = play.get('scoringPlay', False) or is_og or is_pk or any(x in text_desc for x in ["goal", "touchdown", "power play", "short-handed", "even strength", "empty net"])
+                
+                ath_id = ""
+                athletes = play.get('athletesInvolved', [])
+                if athletes:
+                    ath_id = str(athletes[0].get('id', ''))
+                elif play.get('participants'):
+                    participants = play['participants']
+                    if participants:
+                        p = participants[0].get('athlete', {})
+                        ath_id = str(p.get('id', ''))
+                
+                if ath_id:
+                    if is_rc:
+                        red_card_ids.add(ath_id)
+                    if is_score:
+                        scorer_goals[ath_id] = scorer_goals.get(ath_id, 0) + 1
+        except Exception as e:
+            log_dbg("Error parsing red cards/goals in rosters: " + str(e))
+
+        self.red_card_ids = red_card_ids
+        self.scorer_goals = scorer_goals
+
+        h_list = []; h_subs = []
+        a_list = []; a_subs = []
+
+        # Path 1: boxscore.players
+        try:
+            for team_p in data.get('boxscore',{}).get('players',[]):
+                t_id    = str(team_p.get('team',{}).get('id',''))
+                players = []
+                for group in team_p.get('statistics',[]):
+                    for ath in group.get('athletes',[]):
+                        a_obj = ath.get('athlete',{})
+                        players.append({
+                            'id':       str(a_obj.get('id', '')),
+                            'name':     a_obj.get('displayName') or a_obj.get('shortName',''),
+                            'jersey':   str(ath.get('jersey','')),
+                            'position': a_obj.get('position',{}).get('abbreviation','')
+                                        or group.get('name','').upper()[:2],
+                            'starter':  ath.get('starter', True),
+                        })
+                unique_players = []
+                for p in players:
+                    is_dup = False
+                    for existing in unique_players:
+                        if is_duplicate_player(p, existing):
+                            is_dup = True
+                            break
+                    if not is_dup:
+                        unique_players.append(p)
+                starters = [p for p in unique_players if p.get('starter', True)][:11]
+                subs = [p for p in unique_players if not p.get('starter', True)]
+                if t_id == h_id or (not h_id and not h_list):
+                    h_list = starters
+                    h_subs = subs
+                elif not a_list:
+                    a_list = starters
+                    a_subs = subs
+        except Exception: pass
+
+        # Path 2: rosters
+        if not h_list and not a_list:
+            try:
+                for team_r in data.get('rosters',[]):
+                    t_id = str(team_r.get('team',{}).get('id',''))
+                    players = []
+                    for entry in team_r.get('roster',[]):
+                        a_obj = entry.get('athlete',{})
+                        players.append({
+                            'id':       str(a_obj.get('id', '')),
+                            'name':     a_obj.get('displayName') or a_obj.get('shortName',''),
+                            'jersey':   str(entry.get('jersey','')),
+                            'position': entry.get('position',{}).get('abbreviation',''),
+                            'starter':  entry.get('starter', False),
+                        })
+                    unique_players = []
+                    for p in players:
+                        is_dup = False
+                        for existing in unique_players:
+                            if is_duplicate_player(p, existing):
+                                is_dup = True
+                                break
+                        if not is_dup:
+                            unique_players.append(p)
+                    starters = [p for p in unique_players if p['starter']][:11] or unique_players[:11]
+                    subs = [p for p in unique_players if p not in starters]
+                    if t_id == h_id or (not h_id and not h_list):
+                        h_list = starters
+                        h_subs = subs
+                    elif not a_list:
+                        a_list = starters
+                        a_subs = subs
+            except Exception: pass
+
+        return h_list, h_subs, a_list, a_subs
+
+    def _render_team(self, players, side):
+        groups, formation = get_formation_layout(players)
+        if side == "home":
+            self["h_formation"].setText(formation)
+            col_order = ['GK', 'DEF', 'MID', 'FWD']
+        else:
+            self["a_formation"].setText(formation)
+            col_order = ['FWD', 'MID', 'DEF', 'GK']
+
+        slot = 0
+        for col_index, group_key in enumerate(col_order):
+            group_players = groups[group_key]
+            if not group_players: continue
+
+            def get_position_score(player):
+                pos = (player.get('position') or '').upper().strip()
+                
+                outer_left = {'LB', 'LWB', 'LM', 'LW', 'LF', 'LWF', 'LDF'}
+                outer_right = {'RB', 'RWB', 'RM', 'RW', 'RF', 'RWF', 'RDF'}
+                
+                if pos in outer_left:
+                    category = "OL"
+                elif pos in outer_right:
+                    category = "OR"
+                elif pos.startswith('LC') or pos.endswith('-L') or pos.endswith('L') or pos in {'LCM', 'LCB', 'CD-L', 'CDL', 'CM-L', 'CML'}:
+                    category = "IL"
+                elif pos.startswith('RC') or pos.endswith('-R') or pos.endswith('R') or pos in {'RCM', 'RCB', 'CD-R', 'CDR', 'CM-R', 'CMR'}:
+                    category = "IR"
+                else:
+                    category = "C"
+
+                if side == "home":
+                    mapping = {"OL": 0, "IL": 1, "C": 2, "IR": 3, "OR": 4}
+                else:  # away
+                    mapping = {"OR": 0, "IR": 1, "C": 2, "IL": 3, "OL": 4}
+                return mapping[category]
+
+            group_players = sorted(group_players, key=get_position_score)
+            actual_col = col_index if side == "home" else col_index + 1
+            x_c    = self._col_x(side, actual_col)
+            ys     = self._row_ys(len(group_players))
+            for row_i, player in enumerate(group_players):
+                if slot >= 11: break
+                self._place(side, slot, player, x_c - self.img_w // 2, ys[row_i])
+                slot += 1
+
+    def _col_x(self, side, col_index):
+        pad = 20
+        base = pad if side == "home" else self.half_w + pad
+        return base + col_index * self.col_w + self.col_w // 2
+
+    def _row_ys(self, n):
+        top   = self.play_area_top
+        avail = self.play_area_h - self.cell_h
+        if n <= 1: return [top + avail // 2]
+        step = avail // (n - 1)
+        return [top + i * step for i in range(n)]
+
+    def _place(self, side, slot, player, x, y):
+        prefix  = "h" if side == "home" else "a"
+        country = self.h_name if side == "home" else self.a_name
+
+        placeholder_path = os.path.join(PLAYERS_IMG_DIR, "player.png")
+        img_path = find_player_image(
+            country, player.get('name', ''), player.get('jersey', ''))
+
+        try:
+            self["{}_img_{}".format(prefix, slot)].instance.move(ePoint(x, y))
+            self["{}_img_{}".format(prefix, slot)].instance.resize(
+                eSize(self.img_w, self.img_h))
+        except Exception:
+            pass
+
+        if os.path.exists(placeholder_path):
+            try:
+                ptr = get_scaled_pixmap(placeholder_path, self.img_w, self.img_h)
+                if ptr:
+                    self["{}_img_{}".format(prefix, slot)].instance.setPixmap(ptr)
+                    self["{}_img_{}".format(prefix, slot)].instance.setScale(1)
+            except Exception:
+                pass
+        self["{}_img_{}".format(prefix, slot)].show()
+
+        if img_path and img_path != placeholder_path and os.path.exists(img_path):
+            self.image_queue.append((prefix, slot, img_path))
+
+        player_id = player.get('id', '')
+        has_rc = player_id and player_id in self.red_card_ids
+        goals_count = min(3, self.scorer_goals.get(player_id, 0))
+        
+        rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+        ball_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ball.png")
+        
+        if has_rc and os.path.exists(rc_path):
+            rc_x = x - 22
+            rc_y = y + 5
+            try:
+                self["{}_rc_{}".format(prefix, slot)].instance.move(ePoint(rc_x, rc_y))
+                ptr = get_scaled_pixmap(rc_path, 20, 28)
+                if ptr:
+                    self["{}_rc_{}".format(prefix, slot)].instance.setPixmap(ptr)
+                    self["{}_rc_{}".format(prefix, slot)].instance.setScale(1)
+                self["{}_rc_{}".format(prefix, slot)].show()
+            except Exception:
+                pass
+        else:
+            self["{}_rc_{}".format(prefix, slot)].hide()
+            
+        for g in range(3):
+            if g < goals_count and os.path.exists(ball_path):
+                ball_x = x + self.img_w + 2 + g * 8
+                ball_y = y + 5
+                try:
+                    self["{}_ball_{}_{}".format(prefix, slot, g)].instance.move(ePoint(ball_x, ball_y))
+                    ptr = LoadPixmap(cached=True, path=ball_path)
+                    if ptr:
+                        self["{}_ball_{}_{}".format(prefix, slot, g)].instance.setPixmap(ptr)
+                        self["{}_ball_{}_{}".format(prefix, slot, g)].instance.setScale(1)
+                    self["{}_ball_{}_{}".format(prefix, slot, g)].show()
+                except Exception:
+                    pass
+            else:
+                self["{}_ball_{}_{}".format(prefix, slot, g)].hide()
+
+        jersey = player.get('jersey', '')
+        pos = player.get('position', '')
+        meta_parts = []
+        if jersey:
+            meta_parts.append("#{}".format(jersey))
+        if pos:
+            meta_parts.append(str(pos))
+        meta_text = " - ".join(meta_parts)
+
+        lbl_w   = self.col_w - 4
+        lbl_x   = x - (lbl_w - self.img_w) // 2
+        shirt_y = y + self.img_h + 2
+
+        try:
+            self["{}_shirt_{}".format(prefix, slot)].instance.move(
+                ePoint(lbl_x, shirt_y))
+            self["{}_shirt_{}".format(prefix, slot)].instance.resize(
+                eSize(lbl_w, self.shirt_h))
+            self["{}_shirt_{}".format(prefix, slot)].setText(meta_text)
+            self["{}_shirt_{}".format(prefix, slot)].show()
+        except Exception:
+            pass
+
+        name_y = y + self.img_h + self.shirt_h - 3
+
+        name    = player.get('name', '')
+        tokens  = name.split()
+        if len(tokens) >= 2:
+            display_name = u"{}. {}".format(tokens[0][0].upper(), tokens[-1])
+        else:
+            display_name = name
+
+        try:
+            self["{}_lbl_{}".format(prefix, slot)].instance.move(
+                ePoint(lbl_x, name_y))
+            self["{}_lbl_{}".format(prefix, slot)].instance.resize(
+                eSize(lbl_w, self.lbl_h))
+            self["{}_lbl_{}".format(prefix, slot)].setText(display_name)
+            self["{}_lbl_{}".format(prefix, slot)].show()
+        except Exception:
+            pass
+
+    def _render_subs(self, subs, side):
+        prefix = "h" if side == "home" else "a"
+        country = self.h_name if side == "home" else self.a_name
+        
+        col_index = 4 if side == "home" else 0
+        x_c = self._col_x(side, col_index)
+        
+        sub_img_w = 40
+        sub_img_h = 40
+        
+        y_start = self.play_area_top
+        y_gap = 10
+        cell_h = sub_img_h + y_gap
+        
+        rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+        ball_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ball.png")
+        
+        for j in range(12):
+            if j >= len(subs):
+                self["{}_sub_img_{}".format(prefix, j)].hide()
+                self["{}_sub_lbl_{}".format(prefix, j)].hide()
+                self["{}_sub_rc_{}".format(prefix, j)].hide()
+                for g in range(3):
+                    self["{}_sub_ball_{}_{}".format(prefix, j, g)].hide()
+                continue
+                
+            player = subs[j]
+            y = y_start + j * cell_h
+            
+            img_x = x_c - self.col_w // 2 + 5
+            try:
+                self["{}_sub_img_{}".format(prefix, j)].instance.move(ePoint(img_x, y))
+                self["{}_sub_img_{}".format(prefix, j)].instance.resize(eSize(sub_img_w, sub_img_h))
+            except Exception:
+                pass
+                
+            placeholder_path = os.path.join(PLAYERS_IMG_DIR, "player.png")
+            if os.path.exists(placeholder_path):
+                try:
+                    ptr = get_scaled_pixmap(placeholder_path, sub_img_w, sub_img_h)
+                    if ptr:
+                        self["{}_sub_img_{}".format(prefix, j)].instance.setPixmap(ptr)
+                        self["{}_sub_img_{}".format(prefix, j)].instance.setScale(1)
+                except Exception:
+                    pass
+            self["{}_sub_img_{}".format(prefix, j)].show()
+            
+            img_path = find_player_image(country, player.get('name', ''), player.get('jersey', ''))
+            if img_path and img_path != placeholder_path and os.path.exists(img_path):
+                self.image_queue.append(("{}_sub".format(prefix), j, img_path))
+                
+            lbl_x = img_x + sub_img_w + 5
+            lbl_w = self.col_w - sub_img_w - 10
+            
+            jersey = player.get('jersey', '')
+            name = player.get('name', '')
+            tokens = name.split()
+            if len(tokens) >= 2:
+                display_name = u"{}. {}".format(tokens[0][0].upper(), tokens[-1])
+            else:
+                display_name = name
+                
+            pos = player.get('position', '')
+            display_text = u"#{} {} ({})".format(jersey, display_name, pos) if jersey and pos else (u"#{} {}".format(jersey, display_name) if jersey else display_name)
+            
+            try:
+                self["{}_sub_lbl_{}".format(prefix, j)].instance.move(ePoint(lbl_x, y))
+                self["{}_sub_lbl_{}".format(prefix, j)].instance.resize(eSize(lbl_w, sub_img_h))
+                self["{}_sub_lbl_{}".format(prefix, j)].setText(display_text)
+                self["{}_sub_lbl_{}".format(prefix, j)].show()
+            except Exception:
+                pass
+                
+            player_id = player.get('id', '')
+            has_rc = player_id and player_id in self.red_card_ids
+            goals_count = min(3, self.scorer_goals.get(player_id, 0))
+            
+            if has_rc and os.path.exists(rc_path):
+                rc_x = img_x - 5
+                rc_y = y - 3
+                try:
+                    self["{}_sub_rc_{}".format(prefix, j)].instance.move(ePoint(rc_x, rc_y))
+                    ptr = get_scaled_pixmap(rc_path, 15, 21)
+                    if ptr:
+                        self["{}_sub_rc_{}".format(prefix, j)].instance.setPixmap(ptr)
+                        self["{}_sub_rc_{}".format(prefix, j)].instance.setScale(1)
+                    self["{}_sub_rc_{}".format(prefix, j)].show()
+                except Exception:
+                    pass
+            else:
+                self["{}_sub_rc_{}".format(prefix, j)].hide()
+                
+            for g in range(3):
+                if g < goals_count and os.path.exists(ball_path):
+                    ball_x = img_x + sub_img_w - 10 + g * 6
+                    ball_y = y - 3
+                    try:
+                        self["{}_sub_ball_{}_{}".format(prefix, j, g)].instance.move(ePoint(ball_x, ball_y))
+                        ptr = LoadPixmap(cached=True, path=ball_path)
+                        if ptr:
+                            self["{}_sub_ball_{}_{}".format(prefix, j, g)].instance.setPixmap(ptr)
+                            self["{}_sub_ball_{}_{}".format(prefix, j, g)].instance.setScale(1)
+                        self["{}_sub_ball_{}_{}".format(prefix, j, g)].show()
+                    except Exception:
+                        pass
+                else:
+                    self["{}_sub_ball_{}_{}".format(prefix, j, g)].hide()
+
+    def _load_next_image(self):
+        if not self.image_queue:
+            self.image_timer.stop()
+            return
+
+        prefix, slot, img_path = self.image_queue.pop(0)
+        if "sub" in prefix:
+            widget_key = "{}_img_{}".format(prefix, slot)
+            w, h = 40, 40
+        else:
+            widget_key = "{}_img_{}".format(prefix, slot)
+            w, h = self.img_w, self.img_h
+
+        if img_path and os.path.exists(img_path):
+            try:
+                ptr = get_scaled_pixmap(img_path, w, h)
+                if not ptr:
+                    ptr = LoadPixmap(cached=True, path=img_path)
+                if ptr and self[widget_key].instance:
+                    self[widget_key].instance.setPixmap(ptr)
+                    self[widget_key].instance.setScale(1)
+            except Exception:
+                pass
+
+
+# ==============================================================================
 # MINI BAR 2 (Bottom) - FIXED: Callback Synchronization
 # ==============================================================================
 class SimpleSportsMiniBar2(Screen):
@@ -12475,7 +13874,12 @@ class SimpleSportsMiniBar2(Screen):
                 self.rc_pixmap = LoadPixmap(cached=True, path=rc_path)
         except: pass
         self.league_colors = {"ENG": 0x00ff85, "ESP": 0xff4b4b, "ITA": 0x008fd7, "GER": 0xd3010c, "FRA": 0xdae025, "UCL": 0xc9a020, "WC": 0xc9a020, "FIFA": 0xc9a020, "UEL": 0xff8800, "NBA": 0xC9082A, "NFL": 0x013369}
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {"cancel": self.close, "green": self.close, "yellow": self.toggle_filter_mini}, -1)
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
+            "cancel": self.close,
+            "ok":     self.open_team_rosters,
+            "green":  self.close,
+            "yellow": self.toggle_filter_mini
+        }, -1)
         self.ticker_timer = eTimer(); safe_connect(self.ticker_timer, self.show_next_match)
         self.refresh_timer = eTimer(); safe_connect(self.refresh_timer, self.refresh_data)
         global_sports_monitor.register_callback(self.on_data_ready)
@@ -12500,6 +13904,35 @@ class SimpleSportsMiniBar2(Screen):
     def toggle_filter_mini(self):
         global_sports_monitor.toggle_filter()
         self.parse_json()
+
+    def open_team_rosters(self):
+        if not self.matches:
+            return
+        idx  = self.current_match_idx % len(self.matches)
+        data = self.matches[idx]
+
+        # Guard: skip racing/individual sports (they have no meaningful team roster)
+        league_url = data.get('league_url', '')
+        if get_sport_type(league_url) in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF,
+                                           SPORT_TYPE_COMBAT, SPORT_TYPE_TENNIS]:
+            return
+
+        h_name     = data.get('h_name_full', data.get('home', ''))
+        a_name     = data.get('a_name_full', data.get('away', ''))
+        event_id   = data.get('event_id', '')
+        if not event_id or not h_name or not a_name:
+            return
+
+        if self.ticker_timer.isActive():
+            self.ticker_timer.stop()
+
+        self.session.openWithCallback(
+            self._on_rosters_closed, TeamRostersScreen,
+            h_name, a_name, event_id, league_url,
+            data.get('h_url', ''), data.get('a_url', ''))
+
+    def _on_rosters_closed(self, result=None):
+        self.close()
 
     def refresh_data(self):
         global_sports_monitor.check_goals(from_ui=True)
@@ -12598,7 +14031,7 @@ class SimpleSportsMiniBar2(Screen):
             self.show_next_match()
             return
 
-        mode = global_sports_monitor.filter_mode
+        mode = 4 if global_sports_monitor.ch_day_offset != 0 else global_sports_monitor.filter_mode
 
         # Pre-compute dates once per render pass
         now = datetime.datetime.now()
@@ -12659,6 +14092,10 @@ class SimpleSportsMiniBar2(Screen):
                     # Venue city — populated once summary fetch patches the event
                     'venue_city':      event.get('competitions', [{}])[0].get('venue', {}).get('address', {}).get('city', ''),
                     'league_url':      snap.get('league_url', ''),
+                    # ── NEW: Required by TeamRostersScreen ──────────────
+                    'h_name_full':     snap.get('h_name', snap['h_name_short']),
+                    'a_name_full':     snap.get('a_name', snap['a_name_short']),
+                    'event_id':        str(event.get('id', '')),
                 }
             new_matches.append(match_data)
 
@@ -12710,7 +14147,7 @@ class SimpleSportsMiniBar2(Screen):
                 # Show WC stage badge in the league label (e.g. "GROUP · MD2", "SEMI-FINAL")
                 base_label = stage_label
             else:
-                base_label = league_name
+                base_label = _league_name(league_name)
             if venue_city:
                 self["lbl_league"].setText(u"{} ({})".format(base_label, venue_city))
             else:
@@ -12754,8 +14191,8 @@ class SimpleSportsMiniBar2(Screen):
         h_sc = h_sc or ''
         a_sc = a_sc or ''
 
-        self["lbl_home"].setText(str(h_txt)); self["lbl_score"].setText(str(data.get('score', '')))
-        self["lbl_away"].setText(str(a_txt))
+        self["lbl_home"].setText(_team_name(str(h_txt))); self["lbl_score"].setText(str(data.get('score', '')))
+        self["lbl_away"].setText(_team_name(str(a_txt)))
         # self["lbl_status"] is already set in font adjustment block above
 
         # Red Card / Scorer Parser
@@ -13109,6 +14546,7 @@ class SimpleSportsMiniBar(Screen):
 
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
             "cancel": self.close,
+            "ok":     self.open_team_rosters,
             "green": self.switch_to_bottom,
             "yellow": self.toggle_filter_mini
         }, -1)
@@ -13151,6 +14589,35 @@ class SimpleSportsMiniBar(Screen):
         global_sports_monitor.toggle_filter()
         # Trigger reload to apply filter
         self.parse_json()
+
+    def open_team_rosters(self):
+        if not self.matches:
+            return
+        idx  = self.current_match_idx % len(self.matches)
+        data = self.matches[idx]
+
+        # Guard: skip racing/individual sports (they have no meaningful team roster)
+        league_url = data.get('league_url', '')
+        if get_sport_type(league_url) in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF,
+                                           SPORT_TYPE_COMBAT, SPORT_TYPE_TENNIS]:
+            return
+
+        h_name     = data.get('h_name_full', data.get('home', ''))
+        a_name     = data.get('a_name_full', data.get('away', ''))
+        event_id   = data.get('event_id', '')
+        if not event_id or not h_name or not a_name:
+            return
+
+        if self.ticker_timer.isActive():
+            self.ticker_timer.stop()
+
+        self.session.openWithCallback(
+            self._on_rosters_closed, TeamRostersScreen,
+            h_name, a_name, event_id, league_url,
+            data.get('h_url', ''), data.get('a_url', ''))
+
+    def _on_rosters_closed(self, result=None):
+        self.close()
 
     def refresh_data(self):
         global_sports_monitor.check_goals(from_ui=True)
@@ -13245,7 +14712,7 @@ class SimpleSportsMiniBar(Screen):
             self.show_next_match()
             return
 
-        mode = global_sports_monitor.filter_mode
+        mode = 4 if global_sports_monitor.ch_day_offset != 0 else global_sports_monitor.filter_mode
 
         # Pre-compute dates once per render pass
         now = datetime.datetime.now()
@@ -13292,6 +14759,10 @@ class SimpleSportsMiniBar(Screen):
                     'host_flag_id':  snap.get('host_flag_id', ''),
                     'venue_city':    event.get('competitions', [{}])[0].get('venue', {}).get('address', {}).get('city', ''),
                     'league_url':    snap.get('league_url', ''),
+                    # ── NEW: Required by TeamRostersScreen ──────────────
+                    'h_name_full':   snap.get('h_name', snap['h_name_short']),
+                    'a_name_full':   snap.get('a_name', snap['a_name_short']),
+                    'event_id':      str(event.get('id', '')),
                 }
             new_matches.append(match_data)
 
@@ -13330,9 +14801,9 @@ class SimpleSportsMiniBar(Screen):
         else:
             self["lbl_league"].setText(base_label)
 
-        self["lbl_home"].setText(str(data.get('home', '')))
+        self["lbl_home"].setText(_team_name(str(data.get('home', ''))))
         self["lbl_score"].setText(str(data.get('score', '')))
-        self["lbl_away"].setText(str(data.get('away', '')))
+        self["lbl_away"].setText(_team_name(str(data.get('away', ''))))
 
         self.load_logo(data.get('h_url'), data.get('h_id'), "h_logo")
         self.load_logo(data.get('a_url'), data.get('a_id'), "a_logo")
@@ -13994,9 +15465,9 @@ class SimpleSportsScreen(Screen):
             {bg}
             {top}
             <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
-            <widget name="top_status" position="1180,30" size="420,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
+            <widget name="top_status" position="1280,30" size="520,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
             <widget name="key_menu" position="40,30" size="1000,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
-            <widget name="credit" position="1600,20" size="300,30" font="SimplySportFont;20" foregroundColor="#888888" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
+            <widget name="credit" position="1800,20" size="100,30" font="SimplySportFont;20" foregroundColor="#888888" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
             <widget name="clock" position="{cx},75" size="{cw},35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="{ca}" zPosition="2" />
             {bar}
             <widget name="league_title" position="50,75" size="500,35" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="{c_bar}" transparent="1" halign="left" zPosition="1" />
@@ -14010,6 +15481,7 @@ class SimpleSportsScreen(Screen):
             <widget name="head_time" position="1710,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
             <widget name="list" position="0,170" size="1920,800" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
             {bottom}
+            <widget name="key_ch" position="0,972" size="1920,18" font="SimplySportFont;17" foregroundColor="#888888" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
             <widget name="key_red" position="40,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#CC0000" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
             <widget name="key_green" position="400,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#00FF85" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
             <widget name="key_yellow" position="760,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#FFD700" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
@@ -14020,9 +15492,10 @@ class SimpleSportsScreen(Screen):
 
         self["top_bar"] = Label(""); self["header_bg"] = Label(""); self["bottom_bar"] = Label(""); self["main_bg"] = Pixmap(); self["bar_bg"] = Label("")
         self["top_title"] = Label(_t("SIMPLY SPORTS")); self["top_status"] = Label(""); self["league_title"] = Label(_t("LOADING...")); self["list_title"] = Label("")
-        self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label(_t("MENU: Settings  |  1-9: Leagues"))
+        self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label(_t("MENU: Settings  |  1-8: Leagues  |  9: Custom  |  0: Lineups"))
         self["clock"] = Label("")  # Clock widget
         self._last_refreshed = None  # datetime of last successful refresh_ui render
+        self.last_update_text = ""
         self["head_status"] = Label(_t("STATUS")); self["head_home"] = Label(_t("HOME")); self["head_league"] = Label(_t("LEAGUE")); self["head_score"] = Label(""); self["head_away"] = Label(_t("AWAY")); self["head_time"] = Label(_t("TIME"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         # Use Custom font "SimplySportFont" which is guaranteed to map to a valid system font
@@ -14033,6 +15506,7 @@ class SimpleSportsScreen(Screen):
         self["list"].l.setItemHeight(90)
         self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Live Only")); self["key_blue"] = Label(_t("Watch Party"))
         self["key_epg"] = Label(_t("Info/EPG: Channels"))
+        self["key_ch"] = Label(_t("< > / << >> Browse Days"))
 
         # Clock timer
         self.clock_timer = eTimer()
@@ -14049,7 +15523,7 @@ class SimpleSportsScreen(Screen):
         safe_connect(self.ai_ticker_timer, self._advance_ai_ticker)
 
         log_dbg("SimpleSportsScreen: Registering ActionMap...")
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions", "EPGSelectActions", "InfobarEPGActions", "InfobarActions", "GlobalActions", "NumberActions"],
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions", "EPGSelectActions", "InfobarEPGActions", "InfobarActions", "InfobarBouquetActions", "InfobarSeekActions", "GlobalActions", "NumberActions"],
             {
                 "cancel": self.close,
                 "red": self.open_league_menu,
@@ -14074,7 +15548,17 @@ class SimpleSportsScreen(Screen):
                 "7": self.keyNumber7,
                 "8": self.keyNumber8,
                 "9": self.keyNumber9,
-                "0": self.keyNumber0
+                "0": self.keyNumber0,
+                "channelUp":   self.ch_next_day_action,
+                "channelDown": self.ch_prev_day_action,
+                "zapUp":       self.zap_up_action,
+                "zapDown":     self.zap_down_action,
+                "nextBouquet": self.bouquet_up_action,
+                "prevBouquet": self.bouquet_down_action,
+                "bouquetUp":   self.bouquet_up_action,
+                "bouquetDown": self.bouquet_down_action,
+                "fastForward": self.ch_next_day_action,
+                "rewind":      self.ch_prev_day_action
             }, -1)
         log_dbg("SimpleSportsScreen: ActionMap Registered")
 
@@ -14084,26 +15568,25 @@ class SimpleSportsScreen(Screen):
         self.onLayoutFinish.append(self.start_ui); self.onClose.append(self.cleanup)
 
     def update_clock(self):
-        """Update clock display (HH:MM:SS) and the last-refreshed age in key_menu."""
+        """Update clock display (HH:MM:SS) and the last-refreshed age in top_status."""
         try:
             now = datetime.datetime.now()
             self["clock"].setText(now.strftime("%H:%M:%S"))
 
             if self._last_refreshed is None:
-                # Data hasn't arrived yet — show a neutral waiting hint
-                menu_txt = _t("MENU: Settings  |  1-9: Leagues   ") + u"\u21bb " + _t("Waiting for data…")
+                self.last_update_text = u"  |  \u21bb " + _t("Waiting for data…")
             else:
                 delta_sec = int((now - self._last_refreshed).total_seconds())
-                ts_str    = self._last_refreshed.strftime("%H:%M:%S")
                 if delta_sec < 60:
                     age_str = u"{}s ago".format(delta_sec)
                 elif delta_sec < 3600:
                     age_str = u"{}m {}s ago".format(delta_sec // 60, delta_sec % 60)
                 else:
                     age_str = u"{}h {}m ago".format(delta_sec // 3600, (delta_sec % 3600) // 60)
-                menu_txt = _t("MENU: Settings  |  1-9: Leagues   ") + u"\u21bb {}  (updated {})".format(ts_str, age_str)
+                self.last_update_text = u"  |  \u21bb (updated {})".format(age_str)
 
-            self["key_menu"].setText(menu_txt)
+            self["key_menu"].setText(_t("MENU: Settings  |  1-8: Leagues  |  9: Custom  |  0: Lineups"))
+            self.update_top_status()
         except Exception:
             pass
 
@@ -14117,7 +15600,7 @@ class SimpleSportsScreen(Screen):
         self["list"].setList([])
         self["list_title"].setText("Loading...")
         self.update_top_status()
-        self.update_header(); self.update_filter_button(); self.fetch_data()
+        self.update_header(); self.update_filter_button(); self._update_ch_hint(); self.fetch_data()
 
     def cleanup(self):
         self.clock_timer.stop()
@@ -14160,6 +15643,8 @@ class SimpleSportsScreen(Screen):
             
             # Combine info: Goal Alert: MODE | AI: STATUS
             status_str = u"{} {} : {}  |  AI: {}".format(u"\u2022", _t("Goal Alert"), alert_txt, ai_status)
+            if hasattr(self, 'last_update_text') and self.last_update_text:
+                status_str += self.last_update_text
             self["top_status"].setText(status_str)
         except Exception:
             pass
@@ -14176,7 +15661,16 @@ class SimpleSportsScreen(Screen):
         title_str = ""
         if mode == 0: title_str = _t("Yesterday's Matches")
         elif mode == 1: title_str = _t("Live Matches")
-        elif mode == 2: title_str = _t("Today's Matches")
+        elif mode == 2:
+            offset = self.monitor.ch_day_offset
+            if offset == 0:
+                title_str = _t("Today's Matches")
+            elif offset == 1:
+                title_str = _t("Tomorrow's Matches")
+            elif offset == -1:
+                title_str = _t("Yesterday's Matches")
+            else:
+                title_str = _t("Matches")
         elif mode == 3: title_str = _t("Tomorrow's Matches")
         elif mode == 4: title_str = _t("All Matches")
         
@@ -14193,6 +15687,23 @@ class SimpleSportsScreen(Screen):
                 breakdown += " - " + " / ".join(parts)
             title_str = "{}  ({})".format(title_str, breakdown)
             
+        # Inject browsed-date prefix when using CH+/CH-
+        offset = self.monitor.ch_day_offset
+        if offset != 0:
+            target     = datetime.date.today() + datetime.timedelta(days=offset)
+            day_name   = _t(target.strftime("%A"))
+            month_name = _t(target.strftime("%B"))
+            day_num    = target.strftime("%d")
+            if PLUGIN_LANGUAGE == "ar":
+                date_label = u"{} {} {}".format(day_name, day_num, month_name)
+            else:
+                date_label = u"{}, {} {}".format(day_name[:3], day_num, month_name[:3])
+            # e.g.  "Sat 07 Jun  •  All Matches  (12)"
+            if title_str:
+                title_str = u"{}  \u2022  {}".format(date_label, title_str)
+            else:
+                title_str = date_label
+
         self["list_title"].setText(title_str)
         # Green button: show 'Driver Position' for racing, 'Mini Bar' otherwise
         try:
@@ -14210,11 +15721,10 @@ class SimpleSportsScreen(Screen):
 
     def update_filter_button(self):
         mode = self.monitor.filter_mode
-        if mode == 0: self["key_yellow"].setText(_t("Live Only"))
-        elif mode == 1: self["key_yellow"].setText(_t("Show Today"))
-        elif mode == 2: self["key_yellow"].setText(_t("Show Tomorrow"))
-        elif mode == 3: self["key_yellow"].setText(_t("Show All"))
-        elif mode == 4: self["key_yellow"].setText(_t("Yesterday"))
+        if mode == 1:
+            self["key_yellow"].setText(_t("Show Today"))
+        else:
+            self["key_yellow"].setText(_t("Live Only"))
         self.update_header()
 
     def fetch_data(self):
@@ -14548,13 +16058,29 @@ class SimpleSportsScreen(Screen):
 
                         STOP_WORDS = ['al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs', 'live', 'hd', 'fhd', '4k', 'uhd']
 
+                        import difflib
                         def match_sig_score(keywords, text_blob, require_all=True):
                             sig = [w for w in keywords if w not in STOP_WORDS and len(w) > 1]
                             if not sig: sig = keywords
 
                             found_count = 0
+                            blob_words = text_blob.split()
+                            
                             for w in sig:
-                                if w in text_blob: found_count += 1
+                                if w in text_blob: 
+                                    found_count += 1
+                                    continue
+                                
+                                if len(w) > 3:
+                                    best_ratio = 0.0
+                                    for bw in blob_words:
+                                        if len(bw) > 2:
+                                            r = difflib.SequenceMatcher(None, w, bw).ratio()
+                                            if r > best_ratio:
+                                                best_ratio = r
+                                    
+                                    if best_ratio >= 0.70:
+                                        found_count += 1
 
                             return found_count, len(sig)
 
@@ -14621,10 +16147,9 @@ class SimpleSportsScreen(Screen):
             self["list"].l.invalidate()
 
     def _update_wc_background(self):
-        """Swap the WC background image to match the current filter mode.
+        """Swap the WC background image to match the current day offset.
 
-        Filter modes: 0=Yesterday, 1=Live, 2=Today, 3=Tomorrow, 4=All
-        Images:       wc1.jpg … wc5.jpg  (mode+1 mapping)
+        Images:       wc1.jpg … wc8.jpg  (offset%8 + 1 mapping)
         Fallback:     wc.jpg in the plugin root directory
         """
         if self.monitor.theme_mode != "ucl":
@@ -14632,8 +16157,9 @@ class SimpleSportsScreen(Screen):
         try:
             plugin_dir = os.path.dirname(__file__)
             bg_dir     = os.path.join(plugin_dir, "backgrounds")
-            mode       = self.monitor.filter_mode          # 0-4
-            img_name   = "wc{}.jpg".format(mode + 1)       # wc1-wc5
+            offset     = self.monitor.ch_day_offset
+            mode       = offset % 8
+            img_name   = "wc{}.jpg".format(mode + 1)       # wc1-wc8
             img_path   = os.path.join(bg_dir, img_name)
 
             # Fallback chain: backgrounds/wcN.jpg → wc.jpg → resolveFilename wc.jpg
@@ -14689,14 +16215,16 @@ class SimpleSportsScreen(Screen):
             self.current_match_ids = []
             return
 
-        mode = self.monitor.filter_mode
+        mode = 4 if self.monitor.ch_day_offset != 0 else self.monitor.filter_mode
         raw_entries = []  # Store (entry_data, match_id, is_live) for sorting
 
         # Pre-compute dates once per render pass
         now = datetime.datetime.now()
+        if self.monitor.ch_day_offset != 0:
+            now = now + datetime.timedelta(days=self.monitor.ch_day_offset)
         today_str = now.strftime("%Y-%m-%d")
-        tomorrow_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) + 86400).strftime("%Y-%m-%d")
-        yesterday_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) - 86400).strftime("%Y-%m-%d")
+        tomorrow_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        yesterday_str = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 
         for event in events:
             try:
@@ -14773,8 +16301,8 @@ class SimpleSportsScreen(Screen):
                     _fav_set = set(f["team_id"] for f in self.monitor.favorite_teams)
                     _h_star  = u"\u2605 " if snap.get('h_team_id') in _fav_set and _fav_set else ""
                     _a_star  = u"\u2605 " if snap.get('a_team_id') in _fav_set and _fav_set else ""
-                    left_text  = _h_star + truncate_name(snap['h_name'], 25 - len(_h_star))
-                    right_text = _a_star + truncate_name(snap['a_name'], 25 - len(_a_star))
+                    left_text  = _h_star + truncate_name(_team_name(snap['h_name']), 25 - len(_h_star))
+                    right_text = _a_star + truncate_name(_team_name(snap['a_name']), 25 - len(_a_star))
                     score_text = snap['score_str']
                     h_score_int = snap['h_score_int']
                     a_score_int = snap['a_score_int']
@@ -14965,7 +16493,7 @@ class SimpleSportsScreen(Screen):
                 # Optimization: In-place update prevents cursor jumping and UI flickering
                 for i in range(len(list_content)):
                     self["list"].list[i] = list_content[i]
-                self["list"].l.invalidate()
+                self["list"].l.setList(self["list"].list)
             else:
                 self["list"].setList(list_content)
                 self.current_match_ids = new_match_ids
@@ -15136,8 +16664,7 @@ class SimpleSportsScreen(Screen):
 
     def _reopen_after_lang_change(self):
         try:
-            self.session.open(SimpleSportsScreen)
-            self.close()
+            self.close(True)
         except Exception:
             pass
 
@@ -15422,15 +16949,13 @@ class SimpleSportsScreen(Screen):
             idx = selection[1] if isinstance(selection, tuple) else selection
             self.monitor.set_league(idx)
             # Re-open screen to apply new skin/theme (F1 background etc)
-            self.session.open(SimpleSportsScreen)
-            self.close()
+            self.close(True)
 
     def jump_to_league(self, key_num):
-        if key_num == 0:
+        if key_num == 9:
             # Return to custom leagues mode
             self.monitor.set_custom_leagues(self.monitor.custom_league_indices)
-            self.session.open(SimpleSportsScreen)
-            self.close()
+            self.close(True)
             return
 
         mapping = {
@@ -15442,12 +16967,10 @@ class SimpleSportsScreen(Screen):
             6: 42,  # Ligue 1
             7: 111, # NBA
             8: 165, # FIFA World Cup
-            9: 13,  # UEFA Conference League
         }
         if key_num in mapping:
             self.monitor.set_league(mapping[key_num])
-            self.session.open(SimpleSportsScreen)
-            self.close()
+            self.close(True)
 
     def keyNumber1(self): self.jump_to_league(1)
     def keyNumber2(self): self.jump_to_league(2)
@@ -15458,7 +16981,7 @@ class SimpleSportsScreen(Screen):
     def keyNumber7(self): self.jump_to_league(7)
     def keyNumber8(self): self.jump_to_league(8)
     def keyNumber9(self): self.jump_to_league(9)
-    def keyNumber0(self): self.jump_to_league(0)
+    def keyNumber0(self): self.open_team_rosters()
 
     def open_mini_bar(self):
         # Racing mode: open RacingMiniBar with selected event
@@ -15545,7 +17068,16 @@ class SimpleSportsScreen(Screen):
                 except:
                     pass
 
-            state = selected_event.get('status', {}).get('type', {}).get('state', 'pre')
+            # Determine match state: prefer snapshot (pre-normalized), fall back to raw event
+            snap = self.monitor.match_snapshots.get(str(selected_event.get('id', '')))
+            if snap:
+                state = snap.get('state', 'pre')
+            else:
+                state = selected_event.get('status', {}).get('type', {}).get('state', '')
+                # Fallback: some ESPN feeds put status under competitions[0]
+                if not state:
+                    state = selected_event.get('competitions', [{}])[0].get('status', {}).get('type', {}).get('state', 'pre')
+
             if state == 'pre':
                 options = [
                     (_t("Game Info / Details"), "info"),
@@ -15569,6 +17101,38 @@ class SimpleSportsScreen(Screen):
                         url = item[1]; break
                 if event_id and url:
                     self.session.open(GameInfoScreen, event_id, url, event_data=selected_event)
+
+    def open_team_rosters(self):
+        idx = self["list"].getSelectedIndex()
+        if idx is None or not self.current_match_ids: return
+
+        if 0 <= idx < len(self.current_match_ids):
+            match_id = self.current_match_ids[idx]
+            event = self.monitor.event_map.get(match_id)
+            if not event:
+                for ev in self.monitor.cached_events:
+                    if ev.get('id') == match_id:
+                        event = ev
+                        break
+            if not event: return
+
+            snap = self.monitor.match_snapshots.get(match_id)
+            if not snap: return
+
+            league_url = snap.get('league_url', '')
+            if get_sport_type(league_url) in [SPORT_TYPE_RACING, SPORT_TYPE_GOLF,
+                                               SPORT_TYPE_COMBAT, SPORT_TYPE_TENNIS]:
+                return
+
+            h_name = snap.get('h_name', '')
+            a_name = snap.get('a_name', '')
+            event_id = snap.get('event_id', '')
+
+            if not event_id or not h_name or not a_name:
+                return
+
+            self.session.open(TeamRostersScreen, h_name, a_name, event_id, league_url,
+                              snap.get('h_logo_url', ''), snap.get('a_logo_url', ''))
 
     def reminder_selected(self, selection):
         if not selection or selection[1] == 0:
@@ -15749,6 +17313,100 @@ class SimpleSportsScreen(Screen):
         log_diag("BUTTON_YELLOW: toggle_filter pressed. is_custom={} discovery_mode={}".format(self.monitor.is_custom_mode, self.monitor.discovery_mode))
         self.monitor.toggle_filter(); self.update_filter_button(); self.monitor._trigger_callbacks(True, force_refresh=True)
 
+    def ch_next_day_action(self):
+        log_dbg("SimpleSportsScreen ActionTriggered: channelUp action mapping matched.")
+        self.ch_next_day()
+
+    def ch_prev_day_action(self):
+        log_dbg("SimpleSportsScreen ActionTriggered: channelDown action mapping matched.")
+        self.ch_prev_day()
+
+    def zap_up_action(self):
+        log_dbg("SimpleSportsScreen ActionTriggered: zapUp action mapping matched.")
+        self.ch_next_day()
+
+    def zap_down_action(self):
+        log_dbg("SimpleSportsScreen ActionTriggered: zapDown action mapping matched.")
+        self.ch_prev_day()
+
+    def bouquet_up_action(self):
+        log_dbg("SimpleSportsScreen ActionTriggered: nextBouquet/bouquetUp action mapping matched.")
+        self.ch_next_day()
+
+    def bouquet_down_action(self):
+        log_dbg("SimpleSportsScreen ActionTriggered: prevBouquet/bouquetDown action mapping matched.")
+        self.ch_prev_day()
+
+    def ch_next_day(self):
+        """CH+ : fetch and display the next day's matches."""
+        if time.time() - self.last_key_time < 0.5:
+            log_dbg("SimpleSportsScreen: ch_next_day debounced (time delta too small)")
+            return
+        self.last_key_time = time.time()
+        log_dbg("SimpleSportsScreen: ch_next_day moving day by +1. Current offset was: {}".format(self.monitor.ch_day_offset))
+        self.monitor.navigate_day(+1)
+        self.update_header()
+        self.update_filter_button()
+        self._update_ch_hint()
+
+    def ch_prev_day(self):
+        """CH- : fetch and display the previous day's matches."""
+        if time.time() - self.last_key_time < 0.5:
+            log_dbg("SimpleSportsScreen: ch_prev_day debounced (time delta too small)")
+            return
+        self.last_key_time = time.time()
+        log_dbg("SimpleSportsScreen: ch_prev_day moving day by -1. Current offset was: {}".format(self.monitor.ch_day_offset))
+        self.monitor.navigate_day(-1)
+        self.update_header()
+        self.update_filter_button()
+        self._update_ch_hint()
+
+    def _update_ch_hint(self):
+        """
+        Refresh the key_ch label at the bottom of the screen.
+        - offset = 0  → static hint "CH+/CH-: Browse Days"
+        - offset ≠ 0  → show the target date with a directional arrow and offset number
+          e.g.  "▶  Saturday 07 Jun  (+2)"
+                "◀  Thursday 05 Jun  (-1)"
+        """
+        try:
+            offset = self.monitor.ch_day_offset
+            if offset == 0:
+                self["key_ch"].setText(_t("< > / << >> Browse Days"))
+            else:
+                target     = datetime.date.today() + datetime.timedelta(days=offset)
+                day_name   = _t(target.strftime("%A"))
+                month_name = _t(target.strftime("%B"))
+                day_num    = target.strftime("%d")
+                if PLUGIN_LANGUAGE == "ar":
+                    date_label = u"{} {} {}".format(day_name, day_num, month_name)
+                else:
+                    date_label = u"{}  {} {}".format(day_name, day_num, month_name[:3])
+                arrow      = u"\u25b6" if offset > 0 else u"\u25c0"   # ▶ or ◀
+                self["key_ch"].setText(
+                    u"{}  {}  ({:+d})".format(arrow, date_label, offset)
+                )
+        except Exception:
+            pass
+def get_git_sha1(file_path):
+    try:
+        if not os.path.exists(file_path):
+            return ""
+        import hashlib
+        size = os.path.getsize(file_path)
+        sha1 = hashlib.sha1()
+        sha1.update(("blob %d\0" % size).encode('utf-8'))
+        with open(file_path, 'rb') as f:
+            while True:
+                data = f.read(65536)
+                if not data:
+                    break
+                sha1.update(data)
+        return sha1.hexdigest()
+    except:
+        return ""
+
+
     def check_for_updates(self):
         self["league_title"].setText(_t("CHECKING FOR UPDATES..."))
         url = GITHUB_BASE_URL + "version.txt"
@@ -15782,16 +17440,31 @@ class SimpleSportsScreen(Screen):
         try:
             import json
             tree_data = json.loads(data.decode('utf-8'))
-            files = []
+            files_to_download = []
             for item in tree_data.get('tree', []):
                 if item.get('type') == 'blob':
-                    files.append(item['path'])
-            if not files:
-                self.update_fail(None)
+                    path = item['path']
+                    remote_sha = item.get('sha', '')
+
+                    if path.startswith("WorldCup_players_Images/"):
+                        rel_path = path[len("WorldCup_players_Images/"):]
+                        local_path = os.path.join(PLAYERS_IMG_DIR, rel_path)
+                    else:
+                        local_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/" + path)
+
+                    local_sha = get_git_sha1(local_path)
+                    if local_sha != remote_sha:
+                        files_to_download.append((path, local_path))
+
+            if not files_to_download:
+                msg = _t("Latest version installed!")
+                self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
+                self.update_header()
                 return
-            self._update_files = files
+
+            self._update_files = files_to_download
             self._update_index = 0
-            self._update_total = len(files)
+            self._update_total = len(files_to_download)
             self._download_next_file(None)
         except Exception as e:
             self.update_fail(e)
@@ -15800,11 +17473,10 @@ class SimpleSportsScreen(Screen):
         if self._update_index >= self._update_total:
             self._final_update_success(None)
             return
-        file_path = self._update_files[self._update_index]
+        file_path, target = self._update_files[self._update_index]
         self._update_index += 1
         self["league_title"].setText("DOWNLOADING %d/%d..." % (self._update_index, self._update_total))
         url = GITHUB_BASE_URL + file_path
-        target = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/" + file_path)
         target_dir = os.path.dirname(target)
         if not os.path.exists(target_dir):
             try: os.makedirs(target_dir)
@@ -16128,7 +17800,19 @@ class BroadcastingChannelsScreen(Screen):
             </screen>
             """
 
-        self["title"] = Label(_t("MATCH BROADCASTS"))
+        match_title_str = _t("MATCH BROADCASTS")
+        if self.target_event:
+            comps = self.target_event.get('competitions', [{}])[0].get('competitors', [])
+            if len(comps) > 2:
+                match_title_str = self.target_event.get('shortName') or self.target_event.get('name') or "Event"
+            elif len(comps) >= 2:
+                team_h = next((t for t in comps if t.get('homeAway') == 'home'), comps[0])
+                team_a = next((t for t in comps if t.get('homeAway') == 'away'), comps[1])
+                home = team_h.get('athlete', {}).get('shortName') or team_h.get('team', {}).get('displayName', 'Home')
+                away = team_a.get('athlete', {}).get('shortName') or team_a.get('team', {}).get('displayName', 'Away')
+                match_title_str = "{} vs {}".format(home, away).upper()
+
+        self["title"] = Label(match_title_str)
         self["hint"] = Label(_t("Select Channel to Zap"))
         self["key_red"] = Label(_t("Broadcasters"))
         self["key_green"] = Label(_t("EPG Search"))
@@ -18400,7 +20084,7 @@ class WatchPartyScreen(Screen):
         self["lbl_help"]   = Label(
             u"{}: 1({}), 4({}), 7({}), 11({}), 44({}), 77({}) | {}: 2({}), 5({}), 8({}), 22({}), 55({}), 88({}) | {}: 3({}), 6({}), 9({}), 33({}), 66({}), 99({})".format(
                 _t("HOME"), _t("Goal"), _t("Fire"), _t("Wow"), _t("Attack"), _t("Defend"), _t("Unlucky"),
-                _t("Neutral"), _t("Match"), _t("Save"), _t("Intense"), _t("Boring"), _t("Yellow"), _t("Red"),
+                _t("Neutral"), _t("Match"), _t("Save_wp"), _t("Intense"), _t("Boring"), _t("Yellow"), _t("Red"),
                 _t("AWAY"), _t("Goal"), _t("Fire"), _t("Wow"), _t("Attack"), _t("Defend"), _t("Unlucky")) + u"  |  OK: " + _t("Who's watching?"))
 
         # ── Enigma2 widgets — Reaction Zones ─────────────────────────────
