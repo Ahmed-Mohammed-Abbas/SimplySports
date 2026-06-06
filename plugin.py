@@ -12732,6 +12732,8 @@ def find_player_image(country_name, player_name, shirt_no=""):
         images_root = resolveFilename(SCOPE_PLUGINS,
             "Extensions/SimplySports/WorldCup_players_Images/")
         fallback = os.path.join(images_root, "player.png")
+        if not os.path.exists(fallback):
+            fallback = os.path.join(images_root, "player.jpg")
         if not os.path.isdir(images_root):
             return fallback
 
@@ -12783,7 +12785,10 @@ def find_player_image(country_name, player_name, shirt_no=""):
         try:
             images_root = resolveFilename(SCOPE_PLUGINS,
                 "Extensions/SimplySports/WorldCup_players_Images/")
-            return os.path.join(images_root, "player.png")
+            fallback = os.path.join(images_root, "player.png")
+            if not os.path.exists(fallback):
+                fallback = os.path.join(images_root, "player.jpg")
+            return fallback
         except Exception:
             return None
 
