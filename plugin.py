@@ -6,6 +6,7 @@ import ssl
 import hashlib
 import calendar
 import re as _re_module
+import unicodedata
 from enigma import loadPNG
 
 # Py2/3 Compatibility
@@ -12612,6 +12613,27 @@ _POS_MID = {'CDM', 'CM', 'CAM', 'LM', 'RM', 'DM', 'AM', 'M', 'MF',
 _POS_FWD = {'LW', 'RW', 'CF', 'ST', 'SS', 'F', 'W', 'FW', 'AT',
             'DEL', 'EXT', 'DC', 'SA', 'SD'}
 
+def _ascii_fold(s):
+    """Lowercase + strip ALL diacritics via Unicode NFD decomposition.
+    Handles u->u, g->g, s->s, i->i, n->n, and every other accented letter
+    without maintaining a manual char map.
+    Also maps standalone special chars that NFD cannot decompose (e.g. Turkish
+    dotless-i U+0131 -> i, German sharp-s U+00DF -> ss)."""
+    try:
+        # Map chars that NFD alone cannot decompose
+        _SPECIAL = {
+            u'\u0131': u'i',   # Turkish dotless i (lower)
+            u'\u0130': u'i',   # Turkish dotted I (upper, in case input isn't lowercased yet)
+            u'\u00df': u'ss',  # German sharp-s
+        }
+        s = u''.join(_SPECIAL.get(c, c) for c in s)
+        s = unicodedata.normalize('NFD', s)
+        s = u''.join(c for c in s if unicodedata.category(c) != 'Mn')
+    except Exception:
+        pass
+    return s
+
+
 def smart_match_team(name1, name2):
     if not name1 or not name2:
         return False
@@ -12629,45 +12651,65 @@ def smart_match_team(name1, name2):
     except:
         pass
 
-    for c_from, c_to in [
-        (u"\u00e7", u"c"), (u"\u00e1", u"a"), (u"\u00e0", u"a"), (u"\u00e2", u"a"), (u"\u00e4", u"a"), (u"\u00e3", u"a"),
-        (u"\u00e9", u"e"), (u"\u00e8", u"e"), (u"\u00ea", u"e"), (u"\u00eb", u"e"),
-        (u"\u00ed", u"i"), (u"\u00ec", u"i"), (u"\u00ee", u"i"), (u"\u00ef", u"i"),
-        (u"\u00f3", u"o"), (u"\u00f2", u"o"), (u"\u00f4", u"o"), (u"\u00f6", u"o"), (u"\u00f5", u"o"),
-        (u"\u00fa", u"u"), (u"\u00f9", u"u"), (u"\u00fb", u"u"), (u"\u00fc", u"u"),
-        (u"\u00f1", u"n"), (u"\u00fd", u"y"), (u"\u00ff", u"y")
-    ]:
-        n1 = n1.replace(c_from, c_to)
-        n2 = n2.replace(c_from, c_to)
+    # Strip ALL diacritics universally — replaces the old manual char map.
+    # This also fixes the synonym-key ordering bug (e.g. "turkiye" -> "turkiye"
+    # before the dict lookup, so the key must be the folded form).
+    n1 = _ascii_fold(n1)
+    n2 = _ascii_fold(n2)
 
     if n1 == n2:
         return True
+
+    # Synonyms — keys must be ASCII-folded (post _ascii_fold) forms
     synonyms = {
-        "cote d'ivoire": "ivory coast",
-        "cabo verde": "cape verde",
-        "türkiye": "turkey",
-        "czechia": "czech republic",
-        "ksa": "saudi arabia",
-        "usa": "united states",
-        "uae": "united arab emirates",
-        "eng": "england",
-        "wal": "wales",
-        "sco": "scotland",
-        "nir": "northern ireland",
-        "rsa": "south africa",
-        "sui": "switzerland",
-        "ger": "germany",
-        "ned": "netherlands",
-        "cro": "croatia",
-        "den": "denmark",
-        "uru": "uruguay",
-        "mex": "mexico",
-        "cmr": "cameroon",
-        "sen": "senegal",
-        "mar": "morocco",
-        "tun": "tunisia",
-        "gha": "ghana",
-        "pol": "poland",
+        "cote d ivoire":          "ivory coast",
+        "cabo verde":             "cape verde",
+        "turkiye":                "turkey",
+        "czechia":                "czech republic",
+        "ksa":                    "saudi arabia",
+        "usa":                    "united states",
+        "uae":                    "united arab emirates",
+        "eng":                    "england",
+        "wal":                    "wales",
+        "sco":                    "scotland",
+        "nir":                    "northern ireland",
+        "rsa":                    "south africa",
+        "sui":                    "switzerland",
+        "ger":                    "germany",
+        "ned":                    "netherlands",
+        "cro":                    "croatia",
+        "den":                    "denmark",
+        "uru":                    "uruguay",
+        "mex":                    "mexico",
+        "cmr":                    "cameroon",
+        "sen":                    "senegal",
+        "mar":                    "morocco",
+        "tun":                    "tunisia",
+        "gha":                    "ghana",
+        "pol":                    "poland",
+        "por":                    "portugal",
+        "esp":                    "spain",
+        "fra":                    "france",
+        "bel":                    "belgium",
+        "aut":                    "austria",
+        "srb":                    "serbia",
+        "alg":                    "algeria",
+        "ngr":                    "nigeria",
+        "kor":                    "south korea",
+        "jpn":                    "japan",
+        "aus":                    "australia",
+        "nzl":                    "new zealand",
+        "iri":                    "iran",
+        "kuw":                    "kuwait",
+        "irq":                    "iraq",
+        "qat":                    "qatar",
+        "omn":                    "oman",
+        "jor":                    "jordan",
+        "lbn":                    "lebanon",
+        "pse":                    "palestine",
+        "syr":                    "syria",
+        "yem":                    "yemen",
+        "bah":                    "bahrain",
     }
     n1 = synonyms.get(n1, n1)
     n2 = synonyms.get(n2, n2)
@@ -12741,14 +12783,37 @@ def find_player_image(country_name, player_name, shirt_no=""):
         country_folder = os.path.join(images_root, lookup_name)
         if not os.path.isdir(country_folder):
             try:
+                matched = False
+                best_dist, best_path = 99, None
+                lookup_folded = _ascii_fold(lookup_name.lower())
                 for entry in os.listdir(images_root):
                     entry_path = os.path.join(images_root, entry)
-                    if os.path.isdir(entry_path):
-                        if smart_match_team(lookup_name, entry):
-                            country_folder = entry_path
-                            break
-                else:
-                    return fallback
+                    if not os.path.isdir(entry_path):
+                        continue
+                    # Pass 1: semantic match (synonyms, tokens, abbreviations)
+                    if smart_match_team(lookup_name, entry):
+                        country_folder = entry_path
+                        matched = True
+                        break
+                    # Pass 2: Levenshtein edit-distance <= 2 on folded names
+                    entry_folded = _ascii_fold(entry.lower())
+                    la, lb = len(lookup_folded), len(entry_folded)
+                    if abs(la - lb) <= 2:
+                        prev = list(range(lb + 1))
+                        for ca in lookup_folded:
+                            curr = [prev[0] + 1]
+                            for j, cb in enumerate(entry_folded):
+                                curr.append(min(prev[j] + (0 if ca == cb else 1),
+                                               curr[j] + 1, prev[j + 1] + 1))
+                            prev = curr
+                        dist = prev[lb]
+                        if dist < best_dist:
+                            best_dist, best_path = dist, entry_path
+                if not matched:
+                    if best_dist <= 2 and best_path:
+                        country_folder = best_path
+                    else:
+                        return fallback
             except Exception:
                 return fallback
 
@@ -12766,17 +12831,17 @@ def find_player_image(country_name, player_name, shirt_no=""):
                     return os.path.join(country_folder, fname)
 
         # Strategy 2: full name token match
-        norm_name = (player_name or '').lower().replace('.', '').replace("'", '').replace('-', ' ')
+        norm_name = _ascii_fold((player_name or '').lower()).replace('.', '').replace("'", '').replace('-', ' ')
         name_tokens = [t for t in norm_name.split() if len(t) > 2]
         if name_tokens:
             for fname in files:
-                fname_norm = os.path.splitext(fname)[0].lower().replace('_', ' ')
+                fname_norm = _ascii_fold(os.path.splitext(fname)[0].lower()).replace('_', ' ')
                 if all(tok in fname_norm for tok in name_tokens):
                     return os.path.join(country_folder, fname)
             # Strategy 3: last name only
             last = name_tokens[-1]
             for fname in files:
-                fname_norm = os.path.splitext(fname)[0].lower().replace('_', ' ')
+                fname_norm = _ascii_fold(os.path.splitext(fname)[0].lower()).replace('_', ' ')
                 if last in fname_norm:
                     return os.path.join(country_folder, fname)
 
