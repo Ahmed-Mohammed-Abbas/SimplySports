@@ -113,7 +113,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.1"
+VERSION = "6.2"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -121,6 +121,15 @@ VERSION = "6.1"
 PLUGIN_LANGUAGE = "en"   # "en" or "ar" — loaded from config at start-up
 
 TRANSLATIONS = {
+    "SIMPLYSPORTS ARENA":         {"ar": u"\u0633\u0627\u062d\u0629 \u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633"},
+    "SIMPLYSPORTS ARENA - LIVE MATCHES": {"ar": u"\u0633\u0627\u062d\u0629 \u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633 - \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
+    "League Standings":           {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062f\u0648\u0631\u064a"},
+    "Follow Match":               {"ar": u"\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Today":                      {"ar": u"\u0627\u0644\u064a\u0648\u0645"},
+    "Failed to fetch data":       {"ar": u"\u0641\u0634\u0644 \u062c\u0644\u0628 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a"},
+    "Failed to fetch data from Livescore.cz": {"ar": u"\u0641\u0634\u0644 \u062c\u0644\u0628 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0645\u0646 Livescore.cz"},
+    "Refreshing matches...":       {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a..."},
+    "Fetching data from livescore.cz...": {"ar": u"\u062c\u0627\u0631\u064d \u062c\u0644\u0628 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0645\u0646 livescore.cz..."},
     "< > / << >> Browse Days":    {"ar": u"\u062a\u0635\u0641\u062d \u0627\u0644\u0623\u064a\u0627\u0645 < > / << >>"},
     # ── Main screen static labels ──────────────────────────────────────────────
     "SIMPLY SPORTS":              {"ar": u"\u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633"},
@@ -196,7 +205,7 @@ TRANSLATIONS = {
     "Settings & Tools":           {"ar": u"\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u0623\u062f\u0648\u0627\u062a"},
     "Check for Updates":          {"ar": u"\u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u062a\u062d\u062f\u064a\u062b\u0627\u062a"},
     "Change Interface Theme":     {"ar": u"\u062a\u063a\u064a\u064a\u0631 \u0645\u0638\u0647\u0631 \u0627\u0644\u0648\u0627\u062c\u0647\u0629"},
-    "Mini Bar Style (Default Theme only)":          {"ar": u"\u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"},
+    "Bottom Minibar Style (Default Theme only)":    {"ar": u"\u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0633\u0641\u0644\u064a (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"},
     "Main Screen Transparency (Default Theme only)": {"ar": u"\u0634\u0641\u0627\u0641\u064a\u0629 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"},
     "Show Plugin in Main Menu: ": {"ar": u"\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c \u0641\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629: "},
     "Set Voter Name: ":           {"ar": u"\u062a\u0639\u064a\u064a\u0646 \u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0648\u0651\u062a: "},
@@ -225,7 +234,12 @@ TRANSLATIONS = {
     "Standard (35% Transparent)": {"ar": u"\u0642\u064a\u0627\u0633\u064a (35\u066a)"},
     "90% Transparent":            {"ar": u"\u0634\u0641\u0627\u0641 90\u066a"},
     "Fully Transparent (100%)":   {"ar": u"\u0634\u0641\u0627\u0641 \u0628\u0627\u0644\u0643\u0627\u0645\u0644 (100\u066a)"},
-    "Select Mini Bar Style (Default Theme Only)": {"ar": u"\u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a \u0641\u0642\u0637)"},
+    "Select Bottom Minibar Style (Default Theme Only)": {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0633\u0641\u0644\u064a (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a \u0641\u0642\u0637)"},
+    "Top Minibar Style: ":         {"ar": u"\u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0639\u0644\u0648\u064a: "},
+    "Select Top Minibar Style":     {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0639\u0644\u0648\u064a"},
+    "Top Minibar style saved.":     {"ar": u"\u062a\u0645 \u062d\u0641\u0638 \u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0639\u0644\u0648\u064a."},
+    "Bottom Minibar style saved.":  {"ar": u"\u062a\u0645 \u062d\u0641\u0638 \u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0633\u0641\u0644\u064a."},
+    "World Cup":                  {"ar": u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645"},
     "Premier League (Purple/Green)": {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a (\u0628\u0646\u0641\u0633\u062c\u064a/\u0623\u062e\u0636\u0631)"},
     "Spanish League (Red/Gold)":  {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a (\u0623\u062d\u0645\u0631/\u0630\u0647\u0628\u064a)"},
     "Serie A (Blue/Cyan)":        {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u064a\u0637\u0627\u0644\u064a (\u0623\u0632\u0631\u0642/\u0633\u0645\u0627\u0648\u064a)"},
@@ -278,8 +292,25 @@ TRANSLATIONS = {
     "Only":                       {"ar": u"\u0641\u0642\u0637"},
     # ── Broadcasting channels screen ──────────────────────────────────────────
     "MATCH BROADCASTS":           {"ar": u"\u0628\u062b \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
-    "Select Channel to Zap":      {"ar": u"\u0627\u062e\u062a\u0631 \u0627\u0644\u0642\u0646\u0627\u0629 \u0644\u0644\u062a\u0628\u062f\u064a\u0644"},
+    "Select Channel to Zap":      {"ar": u"\u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631 \u0644\u0644\u062a\u0628\u062f\u064a\u0644"},
     "Broadcasters":               {"ar": u"\u0627\u0644\u0642\u0646\u0648\u0627\u062a \u0627\u0644\u0646\u0627\u0642\u0644\u0629"},
+    "Broadcasting channels":      {"ar": u"\u0627\u0644\u0642\u0646\u0648\u0627\u062a \u0627\u0644\u0646\u0627\u0642\u0644\u0629"},
+    "Broadcasting channels for ({})": {"ar": u"\u0627\u0644\u0642\u0646\u0648\u0627\u062a \u0627\u0644\u0646\u0627\u0642\u0644\u0629 \u0644\u0640 ({})"},
+    "Broadcasting channels for ({} vs {})": {"ar": u"\u0627\u0644\u0642\u0646\u0648\u0627\u062a \u0627\u0644\u0646\u0627\u0642\u0644\u0629 \u0644\u0640 ({} \u0636\u062f {})"},
+    "Sat Feeds":                  {"ar": u"\u0641\u064a\u062f\u0627\u062a \u0627\u0644\u0623\u0642\u0645\u0627\u0631"},
+    "Find in Bouquets":           {"ar": u"\u0627\u0644\u0628\u062d\u062b \u0641\u064a \u0627\u0644\u0628\u0627\u0642\u0627\u062a"},
+    "Loading LiveSoccerTV...":    {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 LiveSoccerTV..."},
+    "Match Not Started Yet":      {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629 \u0644\u0645 \u062a\u0628\u062f\u0623 \u0628\u0639\u062f"},
+    "Zap Now (Preview Channel)":  {"ar": u"\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u0622\u0646 (\u0645\u0639\u0627\u064a\u0646\u0629 \u0627\u0644\u0642\u0646\u0627\u0629)"},
+    "Remind & Zap (When match starts)": {"ar": u"\u062a\u0630\u0643\u064a\u0631 \u0648\u062a\u0628\u062f\u064a\u0644 (\u0639\u0646\u062f \u0628\u062f\u0621 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629)"},
+    "Found {} via EPG":           {"ar": u"\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0651\u0649 {} \u0639\u0628\u0631 EPG"},
+    "Scanning 2 Sources for {}…": {"ar": u"\u062c\u0627\u0631\u064d \u0641\u062d\u0635 \u0645\u0635\u062f\u0631\u064a\u0646 \u0644\u0640 {}..."},
+    "No Sat Feeds Today":         {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0641\u064a\u062f\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
+    "Today: {} feeds  ({})":      {"ar": u"\u0627\u0644\u064a\u0648\u0645: {} \u0641\u064a\u062f\u0627\u062a ({})"},
+    "Feed Search Failed":         {"ar": u"\u0641\u0634\u0644 \u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u0627\u0644\u0641\u064a\u062f\u0627\u062a"},
+    "Scanning...":                {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u0641\u062d\u0635..."},
+    "Checking bouquets...":       {"ar": u"\u062c\u0627\u0631\u064d \u0641\u062d\u0635 \u0627\u0644\u0628\u0627\u0642\u0627\u062a..."},
+    "Please highlight a LiveSoccerTV channel": {"ar": u"\u064a\u0631\u062c\u0649 \u062a\u062d\u062f\u064a\u062f \u0642\u0646\u0627\u0629 LiveSoccerTV"},
     "EPG Search":                 {"ar": u"\u0628\u062d\u062b EPG"},
     "Down":                       {"ar": u"\u0623\u0633\u0641\u0644"},
     "No Local EPG Matches":       {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u062a\u0627\u0626\u062c EPG \u0645\u062d\u0644\u064a\u0629"},
@@ -1167,7 +1198,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.1"  # Update version to 6.1 - New Team roster screen with icons, international teams' names translated to Arabic, and a new +-7 <<>> days selection feature, updated game info screen, Broadcast channel screen.
+CURRENT_VERSION = "6.2"  # Update version to 6.2 - New SimplySports Arena feature (a comprehensive football scoring web-based source livescore.cz.). A new broadcasting channel screen searching method (EPG + a comprehensive web-based channel search source livesoccertv.com). A new top minibar World Cup style. Late-night match time bug fix. Double-voting bug fix.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1647,6 +1678,29 @@ def get_sport_type_display_name(sport_type):
     return names.get(sport_type, "Event")
 
 
+_COUNTRY_ISO2 = {
+    "AFG": "af", "ALB": "al", "ALG": "dz", "AND": "ad", "ANG": "ao", "ARG": "ar", "ARM": "am", "AUS": "au", "AUT": "at", "AZE": "az",
+    "BAH": "bs", "BAN": "bd", "BAR": "bb", "BEL": "be", "BEN": "bj", "BER": "bm", "BIH": "ba", "BLR": "by", "BOL": "bo", "BOT": "bw",
+    "BRA": "br", "BRU": "bn", "BUL": "bg", "BFA": "bf", "BDI": "bi", "CAM": "kh", "CMR": "cm", "CAN": "ca", "CPV": "cv", "CHI": "cl",
+    "CHN": "cn", "COL": "co", "COM": "km", "CGO": "cg", "COD": "cd", "COK": "ck", "CRC": "cr", "CRO": "hr", "CUB": "cu", "CYP": "cy",
+    "CZE": "cz", "DEN": "dk", "DJI": "dj", "DOM": "do", "ECU": "ec", "EGY": "eg", "SLV": "sv", "ENG": "gb-eng", "EST": "ee", "ETH": "et",
+    "FIJ": "fj", "FIN": "fi", "FRA": "fr", "GAB": "ga", "GAM": "gm", "GEO": "ge", "GER": "de", "GHA": "gh", "GRE": "gr", "GRN": "gd",
+    "GUA": "gt", "GUI": "gn", "GNB": "gw", "GUY": "gy", "HAI": "ht", "HON": "hn", "HKG": "hk", "HUN": "hu", "ISL": "is", "IND": "in",
+    "IDN": "id", "IRN": "ir", "IRQ": "iq", "IRL": "ie", "ISR": "il", "ITA": "it", "CIV": "ci", "JAM": "jm", "JPN": "jp", "JOR": "jo",
+    "KAZ": "kz", "KEN": "ke", "KOR": "kr", "KSA": "sa", "KUW": "kw", "KGZ": "kg", "LAO": "la", "LAT": "lv", "LBN": "lb", "LES": "ls",
+    "LBR": "lr", "LBY": "ly", "LIE": "li", "LTU": "lt", "LUX": "lu", "MAC": "mo", "MAD": "mg", "MWI": "mw", "MAS": "my", "MDV": "mv",
+    "MLI": "ml", "MLT": "mt", "MTN": "mr", "MRI": "mu", "MEX": "mx", "MDA": "md", "MON": "mc", "MNG": "mn", "MNE": "me", "MAR": "ma",
+    "MOZ": "mz", "MYA": "mm", "NAM": "na", "NEP": "np", "NED": "nl", "NZL": "nz", "NCA": "ni", "NIG": "ne", "NGA": "ng", "NIR": "gb-nir",
+    "MKD": "mk", "NOR": "no", "OMA": "om", "PAK": "pk", "PLE": "ps", "PAN": "pa", "PNG": "pg", "PAR": "py", "PER": "pe", "PHI": "ph",
+    "POL": "pl", "POR": "pt", "PUR": "pr", "QAT": "qa", "ROU": "ro", "RUS": "ru", "RWA": "rw", "SKN": "kn", "LCA": "lc", "VIN": "vc",
+    "SAM": "ws", "SMR": "sm", "STP": "st", "SCO": "gb-sct", "SEN": "sn", "SRB": "rs", "SEY": "sc", "SLE": "sl", "SGP": "sg", "SVK": "sk",
+    "SVN": "si", "SOL": "sb", "SOM": "so", "RSA": "za", "ESP": "es", "SRI": "lk", "SUD": "sd", "SUR": "sr", "SWZ": "sz", "SWE": "se",
+    "SUI": "ch", "SYR": "sy", "TAH": "pf", "TJK": "tj", "TAN": "tz", "THA": "th", "TOG": "tg", "TON": "to", "TRI": "tt", "TUN": "tn",
+    "TUR": "tr", "TKM": "tm", "UGA": "ug", "UKR": "ua", "UAE": "ae", "URU": "uy", "USA": "us", "UZB": "uz", "VAN": "vu", "VEN": "ve",
+    "VIE": "vn", "WAL": "gb-wls", "YEM": "ye", "ZAM": "zm", "ZIM": "zw"
+}
+
+
 # ==============================================================================
 # UNIFIED MATCH SNAPSHOT BUILDER
 # ==============================================================================
@@ -1763,6 +1817,8 @@ def build_match_snapshot(event):
     h_score_str = '0'; a_score_str = '0'
     h_score_int = 0;  a_score_int = 0
     h_team_id = ''; a_team_id = ''
+    h_iso2 = ''; a_iso2 = ''
+    h_abbrev = ''; a_abbrev = ''
 
     if len(comps) >= 2:
         # Identify home/away -- handles missing homeAway tags
@@ -1773,7 +1829,7 @@ def build_match_snapshot(event):
             team_a = next((c for c in comps if c.get('homeAway') == 'away'),
                           comps[1] if len(comps) > 1 else {})
 
-        # Extract names
+        # Extract names and flags
         if sport_type in [SPORT_TYPE_TENNIS, SPORT_TYPE_COMBAT]:
             ath_h = team_h.get('athlete', {})
             ath_a = team_a.get('athlete', {})
@@ -1783,6 +1839,8 @@ def build_match_snapshot(event):
             a_name_short = ath_a.get('shortName') or a_name
             h_team_id    = str(ath_h.get('id', ''))
             a_team_id    = str(ath_a.get('id', ''))
+            h_iso2       = str(ath_h.get('flag', {}).get('iso2', '') or '').lower()
+            a_iso2       = str(ath_a.get('flag', {}).get('iso2', '') or '').lower()
         else:
             t_h = team_h.get('team', {}); t_a = team_a.get('team', {})
             h_name       = t_h.get('displayName', 'Home')
@@ -1791,6 +1849,21 @@ def build_match_snapshot(event):
             a_name_short = t_a.get('shortDisplayName') or t_a.get('abbreviation') or a_name
             h_team_id    = str(t_h.get('id', ''))
             a_team_id    = str(t_a.get('id', ''))
+            
+            h_abbrev = str(t_h.get('abbreviation', '') or '')
+            a_abbrev = str(t_a.get('abbreviation', '') or '')
+            if h_abbrev: h_iso2 = str(_COUNTRY_ISO2.get(h_abbrev.upper(), '') or '').lower()
+            if a_abbrev: a_iso2 = str(_COUNTRY_ISO2.get(a_abbrev.upper(), '') or '').lower()
+            if not h_iso2:
+                h_c_code = t_h.get('countryCode')
+                if not h_c_code:
+                    h_c_code = t_h.get('country', {}).get('iso2', '')
+                h_iso2 = str(h_c_code or '').lower()
+            if not a_iso2:
+                a_c_code = t_a.get('countryCode')
+                if not a_c_code:
+                    a_c_code = t_a.get('country', {}).get('iso2', '')
+                a_iso2 = str(a_c_code or '').lower()
 
         # Extract scores
         if sport_type == SPORT_TYPE_TENNIS:
@@ -1935,6 +2008,8 @@ def build_match_snapshot(event):
         'a_name_short':  a_name_short,
         'h_team_id':     h_team_id,
         'a_team_id':     a_team_id,
+        'h_abbrev':      h_abbrev,
+        'a_abbrev':      a_abbrev,
 
         # Scores
         'h_score_str':   h_score_str,
@@ -1961,6 +2036,8 @@ def build_match_snapshot(event):
         'is_pen_shootout':  is_pen_shootout,
         'host_flag_url':    host_flag_url,
         'host_flag_id':     host_flag_id,
+        'h_iso2':           h_iso2,
+        'a_iso2':           a_iso2,
 
         # Raw event reference (for GameInfoScreen detail requests only)
         'raw_event':     event,
@@ -1969,8 +2046,24 @@ def build_match_snapshot(event):
 
 def snapshot_passes_filter(snap, filter_mode, today, tomorrow, yesterday):
     """Shared filter for all UI screens. filter_mode: 0=Yesterday, 1=Live, 2=Today, 3=Tomorrow, 4=All"""
+    import datetime, calendar, time
     state    = snap['state']
     ev_date  = snap['date'][:10] if snap['date'] else ''
+    
+    # Convert UTC date string (e.g. "2026-06-13T01:00Z") to local date representation
+    utc_str = snap.get('date', '')
+    if utc_str and 'T' in utc_str:
+        try:
+            date_part, time_part = utc_str.split('T')
+            y, m, d = map(int, date_part.split('-'))
+            time_part = time_part.replace('Z', '')
+            H, M = map(int, time_part.split(':')[:2])
+            dt_utc = datetime.datetime(y, m, d, H, M)
+            timestamp = calendar.timegm(dt_utc.timetuple())
+            local_dt = datetime.datetime.fromtimestamp(timestamp)
+            ev_date = local_dt.strftime("%Y-%m-%d")
+        except:
+            pass
 
     if filter_mode == 0 and ev_date != yesterday: return False
     if filter_mode == 1 and state != 'in':        return False
@@ -2255,6 +2348,342 @@ def draw_rounded_box(res, x, y, w, h, border_color, fill_color, is_solid):
                 inner_w = line_w - 2
                 if inner_w > 0:
                     res.append((eListboxPythonMultiContent.TYPE_TEXT, inner_x, y + i, inner_w, 1, 0, RT_HALIGN_CENTER, "", fill_color, fill_color, fill_color, fill_color))
+
+
+def convert_czech_time_to_local(time_str, date_offset=0):
+    import re
+    import datetime
+    import time
+    m = re.match(r'^(\d{2}):(\d{2})(.*)$', time_str)
+    if not m:
+        return time_str
+    try:
+        h = int(m.group(1))
+        mn = int(m.group(2))
+        suffix = m.group(3)
+        target_date = datetime.date.today() + datetime.timedelta(days=date_offset)
+        
+        dst_start = datetime.date(target_date.year, 3, 31)
+        dst_start -= datetime.timedelta(days=(dst_start.weekday() + 1) % 7)
+        dst_end = datetime.date(target_date.year, 10, 31)
+        dst_end -= datetime.timedelta(days=(dst_end.weekday() + 1) % 7)
+        
+        is_cest = dst_start <= target_date < dst_end
+        czech_utc_offset = 2 if is_cest else 1
+        
+        dt_czech = datetime.datetime(target_date.year, target_date.month, target_date.day, h, mn)
+        dt_utc = dt_czech - datetime.timedelta(hours=czech_utc_offset)
+        
+        local_offset_seconds = time.localtime().tm_isdst and -time.altzone or -time.timezone
+        dt_local = dt_utc + datetime.timedelta(seconds=local_offset_seconds)
+        
+        date_diff = dt_local.date() - target_date
+        local_time_str = dt_local.strftime('%H:%M')
+        if date_diff.days > 0:
+            return local_time_str + " (+1d)" + suffix
+        elif date_diff.days < 0:
+            return local_time_str + " (-1d)" + suffix
+        return local_time_str + suffix
+    except Exception:
+        return time_str
+
+def convert_czech_datetime_to_local(dt_str):
+    import re
+    import datetime
+    import time
+    m = re.match(r'^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})(.*)$', dt_str)
+    if not m:
+        return dt_str
+    try:
+        day = int(m.group(1))
+        month = int(m.group(2))
+        year = int(m.group(3))
+        h = int(m.group(4))
+        mn = int(m.group(5))
+        suffix = m.group(6)
+        target_date = datetime.date(year, month, day)
+        
+        dst_start = datetime.date(year, 3, 31)
+        dst_start -= datetime.timedelta(days=(dst_start.weekday() + 1) % 7)
+        dst_end = datetime.date(year, 10, 31)
+        dst_end -= datetime.timedelta(days=(dst_end.weekday() + 1) % 7)
+        
+        is_cest = dst_start <= target_date < dst_end
+        czech_utc_offset = 2 if is_cest else 1
+        
+        dt_czech = datetime.datetime(year, month, day, h, mn)
+        dt_utc = dt_czech - datetime.timedelta(hours=czech_utc_offset)
+        
+        local_offset_seconds = time.localtime().tm_isdst and -time.altzone or -time.timezone
+        dt_local = dt_utc + datetime.timedelta(seconds=local_offset_seconds)
+        
+        return dt_local.strftime('%d.%m.%Y %H:%M') + suffix
+    except Exception:
+        return dt_str
+
+def parse_livescore_cz(html_data, day_offset=0):
+    """
+    Parses Livescore.cz HTML into a flat list of dictionaries representing
+    either League Headers or Match Rows.
+    """
+    import re
+    results = []
+    
+    # Split by <h4> to get league sections
+    blocks = html_data.split('<h4>')
+    
+    match_pattern = re.compile(
+        r'<span[^>]*>(.*?)</span>(.*?)<a\s+href="([^"]+)"\s+class="([^"]+)">(.*?)</a>',
+        re.IGNORECASE | re.DOTALL
+    )
+    
+    for block in blocks[1:]:
+        if '</h4>' not in block:
+            continue
+        league_part, matches_part = block.split('</h4>', 1)
+        # Strip <a>...</a> elements (including inner text like "Standings") before
+        # stripping the remaining lone tags, so league names are clean.
+        league_part_clean = re.sub(r'<a\b[^>]*>.*?</a>', '', league_part,
+                                   flags=re.IGNORECASE | re.DOTALL)
+        league_name = re.sub(r'<[^>]+>', '', league_part_clean).strip()
+
+        # Skip advertisements or empty league blocks
+        if not league_name or "advert" in league_name.lower():
+            continue
+
+        # Deferred header: hold the header dict and only append it once at least
+        # one match line parses successfully.  This prevents orphan league-header
+        # rows appearing in the list when a block contains no recognisable matches.
+        pending_header = {"type": "header", "name": league_name}
+
+        # Add matches under this league
+        matches = matches_part.split('<br />')
+        for m_line in matches:
+            m_line = m_line.strip()
+            if not m_line:
+                continue
+            m = match_pattern.search(m_line)
+            if m:
+                time_raw = m.group(1).strip()
+                teams_raw = m.group(2).strip()
+                match_href = m.group(3).strip()
+                status_class = m.group(4).strip()
+                score_raw = m.group(5).strip()
+
+                # Clean time (e.g. "14:00<span class='status'>Cancelled</span>" -> "14:00 (Cancelled)")
+                time_str = re.sub(r'<[^>]+>', ' ', time_raw).strip()
+                time_str = ' '.join(time_str.split())
+                if "cancelled" in time_raw.lower():
+                    time_str = time_str.replace("Cancelled", "(Cancelled)")
+                time_str = convert_czech_time_to_local(time_str, day_offset)
+
+                # Clean teams
+                teams_clean = re.sub(r'<[^>]+>', '', teams_raw).strip()
+                if ' - ' in teams_clean:
+                    home, away = [t.strip() for t in teams_clean.split(' - ', 1)]
+                else:
+                    home, away = teams_clean, ""
+
+                # Clean score (e.g. "&nbsp;-&nbsp;" -> "-:-")
+                score_clean = re.sub(r'<[^>]+>', '', score_raw).replace('&nbsp;', '').strip()
+                if not score_clean or score_clean == '-':
+                    score_clean = "-:-"
+
+                # Flush the pending header on the first valid match
+                if pending_header is not None:
+                    results.append(pending_header)
+                    pending_header = None
+
+                results.append({
+                    "type": "match",
+                    "time": time_str,
+                    "home": home,
+                    "score": score_clean,
+                    "away": away,
+                    "status": status_class,
+                    "href": match_href
+                })
+
+    return results
+
+
+def LiveScoreCZListEntry(entry, theme_mode="default"):
+    try:
+        res = [entry]
+        h = 60
+        
+        # Determine theme colors
+        if theme_mode == "ucl":
+            c_text = 0xffffff
+            c_dim = 0x888888
+            c_accent = 0xc9a020
+            c_live = 0xff3333
+            c_bg = 0x071020
+            c_box = 0x060e1c
+        else:
+            c_text = 0xffffff
+            c_dim = 0xDDDDDD
+            c_accent = 0x00FF85
+            c_live = 0xff4c4c
+            c_bg = 0x1A0024
+            c_box = 0x202020
+
+        c_sel = c_accent
+
+        if entry.get("type") == "header":
+            # Header Row layout
+            # Hairline bottom separator
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, h-1, 1920, 1, 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
+            # Main distinct background
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1920, h-1, 0, RT_HALIGN_CENTER, "", c_bg, c_bg))
+            # Left accent strip
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 4, h-1, 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
+            # Centered/Left League Name text
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 50, 0, 1820, h-1, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, _league_name(entry.get("name", "")), c_accent, c_accent))
+            return res
+
+        # Match Row layout
+        time_str = entry.get("time", "")
+        left_text = entry.get("home", "")
+        right_text = entry.get("away", "")
+        score_text = entry.get("score", "")
+
+        try:
+            if entry.get("href") in global_sports_monitor.followed_livescore_cz_matches:
+                left_text = u"\u2605 " + left_text
+        except:
+            pass
+
+        status = "SCH"
+        st = entry.get("status", "").lower()
+        if st == "live":
+            status = "LIVE"
+        elif st == "fin":
+            status = "FIN"
+        elif st == "postp":
+            status = "PPD"
+        elif st in ("susp", "aband"):
+            status = "SUS"
+        elif st == "canc":
+            status = "CAN"
+        else:
+            # Fallback: scan the time string for clues when the CSS class is absent
+            # or unrecognised (e.g. older site variants, scraping quirks).
+            time_lower = time_str.lower()
+            if "live" in time_lower or "'" in time_lower or "min" in time_lower:
+                status = "LIVE"
+            elif "ft" in time_lower or "fin" in time_lower:
+                status = "FIN"
+            elif "postp" in time_lower:
+                status = "PPD"
+            elif "susp" in time_lower or "aband" in time_lower:
+                status = "SUS"
+            elif "canc" in time_lower:
+                status = "CAN"
+
+        c_ppd_sus = 0xFFAA00   # amber  — postponed / suspended
+        c_can     = 0xFF5555   # salmon — cancelled / abandoned
+
+        c_status = 0xAAAAAA
+        if status == "LIVE":              c_status = c_live
+        elif status == "FIN":             c_status = c_accent
+        elif status in ("PPD", "SUS"):    c_status = c_ppd_sus
+        elif status == "CAN":             c_status = c_can
+
+        # Zebra striping
+        row_idx = entry.get("row_idx", 0)
+        if row_idx % 2 != 0:
+            row_bg = 0x15001C if theme_mode != "ucl" else 0x091424
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1920, h, 0, RT_HALIGN_CENTER, "", row_bg, row_bg))
+
+        # Bottom hairline separator (1px)
+        sep_color = 0x2C1040 if theme_mode != "ucl" else 0x132742
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, h-1, 1920, 1, 0, RT_HALIGN_CENTER, "", sep_color, sep_color))
+
+        # Left Accent Strip
+        bg_accent = c_status if c_status != 0xAAAAAA else sep_color
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 4, h-1, 0, RT_HALIGN_CENTER, "", bg_accent, bg_accent))
+
+        # Status Box
+        if status == "LIVE":
+            bg_status = c_live;     fg_status = 0xffffff; is_status_solid = True
+        elif status == "FIN":
+            bg_status = c_accent;   fg_status = 0x000000; is_status_solid = True
+        elif status in ("PPD", "SUS"):
+            bg_status = c_ppd_sus;  fg_status = 0x000000; is_status_solid = True
+        elif status == "CAN":
+            bg_status = c_can;      fg_status = 0xffffff; is_status_solid = True
+        else:
+            bg_status = c_box;      fg_status = c_status; is_status_solid = False
+
+        draw_rounded_box(res, 25, 8, 80, 44, bg_status if is_status_solid else c_status, bg_status, is_status_solid)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 25, 8, 80, 44, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, fg_status, fg_status))
+
+        # Home team name
+        font_h = 2
+        if len(left_text) > 27: font_h = 0
+        elif len(left_text) > 23: font_h = 1
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 660, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_text, c_sel))
+
+        # Center indicator (separator)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 930, 0, 60, h-12, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "vs", c_dim, c_sel))
+
+        # Score Boxes
+        h_score_int = 0
+        a_score_int = 0
+        _rendered_as_boxes = False
+        try:
+            # split on first '-' only; int() will raise if either part is non-numeric
+            # (e.g. "-:-" → s1="", s2=":" → ValueError, falls to plain-text branch)
+            s1, s2 = score_text.split('-', 1)
+            s1 = s1.strip(); s2 = s2.strip()
+            h_score_int = int(s1)
+            a_score_int = int(s2)
+
+            c_h_score = c_accent if h_score_int > a_score_int else c_text
+            c_a_score = c_accent if a_score_int > h_score_int else c_text
+
+            font_idx = 2
+            max_len = max(len(s1), len(s2))
+            if max_len > 8: font_idx = 3
+            elif max_len > 5: font_idx = 0
+
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 8, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 8, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
+            _rendered_as_boxes = True
+        except (ValueError, AttributeError):
+            pass
+
+        if not _rendered_as_boxes:
+            # Not started / unrecognised score — render as a single label
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 0, 220, h-12, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
+
+        # Away team name
+        font_a = 2
+        if len(right_text) > 27: font_a = 0
+        elif len(right_text) > 23: font_a = 1
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_text, c_sel))
+
+        # Time Box
+        if status == "LIVE":
+            bg_time = c_live;     fg_time = 0xffffff; is_time_solid = True
+        elif status == "FIN":
+            bg_time = c_accent;   fg_time = 0x000000; is_time_solid = True
+        elif status in ("PPD", "SUS"):
+            bg_time = c_ppd_sus;  fg_time = 0x000000; is_time_solid = True
+        elif status == "CAN":
+            bg_time = c_can;      fg_time = 0xffffff; is_time_solid = True
+        else:
+            bg_time = c_box;      fg_time = c_dim;    is_time_solid = False
+
+        draw_rounded_box(res, 1705, 8, 190, 44, bg_time if is_time_solid else c_dim, bg_time, is_time_solid)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1705, 8, 190, 44, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, fg_time, fg_time))
+
+        return res
+    except Exception as e:
+        print("[SimplySports] LiveScoreCZListEntry error:", e)
+        return [entry]  # never return [] — C++ renderer crashes on item[0] of an empty list
+
 
 def SportListEntry(entry):
     try:
@@ -3137,6 +3566,11 @@ class SportsMonitor:
         self.favorite_teams = []  # list of dicts — {team_id, team_name, short_name, league_slug, league_name, logo_url}
         self.fav_notified = set()   # {(match_id, threshold_label)} — prevents duplicate fav alerts
         self.goal_sound_file = "pop.mp3"  # filename only — must exist in plugin dir
+        self.followed_livescore_cz_matches = set()
+        self.livescore_cz_states = {}
+        self.livescore_cz_scores = {}
+        self._livescore_cz_last_check = 0    # epoch timestamp of last fetch
+        self._livescore_cz_fetching = False   # guard against concurrent fetches
 
         self.timer = eTimer()
         safe_connect(self.timer, self.check_goals)
@@ -3638,6 +4072,7 @@ class SportsMonitor:
                     self.menu_section = data.get("menu_section", "all")
                     self.show_in_menu = bool(data.get("show_in_menu", True))
                     self.minibar_color_mode = data.get("minibar_color_mode", "default")
+                    self.minibar_1_style = data.get("minibar_1_style", "default")
                     self.voter_name = data.get("voter_name", "Anonymous")
                     self.install_registered = bool(data.get("install_registered", False))
                     # Plugin language
@@ -3674,7 +4109,7 @@ class SportsMonitor:
     def defaults(self):
         self.filter_mode = 2; self.theme_mode = "default"; self.transparency = "59"
         self.discovery_mode = 0; self.reminders = []; self.menu_section = "all"
-        self.show_in_menu = True; self.minibar_color_mode = "default"
+        self.show_in_menu = True; self.minibar_color_mode = "default"; self.minibar_1_style = "default"
         self.voter_name = "Anonymous"
         self.ai_enabled = False; self.ai_api_key = ""; self.ai_provider = "gemini"
         self.ai_language = "English"; self.ai_frequency = 30; self.wp_commentary_interval = 4
@@ -3701,6 +4136,7 @@ class SportsMonitor:
             "is_favorite_mode": self.is_favorite_mode,
             "reminders": self.reminders, "menu_section": self.menu_section,
             "show_in_menu": self.show_in_menu, "minibar_color_mode": self.minibar_color_mode,
+            "minibar_1_style": self.minibar_1_style,
             "voter_name": self.voter_name,
             "install_registered": getattr(self, "install_registered", False),
             "plugin_language": PLUGIN_LANGUAGE,
@@ -3824,7 +4260,7 @@ class SportsMonitor:
             d.addCallback(readBody)
             d.addCallback(self._on_summary_resolved, eid, bet)
             d.addErrback(lambda x: log_dbg("Referee error for {}: {}".format(eid, x)))
-            d.addBoth(lambda x: self.active_requests.discard(url))
+            d.addBoth(lambda x, u=url: self.active_requests.discard(u))
 
     def _on_summary_resolved(self, body, eid, bet):
         try:
@@ -4037,18 +4473,21 @@ class SportsMonitor:
 
     def _build_dated_url(self, url):
         """
-        Append ?dates=YYYYMMDD to an ESPN scoreboard URL when ch_day_offset != 0.
-        - offset=0  → return url unchanged  (ESPN returns its default "current" window)
-        - offset=+N → append today + N days
-        - offset=-N → append today - N days
+        Append ?dates=YYYYMMDD-YYYYMMDD to an ESPN scoreboard URL when ch_day_offset != 0
+        to cover timezone-shifted matches (fetching 1 day before to the target day).
         EuroLeague URLs (euroleague://) are passed through unchanged.
         """
-        if self.ch_day_offset == 0 or url.startswith('euroleague://'):
+        if url.startswith('euroleague://'):
             return url
-        target   = datetime.date.today() + datetime.timedelta(days=self.ch_day_offset)
-        date_str = target.strftime('%Y%m%d')   # ESPN format: YYYYMMDD, no dashes
-        sep      = '&' if '?' in url else '?'
-        return url + sep + 'dates=' + date_str
+        
+        # Query target and target - 1 day to cover all possible local-day timezone shifts.
+        offset = self.ch_day_offset
+        target = datetime.date.today() + datetime.timedelta(days=offset)
+        t_prev = target - datetime.timedelta(days=1)
+        
+        date_range = "{}-{}".format(t_prev.strftime('%Y%m%d'), target.strftime('%Y%m%d'))
+        sep = '&' if '?' in url else '?'
+        return url + sep + 'dates=' + date_range
 
     def navigate_day(self, delta):
         """
@@ -4436,11 +4875,143 @@ class SportsMonitor:
                 self.session.nav.playService(eServiceReference(sref))
             except: pass
 
+    def check_followed_livescore_cz(self):
+        if self.discovery_mode == 0:
+            return
+        if not self.followed_livescore_cz_matches:
+            return
+        # Throttle: only fetch once every 180 seconds (3 minutes)
+        now = time.time()
+        if now - self._livescore_cz_last_check < 180:
+            return
+        # Guard: don't launch if a previous fetch is still in flight
+        if self._livescore_cz_fetching:
+            return
+        self._livescore_cz_fetching = True
+        self._livescore_cz_last_check = now
+            
+        t = threading.Thread(target=self._bg_fetch_followed_livescore_cz)
+        t.daemon = True
+        t.start()
+
+    def _bg_fetch_followed_livescore_cz(self):
+        try:
+            from urllib.request import Request, urlopen
+            import ssl
+            url = "https://www.livescore.cz"
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=10, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=10)
+                
+            html_data = response.read()
+            if isinstance(html_data, bytes):
+                html_data = html_data.decode('utf-8', errors='ignore')
+                
+            parsed = parse_livescore_cz(html_data)
+            reactor.callFromThread(self._process_followed_livescore_cz, parsed)
+        except Exception as e:
+            print("[SimplySports] Background check_followed_livescore_cz failed:", e)
+            reactor.callFromThread(self._reset_livescore_cz_fetching)
+
+    def _reset_livescore_cz_fetching(self):
+        self._livescore_cz_fetching = False
+
+    def _process_followed_livescore_cz(self, parsed):
+        self._livescore_cz_fetching = False
+        if not parsed:
+            return
+            
+        def get_league_for_parsed_match(match_entry):
+            try:
+                idx = parsed.index(match_entry)
+                for i in range(idx, -1, -1):
+                    item = parsed[i]
+                    if item.get("type") == "header":
+                        return item.get("name", "")
+            except:
+                pass
+            return "SimplySports Arena"
+
+        for entry in parsed:
+            if entry.get("type") != "match":
+                continue
+            href = entry.get("href")
+            if not href or href not in self.followed_livescore_cz_matches:
+                continue
+                
+            curr_status = entry.get("status", "").lower()
+            if not curr_status:
+                time_str = entry.get("time", "").lower()
+                if "live" in time_str or "'" in time_str or "min" in time_str:
+                    curr_status = "live"
+                elif "ft" in time_str or "fin" in time_str:
+                    curr_status = "fin"
+                else:
+                    curr_status = "sched"
+                    
+            prev_status = self.livescore_cz_states.get(href)
+            curr_score = entry.get("score", "").strip()
+            
+            if prev_status is None:
+                self.livescore_cz_states[href] = curr_status
+                self.livescore_cz_scores[href] = curr_score
+                continue
+                
+            prev_score = self.livescore_cz_scores.get(href, "")
+
+            alert_type = None
+            alert_text = ""
+            scoring_team = None
+            if prev_status == "sched" and curr_status == "live":
+                alert_type = "start"
+                alert_text = _t("MATCH STARTED")
+            elif (prev_status == "live" or prev_status == "sched") and curr_status == "fin":
+                alert_type = "end"
+                alert_text = _t("MATCH FINISHED")
+            elif curr_status == "live" and curr_score and prev_score and curr_score != prev_score:
+                alert_type = "goal"
+                alert_text = _t("GOAL ALERT!")
+                # Determine which team scored so the toast can highlight them.
+                try:
+                    ps = prev_score.replace("-", ":")
+                    cs = curr_score.replace("-", ":")
+                    ph, pa = map(int, ps.split(":"))
+                    ch, ca = map(int, cs.split(":"))
+                    if ch > ph:
+                        scoring_team = "home"
+                    elif ca > pa:
+                        scoring_team = "away"
+                except Exception:
+                    pass
+
+            self.livescore_cz_states[href] = curr_status
+            self.livescore_cz_scores[href] = curr_score
+
+            if alert_type and self.session:
+                home = entry.get("home", "Home")
+                away = entry.get("away", "Away")
+                score = entry.get("score", "-:-")
+                league = get_league_for_parsed_match(entry)
+
+                if self.discovery_mode == 2 or (alert_type == "goal" and self.discovery_mode > 0):
+                    try:
+                        self.play_stend_sound()
+                    except:
+                        pass
+
+                try:
+                    self.session.open(LiveScoreFollowToast, home, away, score, alert_text, league, alert_type, scoring_team)
+                except Exception as e:
+                    print("[SimplySports] Error displaying LiveScoreFollowToast:", e)
 
     @profile_function("SportsMonitor")
     def check_goals(self, from_ui=False):
         log_diag("CHECK_GOALS: ENTER from_ui={} active={} is_custom={} discovery_mode={} filter_mode={} cached_events={} batch_remaining={} active_requests={} callbacks={}".format(
             from_ui, self.active, self.is_custom_mode, self.discovery_mode, self.filter_mode, len(self.cached_events), self.batch_remaining, len(self.active_requests), len(self.callbacks)))
+        self.check_followed_livescore_cz()
         self.check_reminders()
         self.check_fav_team_notifications()
         self.evaluate_pending_bets()
@@ -6778,7 +7349,6 @@ def StatsListEntry(label, home_val, away_val, theme_mode):
     res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_val, col_val, col_bg, col_sel))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_val, col_val, col_bg, col_sel))
     return res
-
 def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=None, payload=None):
     """3-Column Layout for Events (Goals/Cards/Subs) - Optimized for 1600px Width"""
     if theme_mode == "ucl":
@@ -6786,11 +7356,9 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
     else:
         col_label, col_val, col_bg, col_sel = 0x00FF85, 0xFFFFFF, 0x1A0024, 0x2A0040
 
-    # Use custom colors if provided, otherwise default
     col_h = h_color if h_color is not None else col_val
     col_a = a_color if a_color is not None else col_val
 
-    # Centered Layout for 1600px width: Center column at 800
     l_x, l_w = 740, 120   # Time label centered (740 + 60 = 800 center)
     h_x, h_w = 90, 640    # Home events on left, right-aligned towards center
     a_x, a_w = 870, 640   # Away events on right, left-aligned from center
@@ -6799,28 +7367,30 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
     is_a_goal = any(x in str(away_val) for x in ["[Goal]", "[Pen]", "[OG]"])
     is_h_rc = "[RC]" in str(home_val)
     is_a_rc = "[RC]" in str(away_val)
+    is_h_yc = "[YC]" in str(home_val)
+    is_a_yc = "[YC]" in str(away_val)
+    is_h_sub = "[SUB]" in str(home_val)
+    is_a_sub = "[SUB]" in str(away_val)
 
-    display_h = str(home_val).replace("[Goal] ", "").replace("[RC] ", "")
-    display_a = str(away_val).replace("[Goal] ", "").replace("[RC] ", "")
+    display_h = str(home_val).replace("[Goal] ", "").replace("[RC] ", "").replace("[YC] ", "").replace("[SUB] ", "")
+    display_a = str(away_val).replace("[Goal] ", "").replace("[RC] ", "").replace("[YC] ", "").replace("[SUB] ", "")
 
-    h_text_w = 610 if (is_h_goal or is_h_rc) else h_w
-    a_text_x = 900 if (is_a_goal or is_a_rc) else a_x
-    a_text_w = 610 if (is_a_goal or is_a_rc) else a_w
+    has_h_icon = (is_h_goal or is_h_rc or is_h_yc or is_h_sub)
+    has_a_icon = (is_a_goal or is_a_rc or is_a_yc or is_a_sub)
+
+    h_text_w = 610 if has_h_icon else h_w
+    a_text_x = 900 if has_a_icon else a_x
+    a_text_w = 610 if has_a_icon else a_w
 
     res = [payload]
-    # Full Row Highlight (base)
     res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
-    # Background line separator (Modern deep purple hairline)
     res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1550, 1, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
 
-    # Time/Label (Center)
     res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label), col_label, col_label, col_bg, col_sel))
-    # Home Event (Right)
     res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_text_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, display_h, col_h, col_h, col_bg, col_sel))
-    # Away Event (Left)
     res.append((eListboxPythonMultiContent.TYPE_TEXT, a_text_x, 0, a_text_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, display_a, col_a, col_a, col_bg, col_sel))
 
-    # Draw transparent soccer ball icon if it is a goal event
+    # Ball
     ball_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ball.png")
     if (is_h_goal or is_a_goal) and os.path.exists(ball_path):
         try:
@@ -6830,10 +7400,9 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
                     res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 710, 15, 20, 20, ball_pix))
                 if is_a_goal:
                     res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 870, 15, 20, 20, ball_pix))
-        except:
-            pass
+        except: pass
 
-    # Draw red card icon if it is a red card event
+    # Red
     rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
     if (is_h_rc or is_a_rc) and os.path.exists(rc_path):
         try:
@@ -6843,14 +7412,37 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
                     res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 713, 15, 14, 20, rc_pix))
                 if is_a_rc:
                     res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 873, 15, 14, 20, rc_pix))
-        except:
-            pass
+        except: pass
+
+    # Yellow
+    yc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/yellow.jpg")
+    if (is_h_yc or is_a_yc) and os.path.exists(yc_path):
+        try:
+            yc_pix = get_scaled_pixmap(yc_path, 14, 20)
+            if yc_pix:
+                if is_h_yc:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 713, 15, 14, 20, yc_pix))
+                if is_a_yc:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 873, 15, 14, 20, yc_pix))
+        except: pass
+
+    # Replace
+    sub_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/replace.jpg")
+    if (is_h_sub or is_a_sub) and os.path.exists(sub_path):
+        try:
+            sub_pix = get_scaled_pixmap(sub_path, 20, 20)
+            if sub_pix:
+                if is_h_sub:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 710, 15, 20, 20, sub_pix))
+                if is_a_sub:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 870, 15, 20, 20, sub_pix))
+        except: pass
 
     return res
 
+
 def RosterListEntry(home_player, away_player, theme_mode):
     """2-Column Layout for Rosters - Stylish Version"""
-    # Check if this is a section header (contains bullet point)
     is_header = u"\u2022" in str(home_player) or u"\u2022" in str(away_player)
     is_starter = u"\u2605" in str(home_player) or u"\u2605" in str(away_player)
 
@@ -6865,14 +7457,13 @@ def RosterListEntry(home_player, away_player, theme_mode):
 
     h_x, h_w = 220, 560; a_x, a_w = 820, 560
     res = [None]
-    # Add separator line
     res.append((eListboxPythonMultiContent.TYPE_TEXT, 200, 48, 1200, 2, 0, RT_HALIGN_CENTER, "", col_sep, col_sep, 1))
-    # Background for headers
     if is_header:
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 200, 0, 1200, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_player), col_text, 0xFFFFFF))
     res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_player), col_text, 0xFFFFFF))
     return res
+
 
 def TextListEntry(text, theme_mode, align="center", is_header=False):
     """1-Column Layout for News/Facts/Preview Text"""
@@ -8443,36 +9034,44 @@ class GameInfoScreen(Screen):
                             else: t_name = "Draw"
                             self.full_rows[i] = VoteListEntry(t_type, t_name, self.community_votes.get(t_type, 0), total_votes, getattr(self, 'theme', ''), True, True)
 
-                    # 4. BUILD THE PAYLOAD (Using Flat-Paths for efficient PATCH merge)
+                    # 4. BUILD THE PAYLOADS
                     voter_name = getattr(global_sports_monitor, 'voter_name', 'Anonymous')
                     device_id = getattr(self, 'device_id', 'unknown')
 
                     import json
-                    # FIX Bug 3: Slash-containing keys ("voters/id/name") are NOT interpreted
-                    # as nested paths by the Firebase REST PATCH endpoint — they are stored as
-                    # literal key names.  Use a properly nested dict so Firebase creates the
-                    # correct voters → device_id → {name, team} sub-tree.
+                    # FIX Bug 3 & 6: Previously the atomic counter and voter record
+                    # were sent as a single PATCH to /matches/{id}.json.  Firebase
+                    # REST PATCH only shallow-merges one level deep, so the "voters"
+                    # key was replaced wholesale on every vote — wiping all previous
+                    # voters and leaving only the latest one.
                     #
-                    # FIX Bug 5: RACE CONDITION — previously we read the local cached count,
-                    # added 1, and wrote the absolute number back.  Two users voting at the
-                    # same moment would both read N, both write N+1, and one vote would be
-                    # silently lost.  The fix uses Firebase's server-side atomic increment
-                    # ("{'.sv': 'increment'}" with value 1) so the server always adds exactly
-                    # +1 to whatever the current true count is, regardless of what any client
-                    # cached locally.  The voter record and nested dict structure are unchanged.
-                    put_data = json.dumps({
-                        team_type: {".sv": {"increment": 1}},
-                        "voters": {
-                            device_id: {
-                                "name": voter_name,
-                                "team": team_type
-                            }
-                        }
+                    # The fix splits this into TWO writes:
+                    #   a) Atomic counter increment → PATCH /matches/{id}.json
+                    #      (only touches the tally key, e.g. "home")
+                    #   b) Voter record → PATCH /matches/{id}/voters/{device_id}.json
+                    #      (writes directly into the voter's own slot, so siblings
+                    #       are never touched)
+                    #
+                    # Bug 5 (race condition) fix is preserved: the counter still uses
+                    # Firebase's server-side atomic increment ({".sv": {"increment": 1}}).
+
+                    # 4a. Atomic counter — match level
+                    counter_data = json.dumps({
+                        team_type: {".sv": {"increment": 1}}
                     })
 
-                    # 5. SEND TO FIREBASE (Final Bulletproof helper)
-                    url = "{}/matches/{}.json".format(FIREBASE_URL, self.event_id)
-                    push_to_firebase_threaded(url, put_data)
+                    # 4b. Voter record — voter-specific path
+                    voter_data = json.dumps({
+                        "name": voter_name,
+                        "team": team_type
+                    })
+
+                    # 5. SEND TO FIREBASE (two independent writes)
+                    counter_url = "{}/matches/{}.json".format(FIREBASE_URL, self.event_id)
+                    push_to_firebase_threaded(counter_url, counter_data)
+
+                    voter_url = "{}/matches/{}/voters/{}.json".format(FIREBASE_URL, self.event_id, device_id)
+                    push_to_firebase_threaded(voter_url, voter_data)
 
                     # 6. FORCE UI REFRESH IMMEDIATELY
                     if hasattr(self, 'update_display'):
@@ -10662,8 +11261,12 @@ class GoalToast(Screen):
         # Text highlight colors
         h_color = "#00FFD700"; a_color = "#00FFD700"; score_color = "#00FFD700"
         if event_type == 'goal':
-            if scoring_team == 'home': h_color = "#0066FF66"
-            elif scoring_team == 'away': a_color = "#0066FF66"
+            if scoring_team == 'home':
+                h_color = "#0066FF66"
+                home_text = home_text + " <"
+            elif scoring_team == 'away':
+                a_color = "#0066FF66"
+                away_text = "> " + away_text
         elif event_type in ['start', 'end']:
             score_color = "#0066DDFF"
         elif event_type == 'red_card':
@@ -14111,13 +14714,15 @@ class SimpleSportsMiniBar2(Screen):
             self.show_next_match()
             return
 
-        mode = 4 if global_sports_monitor.ch_day_offset != 0 else global_sports_monitor.filter_mode
+        mode = 2 if global_sports_monitor.ch_day_offset != 0 else global_sports_monitor.filter_mode
 
         # Pre-compute dates once per render pass
         now = datetime.datetime.now()
+        if global_sports_monitor.ch_day_offset != 0:
+            now = now + datetime.timedelta(days=global_sports_monitor.ch_day_offset)
         today_str = now.strftime("%Y-%m-%d")
-        tomorrow_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) + 86400).strftime("%Y-%m-%d")
-        yesterday_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) - 86400).strftime("%Y-%m-%d")
+        tomorrow_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        yesterday_str = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 
         for event in events:
             snap = global_sports_monitor.match_snapshots.get(str(event.get('id', '')))
@@ -14463,8 +15068,6 @@ class AthleteProfileScreen(Screen):
                 for ks in key_stats:
                     try: idx_map.append((names.index(ks), disp_names[names.index(ks)].replace("Total ", "").replace("Yellow ", "Y").replace("Red ", "R")))
                     except: pass
-
-                # Header row
                 header_txt = "COMPETITION"
                 for idx, name in idx_map: header_txt += " | " + name
                 self.full_rows.append(TextListEntry("    " + header_txt, self.theme))
@@ -14540,80 +15143,143 @@ class SimpleSportsMiniBar(Screen):
             try: os.makedirs(self.logo_path)
             except: pass
 
-        # UCL Broadcast Band Style (matching GoalToast)
-        # Transparent bg, metallic band, large logos at edges
-        self.skin = (
-            u'<screen position="center,10" size="950,120" title="Sports Ticker" flags="wfNoBorder" backgroundColor="#FF000000">'
+        if getattr(global_sports_monitor, "minibar_1_style", "default") == "worldcup":
+            # ── FIFA 2026 World Cup TV Scoreboard ─────────────────────────────
+            # Layout:  [RED|  FLAG ● FRA  [0]  |WC_LOGO|  [0]  SEN ● FLAG  |PURPLE]  [  90:00  ]
+            #           ← main black bar (700×60) →                                          ← white box →
+            # Enigma2 reversed alpha: #00=opaque, #FF=transparent
+            self.skin = (
+                u'<screen position="750,10" size="780,74" title="Sports Ticker" flags="wfNoBorder" backgroundColor="#FF000000">'
+                # ── ATTACHED TIME BOX BACKGROUND (drawn underneath at z=1, left edge hidden under purple stripe) ──
+                u'<eLabel position="633,13" size="140,52" backgroundColor="#00FFFFFF" cornerRadius="14" zPosition="1" />'
 
-            # --- LEAGUE INFO (centered over/under score box) ---
-            # Logo centered at top (Score box X=400, Width=150 -> Center=475. Logo=30W -> X=460)
-            u'<widget name="l_logo" position="460,5" size="30,30" alphatest="blend" scale="1" zPosition="3" />'
-            # League Name after Logo (460 + 30 + 10 = 500)
-            u'<widget name="lbl_league" position="500,5" size="400,30" font="Regular;19" '
-            u'foregroundColor="#00FFD700" backgroundColor="#FF000000" transparent="1" valign="center" halign="left" zPosition="3" />'
-            # Status centered under score box (Score box Y=42, Height=38 -> Bottom=80. Under=85?)
-            u'<widget name="lbl_status" position="300,85" size="350,30" font="Regular;19" '
-            u'foregroundColor="#00FFFFFF" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="3" />'
+                # ── Accent stripe backgrounds (underneath main bar at z=2) ─────────────
+                # Home side: Peach (left half, rounded outer corners)
+                u'<eLabel position="0,13" size="108,52" backgroundColor="#00FF9F80" cornerRadius="14" zPosition="2" />'
+                # Home side: Dark Red (right half, square corners)
+                u'<eLabel position="108,13" size="107,52" backgroundColor="#008B0000" zPosition="2" />'
+                
+                # Away side: Green (left half, square corners)
+                u'<eLabel position="435,13" size="107,52" backgroundColor="#007DC900" zPosition="2" />'
+                # Away side: Lighter Purple (right half, rounded outer corners)
+                u'<eLabel position="542,13" size="108,52" backgroundColor="#00B366FF" cornerRadius="14" zPosition="2" />'
 
-            # --- METALLIC BAND (y=40, total band height = 42) ---
-            # Top bright edge (metallic highlight)
-            u'<eLabel position="0,40" size="950,2" backgroundColor="#00c9a020" zPosition="2" />'
-            # Main band body (steel blue)
-            u'<eLabel position="0,42" size="950,38" backgroundColor="#00181818" zPosition="2" />'
-            # Bottom dark edge (shadow)
-            u'<eLabel position="0,80" size="950,2" backgroundColor="#00111111" zPosition="2" />'
-            # Bottom accent line
-            u'<eLabel position="0,82" size="950,2" backgroundColor="#00c9a020" zPosition="3" />'
+                # ── Main black bar background (drawn on top at z=3) ───────────
+                u'<eLabel position="5,13" size="640,48" backgroundColor="#00111111" cornerRadius="14" zPosition="3" />'
 
-            # --- SCORE CENTER BOX (dark recessed area in band) ---
-            u'<eLabel position="400,42" size="150,38" backgroundColor="#00111111" zPosition="3" />'
-            u'<widget name="lbl_score" position="400,42" size="150,38" font="Regular;26" '
-            u'foregroundColor="#00FFD700" backgroundColor="#00111111" valign="center" halign="center" zPosition="4" />'
+                # ── HOME SIDE (left half of main bar) ─────────────────────────
+                # Home flag thin white frame
+                u'<eLabel position="9,19" size="50,36" backgroundColor="#00FFFFFF" cornerRadius="9" zPosition="4" />'
+                # Home flag solid black background capsule (prevents white frame showing through transparent flag areas)
+                u'<eLabel position="10,20" size="48,34" backgroundColor="#00111111" cornerRadius="8" zPosition="5" />'
+                # Home flag (enlarged)
+                u'<widget name="h_flag" position="10,20" size="48,34" alphatest="blend" scale="1" cornerRadius="8" zPosition="6" />'
+                # Home dot (● indicator for live)
+                u'<widget name="h_dot" position="62,27" size="18,20" font="Regular;14" foregroundColor="#006699CC" backgroundColor="#00111111" transparent="1" valign="center" halign="center" zPosition="5" />'
+                # Home team abbreviation (e.g. FRA)
+                u'<widget name="lbl_home" position="80,13" size="120,48" font="Regular;32" foregroundColor="#00FFFFFF" backgroundColor="#00111111" transparent="1" valign="center" halign="center" zPosition="5" />'
+                # Home red card icon
+                u'<widget name="h_rc" position="200,27" size="14,20" alphatest="blend" scale="1" zPosition="7" />'
+                u'<widget name="h_rc_txt" position="196,27" size="26,20" font="Regular;14" foregroundColor="#00FF3333" backgroundColor="#00111111" transparent="1" valign="center" halign="center" zPosition="7" />'
 
-            # --- TEAM NAMES (inside the band) ---
-            u'<widget name="lbl_home" position="100,42" size="275,38" font="Regular;32" '
-            u'foregroundColor="#00FFD700" backgroundColor="#00181818" valign="center" halign="right" zPosition="4" />'
-            u'<widget name="lbl_away" position="572,42" size="278,38" font="Regular;32" '
-            u'foregroundColor="#00FFD700" backgroundColor="#00181818" valign="center" halign="left" zPosition="4" />'
+                # ── CENTRE TEAL AREA (covers scores and center logo) ──────────
+                u'<eLabel position="215,10" size="220,54" backgroundColor="#0033CCAA" cornerRadius="14" zPosition="4" />'
+                # Home score (black font, transparent background over teal)
+                u'<widget name="lbl_h_score" position="215,10" size="75,54" font="Regular;36" foregroundColor="#00000000" backgroundColor="#0033CCAA" transparent="1" valign="center" halign="center" zPosition="5" />'
 
-            # --- LARGE LOGOS (overlapping band at edges) ---
-            u'<widget name="h_logo" position="5,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
-            u'<widget name="a_logo" position="860,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
+                # Center WC Logo Badge thin black frame
+                u'<eLabel position="289,4" size="72,66" backgroundColor="#00111111" cornerRadius="14" zPosition="5" />'
+                # Center WC Logo Badge (white badge sitting on top of teal, taller than the black bar)
+                u'<eLabel position="290,5" size="70,64" backgroundColor="#00FFFFFF" cornerRadius="14" zPosition="6" />'
+                u'<widget name="wc_logo" position="294,9" size="62,56" alphatest="blend" scale="1" zPosition="7" />'
 
-            # (League and Status moved above band)
+                # Away score (black font, transparent background over teal)
+                u'<widget name="lbl_a_score" position="360,10" size="75,54" font="Regular;36" foregroundColor="#00000000" backgroundColor="#0033CCAA" transparent="1" valign="center" halign="center" zPosition="5" />'
 
-            # --- RED CARD INDICATORS (between name and score box) ---
-            u'<widget name="h_rc" position="392,50" size="16,22" alphatest="blend" scale="1" zPosition="5" />'
-            u'<widget name="h_rc_txt" position="385,50" size="30,22" font="Regular;16" '
-            u'foregroundColor="#00FF3333" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="5" />'
-            u'<widget name="a_rc" position="552,50" size="16,22" alphatest="blend" scale="1" zPosition="5" />'
-            u'<widget name="a_rc_txt" position="550,50" size="30,22" font="Regular;16" '
-            u'foregroundColor="#00FF3333" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="5" />'
+                # ── AWAY SIDE (right half of main bar) ────────────────────────
+                # Away red card icon
+                u'<widget name="a_rc" position="436,27" size="14,20" alphatest="blend" scale="1" zPosition="7" />'
+                u'<widget name="a_rc_txt" position="430,27" size="26,20" font="Regular;14" foregroundColor="#00FF3333" backgroundColor="#00111111" transparent="1" valign="center" halign="center" zPosition="7" />'
+                # Away team abbreviation (e.g. SEN)
+                u'<widget name="lbl_away" position="450,13" size="120,48" font="Regular;32" foregroundColor="#00FFFFFF" backgroundColor="#00111111" transparent="1" valign="center" halign="center" zPosition="5" />'
+                # Away dot (● indicator for live)
+                u'<widget name="a_dot" position="570,27" size="18,20" font="Regular;14" foregroundColor="#006699CC" backgroundColor="#00111111" transparent="1" valign="center" halign="center" zPosition="5" />'
+                # Away flag thin white frame
+                u'<eLabel position="591,19" size="50,36" backgroundColor="#00FFFFFF" cornerRadius="9" zPosition="4" />'
+                # Away flag solid black background capsule (prevents white frame showing through transparent flag areas)
+                u'<eLabel position="592,20" size="48,34" backgroundColor="#00111111" cornerRadius="8" zPosition="5" />'
+                # Away flag (enlarged)
+                u'<widget name="a_flag" position="592,20" size="48,34" alphatest="blend" scale="1" cornerRadius="8" zPosition="6" />'
 
-            u'</screen>'
-        )
-
-        self["lbl_league"] = Label("")
-        self["lbl_home"] = Label("")
-        self["lbl_score"] = Label("")
-        self["lbl_away"] = Label("")
-        self["lbl_status"] = Label("")
-
-        self["h_rc"] = Pixmap()
-        self["h_rc_txt"] = Label("")
-        self["a_rc"] = Pixmap()
-        self["a_rc_txt"] = Label("")
-        self["h_rc"].hide()
-        self["h_rc_txt"].hide()
-        self["a_rc"].hide()
-        self["a_rc_txt"].hide()
-
-        self["h_logo"] = Pixmap()
-        self["a_logo"] = Pixmap()
-        self["l_logo"] = Pixmap()
-        self["h_logo"].hide()
-        self["a_logo"].hide()
-        self["l_logo"].hide()
+                # ── ATTACHED TIME BOX TEXT (drawn on top at z=4) ──────────────
+                u'<widget name="lbl_time" position="648,13" size="125,52" font="Regular;30" foregroundColor="#00000000" backgroundColor="#00FFFFFF" transparent="1" valign="center" halign="center" zPosition="4" />'
+                u'</screen>'
+            )
+            self["lbl_home"] = Label("")
+            self["lbl_away"] = Label("")
+            self["lbl_h_score"] = Label("")
+            self["lbl_a_score"] = Label("")
+            self["lbl_time"] = Label("")
+            self["h_rc"] = Pixmap()
+            self["h_rc_txt"] = Label("")
+            self["a_rc"] = Pixmap()
+            self["a_rc_txt"] = Label("")
+            self["h_rc"].hide(); self["h_rc_txt"].hide()
+            self["a_rc"].hide(); self["a_rc_txt"].hide()
+            self["h_flag"] = Pixmap()
+            self["a_flag"] = Pixmap()
+            self["wc_logo"] = Pixmap()
+            self["h_flag"].hide()
+            self["a_flag"].hide()
+            self["wc_logo"].hide()
+            self["h_dot"] = Label("")
+            self["a_dot"] = Label("")
+        else:
+            self.skin = (
+                u'<screen position="center,10" size="950,120" title="Sports Ticker" flags="wfNoBorder" backgroundColor="#FF000000">'
+                u'<widget name="l_logo" position="460,5" size="30,30" alphatest="blend" scale="1" zPosition="3" />'
+                u'<widget name="lbl_league" position="500,5" size="400,30" font="Regular;19" '
+                u'foregroundColor="#00FFD700" backgroundColor="#FF000000" transparent="1" valign="center" halign="left" zPosition="3" />'
+                u'<widget name="lbl_status" position="300,85" size="350,30" font="Regular;19" '
+                u'foregroundColor="#00FFFFFF" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="3" />'
+                u'<eLabel position="0,40" size="950,2" backgroundColor="#00c9a020" zPosition="2" />'
+                u'<eLabel position="0,42" size="950,38" backgroundColor="#00181818" zPosition="2" />'
+                u'<eLabel position="0,80" size="950,2" backgroundColor="#00111111" zPosition="2" />'
+                u'<eLabel position="0,82" size="950,2" backgroundColor="#00c9a020" zPosition="3" />'
+                u'<eLabel position="400,42" size="150,38" backgroundColor="#00111111" zPosition="3" />'
+                u'<widget name="lbl_score" position="400,42" size="150,38" font="Regular;26" '
+                u'foregroundColor="#00FFD700" backgroundColor="#00111111" valign="center" halign="center" zPosition="4" />'
+                u'<widget name="lbl_home" position="100,42" size="275,38" font="Regular;32" '
+                u'foregroundColor="#00FFD700" backgroundColor="#00181818" valign="center" halign="right" zPosition="4" />'
+                u'<widget name="lbl_away" position="572,42" size="278,38" font="Regular;32" '
+                u'foregroundColor="#00FFD700" backgroundColor="#00181818" valign="center" halign="left" zPosition="4" />'
+                u'<widget name="h_logo" position="5,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
+                u'<widget name="a_logo" position="860,18" size="85,85" alphatest="blend" scale="1" zPosition="6" />'
+                u'<widget name="h_rc" position="392,50" size="16,22" alphatest="blend" scale="1" zPosition="5" />'
+                u'<widget name="h_rc_txt" position="385,50" size="30,22" font="Regular;16" '
+                u'foregroundColor="#00FF3333" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="5" />'
+                u'<widget name="a_rc" position="552,50" size="16,22" alphatest="blend" scale="1" zPosition="5" />'
+                u'<widget name="a_rc_txt" position="550,50" size="30,22" font="Regular;16" '
+                u'foregroundColor="#00FF3333" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="5" />'
+                u'</screen>'
+            )
+            self["lbl_league"] = Label("")
+            self["lbl_home"] = Label("")
+            self["lbl_score"] = Label("")
+            self["lbl_away"] = Label("")
+            self["lbl_status"] = Label("")
+            self["h_rc"] = Pixmap()
+            self["h_rc_txt"] = Label("")
+            self["a_rc"] = Pixmap()
+            self["a_rc_txt"] = Label("")
+            self["h_rc"].hide(); self["h_rc_txt"].hide()
+            self["a_rc"].hide(); self["a_rc_txt"].hide()
+            self["h_logo"] = Pixmap()
+            self["a_logo"] = Pixmap()
+            self["l_logo"] = Pixmap()
+            self["h_logo"].hide()
+            self["a_logo"].hide()
+            self["l_logo"].hide()
 
         self.matches = []
         self.current_match_idx = 0
@@ -14792,13 +15458,15 @@ class SimpleSportsMiniBar(Screen):
             self.show_next_match()
             return
 
-        mode = 4 if global_sports_monitor.ch_day_offset != 0 else global_sports_monitor.filter_mode
+        mode = 2 if global_sports_monitor.ch_day_offset != 0 else global_sports_monitor.filter_mode
 
         # Pre-compute dates once per render pass
         now = datetime.datetime.now()
+        if global_sports_monitor.ch_day_offset != 0:
+            now = now + datetime.timedelta(days=global_sports_monitor.ch_day_offset)
         today_str = now.strftime("%Y-%m-%d")
-        tomorrow_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) + 86400).strftime("%Y-%m-%d")
-        yesterday_str = datetime.datetime.utcfromtimestamp(calendar.timegm(now.timetuple()) - 86400).strftime("%Y-%m-%d")
+        tomorrow_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        yesterday_str = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 
         for event in events:
             snap = global_sports_monitor.match_snapshots.get(str(event.get('id', '')))
@@ -14813,7 +15481,8 @@ class SimpleSportsMiniBar(Screen):
                 match_data = {'league': snap['league_name'], 'home': race, 'away': venue,
                               'score': "VS", 'status': snap['status_short'],
                               'h_url': snap['h_logo_url'], 'a_url': snap['a_logo_url'], 'l_url': snap['l_logo_url'],
-                              'h_id': snap['h_logo_id'], 'a_id': snap['a_logo_id'], 'l_id': snap['l_logo_id']}
+                              'h_id': snap['h_logo_id'], 'a_id': snap['a_logo_id'], 'l_id': snap['l_logo_id'],
+                              'state': snap.get('state', ''), 'is_live': snap.get('is_live', False)}
             else:
                 # Build match data from snapshot -- all parsing already done
                 h_scorer, a_scorer = self.get_scorers_string(event, snap['h_team_id'], snap['a_team_id'])
@@ -14821,6 +15490,8 @@ class SimpleSportsMiniBar(Screen):
                     'league':  snap['league_name'],
                     'home':    snap['h_name_short'],
                     'away':    snap['a_name_short'],
+                    'h_abbrev': snap.get('h_abbrev', ''),
+                    'a_abbrev': snap.get('a_abbrev', ''),
                     'score':   snap['score_str'],
                     'status':  (snap['status_short'] + ' ' + snap['clock']) if snap['is_live'] and snap['clock'] else (snap['status_short'] + ' ' + snap['time_str'] if snap['state'] == 'pre' and snap['time_str'] else snap['status_short']),
                     'h_url':   snap['h_logo_url'],
@@ -14837,12 +15508,18 @@ class SimpleSportsMiniBar(Screen):
                     'stage_label':   snap.get('stage_label', ''),
                     'host_flag_url': snap.get('host_flag_url', ''),
                     'host_flag_id':  snap.get('host_flag_id', ''),
+                    'h_flag_url':    "https://flagcdn.com/w40/{}.png".format(snap.get('h_iso2', '')) if snap.get('h_iso2') else '',
+                    'a_flag_url':    "https://flagcdn.com/w40/{}.png".format(snap.get('a_iso2', '')) if snap.get('a_iso2') else '',
+                    'h_flag_id':     "flag_" + snap.get('h_iso2') if snap.get('h_iso2') else '',
+                    'a_flag_id':     "flag_" + snap.get('a_iso2') if snap.get('a_iso2') else '',
                     'venue_city':    event.get('competitions', [{}])[0].get('venue', {}).get('address', {}).get('city', ''),
                     'league_url':    snap.get('league_url', ''),
                     # ── NEW: Required by TeamRostersScreen ──────────────
                     'h_name_full':   snap.get('h_name', snap['h_name_short']),
                     'a_name_full':   snap.get('a_name', snap['a_name_short']),
                     'event_id':      str(event.get('id', '')),
+                    'state':         snap.get('state', ''),
+                    'is_live':       snap.get('is_live', False),
                 }
             new_matches.append(match_data)
 
@@ -14862,85 +15539,206 @@ class SimpleSportsMiniBar(Screen):
             self.show_next_match()
             self.ticker_timer.start(5000, False)
 
+    @staticmethod
+    def _split_score(score_str):
+        if not score_str:
+            return ("", "")
+        parts = [p.strip() for p in score_str.split("-")]
+        if len(parts) == 2:
+            return (parts[0], parts[1])
+        parts = [p.strip() for p in score_str.split(":")]
+        if len(parts) == 2:
+            return (parts[0], parts[1])
+        return (score_str, "")
+
+    @staticmethod
+    def _build_time_label(data):
+        status = str(data.get('status', ''))
+        if status.upper().startswith("LIVE "):
+            return status[5:].strip()
+        if not status:
+            return "--:--"
+        return status
+
     def show_next_match(self):
         if not self.matches: return
         self.current_match_idx = (self.current_match_idx + 1) % len(self.matches)
         data = self.matches[self.current_match_idx]
 
-        # 1. Prepare status
-        status_text = str(data.get('status', ''))
+        if getattr(global_sports_monitor, "minibar_1_style", "default") == "worldcup":
+            # ── Split score ───────────────────────────────────────────────────
+            h_score, a_score = self._split_score(str(data.get('score', '')))
+            self["lbl_h_score"].setText(h_score)
+            self["lbl_a_score"].setText(a_score)
 
-        self["lbl_status"].setText(status_text)
-
-        # League label: show stage badge for WC, append city in brackets if known
-        stage_label = data.get('stage_label', '')
-        venue_city  = data.get('venue_city', '')
-        base_label  = stage_label if stage_label else _league_name(str(data.get('league', '')))
-        if venue_city:
-            self["lbl_league"].setText(u"{} ({})".format(base_label, venue_city))
-        else:
-            self["lbl_league"].setText(base_label)
-
-        self["lbl_home"].setText(_team_name(str(data.get('home', ''))))
-        self["lbl_score"].setText(str(data.get('score', '')))
-        self["lbl_away"].setText(_team_name(str(data.get('away', ''))))
-
-        self.load_logo(data.get('h_url'), data.get('h_id'), "h_logo")
-        self.load_logo(data.get('a_url'), data.get('a_id'), "a_logo")
-
-        # Determine baseline league/WC logo
-        l_url = data.get('l_url', '')
-        l_id  = data.get('l_id', '')
-
-        # Load baseline logo first
-        self.load_logo(l_url, l_id, "l_logo")
-
-        # Upgrade to host flag gracefully when available
-        host_flag_url = data.get('host_flag_url', '')
-        host_flag_id  = data.get('host_flag_id', '')
-        if host_flag_url and host_flag_id:
-            self.load_logo(host_flag_url, host_flag_id, "l_logo", keep_existing=True)
-
-        # Red Card Indicators
-        h_rc = data.get('h_red_cards', 0)
-        a_rc = data.get('a_red_cards', 0)
-
-        # Try to load red card image
-        rc_pixmap = self.rc_pixmap
-
-        if h_rc > 0:
-            if rc_pixmap:
-                try:
-                    self["h_rc"].instance.setPixmap(rc_pixmap)
-                    self["h_rc"].instance.setScale(1)
+            # ── Time / clock box ──────────────────────────────────────────────
+            time_label = self._build_time_label(data)
+            self["lbl_time"].setText(time_label)
+            is_pre = data.get('state') == 'pre' or ("PM" in time_label or "AM" in time_label or "/" in time_label or ":" in time_label and not data.get('is_live', False))
+            font_size = 20 if is_pre else 30
+            if self["lbl_time"].instance:
+                try: self["lbl_time"].instance.setFont(gFont("Regular", font_size))
                 except: pass
-                self["h_rc"].show()
-                self["h_rc_txt"].hide()
+
+            # ── Team names (prefer abbreviation, auto-scale font size) ───────
+            h_name = data.get('h_abbrev', '') or data.get('home', '')
+            a_name = data.get('a_abbrev', '') or data.get('away', '')
+
+            h_name = _team_name(str(h_name))
+            a_name = _team_name(str(a_name))
+
+            def set_team_name_with_auto_scale(label_widget, name):
+                name_len = len(name)
+                if name_len <= 4:
+                    font_size = 32
+                elif name_len <= 6:
+                    font_size = 28
+                elif name_len <= 8:
+                    font_size = 24
+                else:
+                    font_size = 20
+                    if name_len > 12:
+                        name = name[:10] + "."
+                
+                label_widget.setText(name)
+                if label_widget.instance:
+                    try:
+                        label_widget.instance.setFont(gFont("Regular", font_size))
+                    except:
+                        pass
+
+            set_team_name_with_auto_scale(self["lbl_home"], h_name)
+            set_team_name_with_auto_scale(self["lbl_away"], a_name)
+
+            # ── Inline flags (h_flag, a_flag) ────────────────────────────────
+            # Use h_flag_url / a_flag_url if available; fall back to h_url / a_url
+            self.load_logo(data.get('h_url'), data.get('h_id'), "h_flag")
+            self.load_logo(data.get('a_url'), data.get('a_id'), "a_flag")
+
+            # ── Centre logo (always use league logo, no host city flags) ────────────────────────
+            l_url = data.get('l_url', '')
+            l_id  = data.get('l_id', '')
+            self.load_logo(l_url, l_id, "wc_logo")
+
+            # ── Dot indicators ───────────────────────────────────────────────
+            is_live = "LIVE" in str(data.get('status', '')).upper()
+            dot_char = u"\u25CF" if is_live else u""
+            self["h_dot"].setText(dot_char)
+            self["a_dot"].setText(dot_char)
+
+            # Red Card Indicators
+            h_rc = data.get('h_red_cards', 0)
+            a_rc = data.get('a_red_cards', 0)
+            rc_pixmap = self.rc_pixmap
+
+            if h_rc > 0:
+                if rc_pixmap:
+                    try:
+                        self["h_rc"].instance.setPixmap(rc_pixmap)
+                        self["h_rc"].instance.setScale(1)
+                    except: pass
+                    self["h_rc"].show()
+                    self["h_rc_txt"].hide()
+                else:
+                    rc_txt = "RC" if h_rc == 1 else "{}RC".format(h_rc)
+                    self["h_rc_txt"].setText(rc_txt)
+                    self["h_rc_txt"].show()
+                    self["h_rc"].hide()
             else:
-                rc_txt = "RC" if h_rc == 1 else "{}RC".format(h_rc)
-                self["h_rc_txt"].setText(rc_txt)
-                self["h_rc_txt"].show()
                 self["h_rc"].hide()
-        else:
-            self["h_rc"].hide()
-            self["h_rc_txt"].hide()
+                self["h_rc_txt"].hide()
 
-        if a_rc > 0:
-            if rc_pixmap:
-                try:
-                    self["a_rc"].instance.setPixmap(rc_pixmap)
-                    self["a_rc"].instance.setScale(1)
-                except: pass
-                self["a_rc"].show()
-                self["a_rc_txt"].hide()
+            if a_rc > 0:
+                if rc_pixmap:
+                    try:
+                        self["a_rc"].instance.setPixmap(rc_pixmap)
+                        self["a_rc"].instance.setScale(1)
+                    except: pass
+                    self["a_rc"].show()
+                    self["a_rc_txt"].hide()
+                else:
+                    rc_txt = "RC" if a_rc == 1 else "{}RC".format(a_rc)
+                    self["a_rc_txt"].setText(rc_txt)
+                    self["a_rc_txt"].show()
+                    self["a_rc"].hide()
             else:
-                rc_txt = "RC" if a_rc == 1 else "{}RC".format(a_rc)
-                self["a_rc_txt"].setText(rc_txt)
-                self["a_rc_txt"].show()
                 self["a_rc"].hide()
+                self["a_rc_txt"].hide()
         else:
-            self["a_rc"].hide()
-            self["a_rc_txt"].hide()
+            # 1. Prepare status
+            status_text = str(data.get('status', ''))
+
+            self["lbl_status"].setText(status_text)
+
+            # League label: show stage badge for WC, append city in brackets if known
+            stage_label = data.get('stage_label', '')
+            venue_city  = data.get('venue_city', '')
+            base_label  = stage_label if stage_label else _league_name(str(data.get('league', '')))
+            if venue_city:
+                self["lbl_league"].setText(u"{} ({})".format(base_label, venue_city))
+            else:
+                self["lbl_league"].setText(base_label)
+
+            self["lbl_home"].setText(_team_name(str(data.get('home', ''))))
+            self["lbl_score"].setText(str(data.get('score', '')))
+            self["lbl_away"].setText(_team_name(str(data.get('away', ''))))
+
+            self.load_logo(data.get('h_url'), data.get('h_id'), "h_logo")
+            self.load_logo(data.get('a_url'), data.get('a_id'), "a_logo")
+
+            # Determine baseline league/WC logo
+            l_url = data.get('l_url', '')
+            l_id  = data.get('l_id', '')
+
+            # Load baseline logo first
+            self.load_logo(l_url, l_id, "l_logo")
+
+            # Upgrade to host flag gracefully when available
+            host_flag_url = data.get('host_flag_url', '')
+            host_flag_id  = data.get('host_flag_id', '')
+            if host_flag_url and host_flag_id:
+                self.load_logo(host_flag_url, host_flag_id, "l_logo", keep_existing=True)
+
+            # Red Card Indicators
+            h_rc = data.get('h_red_cards', 0)
+            a_rc = data.get('a_red_cards', 0)
+
+            # Try to load red card image
+            rc_pixmap = self.rc_pixmap
+
+            if h_rc > 0:
+                if rc_pixmap:
+                    try:
+                        self["h_rc"].instance.setPixmap(rc_pixmap)
+                        self["h_rc"].instance.setScale(1)
+                    except: pass
+                    self["h_rc"].show()
+                    self["h_rc_txt"].hide()
+                else:
+                    rc_txt = "RC" if h_rc == 1 else "{}RC".format(h_rc)
+                    self["h_rc_txt"].setText(rc_txt)
+                    self["h_rc_txt"].show()
+                    self["h_rc"].hide()
+            else:
+                self["h_rc"].hide()
+                self["h_rc_txt"].hide()
+
+            if a_rc > 0:
+                if rc_pixmap:
+                    try:
+                        self["a_rc"].instance.setPixmap(rc_pixmap)
+                        self["a_rc"].instance.setScale(1)
+                    except: pass
+                    self["a_rc"].show()
+                    self["a_rc_txt"].hide()
+                else:
+                    rc_txt = "RC" if a_rc == 1 else "{}RC".format(a_rc)
+                    self["a_rc_txt"].setText(rc_txt)
+                    self["a_rc_txt"].show()
+                    self["a_rc"].hide()
+            else:
+                self["a_rc"].hide()
+                self["a_rc_txt"].hide()
 
     def load_logo(self, url, img_id, widget_name, keep_existing=False):
         """Delegate to shared logo loader (unified cache + pixmap memory cache)"""
@@ -14952,6 +15750,382 @@ class SimpleSportsMiniBar(Screen):
 # ==============================================================================
 # EPG HELPERS
 # ==============================================================================
+# ── Bouquet scanner constants ────────────────────────────────────────────────
+
+import re as _re
+
+_BS_UNICODE_SUB_RE = _re.compile(
+    u'[\u1d34\u1d35\u1d38\u1d3c\u1d41\u1d42\u1d49\u1d4d'
+    u'\u1d50\u1d52\u1d56\u1d58\u1d5b\u1d5d\u1d60\u1d62'
+    u'\u1d63\u1d64\u1d65\u207f\u2070-\u209f\u02b0-\u02ff]+'
+)
+_BS_QUALITY_RE = _re.compile(
+    u'(?i)\\b(?:fhd|uhd|hd|sd|4k|8k|raw|hevc|h\\.?26[45]|'
+    u'mpeg[24]|avc|aac|ac3|fringe|backup|bkup|extra|premium|vip)\\b'
+)
+_BS_NONALNUM_RE  = _re.compile(u'[^a-z0-9 ]')
+_BS_SPACES_RE    = _re.compile(u' {2,}')
+_BS_PREFIX_RE    = _re.compile(u'^([a-z]{2,3})\\s*[:|]\\s*')
+
+_BS_BRAND_PREFIXES = frozenset([
+    u'go', u'now', u'prime', u'plus', u'mega', u'max', u'pro',
+    u'sky', u'fox', u'nba', u'nfl', u'mlb', u'dstv', u'vo',
+    u'wow', u'ott',
+])
+_BS_NOISE_WORDS = frozenset([
+    u'tv', u'channel', u'sport', u'sports', u'live', u'stream',
+    u'network', u'international', u'broadcast', u'media', u'vision',
+    u'play', u'sat', u'cable', u'online', u'web',
+])
+_BS_WORD_TO_DIGIT = {
+    u'one': u'1',   u'first':  u'1',
+    u'two': u'2',   u'second': u'2',
+    u'three': u'3', u'third':  u'3',
+    u'four':  u'4', u'fourth': u'4',
+    u'five':  u'5', u'fifth':  u'5',
+    u'six':   u'6', u'seven':  u'7',
+    u'eight': u'8', u'nine':   u'9',
+    u'ten':   u'10',
+}
+_BS_COUNTRY_MAP = {
+    u"albania":      (u"al", u"alb"),
+    u"israel":       (u"il", u"isr"),
+    u"thailand":     (u"th", u"tha"),
+    u"laos":         (u"la", u"lao"),
+    u"unitedkingdom":(u"uk", u"gb", u"england", u"eng"),
+    u"unitedstates": (u"us", u"usa"),
+    u"germany":      (u"de", u"deu", u"deutschland"),
+    u"france":       (u"fr", u"fra"),
+    u"italy":        (u"it", u"ita"),
+    u"spain":        (u"es", u"esp"),
+    u"portugal":     (u"pt", u"prt"),
+    u"turkey":       (u"tr", u"tur"),
+    u"poland":       (u"pl", u"pol"),
+    u"netherlands":  (u"nl", u"nld", u"holland"),
+    u"belgium":      (u"be", u"bel"),
+    u"greece":       (u"gr", u"grc"),
+    u"cyprus":       (u"cy", u"cyp"),
+    u"romania":      (u"ro", u"rou"),
+    u"bulgaria":     (u"bg", u"bgr"),
+    u"russia":       (u"ru", u"rus"),
+    u"ukraine":      (u"ua", u"ukr"),
+    u"sweden":       (u"se", u"swe"),
+    u"norway":       (u"no", u"nor"),
+    u"denmark":      (u"dk", u"dnk"),
+    u"finland":      (u"fi", u"fin"),
+    u"switzerland":  (u"ch", u"che"),
+    u"austria":      (u"at", u"aut"),
+    u"saudiarabia":  (u"sa", u"ksa", u"ar"),
+    u"egypt":        (u"eg", u"egy"),
+    u"uae":          (u"ae", u"are"),
+    u"qatar":        (u"qa", u"qat"),
+    u"jordan":       (u"jo", u"jor"),
+    u"lebanon":      (u"lb", u"lbn"),
+    u"syria":        (u"sy", u"syr"),
+    u"iraq":         (u"iq", u"irq"),
+    u"kuwait":       (u"kw", u"kwt"),
+    u"india":        (u"in", u"ind"),
+    u"pakistan":     (u"pk", u"pak"),
+    u"china":        (u"cn", u"chn"),
+    u"japan":        (u"jp", u"jpn"),
+    u"southkorea":   (u"kr", u"kor"),
+    u"vietnam":      (u"vn", u"vnm"),
+    u"indonesia":    (u"id", u"idn"),
+    u"malaysia":     (u"my", u"mys"),
+    u"australia":    (u"au", u"aus"),
+    u"newzealand":   (u"nz", u"nzl"),
+    u"southafrica":  (u"za", u"zaf"),
+    u"brazil":       (u"br", u"bra"),
+    u"argentina":    (u"ar", u"arg"),
+    u"mexico":       (u"mx", u"mex"),
+    u"colombia":     (u"co", u"col"),
+    u"peru":         (u"pe", u"per"),
+    u"chile":        (u"cl", u"chl"),
+    u"canada":       (u"ca", u"can"),
+    u"morocco":      (u"ma", u"mar"),
+    u"algeria":      (u"dz", u"alg"),
+    u"tunisia":      (u"tn", u"tun"),
+    u"nigeria":      (u"ng", u"nga"),
+    u"ghana":        (u"gh", u"gha"),
+    u"senegal":      (u"sn", u"sen"),
+    u"iran":         (u"ir", u"irn"),
+    u"afghanistan":  (u"af", u"afg"),
+}
+
+_SCAN_W_TOKEN   = 0.55
+_SCAN_W_SEQ     = 0.30
+_SCAN_THRESHOLD = 0.40   # minimum score to accept any result
+_SCAN_PERFECT   = 0.92   # score at which we stop scanning early
+
+
+def _normalize_name(name):
+    import re
+    return re.sub(r'[^a-z0-9]', '', name.lower())
+
+
+def _clean_for_scan(text):
+    """
+    Normalise a channel name or bouquet description for matching.
+
+    Returns
+    -------
+    word_set    : set of str  — significant tokens (for set intersection)
+    prefix_code : str         — 2-3 letter country code from "XX: " prefix, or ""
+
+    Note: clean_str (for SequenceMatcher) is NOT built here to avoid the
+    sorted() + join() cost on every entry.  Call _words_to_core(word_set)
+    only after Guard 1 passes.
+    """
+    if not text:
+        return set(), u''
+    if isinstance(text, bytes):
+        try:
+            text = text.decode('utf-8', 'ignore')
+        except Exception:
+            text = u''
+
+    s = text.lower().strip()
+
+    # A — Unicode superscript quality tags
+    s = _BS_UNICODE_SUB_RE.sub(u' ', s)
+
+    # B — Extract country prefix BEFORE further stripping
+    prefix_code = u''
+    m = _BS_PREFIX_RE.match(s)
+    if m:
+        candidate = m.group(1)
+        if candidate not in _BS_BRAND_PREFIXES:
+            prefix_code = candidate          # save e.g. "uk", "ar", "no"
+        s = s[m.end():]                      # strip prefix either way
+
+    # C — ASCII quality / technical tags
+    s = _BS_QUALITY_RE.sub(u' ', s)
+
+    # D — Non-alphanumeric → space
+    s = _BS_NONALNUM_RE.sub(u' ', s)
+    s = _BS_SPACES_RE.sub(u' ', s).strip()
+
+    # E — Tokenise, apply word→digit map, remove noise words
+    # E — Tokenise, apply word→digit map, remove noise words
+    words = set()
+    for w in s.split():
+        w = _BS_WORD_TO_DIGIT.get(w, w)
+        if w and w not in _BS_NOISE_WORDS:
+            words.add(w)
+
+    return words, prefix_code
+
+
+def _words_to_core(word_set):
+    """Canonical string form of a word set, used only for SequenceMatcher."""
+    return u' '.join(sorted(word_set))
+
+
+def _scan_bouquet_for_name(name, country=None):
+    """
+    Multi-signal weighted bouquet scanner.
+
+    Signals (applied in cheap-first order)
+    ───────────────────────────────────────
+    Guard 1  Token overlap (set intersection)         cheap – O(n)
+    Guard 2  Number guard  (subset check)             cheap – O(n)
+    Signal 1 Token coverage ratio      weight 0.55    after guards only
+    Signal 2 SequenceMatcher ratio     weight 0.30    after guards only
+    Signal 3 Country prefix bonus/penalty ±0.15       after guards only
+
+    Performance
+    ───────────
+    SequenceMatcher is created once per scan_file_list call and reused
+    via set_seq2().  It is never called on entries that fail Guard 1 or 2.
+    Typical ARM hardware: 20 000-entry bouquet set → 0.3–0.6 s.
+    """
+    from difflib import SequenceMatcher
+    import os
+
+    bq_dir = u'/etc/enigma2/'
+
+    try:
+        # ── Prepare query ────────────────────────────────────────────────
+        q_words, _ = _clean_for_scan(name)
+        if not q_words:
+            return None
+
+        q_core = _words_to_core(q_words)
+        q_nums = frozenset(w for w in q_words if w.isdigit())
+
+        # ── Build country token set ──────────────────────────────────────
+        lstv_codes = set()
+        if country:
+            if isinstance(country, bytes):
+                try:
+                    country = country.decode('utf-8', 'ignore')
+                except Exception:
+                    pass
+            import re
+            norm = re.sub(u'[^a-z0-9]', u'', country.lower())
+            lstv_codes.add(norm)
+            for alias in _BS_COUNTRY_MAP.get(norm, ()):
+                lstv_codes.add(alias)
+
+        # ── Split bouquet files into country-priority and others ─────────
+        country_bouquets = []
+        other_bouquets   = []
+
+        for fname in os.listdir(bq_dir):
+            if not fname.endswith(u'.tv') or fname == u'bouquets.tv':
+                continue
+            path = os.path.join(bq_dir, fname)
+
+            bq_name = u''
+            try:
+                with open(path, u'r') as f:
+                    for _ in range(10):
+                        line = f.readline()
+                        if not line:
+                            break
+                        line = line.strip()
+                        if line.startswith(u'#NAME'):
+                            bq_name = line[5:].strip()
+                            break
+            except Exception:
+                pass
+
+            if isinstance(bq_name, bytes):
+                try:
+                    bq_name = bq_name.decode('utf-8', 'ignore')
+                except Exception:
+                    bq_name = u''
+
+            is_country_bq = False
+            if lstv_codes:
+                import re
+                slug = re.sub(u'[^a-z0-9]', u' ',
+                              fname.lower()
+                                  .replace(u'userbouquet.', u'')
+                                  .replace(u'.tv', u''))
+                label = re.sub(u'[^a-z0-9]', u' ', bq_name.lower())
+                slug_words  = set(slug.split())
+                label_words = set(label.split())
+
+                for tok in lstv_codes:
+                    if len(tok) <= 3:
+                        if tok in slug_words or tok in label_words:
+                            is_country_bq = True
+                            break
+                    else:
+                        combined = slug.replace(u' ', u'') + label.replace(u' ', u'')
+                        if tok in combined:
+                            is_country_bq = True
+                            break
+
+            if is_country_bq:
+                country_bouquets.append(path)
+            else:
+                other_bouquets.append(path)
+
+        # ── Inner scan function ──────────────────────────────────────────
+        def scan_file_list(files):
+            # Create SequenceMatcher once; reuse with set_seq2() per entry.
+            # autojunk=False avoids population-analysis overhead on short strings.
+            sm = SequenceMatcher(None, q_core, None, autojunk=False)
+
+            best_sref  = None
+            best_score = -9999.0
+
+            for path in files:
+                try:
+                    with open(path, u'r') as f:
+                        sref = None
+                        for raw_line in f:
+                            line = raw_line.strip()
+
+                            if line.startswith(u'#SERVICE'):
+                                sref = (line.split(u' ', 1)[1]
+                                        if u' ' in line else None)
+                                continue
+
+                            if not line.startswith(u'#DESCRIPTION') or not sref:
+                                continue
+
+                            desc_raw = line[12:].strip()  # faster than replace()
+
+                            # ── Pre-process description ───────────────────
+                            d_words, d_prefix = _clean_for_scan(desc_raw)
+
+                            # ── GUARD 1: token overlap (cheap) ────────────
+                            common = q_words & d_words
+                            if not common:
+                                sref = None
+                                continue
+
+                            # ── GUARD 2: strict number guard (cheap) ──────
+                            d_nums = frozenset(w for w in d_words if w.isdigit())
+                            if q_nums and not q_nums.issubset(d_nums):
+                                sref = None
+                                continue
+
+                            # ── Build d_core only now (lazy) ─────────────
+                            d_core = _words_to_core(d_words)
+
+                            # ── SIGNAL 2: SequenceMatcher (expensive) ─────
+                            sm.set_seq2(d_core)
+                            seq_ratio = sm.ratio()
+
+                            # ── SIGNAL 1: token coverage ratio ────────────
+                            coverage = len(common) / float(max(len(q_words), 1))
+
+                            # ── SIGNAL 3: country bonus / penalty ─────────
+                            country_bonus = 0.0
+                            if d_prefix and lstv_codes:
+                                if d_prefix in lstv_codes:
+                                    country_bonus = +0.15
+                                else:
+                                    country_bonus = -0.10
+                            elif d_prefix:
+                                country_bonus = +0.02
+
+                            # ── Length penalty ────────────────────────────
+                            extra = max(0, len(d_words) - len(q_words))
+                            length_penalty  = 0.02 * extra
+                            if not q_nums and d_nums:
+                                length_penalty += 0.15
+
+                            # ── Final score ───────────────────────────────
+                            score = (_SCAN_W_TOKEN * coverage
+                                     + _SCAN_W_SEQ   * seq_ratio
+                                     + country_bonus
+                                     - length_penalty)
+
+                            if score > best_score:
+                                best_score = score
+                                best_sref  = sref
+
+                                # Early exit on near-perfect match
+                                if score >= _SCAN_PERFECT:
+                                    return best_sref, best_score
+
+                            sref = None
+
+                except Exception:
+                    pass
+
+            if best_score < _SCAN_THRESHOLD:
+                return None, best_score
+            return best_sref, best_score
+
+        # ── Two-pass scan ────────────────────────────────────────────────
+        if country_bouquets:
+            sref, score = scan_file_list(country_bouquets)
+            if sref is not None:
+                return sref
+
+        sref, _ = scan_file_list(other_bouquets)
+        return sref
+
+    except Exception as e:
+        log_dbg(u'_scan_bouquet_for_name error: ' + str(e))
+    return None
+
 def get_sat_position(ref_str):
     if ref_str.startswith("4097:") or ref_str.startswith("5001:"): return "IPTV"
     try:
@@ -14982,38 +16156,6 @@ def get_search_keywords(text):
         if len(w) >= 2 and w not in STOP_WORDS:
             valid.append(w)
     return valid
-
-
-def _normalize_name(name):
-    import re
-    return re.sub(r'[^a-z0-9]', '', name.lower())
-
-
-def _scan_bouquet_for_name(name):
-    norm = _normalize_name(name)
-    bq_dir = "/etc/enigma2/"
-    try:
-        import os
-        for fname in os.listdir(bq_dir):
-            if not fname.endswith(".tv"): continue
-            path = os.path.join(bq_dir, fname)
-            with open(path, "r") as f:
-                sref = None
-                for line in f:
-                    line = line.strip()
-                    if line.startswith("#SERVICE"):
-                        if " " in line:
-                            sref = line.split(" ", 1)[1]
-                        else:
-                            sref = None
-                    elif line.startswith("#DESCRIPTION") and sref:
-                        desc = line.replace("#DESCRIPTION", "").strip()
-                        if norm in _normalize_name(desc) or _normalize_name(desc) in norm:
-                            return sref
-                        sref = None
-    except Exception as e:
-        log_dbg("_scan_bouquet_for_name error: " + str(e))
-    return None
 
 
 def normalize_text(text):
@@ -15477,6 +16619,2022 @@ def get_picon(service_ref):
     return None
 
 
+class LiveScoreCZScreen(Screen):
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        self.session = session
+        self.monitor = global_sports_monitor
+        self.theme_mode = self.monitor.theme_mode
+        self.current_alpha = self.monitor.transparency
+        valid_alphas = ['00', '1A', '33', '4D', '59', '66', '80', '99', 'B3', 'CC', 'E6', 'FF']
+        if self.current_alpha not in valid_alphas: self.current_alpha = "59"
+
+        # Scan for Arena animation sequence (boot-only guard)
+        self.animation_frames = []
+        self.play_animation = False
+        self.current_frame_idx = 0
+        try:
+            import os
+            from Tools.Directories import resolveFilename, SCOPE_PLUGINS
+            arena_dir = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/Arena")
+            boot_flag = "/tmp/.simplysports_arena_booted"
+            if not os.path.exists(boot_flag) and os.path.isdir(arena_dir):
+                i = 1
+                while True:
+                    frame_path = os.path.join(arena_dir, "{}.jpg".format(i))
+                    if not os.path.exists(frame_path):
+                        frame_path = os.path.join(arena_dir, "{}.png".format(i))
+                    if os.path.exists(frame_path):
+                        self.animation_frames.append(frame_path)
+                        i += 1
+                    else:
+                        break
+                if self.animation_frames:
+                    self.play_animation = True
+                    try:
+                        open(boot_flag, 'w').close()
+                    except:
+                        pass
+        except:
+            pass
+
+        if self.theme_mode == "ucl":
+            bg_base = "0d1b2e"; top_base = "071020"
+            c_bg = "#" + self.current_alpha + bg_base; c_top = "#" + self.current_alpha + top_base
+            bg_widget = '<eLabel position="0,0" size="1920,1080" backgroundColor="{c_bg}" zPosition="-1" />'.format(c_bg=c_bg)
+            top_widget = '<widget name="top_bar" position="0,0" size="1920,100" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
+            top_widget += '<eLabel position="0,104" size="1920,2" backgroundColor="#c9a020" zPosition="3" />'
+            header_widget = '<widget name="header_bg" position="0,123" size="1920,34" backgroundColor="{c_bg}" zPosition="0" />'.format(c_bg=c_bg)
+            bar_widget = ""; bottom_widget = '<widget name="bottom_bar" position="0,990" size="1920,90" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
+            bottom_widget += '<eLabel position="20,990" size="1880,2" backgroundColor="#c9a020" zPosition="3" />'
+            fg_title = "#c9a020"; bg_title = "#071020"; fg_list_s = "#c9a020"
+            clock_x = 1710; clock_w = 180; clock_a = "center"
+        else:
+            bg_base = "100015"; bar_base = "38003C"; top_base = "1A0024"
+            c_bg = "#" + self.current_alpha + bg_base; c_bar = "#" + self.current_alpha + bar_base; c_top = "#" + self.current_alpha + top_base
+            bg_widget = '<eLabel position="0,0" size="1920,1080" backgroundColor="{c_bg}" zPosition="-1" />'.format(c_bg=c_bg)
+            top_widget = '<widget name="top_bar" position="0,0" size="1920,100" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
+            top_widget += '<eLabel position="0,0" size="3,100" backgroundColor="#00FF85" zPosition="3" />'
+            header_widget = '<widget name="header_bg" position="0,110" size="1920,45" backgroundColor="{c_bg}" zPosition="0" />'.format(c_bg=c_bg)
+            bar_widget = '<widget name="bar_bg" position="0,70" size="1920,40" backgroundColor="{c_bar}" zPosition="0" />'.format(c_bar=c_bar)
+            bottom_widget = '<widget name="bottom_bar" position="0,990" size="1920,90" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
+            bottom_widget += '<eLabel position="20,990" size="1880,1" backgroundColor="#2C1040" zPosition="3" />'
+            fg_title = "#00FF85"; bg_title = "#1A0024"; fg_list_s = "#00FF85"
+            clock_x = 1710; clock_w = 180; clock_a = "center"
+
+        self.skin = """
+        <screen position="0,0" size="1920,1080" title="SimplySports Arena" flags="wfNoBorder" backgroundColor="#00000000">
+            {bg}
+            {top}
+            <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
+            <widget name="clock" position="{cx},75" size="{cw},35" font="SimplySportFont;28" foregroundColor="{fg_ls}" transparent="1" halign="{ca}" zPosition="2" />
+            {bar}
+            <widget name="list_title" position="0,75" size="1920,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" transparent="1" halign="center" zPosition="1" />
+            {header}
+            <widget name="head_status" position="30,125" size="80,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
+            <widget name="head_home" position="110,125" size="660,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="1" />
+            <widget name="head_away" position="1150,125" size="520,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="1" />
+            <widget name="head_time" position="1710,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
+            <widget name="list" position="0,170" size="1920,800" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
+            {bottom}
+            <widget name="key_red" position="40,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#CC0000" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+            <widget name="key_green" position="400,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#00FF00" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+            <widget name="key_yellow" position="760,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#FFD700" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+            <widget name="key_blue" position="1120,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#0084FF" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+            <widget name="animation_pixmap" position="0,0" size="1920,1080" zPosition="100" transparent="0" scale="1" />
+        </screen>
+        """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_top=c_top)
+
+        self["top_bar"] = Label("")
+        self["header_bg"] = Label("")
+        self["bottom_bar"] = Label("")
+        if self.theme_mode != "ucl":
+            self["bar_bg"] = Label("")
+        
+        self["top_title"] = Label(_t("SIMPLYSPORTS ARENA"))
+        self["list_title"] = Label(_t("Loading..."))
+        self["clock"] = Label("")
+        self["head_status"] = Label(_t("STATUS"))
+        self["head_home"] = Label(_t("HOME"))
+        self["head_away"] = Label(_t("AWAY"))
+        self["head_time"] = Label(_t("TIME"))
+        
+        self["key_red"] = Label(_t("League Standings"))
+        self["key_green"] = Label(_t("Mini Bar"))
+        self["key_yellow"] = Label(_t("Live Only"))
+        self["key_blue"] = Label(_t("Follow Match"))
+        self["animation_pixmap"] = Pixmap()
+
+        self.show_only_live = False
+        self.raw_parsed_data = []
+        self.day_offset = 0
+        self.last_key_time = 0
+
+        self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        self["list"].l.setFont(0, gFont("SimplySportFont", 26))
+        self["list"].l.setFont(1, gFont("SimplySportFont", 28))
+        self["list"].l.setFont(2, gFont("SimplySportFont", 38))
+        self["list"].l.setFont(3, gFont("SimplySportFont", 20))
+        self["list"].l.setItemHeight(60)
+
+        self.clock_timer = eTimer()
+        safe_connect(self.clock_timer, self.update_clock)
+
+        self.refresh_timer = eTimer()
+        safe_connect(self.refresh_timer, self.fetch_data)
+        self.is_initial_load = True
+        
+        self.animation_timer = eTimer()
+        safe_connect(self.animation_timer, self.play_next_frame)
+
+        # service_cache is required here because open_broadcasting() calls
+        # SimpleSportsScreen.search_and_display_epg(self, ...) with this screen
+        # as 'self'.  That method reads self.service_cache and self.session, so
+        # both must be present on this class (BUG-06 documentation).
+        self.service_cache = None
+
+        # Guard flag set in cleanup() so any in-flight bg_fetch() thread that
+        # fires reactor.callFromThread(update_ui) after the screen has closed
+        # does not attempt to write to destroyed widgets (Step 5.1 thread safety).
+        self._is_closed = False
+
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "EPGSelectActions", "EventViewActions", "InfobarBouquetActions", "InfobarSeekActions"],
+            {
+                "cancel": self.close,
+                "red": self.open_standings,
+                "green": self.open_minibar,
+                "yellow": self.toggle_live_filter,
+                "blue": self.toggle_follow_match,
+                "ok": self.open_game_info,
+                "up": self["list"].up,
+                "down": self["list"].down,
+                "info": self.open_broadcasting,
+                "epg": self.open_broadcasting,
+                "guide": self.open_broadcasting,
+                "event": self.open_broadcasting,
+                "showEventInfo": self.open_broadcasting,
+                "channelUp":   self.ch_next_day,
+                "channelDown": self.ch_prev_day,
+                "zapUp":       self.ch_next_day,
+                "zapDown":     self.ch_prev_day,
+                "nextBouquet": self.ch_next_day,
+                "prevBouquet": self.ch_prev_day,
+                "bouquetUp":   self.ch_next_day,
+                "bouquetDown": self.ch_prev_day,
+                "fastForward": self.ch_next_day,
+                "rewind":      self.ch_prev_day,
+            }, -1)
+
+        self.onLayoutFinish.append(self.start_ui)
+        self.onClose.append(self.cleanup)
+
+    def open_broadcasting(self):
+        sel = self["list"].getCurrent()
+        if not sel or len(sel) < 1:
+            return
+        entry = sel[0]
+        if not entry or entry.get("type") != "match":
+            return
+            
+        home = entry.get("home", "")
+        away = entry.get("away", "")
+        import time
+        now = int(time.time())
+        
+        league_name = ""
+        try:
+            # Use object identity to locate the match in raw_parsed_data so the
+            # result is correct regardless of whether the live-filter is active
+            # (filtered list indices != raw list indices — BUG-01 fix).
+            raw_idx = self.raw_parsed_data.index(entry)
+            for i in range(raw_idx, -1, -1):
+                raw = self.raw_parsed_data[i]
+                if raw.get("type") == "header":
+                    league_name = raw.get("name", "")
+                    break
+        except (ValueError, IndexError): pass
+
+        SimpleSportsScreen.search_and_display_epg(self, home, away, league_name, now)
+
+    def update_clock(self):
+        try:
+            now = datetime.datetime.now()
+            self["clock"].setText(now.strftime("%H:%M:%S"))
+        except:
+            pass
+
+    def start_ui(self):
+        self.update_clock()
+        self.clock_timer.start(1000, False)
+        if self.play_animation:
+            self["animation_pixmap"].show()
+            self.current_frame_idx = 0
+            self.play_next_frame()
+            self.animation_timer.start(70, False)
+        else:
+            self["animation_pixmap"].hide()
+        self.is_initial_load = True
+        self["list"].setList([])
+        self["list_title"].setText(_t("Fetching data from livescore.cz..."))
+        self.fetch_data()
+        self.refresh_timer.start(120000, False)
+
+    def play_next_frame(self):
+        if getattr(self, '_is_closed', False):
+            self.animation_timer.stop()
+            return
+        if self.current_frame_idx < len(self.animation_frames):
+            frame = self.animation_frames[self.current_frame_idx]
+            try:
+                self["animation_pixmap"].setPixmap(LoadPixmap(frame))
+            except:
+                pass
+            self.current_frame_idx += 1
+        else:
+            self.finish_animation()
+
+    def finish_animation(self):
+        self.animation_timer.stop()
+        self["animation_pixmap"].hide()
+        if hasattr(self, 'pending_parsed_data'):
+            self.update_ui(self.pending_parsed_data)
+            del self.pending_parsed_data
+
+    def fetch_data(self):
+        if not self.is_initial_load:
+            self["list_title"].setText(_t("Refreshing matches..."))
+        # Background fetch to avoid blocking the Enigma2 UI thread
+        t = threading.Thread(target=self.bg_fetch)
+        t.daemon = True
+        t.start()
+
+    def bg_fetch(self):
+        try:
+            # Always fetch from the main URL (never the ?s=2 live-only endpoint)
+            # so that raw_parsed_data contains every match with consistent href
+            # values.  This lets the follow-match star (keyed by href) persist
+            # when the user toggles between "All Matches" and "Live Only" views.
+            # The client-side filter in render_filtered_list() handles the
+            # live-only display from the full dataset.
+            if self.day_offset == 0:
+                url = "https://www.livescore.cz/"
+            else:
+                url = "https://www.livescore.cz/?d={}".format(self.day_offset)
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            
+            import ssl
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=10, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=10)
+                
+            html_data = response.read()
+            if isinstance(html_data, bytes):
+                html_data = html_data.decode('utf-8', errors='ignore')
+            
+            parsed_data = parse_livescore_cz(html_data, self.day_offset)
+            if not parsed_data:
+                reactor.callFromThread(self.update_ui, "Error: 0 matches parsed. Website structure might have changed.")
+            else:
+                reactor.callFromThread(self.update_ui, parsed_data)
+        except Exception as e:
+            err_msg = "Error: " + str(e)
+            print("[SimplySports] Livescore.cz fetch failed:", err_msg)
+            reactor.callFromThread(self.update_ui, err_msg)
+
+    def update_ui(self, parsed_data):
+        # Screen may have been closed while bg_fetch() was in-flight; discard.
+        if getattr(self, '_is_closed', False):
+            return
+        if self.play_animation and self.animation_timer.isActive():
+            self.pending_parsed_data = parsed_data
+            return
+        self.is_initial_load = False
+        if isinstance(parsed_data, str) or not parsed_data:
+            err_msg = parsed_data if isinstance(parsed_data, str) else _t("Failed to fetch data from Livescore.cz")
+            self["list_title"].setText(_t("Failed to fetch data"))
+            dummy_entry = {"type": "header", "name": err_msg}
+            rendered = [LiveScoreCZListEntry(dummy_entry, self.theme_mode)]
+            self["list"].setList(rendered)
+            self.raw_parsed_data = []
+            return
+
+        self.raw_parsed_data = parsed_data
+        self.render_filtered_list()
+
+    def render_filtered_list(self):
+        if self.show_only_live:
+            self["top_title"].setText(_t("SIMPLYSPORTS ARENA - LIVE MATCHES"))
+        else:
+            self["top_title"].setText(_t("SIMPLYSPORTS ARENA"))
+
+        if not self.raw_parsed_data:
+            self["list"].setList([])
+            return
+        if self.day_offset == 0:
+            today_str = datetime.date.today().strftime("%d/%m/%Y")
+            day_label = _t("Today") + "  " + today_str
+        else:
+            target_date = datetime.date.today() + datetime.timedelta(days=self.day_offset)
+            day_name = target_date.strftime("%A")
+            date_str = target_date.strftime("%d/%m/%Y")
+            if self.day_offset == -1:
+                day_label = _t("Yesterday") + "  " + date_str
+            elif self.day_offset == 1:
+                day_label = _t("Tomorrow") + "  " + date_str
+            else:
+                day_label = _t(day_name) + "  " + date_str
+        self["list_title"].setText(day_label)
+        
+        filtered_entries = []
+        if self.show_only_live:
+            current_header = None
+            current_matches = []
+            
+            for entry in self.raw_parsed_data:
+                if entry["type"] == "header":
+                    if current_header and current_matches:
+                        filtered_entries.append(current_header)
+                        filtered_entries.extend(current_matches)
+                    current_header = entry
+                    current_matches = []
+                elif entry["type"] == "match":
+                    if entry.get("status") == "live":
+                        current_matches.append(entry)
+                        
+            if current_header and current_matches:
+                filtered_entries.append(current_header)
+                filtered_entries.extend(current_matches)
+        else:
+            filtered_entries = self.raw_parsed_data
+
+        rendered = []
+        match_count = 0
+        for entry in filtered_entries:
+            if entry["type"] == "match":
+                entry["row_idx"] = match_count
+                match_count += 1
+            rendered.append(LiveScoreCZListEntry(entry, self.theme_mode))
+
+        self["list"].setList(rendered)
+
+        # Adaptive interval: only poll fast when there are actually live matches
+        # visible right now. If all matches are scheduled/finished, there is nothing
+        # to update, so fall back to the slow 120-second cadence to reduce requests.
+        if self.show_only_live and self.day_offset == 0 and self.refresh_timer.isActive():
+            has_live = any(e.get("type") == "match" and e.get("status") == "live"
+                          for e in self.raw_parsed_data)
+            new_interval = 60000 if has_live else 120000
+            self.refresh_timer.stop()
+            self.refresh_timer.start(new_interval, False)
+
+    def toggle_live_filter(self):
+        import time as _time
+        if _time.time() - self.last_key_time < 0.5:
+            return
+        self.last_key_time = _time.time()
+        self.show_only_live = not self.show_only_live
+        if self.show_only_live:
+            self["key_yellow"].setText(_t("Show All"))
+        else:
+            self["key_yellow"].setText(_t("Live Only"))
+        self.render_filtered_list()
+        # Adjust refresh cadence and kick off an immediate fetch in both directions
+        # so the list is always fresh within ~5 seconds of the toggle.
+        if self.day_offset == 0:
+            self.refresh_timer.stop()
+            if self.show_only_live:
+                self.refresh_timer.start(60000, False)
+            else:
+                self.refresh_timer.start(120000, False)
+            # Fire a one-shot fetch after 5 s so the existing render stays visible
+            # for a moment before the network round-trip replaces it with fresh data.
+            # Any previous pending one-shot is cancelled first to avoid stacking.
+            if not hasattr(self, "_toggle_fetch_timer"):
+                self._toggle_fetch_timer = eTimer()
+                safe_connect(self._toggle_fetch_timer, self.fetch_data)
+            self._toggle_fetch_timer.stop()
+            self._toggle_fetch_timer.start(5000, True)
+
+    def toggle_follow_match(self):
+        import time as _time
+        if _time.time() - self.last_key_time < 0.5:
+            return
+        self.last_key_time = _time.time()
+        sel = self["list"].getCurrent()
+        if not sel or len(sel) < 1:
+            return
+        entry = sel[0]
+        if not entry or entry.get("type") != "match":
+            return
+        href = entry.get("href")
+        if not href:
+            return
+            
+        if href in self.monitor.followed_livescore_cz_matches:
+            self.monitor.followed_livescore_cz_matches.remove(href)
+            if href in self.monitor.livescore_cz_states:
+                del self.monitor.livescore_cz_states[href]
+            if href in self.monitor.livescore_cz_scores:
+                del self.monitor.livescore_cz_scores[href]
+        else:
+            self.monitor.followed_livescore_cz_matches.add(href)
+            # Store initial status (live or sched or fin)
+            st = entry.get("status", "sched").lower()
+            # If status is empty, fallback based on time/score
+            if not st:
+                time_str = entry.get("time", "").lower()
+                if "live" in time_str or "'" in time_str or "min" in time_str:
+                    st = "live"
+                elif "ft" in time_str or "fin" in time_str:
+                    st = "fin"
+                else:
+                    st = "sched"
+            self.monitor.livescore_cz_states[href] = st
+            self.monitor.livescore_cz_scores[href] = entry.get("score", "").strip()
+            
+        self.render_filtered_list()
+
+    def ch_next_day(self):
+        import time as _time
+        if _time.time() - self.last_key_time < 0.5:
+            return
+        self.last_key_time = _time.time()
+        if self.day_offset >= 7:
+            return
+        self.day_offset += 1
+        self["list"].setList([])
+
+        # Live-filter is meaningless on any day other than today — reset it.
+        if self.day_offset != 0 and self.show_only_live:
+            self.show_only_live = False
+            self["key_yellow"].setText(_t("Live Only"))
+
+        if self.day_offset == 0:
+            self["list_title"].setText(_t("Fetching data from livescore.cz..."))
+        else:
+            target_date = datetime.date.today() + datetime.timedelta(days=self.day_offset)
+            self["list_title"].setText(_t("Loading") + "  " + target_date.strftime("%d/%m/%Y") + "...")
+        self.is_initial_load = True
+        self.refresh_timer.stop()
+        self.fetch_data()
+        # Only auto-refresh live data (today); past/future days are static.
+        if self.day_offset == 0:
+            self.refresh_timer.start(120000, False)
+
+    def ch_prev_day(self):
+        import time as _time
+        if _time.time() - self.last_key_time < 0.5:
+            return
+        self.last_key_time = _time.time()
+        if self.day_offset <= -7:
+            return
+        self.day_offset -= 1
+        self["list"].setList([])
+
+        # Live-filter is meaningless on any day other than today — reset it.
+        if self.day_offset != 0 and self.show_only_live:
+            self.show_only_live = False
+            self["key_yellow"].setText(_t("Live Only"))
+
+        if self.day_offset == 0:
+            self["list_title"].setText(_t("Fetching data from livescore.cz..."))
+        else:
+            target_date = datetime.date.today() + datetime.timedelta(days=self.day_offset)
+            self["list_title"].setText(_t("Loading") + "  " + target_date.strftime("%d/%m/%Y") + "...")
+        self.is_initial_load = True
+        self.refresh_timer.stop()
+        self.fetch_data()
+        # Only auto-refresh live data (today); past/future days are static.
+        if self.day_offset == 0:
+            self.refresh_timer.start(120000, False)
+
+    def cleanup(self):
+        self._is_closed = True   # signal any in-flight bg_fetch thread to discard its result
+        self.clock_timer.stop()
+        self.refresh_timer.stop()
+        if hasattr(self, "_toggle_fetch_timer"):
+            self._toggle_fetch_timer.stop()
+
+    def open_game_info(self):
+        sel = self["list"].getCurrent()
+        if not sel or len(sel) < 1:
+            return
+        entry = sel[0]
+        if not entry or entry.get("type") != "match":
+            return
+        if not entry.get("href"):
+            return
+        self.session.openWithCallback(self.on_child_closed, LiveScoreCZGameInfoScreen, entry)
+
+    def open_standings(self):
+        sel = self["list"].getCurrent()
+        if not sel or len(sel) < 1:
+            return
+        entry = sel[0]
+        if not entry or entry.get("type") != "match":
+            return
+        if not entry.get("href"):
+            return
+            
+        league_name = ""
+        try:
+            idx = self["list"].getSelectedIndex()
+            curr_list = self["list"].list
+            for i in range(idx, -1, -1):
+                item = curr_list[i][0]
+                if item.get("type") == "header":
+                    league_name = item.get("name", "")
+                    break
+        except:
+            pass
+
+        self.session.openWithCallback(self.on_child_closed, LiveScoreCZTeamStandingScreen, entry.get("href"), league_name)
+
+    def open_minibar(self):
+        self.cleanup()
+        self.session.openWithCallback(self.on_minibar_closed, LiveScoreCZMiniBar3, self.raw_parsed_data, self.show_only_live)
+        
+    def on_minibar_closed(self, show_only_live=None):
+        # cleanup() was called when the minibar opened, setting _is_closed=True
+        # to guard any in-flight bg_fetch.  The screen itself is still open, so
+        # clear the flag before restarting timers and re-rendering.
+        self._is_closed = False
+        if show_only_live is not None:
+            self.show_only_live = show_only_live
+            if self.show_only_live:
+                self["key_yellow"].setText(_t("Show All"))
+            else:
+                self["key_yellow"].setText(_t("Live Only"))
+        self.clock_timer.start(1000, False)
+        # Only run auto-refresh on today — past/future days are static.
+        if self.day_offset == 0:
+            interval = 60000 if self.show_only_live else 120000
+            self.refresh_timer.start(interval, False)
+        self.render_filtered_list()
+        
+        # Trigger 4-second refresh on return
+        if not hasattr(self, "_return_refresh_timer"):
+            self._return_refresh_timer = eTimer()
+            safe_connect(self._return_refresh_timer, self.fetch_data)
+        self._return_refresh_timer.stop()
+        self._return_refresh_timer.start(4000, True)
+
+    def on_child_closed(self, *args, **kwargs):
+        # Trigger 4-second refresh on return
+        if not hasattr(self, "_return_refresh_timer"):
+            self._return_refresh_timer = eTimer()
+            safe_connect(self._return_refresh_timer, self.fetch_data)
+        self._return_refresh_timer.stop()
+        self._return_refresh_timer.start(4000, True)
+
+
+def parse_livescore_cz_match(html_data):
+    import re
+    # Parse Title info (teams and abbreviations)
+    title_pattern = re.compile(
+        r'<title>([A-Z0-9]+)\s+.*?\s+([A-Z0-9]+)\s*\|\s*(.*?)\s*-\s*(.*?)</title>',
+        re.IGNORECASE
+    )
+    title_match = title_pattern.search(html_data)
+    if title_match:
+        home_code = title_match.group(1).strip()
+        away_code = title_match.group(2).strip()
+        home_team = title_match.group(3).strip()
+        away_team = title_match.group(4).strip()
+    else:
+        home_code, away_code, home_team, away_team = "", "", "", ""
+        h3_match = re.search(r'<h3>(.*?)<\/h3>', html_data, re.IGNORECASE | re.DOTALL)
+        if h3_match:
+            h3_cleaned = re.sub(r'<[^>]+>', '', h3_match.group(1))
+            if ' - ' in h3_cleaned:
+                home_team, away_team = [t.strip() for t in h3_cleaned.split(' - ', 1)]
+                home_code = home_team[:3].upper()
+                away_code = away_team[:3].upper()
+
+    # Parse details blocks to separate score, halves score, status, and kickoff
+    details = re.findall(r'<div class="detail">(.*?)</div>', html_data, re.IGNORECASE)
+    cleaned_details = [re.sub(r'<[^>]+>', '', d).strip() for d in details]
+    
+    score_str = ""
+    halves_score = ""
+    status_str = ""
+    kickoff_str = ""
+    
+    kickoff_idx = -1
+    for idx, d in enumerate(cleaned_details):
+        if re.search(r'\d{2}\.\d{2}\.\d{4}', d):
+            kickoff_idx = idx
+            break
+            
+    if kickoff_idx != -1:
+        kickoff_str = cleaned_details[kickoff_idx]
+        score_raw = ""
+        if kickoff_idx >= 2:
+            score_raw = cleaned_details[0]
+            status_str = cleaned_details[1]
+        elif kickoff_idx == 1:
+            item0 = cleaned_details[0]
+            if "-" in item0 or re.search(r'\d+-\d+', item0):
+                score_raw = item0
+            else:
+                status_str = item0
+                
+        if score_raw:
+            if " " in score_raw:
+                parts = score_raw.split(" ", 1)
+                score_str = parts[0].strip()
+                halves_score = parts[1].strip()
+            else:
+                score_str = score_raw
+    else:
+        if len(cleaned_details) >= 3:
+            score_raw = cleaned_details[0]
+            if " " in score_raw:
+                parts = score_raw.split(" ", 1)
+                score_str = parts[0].strip()
+                halves_score = parts[1].strip()
+            else:
+                score_str = score_raw
+            status_str = cleaned_details[1]
+            kickoff_str = cleaned_details[2]
+        elif len(cleaned_details) == 2:
+            status_str = cleaned_details[0]
+            kickoff_str = cleaned_details[1]
+        elif len(cleaned_details) == 1:
+            kickoff_str = cleaned_details[0]
+
+    # Parse Incidents
+    halves = html_data.split('<h4>')
+    incidents = []
+
+    incident_pattern = re.compile(
+        r'<div class="incident soccer"><p class="i-field time">(.*?)</p><p class="i-field icon ([^"]+)">&nbsp;</p>(.*?)</div>',
+        re.IGNORECASE | re.DOTALL
+    )
+
+    for half_block in halves[1:]:
+        half_title_part, block_content = half_block.split('</h4>', 1)
+        half_title = re.sub(r'<[^>]+>', '', half_title_part).strip()
+        
+        matches = incident_pattern.findall(block_content)
+        for m in matches:
+            inc_time = m[0].strip()
+            inc_type = m[1].strip() # e.g. y-card, substitution, ball, r-card
+            inc_text_raw = m[2].strip()
+            
+            # Clean text
+            inc_text = re.sub(r'<[^>]+>', ' ', inc_text_raw).strip()
+            inc_text = ' '.join(inc_text.split())
+            
+            # Determine team
+            side = "home"
+            if f"[{away_code}]" in inc_text:
+                side = "away"
+            elif f"[{home_code}]" in inc_text:
+                side = "home"
+            elif f"[{away_team[:3].upper()}]" in inc_text:
+                side = "away"
+                
+            incidents.append({
+                "half": half_title,
+                "time": inc_time,
+                "type": inc_type,
+                "text": inc_text,
+                "side": side
+            })
+
+    return {
+        "home_team": home_team,
+        "away_team": away_team,
+        "home_code": home_code,
+        "away_code": away_code,
+        "status": status_str,
+        "score": score_str,
+        "halves_score": halves_score,
+        "kickoff": convert_czech_datetime_to_local(kickoff_str),
+        "incidents": incidents
+    }
+def parse_livescore_cz_lineups(html_data):
+    import re
+    team_matches = list(re.finditer(r'<h4><a[^>]*>(.*?)</a></h4>', html_data))
+    if not team_matches:
+        team_matches = list(re.finditer(r'<h4>(.*?)</h4>', html_data))
+    
+    result = {
+        "home_team": "",
+        "away_team": "",
+        "home_starters": [],
+        "home_substitutes": [],
+        "away_starters": [],
+        "away_substitutes": []
+    }
+    
+    if len(team_matches) >= 1:
+        result["home_team"] = re.sub('<[^<]+?>', '', team_matches[0].group(1)).strip()
+    if len(team_matches) >= 2:
+        result["away_team"] = re.sub('<[^<]+?>', '', team_matches[1].group(1)).strip()
+        
+    parts = []
+    if len(team_matches) >= 2:
+        parts.append(html_data[team_matches[0].end():team_matches[1].start()])
+        parts.append(html_data[team_matches[1].end():])
+    elif len(team_matches) == 1:
+        parts.append(html_data[team_matches[0].end():])
+        
+    for i, part in enumerate(parts):
+        sub_sections = re.split(r'<hr[^>]*lineup-separator[^>]*>', part)
+        
+        starters_html = sub_sections[0] if len(sub_sections) > 0 else ""
+        subs_html = sub_sections[1] if len(sub_sections) > 1 else ""
+        
+        def parse_table_players(tbl_html):
+            players = []
+            rows = re.findall(r'<tr>(.*?)</tr>', tbl_html, re.DOTALL)
+            for row in rows:
+                num_match = re.search(r'<td[^>]*class=["\']number["\'][^>]*>(.*?)</td>', row)
+                num = num_match.group(1).strip() if num_match else ""
+                name_match = re.search(r'<a[^>]*>(.*?)</a>', row)
+                if name_match:
+                    name = name_match.group(1).strip()
+                else:
+                    name = re.sub(r'<[^<]+?>', '', row).replace(num, '').strip()
+                if name:
+                    players.append((num, name))
+            return players
+            
+        starters = parse_table_players(starters_html)
+        subs = parse_table_players(subs_html)
+        
+        if i == 0:
+            result["home_starters"] = starters
+            result["home_substitutes"] = subs
+        elif i == 1:
+            result["away_starters"] = starters
+            result["away_substitutes"] = subs
+            
+    return result
+
+
+def parse_livescore_cz_stats(raw):
+    """Parse statistics from Flashscore/LiveScore backend feed format.
+    Delimiters:
+        ¬~ separates groups and statistics records
+        ¬  separates fields within a record
+        ÷  separates key and value of a field
+    """
+    if not raw:
+        return []
+    
+    categories = []
+    current_category = None
+    
+    records = raw.split("¬~")
+    for record in records:
+        record = record.strip()
+        if not record:
+            continue
+            
+        fields = {}
+        parts = record.split("¬")
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            if "÷" in part:
+                k, v = part.split("÷", 1)
+                fields[k.strip()] = v.strip()
+            
+        if "SF" in fields:
+            current_category = {
+                "category": fields["SF"],
+                "stats": []
+            }
+            categories.append(current_category)
+            
+        elif "SG" in fields:
+            name = fields.get("SG", "")
+            home = fields.get("SH", "")
+            away = fields.get("SI", "")
+            
+            if current_category is not None:
+                current_category["stats"].append({
+                    "name": name,
+                    "home": home,
+                    "away": away
+                })
+            else:
+                current_category = {
+                    "category": "Statistics",
+                    "stats": []
+                }
+                categories.append(current_category)
+                current_category["stats"].append({
+                    "name": name,
+                    "home": home,
+                    "away": away
+                })
+                
+    return categories
+
+
+def parse_livescore_cz_h2h(html_data):
+    """Parse head-to-head match history from a livescore.cz ?t=h2h page.
+    Returns a flat list of dicts with type "header" or "match".
+
+    Two match-row patterns are tried in order:
+      P1 – original: <span>date</span> teams <a href="..." class="...">score</a>
+      P2 – flexible: bare date (DD.MM.YYYY) followed by teams and any <a>score</a>
+           (handles Flashscore redirect links and pages without class attributes)
+    """
+    import re
+    results = []
+
+    # Pattern 1: date in <span>, score in <a class="...">
+    match_pattern = re.compile(
+        r'<span[^>]*>(.*?)</span>(.*?)<a\s+href="([^"]+)"[^>]*>(.*?)</a>',
+        re.IGNORECASE | re.DOTALL
+    )
+    # Pattern 2: bare DD.MM.YYYY date, then teams text, then any anchor with score
+    match_pattern2 = re.compile(
+        r'(\d{2}\.\d{2}\.\d{4})(.*?)<a\s+href="([^"]+)"[^>]*>(.*?)</a>',
+        re.IGNORECASE | re.DOTALL
+    )
+
+    def _clean(s):
+        return re.sub(r'<[^>]+>', '', s).replace('&nbsp;', '').strip()
+
+    def _parse_line(m_line):
+        """Try both patterns; return (date, home, score, away, href) or None."""
+        m = match_pattern.search(m_line)
+        if m:
+            date_str  = ' '.join(re.sub(r'<[^>]+>', ' ', m.group(1)).split())
+            teams_raw = _clean(m.group(2))
+            href      = m.group(3).strip()
+            score_raw = _clean(m.group(4))
+        else:
+            m = match_pattern2.search(m_line)
+            if not m:
+                return None
+            date_str  = m.group(1).strip()
+            teams_raw = _clean(m.group(2))
+            href      = m.group(3).strip()
+            score_raw = _clean(m.group(4))
+
+        home, away = teams_raw, ""
+        if ' - ' in teams_raw:
+            home, away = [t.strip() for t in teams_raw.split(' - ', 1)]
+
+        if not score_raw or score_raw in ('-', ''):
+            score_raw = "-:-"
+
+        return date_str, home, score_raw, away, href
+
+    for block in html_data.split('<h4>')[1:]:
+        if '</h4>' not in block:
+            continue
+        header_part, matches_part = block.split('</h4>', 1)
+        header_clean = re.sub(r'<a\b[^>]*>.*?</a>', '', header_part,
+                               flags=re.IGNORECASE | re.DOTALL)
+        section_name = re.sub(r'<[^>]+>', '', header_clean).strip()
+        if not section_name or 'advert' in section_name.lower():
+            continue
+
+        pending_header = {"type": "header", "name": section_name}
+
+        for m_line in matches_part.split('<br />'):
+            m_line = m_line.strip()
+            if not m_line:
+                continue
+            parsed = _parse_line(m_line)
+            if not parsed:
+                continue
+
+            date_str, home, score_raw, away, href = parsed
+
+            if pending_header is not None:
+                results.append(pending_header)
+                pending_header = None
+
+            results.append({
+                "type":  "match",
+                "date":  date_str,
+                "home":  home,
+                "away":  away,
+                "score": score_raw,
+                "href":  href,
+            })
+
+    return results
+
+
+def LineupListEntry(home_num, home_name, away_num, away_name, theme_mode, payload=None):
+    if theme_mode == "ucl":
+        col_num, col_text, col_bg, col_sel = 0xc9a020, 0xffffff, 0x0d1b2e, 0x1a3a6b
+    else:
+        col_num, col_text, col_bg, col_sel = 0x00FF85, 0xFFFFFF, 0x1A0024, 0x2A0040
+
+    res = [payload]
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1600, 1, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
+
+    if home_num:
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 0, 60, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(home_num), col_num, col_num, col_bg, col_sel))
+    if home_name:
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 180, 0, 520, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(home_name), col_text, col_text, col_bg, col_sel))
+
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 799, 0, 2, 50, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
+
+    if away_num:
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 900, 0, 60, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(away_num), col_num, col_num, col_bg, col_sel))
+    if away_name:
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 0, 520, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_name), col_text, col_text, col_bg, col_sel))
+
+    return res
+def StatListEntry(stat_name, home_val, away_val, theme_mode):
+    """3-column stat row: home_value  |  stat_name  |  away_value
+    A proportional ratio bar is drawn beneath the values when both sides
+    are numeric (plain numbers or percentages).
+    """
+    import re as _re
+    if theme_mode == "ucl":
+        col_lbl  = 0xc9a020; col_val = 0xffffff
+        col_bar_h= 0x4a7fd4; col_bar_a= 0x8b1a1a
+        col_bg   = 0x0d1b2e; col_sel = 0x1a3a6b
+    else:
+        col_lbl  = 0x00FF85; col_val = 0xffffff
+        col_bar_h= 0x00AA55; col_bar_a= 0xff4c4c
+        col_bg   = 0x1A0024; col_sel = 0x2A0040
+
+    res = [None]
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0,
+                RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 49, 1600, 1, 0,
+                RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
+
+    # Centre column: stat label
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 580, 0, 440, 50, 0,
+                RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(stat_name),
+                col_lbl, col_lbl, col_bg, col_sel))
+    # Left column: home value (right-aligned, pushing towards centre)
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 60, 0, 500, 50, 1,
+                RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val),
+                col_val, col_val, col_bg, col_sel))
+    # Right column: away value (left-aligned, pushing away from centre)
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1040, 0, 500, 50, 1,
+                RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val),
+                col_val, col_val, col_bg, col_sel))
+
+    # Proportional ratio bar — only when both sides are numeric
+    try:
+        h_str = str(home_val).split()[0] if home_val else ""
+        h_num = float(_re.sub(r'[^0-9.]', '', h_str)) if h_str else 0.0
+        a_str = str(away_val).split()[0] if away_val else ""
+        a_num = float(_re.sub(r'[^0-9.]', '', a_str)) if a_str else 0.0
+        total = h_num + a_num
+        if total > 0:
+            BAR_W = 480   # total bar width in pixels
+            BAR_Y = 43    # y-offset from top of row
+            BAR_H = 5     # bar height in pixels
+            h_w = max(0, int(BAR_W * h_num / total))
+            a_w = BAR_W - h_w
+            # Home bar: right side of home zone, flush against centre
+            if h_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                             580 - h_w, BAR_Y, h_w, BAR_H, 0,
+                             RT_HALIGN_CENTER, "", col_bar_h, col_bar_h))
+            # Away bar: left side of away zone, flush against centre
+            if a_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                             1020, BAR_Y, a_w, BAR_H, 0,
+                             RT_HALIGN_CENTER, "", col_bar_a, col_bar_a))
+    except Exception:
+        pass
+
+    return res
+
+
+def H2HListEntry(date_str, home, score, away, theme_mode,
+                 is_header=False, highlight_home=False, highlight_away=False):
+    """H2H match row: date | home_team | score | away_team
+    is_header=True renders a full-width section title.
+    highlight_home / highlight_away accent the current match's team names.
+    """
+    if theme_mode == "ucl":
+        col_date  = 0xaaaaaa; col_score = 0xc9a020
+        col_team  = 0xffffff; col_hl    = 0xc9a020
+        col_hdr   = 0xc9a020; col_bg    = 0x0d1b2e
+        col_hdr_bg= 0x071020; col_sel   = 0x1a3a6b
+    else:
+        col_date  = 0xaaaaaa; col_score = 0x00FF85
+        col_team  = 0xffffff; col_hl    = 0x00FF85
+        col_hdr   = 0x00FF85; col_bg    = 0x1A0024
+        col_hdr_bg= 0x0f0018; col_sel   = 0x2A0040
+
+    bg = col_hdr_bg if is_header else col_bg
+    res = [None]
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0,
+                RT_HALIGN_CENTER, "", bg, bg, bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 49, 1600, 1, 0,
+                RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
+
+    if is_header:
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0,
+                    RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(home),
+                    col_hdr, col_hdr, bg, col_sel))
+        return res
+
+    # Date — narrow left column
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 190, 50, 3,
+                RT_HALIGN_LEFT|RT_VALIGN_CENTER, date_str,
+                col_date, col_date, bg, col_sel))
+    # Home team — right-aligned into centre
+    c_home = col_hl if highlight_home else col_team
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 0, 530, 50, 1,
+                RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home),
+                c_home, c_home, bg, col_sel))
+    # Score — centre
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 760, 0, 80, 50, 2,
+                RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(score),
+                col_score, col_score, bg, col_sel))
+    # Away team — left-aligned from centre
+    c_away = col_hl if highlight_away else col_team
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 0, 530, 50, 1,
+                RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away),
+                c_away, c_away, bg, col_sel))
+
+    return res
+
+
+class LiveScoreCZGameInfoScreen(Screen):
+    def __init__(self, session, match_entry):
+        Screen.__init__(self, session)
+        self.session = session
+        self.match_entry = match_entry
+        self.theme = global_sports_monitor.theme_mode
+
+        common_widgets = """
+            <widget name="match_title" position="0,5" size="1600,28" font="Regular;26" foregroundColor="{accent}" transparent="1" halign="center" valign="center" text="" zPosition="6" />
+
+            <widget name="h_name" position="50,40" size="550,55" font="Regular;44" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
+            <widget name="h_score" position="620,30" size="150,75" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
+
+            <widget name="countdown_label" position="600,5" size="400,25" font="Regular;22" foregroundColor="#aaaaaa" transparent="1" halign="center" valign="center" zPosition="5" />
+            <widget name="start_time_label" position="600,105" size="400,25" font="Regular;24" foregroundColor="{accent}" transparent="1" halign="center" valign="center" zPosition="5" />
+            <widget name="score_sep" position="785,42" size="30,50" font="Regular;36" foregroundColor="#888888" transparent="1" halign="center" valign="center" text="-" zPosition="5" />
+
+            <widget name="a_score" position="830,30" size="150,75" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
+            <widget name="a_name" position="1000,40" size="550,55" font="Regular;44" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
+
+            <widget name="stadium_name" position="600,128" size="400,22" font="Regular;22" foregroundColor="#aaaaaa" transparent="1" halign="center" valign="center" zPosition="5" />
+
+            <widget name="info_list" position="0,160" size="1600,660" scrollbarMode="showNever" transparent="1" zPosition="5" />
+            <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
+
+            <widget name="page_info" position="0,823" size="1600,20" font="Regular;17" foregroundColor="#888888" transparent="1" halign="center" valign="center" zPosition="5" />
+
+            <widget name="key_red"    position="30,850"   size="350,40" font="Regular;24" foregroundColor="#CC0000" transparent="1" halign="left"   valign="center" zPosition="5" />
+            <widget name="key_green"  position="430,850"  size="350,40" font="Regular;24" foregroundColor="#00AA44" transparent="1" halign="left"   valign="center" zPosition="5" />
+            <widget name="key_yellow" position="830,850"  size="350,40" font="Regular;24" foregroundColor="#CCAA00" transparent="1" halign="left"   valign="center" zPosition="5" />
+            <widget name="key_blue"   position="1230,850" size="350,40" font="Regular;24" foregroundColor="#0084FF" transparent="1" halign="left"   valign="center" zPosition="5" />
+        """
+
+        if self.theme == "ucl":
+            bg_color = "#00000000"; top_bar = "#091442"; accent = "#c9a020"
+            skin_widgets = common_widgets.replace("{accent}", accent)
+            self.skin = """<screen position="center,center" size="1600,900" title="Match Details" flags="wfNoBorder" backgroundColor="%s"><eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />%s</screen>""" % (bg_color, top_bar, accent, skin_widgets)
+        else:
+            bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
+            skin_widgets = common_widgets.replace("{accent}", accent)
+            self.skin = """<screen position="center,center" size="1600,900" title="Match Details" flags="wfNoBorder" backgroundColor="%s"><eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />%s</screen>""" % (bg_color, top_bar, accent, skin_widgets)
+
+        s = self.match_entry.get("score", "")
+        h_s, a_s = "", ""
+        if '-' in s:
+            parts = s.split('-')
+            h_s, a_s = parts[0].strip(), parts[1].strip()
+
+        self["h_name"] = Label(self.match_entry.get("home", ""))
+        self["a_name"] = Label(self.match_entry.get("away", ""))
+        self["h_score"] = Label(h_s)
+        self["a_score"] = Label(a_s)
+        
+        self["score_sep"] = Label("-")
+        self["start_time_label"] = Label(self.match_entry.get("time", ""))
+        self["countdown_label"] = Label("")
+        self["stadium_name"] = Label("")
+        self["match_title"] = Label(_t("MATCH DETAILS"))
+        self["loading"] = Label(_t("Fetching Match Details..."))
+
+        self["key_red"]    = Label(_t("Match Events"))
+        self["key_blue"]   = Label(_t("Lineups"))
+        self["key_green"]  = Label(_t("Stats"))
+        self["key_yellow"] = Label(_t("H2H"))
+        self["page_info"]  = Label("")
+
+        self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
+        self["info_list"].l.setFont(0, gFont("Regular", 24))
+        self["info_list"].l.setFont(1, gFont("Regular", 20))
+        self["info_list"].l.setItemHeight(50)
+
+        # Colour buttons get their own, higher-priority map so that on STBs
+        # where the red key can also generate a "cancel" event the close
+        # handler in the lower-priority map is never reached via red.
+        self["color_actions"] = ActionMap(["ColorActions"], {
+            "red":    self.show_events,
+            "blue":   self.show_lineups,
+            "green":  self.show_stats,
+            "yellow": self.show_h2h,
+        }, -1)
+
+        self["actions"] = ActionMap(["SetupActions", "DirectionActions", "WizardActions"], {
+            "cancel": self.close, "back": self.close,
+            "up":    self["info_list"].up,
+            "down":  self["info_list"].down,
+            "left":  self.page_up,
+            "right": self.page_down,
+        }, -2)
+
+        self.current_view = "events"
+        self.match_events_data = None
+        self.lineup_data       = None
+        self.stats_data        = None
+        self.h2h_data          = None
+
+        # Paging — mirrors LiveScoreCZTeamStandingScreen approach.
+        # 660px list height / 50px item height = 13 full rows per page.
+        self.items_per_page = 13
+        self.current_page   = 0
+        self._event_rows    = []
+        self._lineup_rows   = []
+        self._stats_rows    = []
+        self._h2h_rows      = []
+
+        self.onLayoutFinish.append(self.start_loading)
+
+    def start_loading(self):
+        t = threading.Thread(target=self.bg_fetch)
+        t.daemon = True
+        t.start()
+
+    # ── Paging helpers (same pattern as LiveScoreCZTeamStandingScreen) ─────────
+
+    def _show_page(self):
+        rows_map = {
+            "events":  self._event_rows,
+            "lineups": self._lineup_rows,
+            "stats":   self._stats_rows,
+            "h2h":     self._h2h_rows,
+        }
+        rows  = rows_map.get(self.current_view, [])
+        total = len(rows)
+        if total == 0:
+            self["info_list"].setList([])
+            self["page_info"].setText("")
+            return
+        start = self.current_page * self.items_per_page
+        end   = start + self.items_per_page
+        self["info_list"].setList(rows[start:end])
+        total_pages = max(1, int(math.ceil(float(total) / float(self.items_per_page))))
+        if total_pages > 1:
+            self["page_info"].setText(
+                "Page {}/{}    \u25c4 \u25ba  Change Page".format(self.current_page + 1, total_pages)
+            )
+        else:
+            self["page_info"].setText("")
+
+    def page_up(self):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self._show_page()
+
+    def page_down(self):
+        rows_map = {
+            "events":  self._event_rows,
+            "lineups": self._lineup_rows,
+            "stats":   self._stats_rows,
+            "h2h":     self._h2h_rows,
+        }
+        rows = rows_map.get(self.current_view, [])
+        total_pages = max(1, int(math.ceil(float(len(rows)) / float(self.items_per_page))))
+        if self.current_page < total_pages - 1:
+            self.current_page += 1
+            self._show_page()
+
+    def bg_fetch(self):
+        try:
+            url = "https://www.livescore.cz" + self.match_entry.get("href", "")
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            
+            import ssl
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=10, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=10)
+                
+            html_data = response.read()
+            if isinstance(html_data, bytes):
+                html_data = html_data.decode('utf-8', errors='ignore')
+            
+            parsed = parse_livescore_cz_match(html_data)
+            reactor.callFromThread(self.update_ui, parsed)
+        except Exception as e:
+            print("[SimplySports] Livescore.cz match fetch failed:", e)
+            reactor.callFromThread(self.update_ui, None)
+
+    def bg_fetch_lineups(self):
+        try:
+            url = "https://www.livescore.cz" + self.match_entry.get("href", "") + "?t=lineups"
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            import ssl
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=10, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=10)
+                
+            html_data = response.read()
+            if isinstance(html_data, bytes):
+                html_data = html_data.decode('utf-8', errors='ignore')
+            
+            parsed = parse_livescore_cz_lineups(html_data)
+            reactor.callFromThread(self.update_lineups_ui, parsed)
+        except Exception as e:
+            print("[SimplySports] Livescore.cz lineup fetch failed:", e)
+            reactor.callFromThread(self.update_lineups_ui, None)
+
+    def update_ui(self, parsed):
+        self["loading"].hide()
+        if not parsed:
+            self["stadium_name"].setText(_t("Failed to load match details"))
+            return
+
+        self.match_events_data = parsed
+
+        self["h_name"].setText(parsed["home_team"].upper())
+        self["a_name"].setText(parsed["away_team"].upper())
+        
+        s = parsed["score"]
+        h_s, a_s = "", ""
+        if '-' in s:
+            parts = s.split('-')
+            h_s, a_s = parts[0].strip(), parts[1].strip()
+        self["h_score"].setText(h_s)
+        self["a_score"].setText(a_s)
+
+        self["countdown_label"].setText(parsed["kickoff"])
+        self["start_time_label"].setText(parsed["status"])
+        self["stadium_name"].setText(parsed["halves_score"])
+
+        if self.current_view == "events":
+            self.render_events()
+
+    def update_lineups_ui(self, parsed):
+        self["loading"].hide()
+        if parsed:
+            self.lineup_data = parsed
+        else:
+            self.lineup_data = None
+            
+        if self.current_view == "lineups":
+            self.render_lineups()
+
+    def show_events(self):
+        self.current_view = "events"
+        self.current_page = 0
+        self["match_title"].setText(_t("MATCH DETAILS"))
+        if self.match_events_data:
+            self["loading"].hide()
+            self.render_events()
+        else:
+            self["loading"].setText(_t("Fetching Match Details..."))
+            self["loading"].show()
+
+    def show_lineups(self):
+        self.current_view = "lineups"
+        self.current_page = 0
+        self["match_title"].setText(_t("TEAM LINEUPS"))
+        if self.lineup_data:
+            self.render_lineups()
+        else:
+            self["info_list"].setList([])
+            self["loading"].setText(_t("Fetching Lineups..."))
+            self["loading"].show()
+            t = threading.Thread(target=self.bg_fetch_lineups)
+            t.daemon = True
+            t.start()
+
+    # ── Stats ──────────────────────────────────────────────────────────────────
+
+    def show_stats(self):
+        self.current_view = "stats"
+        self.current_page = 0
+        self["match_title"].setText(_t("MATCH STATS"))
+        if self.stats_data is not None:
+            self.render_stats()
+        else:
+            self["info_list"].setList([])
+            self["loading"].setText(_t("Fetching Stats..."))
+            self["loading"].show()
+            t = threading.Thread(target=self.bg_fetch_stats)
+            t.daemon = True
+            t.start()
+
+    def bg_fetch_stats(self):
+        try:
+            # 1. Fetch main match page to parse/extract the feedSign dynamically
+            url_main = "https://www.livescore.cz" + self.match_entry.get("href", "")
+            req_main = Request(url_main, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            import ssl
+            try:
+                context = ssl._create_unverified_context()
+                response_main = urlopen(req_main, timeout=10, context=context)
+            except AttributeError:
+                response_main = urlopen(req_main, timeout=10)
+            
+            html_main = response_main.read()
+            if isinstance(html_main, bytes):
+                html_main = html_main.decode('utf-8', errors='ignore')
+
+            # Extract feedSign from window.config
+            import re
+            fsign_match = re.search(r'"feedSign"\s*:\s*"([^"]+)"', html_main)
+            fsign = fsign_match.group(1) if fsign_match else "SW9D1eZo"  # Fallback signature
+
+            # Extract match ID from href, e.g. /match/IX7goKum/
+            href = self.match_entry.get("href", "")
+            match_id_match = re.search(r'/match/([A-Za-z0-9]+)', href)
+            match_id = match_id_match.group(1) if match_id_match else ""
+
+            if not match_id:
+                raise ValueError("Could not extract match ID from href")
+
+            # 2. Query the global.flashscore.ninja backend statistics endpoint
+            url = "https://global.flashscore.ninja/2/x/feed/df_st_1_" + match_id
+            req = Request(url, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'x-referer': 'https://www.livescore.cz',
+                'x-fsign': fsign
+            })
+            
+            try:
+                response = urlopen(req, timeout=10, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=10)
+                
+            raw_data = response.read()
+            if isinstance(raw_data, bytes):
+                raw_data = raw_data.decode('utf-8', errors='ignore')
+                
+            parsed = parse_livescore_cz_stats(raw_data)
+            reactor.callFromThread(self.update_stats_ui, parsed)
+        except Exception as e:
+            print("[SimplySports] Livescore.cz backend stats fetch failed:", e)
+            reactor.callFromThread(self.update_stats_ui, [])
+
+    def update_stats_ui(self, parsed):
+        self["loading"].hide()
+        self.stats_data = parsed if parsed else []
+        if self.current_view == "stats":
+            self.render_stats()
+
+    def render_stats(self):
+        rows = []
+        rows.append(TextListEntry(_t("MATCH STATISTICS"), self.theme, is_header=True))
+        if self.stats_data:
+            for group in self.stats_data:
+                rows.append(TextListEntry(_t(group["category"].upper()), self.theme, is_header=True))
+                for stat in group["stats"]:
+                    rows.append(StatListEntry(stat["name"], stat["home"], stat["away"], self.theme))
+        else:
+            rows.append(TextListEntry(_t("No statistics available for this match"), self.theme))
+        self._stats_rows  = rows
+        self.current_page = 0
+        self._show_page()
+
+    # ── H2H ────────────────────────────────────────────────────────────────────
+
+    def show_h2h(self):
+        self.current_view = "h2h"
+        self.current_page = 0
+        self["match_title"].setText(_t("HEAD TO HEAD"))
+        if self.h2h_data is not None:
+            self.render_h2h()
+        else:
+            self["info_list"].setList([])
+            self["loading"].setText(_t("Fetching H2H..."))
+            self["loading"].show()
+            t = threading.Thread(target=self.bg_fetch_h2h)
+            t.daemon = True
+            t.start()
+
+    def bg_fetch_h2h(self):
+        try:
+            url = "https://www.livescore.cz" + self.match_entry.get("href", "") + "?t=h2h"
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            import ssl
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=10, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=10)
+            html_data = response.read()
+            if isinstance(html_data, bytes):
+                html_data = html_data.decode('utf-8', errors='ignore')
+            parsed = parse_livescore_cz_h2h(html_data)
+            reactor.callFromThread(self.update_h2h_ui, parsed)
+        except Exception as e:
+            print("[SimplySports] Livescore.cz H2H fetch failed:", e)
+            reactor.callFromThread(self.update_h2h_ui, [])
+
+    def update_h2h_ui(self, parsed):
+        self["loading"].hide()
+        self.h2h_data = parsed if parsed else []
+        if self.current_view == "h2h":
+            self.render_h2h()
+
+    def render_h2h(self):
+        # Normalise team names from the match entry for highlighting
+        cur_home = self.match_entry.get("home", "").strip().lower()
+        cur_away = self.match_entry.get("away", "").strip().lower()
+
+        rows = []
+        rows.append(TextListEntry(_t("HEAD TO HEAD"), self.theme, is_header=True))
+
+        if self.h2h_data:
+            for entry in self.h2h_data:
+                if entry.get("type") == "header":
+                    rows.append(H2HListEntry("", entry.get("name", ""), "", "",
+                                             self.theme, is_header=True))
+                else:
+                    h = entry.get("home", "")
+                    a = entry.get("away", "")
+                    hl_h = h.strip().lower() == cur_home or h.strip().lower() == cur_away
+                    hl_a = a.strip().lower() == cur_home or a.strip().lower() == cur_away
+                    rows.append(H2HListEntry(
+                        entry.get("date", ""), h, entry.get("score", "-:-"), a,
+                        self.theme,
+                        highlight_home=hl_h,
+                        highlight_away=hl_a,
+                    ))
+        else:
+            rows.append(TextListEntry(_t("No H2H data available for this match"), self.theme))
+
+        self._h2h_rows    = rows
+        self.current_page = 0
+        self._show_page()
+
+    def render_events(self):
+        parsed = self.match_events_data
+        if not parsed:
+            return
+
+        rows = []
+        rows.append(TextListEntry(_t("MATCH EVENTS"), self.theme, is_header=True))
+        current_half = ""
+        for inc in parsed["incidents"]:
+            if inc["half"] != current_half:
+                current_half = inc["half"]
+                rows.append(TextListEntry(current_half.upper(), self.theme, is_header=True))
+
+            val_text = inc["text"]
+            if inc["type"] == "ball":
+                val_text = "[Goal] " + val_text
+            elif inc["type"] == "r-card":
+                val_text = "[RC] " + val_text
+            elif inc["type"] == "y-card":
+                val_text = "[YC] " + val_text
+            elif inc["type"] == "substitution":
+                val_text = "[SUB] " + val_text
+
+            h_color = None
+            a_color = None
+            if inc["type"] == "y-card":
+                if inc["side"] == "home":
+                    h_color = 0xFFFF00
+                else:
+                    a_color = 0xFFFF00
+
+            if inc["side"] == "home":
+                entry = EventListEntry(inc["time"], val_text, "", self.theme, h_color=h_color, a_color=a_color)
+            else:
+                entry = EventListEntry(inc["time"], "", val_text, self.theme, h_color=h_color, a_color=a_color)
+
+            rows.append(entry)
+
+        if not parsed["incidents"]:
+            rows.append(TextListEntry(_t("No events recorded for this match"), self.theme))
+
+        self._event_rows = rows
+        self.current_page = 0
+        self._show_page()
+
+    def render_lineups(self):
+        self["loading"].hide()
+        if not self.lineup_data:
+            self._lineup_rows = [TextListEntry(_t("No lineup data available"), self.theme)]
+            self.current_page = 0
+            self._show_page()
+            return
+
+        rows = []
+        rows.append(TextListEntry(_t("STARTING LINEUPS"), self.theme, is_header=True))
+
+        home_starters = self.lineup_data["home_starters"]
+        away_starters = self.lineup_data["away_starters"]
+        max_starters = max(len(home_starters), len(away_starters))
+
+        for idx in range(max_starters):
+            h_num, h_name = "", ""
+            if idx < len(home_starters):
+                h_num, h_name = home_starters[idx]
+
+            a_num, a_name = "", ""
+            if idx < len(away_starters):
+                a_num, a_name = away_starters[idx]
+
+            rows.append(LineupListEntry(h_num, h_name, a_num, a_name, self.theme))
+
+        rows.append(TextListEntry(_t("SUBSTITUTES"), self.theme, is_header=True))
+
+        home_subs = self.lineup_data["home_substitutes"]
+        away_subs = self.lineup_data["away_substitutes"]
+        max_subs = max(len(home_subs), len(away_subs))
+
+        for idx in range(max_subs):
+            h_num, h_name = "", ""
+            if idx < len(home_subs):
+                h_num, h_name = home_subs[idx]
+
+            a_num, a_name = "", ""
+            if idx < len(away_subs):
+                a_num, a_name = away_subs[idx]
+
+            rows.append(LineupListEntry(h_num, h_name, a_num, a_name, self.theme))
+
+        if not home_starters and not away_starters and not home_subs and not away_subs:
+            rows.append(TextListEntry(_t("Lineups are not announced yet"), self.theme))
+
+        self._lineup_rows = rows
+        self.current_page = 0
+        self._show_page()
+
+
+
+def parse_livescore_cz_standings(html_data):
+    import re
+    tbody_match = re.search(r'<tbody>(.*?)</tbody>', html_data, re.IGNORECASE | re.DOTALL)
+    if not tbody_match:
+        return []
+    
+    tbody_content = tbody_match.group(1)
+    tr_pattern = re.compile(r'<tr>(.*?)</tr>', re.IGNORECASE | re.DOTALL)
+    td_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.IGNORECASE | re.DOTALL)
+    
+    rows = tr_pattern.findall(tbody_content)
+    parsed_rows = []
+    for row in rows:
+        cols = td_pattern.findall(row)
+        cleaned_cols = [re.sub(r'<[^>]+>', '', col).strip() for col in cols]
+        if len(cleaned_cols) >= 8:
+            parsed_rows.append({
+                "pos": cleaned_cols[0].replace('.', ''),
+                "team": cleaned_cols[1],
+                "mp": cleaned_cols[2],
+                "w": cleaned_cols[3],
+                "d": cleaned_cols[4],
+                "l": cleaned_cols[5],
+                "gd": cleaned_cols[6],
+                "pts": cleaned_cols[7]
+            })
+    return parsed_rows
+
+
+class LiveScoreCZTeamStandingScreen(Screen):
+    def __init__(self, session, match_href, league_name=""):
+        Screen.__init__(self, session)
+        self.session = session
+        self.match_href = match_href
+        self.league_name = league_name
+        self.theme = global_sports_monitor.theme_mode
+        self.standings_rows = []
+
+        if self.theme == "ucl":
+            bg_color = "#00000000"; top_bar = "#091442"; accent = "#c9a020"
+            self.skin = """<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="%s">
+                <eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" />
+                <eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />
+                <widget name="title" position="0,50" size="1600,40" font="Regular;32" foregroundColor="%s" backgroundColor="%s" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="subtitle" position="0,90" size="1600,25" font="Regular;20" foregroundColor="#aaaaaa" backgroundColor="%s" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="standings_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
+                <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="%s" transparent="1" halign="center" zPosition="10" />
+                <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
+            </screen>""" % (bg_color, top_bar, accent, accent, top_bar, top_bar, accent)
+        else:
+            bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
+            self.skin = """<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="%s">
+                <eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" />
+                <eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />
+                <widget name="title" position="0,50" size="1600,40" font="Regular;32" foregroundColor="%s" backgroundColor="%s" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="subtitle" position="0,90" size="1600,25" font="Regular;20" foregroundColor="#aaaaaa" backgroundColor="%s" transparent="1" halign="center" valign="center" zPosition="5" />
+                <widget name="standings_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
+                <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="%s" transparent="1" halign="center" zPosition="10" />
+                <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
+            </screen>""" % (bg_color, top_bar, accent, accent, top_bar, top_bar, accent)
+
+        self["title"] = Label(self.league_name.upper() if self.league_name else _t("LEAGUE STANDINGS"))
+        self["subtitle"] = Label(_t("STANDINGS"))
+        self["loading"] = Label(_t("Loading Standings..."))
+        self["hint"] = Label(_t("Press OK to return to Main Screen"))
+
+        self["standings_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
+        self["standings_list"].l.setFont(0, gFont("Regular", 24))
+        self["standings_list"].l.setItemHeight(50)
+
+        self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions"], {
+            "cancel": self.close, "ok": self.close, "back": self.close,
+            "up": self["standings_list"].up, "down": self["standings_list"].down,
+            "left": self.page_up, "right": self.page_down
+        }, -2)
+
+        self.current_page = 0
+        self.items_per_page = 14
+        self.onLayoutFinish.append(self.fetch_standings)
+
+    def page_up(self):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.update_display()
+
+    def page_down(self):
+        total_items = len(self.standings_rows)
+        if total_items > 0:
+            max_page = int(math.ceil(float(total_items) / float(self.items_per_page))) - 1
+            if self.current_page < max_page:
+                self.current_page += 1
+                self.update_display()
+
+    def update_display(self):
+        if not self.standings_rows:
+            self["standings_list"].setList([])
+            return
+        total_items = len(self.standings_rows)
+        start_index = self.current_page * self.items_per_page
+        end_index = start_index + self.items_per_page
+        page_data = self.standings_rows[start_index:end_index]
+        self["standings_list"].setList(page_data)
+        total_pages = int(math.ceil(float(total_items) / float(self.items_per_page)))
+        if total_pages > 1:
+            self["hint"].setText("Page {}/{} - Left/Right to navigate, OK/Exit to close".format(self.current_page + 1, total_pages))
+        else:
+            self["hint"].setText("Press OK or Exit to close")
+
+    def fetch_standings(self):
+        t = threading.Thread(target=self.bg_fetch)
+        t.daemon = True
+        t.start()
+
+    def bg_fetch(self):
+        try:
+            url = "https://www.livescore.cz" + self.match_href + "?t=standings"
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            
+            import ssl
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=10, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=10)
+                
+            html_data = response.read()
+            if isinstance(html_data, bytes):
+                html_data = html_data.decode('utf-8', errors='ignore')
+            
+            parsed_rows = parse_livescore_cz_standings(html_data)
+            reactor.callFromThread(self.update_ui, parsed_rows)
+        except Exception as e:
+            print("[SimplySports] Livescore.cz standings fetch failed:", e)
+            reactor.callFromThread(self.update_ui, [])
+
+    def update_ui(self, parsed_rows):
+        self["loading"].hide()
+        if not parsed_rows:
+            self.standings_rows = [
+                StandingTableEntry("-", _t("No standings available for this league."), "-", "-", "-", "-", "-", "-", self.theme)
+            ]
+            self.current_page = 0
+            self.update_display()
+            return
+
+        self.standings_rows = []
+        self.standings_rows.append(StandingTableEntry(_t("POS"), _t("TEAM"), _t("P"), _t("W"), _t("D"), _t("L"), _t("GD"), _t("PTS"), self.theme, is_header=True))
+        
+        for r in parsed_rows:
+            self.standings_rows.append(StandingTableEntry(r["pos"], r["team"], r["mp"], r["w"], r["d"], r["l"], r["gd"], r["pts"], self.theme))
+
+        self.current_page = 0
+        self.update_display()
+
+
+class LiveScoreCZMiniBar3(Screen):
+    def __init__(self, session, raw_parsed_data, show_only_live=False):
+        Screen.__init__(self, session)
+        self.session = session
+        self.raw_parsed_data = raw_parsed_data
+        self.show_only_live = show_only_live
+        self.current_match_idx = 0
+        self.matches = []
+
+        d_size = getDesktop(0).size()
+        width = d_size.width(); height = d_size.height()
+
+        if width > 1280:
+            bar_h = 65; bar_y = height - bar_h + 11; font_lg = "Regular;25"; font_nm = "Regular;34"; font_sm = "Regular;22"
+            x_league=55; w_league=328; x_home_name=393; w_home_name=467
+            x_score=920; w_score=140; x_away_name=1115; w_away_name=490
+            x_status=1615; w_status=90; x_time=1707; w_time=210
+        else:
+            bar_h = 57; bar_y = height - bar_h + 11; font_lg = "Regular;21"; font_nm = "Regular;28"; font_sm = "Regular;18"
+            x_league=40; w_league=213; x_home_name=263; w_home_name=257
+            x_score=580; w_score=100; x_away_name=740; w_away_name=260
+            x_status=1010; w_status=80; x_time=1092; w_time=175
+
+        if global_sports_monitor.theme_mode == "ucl":
+            c_bg = "#c0091442"; c_accent = "#c9a020"; c_score_fg = "#000000"
+        else:
+            c_bg = "#c028002C"; c_accent = "#00FF85"; c_score_fg = "#000000"
+
+        self.skin = """<screen position="0,%d" size="%d,%d" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder">
+            <eLabel position="0,0" size="%d,%d" backgroundColor="%s" zPosition="0" />
+            <eLabel position="0,0" size="%d,1" backgroundColor="%s" zPosition="2" />
+            <widget name="lbl_league" position="%d,-5" size="%d,%d" font="%s" foregroundColor="%s" backgroundColor="%s" transparent="1" halign="left" valign="center" zPosition="2" />
+            <widget name="lbl_home" position="%d,0" size="%d,%d" font="%s" foregroundColor="#ffffff" backgroundColor="%s" transparent="1" halign="right" valign="center" zPosition="2" />
+            <widget name="lbl_score" position="%d,-5" size="%d,%d" font="%s" foregroundColor="%s" backgroundColor="%s" transparent="0" halign="center" valign="center" zPosition="3" />
+            <widget name="lbl_away" position="%d,0" size="%d,%d" font="%s" foregroundColor="#ffffff" backgroundColor="%s" transparent="1" halign="left" valign="center" zPosition="2" />
+            <widget name="lbl_status" position="%d,-5" size="%d,%d" font="%s" foregroundColor="#ffffff" backgroundColor="%s" transparent="1" halign="right" valign="center" zPosition="2" />
+            <widget name="lbl_time" position="%d,-5" size="%d,%d" font="%s" foregroundColor="%s" backgroundColor="%s" transparent="1" halign="right" valign="center" zPosition="2" />
+        </screen>""" % (
+            bar_y, width, bar_h,
+            width, bar_h, c_bg,
+            width, c_accent,
+            x_league, w_league, bar_h, font_lg, c_accent, c_bg,
+            x_home_name, w_home_name, bar_h, font_nm, c_bg,
+            x_score, w_score, bar_h, font_lg, c_score_fg, c_accent,
+            x_away_name, w_away_name, bar_h, font_nm, c_bg,
+            x_status, w_status, bar_h, font_sm, c_bg,
+            x_time, w_time, bar_h, font_sm, c_accent, c_bg
+        )
+
+        self["lbl_league"] = Label()
+        self["lbl_home"] = Label()
+        self["lbl_score"] = Label()
+        self["lbl_away"] = Label()
+        self["lbl_status"] = Label()
+        self["lbl_time"] = Label()
+
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+            "cancel": self.close_minibar,
+            "red": self.close_minibar,
+            "green": self.close_minibar,
+            "yellow": self.toggle_live_filter,
+            "left": self.prev_match,
+            "right": self.next_match
+        }, -1)
+
+        self.filter_matches()
+        self.update_display()
+
+        self.ticker_timer = eTimer()
+        safe_connect(self.ticker_timer, self.tick)
+        self.ticker_timer.start(5000, False)
+
+        # Data-refresh timer — fetches a fresh page so live scores actually update.
+        # 60 s cadence in live-only mode, 120 s otherwise.
+        self._minibar_is_closed = False
+        self.data_refresh_timer = eTimer()
+        safe_connect(self.data_refresh_timer, self._refresh_data)
+        refresh_interval = 60000 if self.show_only_live else 120000
+        self.data_refresh_timer.start(refresh_interval, False)
+
+    def filter_matches(self):
+        self.matches = []
+        if self.show_only_live:
+            for entry in self.raw_parsed_data:
+                if entry.get("type") == "match" and entry.get("status") == "live":
+                    self.matches.append(entry)
+        else:
+            for entry in self.raw_parsed_data:
+                if entry.get("type") == "match":
+                    self.matches.append(entry)
+
+    def get_league_name_for_match(self, match_entry):
+        # Walk raw_parsed_data using 'is' (identity) rather than .index() so that
+        # a background re-fetch replacing dict objects doesn't raise ValueError
+        # and blank the league label (BUG-04 fix).
+        current_header = ""
+        for item in self.raw_parsed_data:
+            if item.get("type") == "header":
+                current_header = item.get("name", "")
+            elif item is match_entry:
+                return current_header
+        return ""
+
+    def update_display(self):
+        if not self.matches:
+            self["lbl_league"].setText("")
+            self["lbl_home"].setText("")
+            self["lbl_score"].setText("-:-")
+            self["lbl_away"].setText("")
+            if self.show_only_live:
+                self["lbl_status"].setText(_t("No Live Matches"))
+            else:
+                self["lbl_status"].setText(_t("No Matches"))
+            self["lbl_time"].setText("")
+            return
+
+        match = self.matches[self.current_match_idx % len(self.matches)]
+        league_name = self.get_league_name_for_match(match)
+        self["lbl_league"].setText(league_name.upper())
+        self["lbl_home"].setText(match.get("home", "").upper())
+        self["lbl_away"].setText(match.get("away", "").upper())
+        self["lbl_score"].setText(match.get("score", "-:-"))
+        
+        st = match.get("status", "")
+        if st == "sched":
+            status_text = _t("SCH")
+        elif st == "live":
+            status_text = _t("LIVE")
+        elif st == "fin":
+            status_text = _t("FIN")
+        else:
+            status_text = st.upper()
+            
+        self["lbl_status"].setText(status_text)
+        self["lbl_time"].setText(match.get("time", ""))
+
+    def tick(self):
+        if self.matches:
+            self.current_match_idx += 1
+            self.update_display()
+
+    def prev_match(self):
+        if self.matches:
+            self.current_match_idx = (self.current_match_idx - 1) % len(self.matches)
+            self.update_display()
+            self.ticker_timer.start(5000, False)
+
+    def next_match(self):
+        if self.matches:
+            self.current_match_idx = (self.current_match_idx + 1) % len(self.matches)
+            self.update_display()
+            self.ticker_timer.start(5000, False)
+
+    def _refresh_data(self):
+        """Periodic data-refresh: fetch a new page from livescore.cz in a background
+        thread so that live scores stay current without blocking the UI thread."""
+        if self._minibar_is_closed:
+            return
+        t = threading.Thread(target=self._bg_refresh)
+        t.daemon = True
+        t.start()
+
+    def _bg_refresh(self):
+        try:
+            # Use the dedicated live endpoint when in live-only mode —
+            # it's a smaller page and reduces unnecessary data transfer.
+            url = "https://www.livescore.cz/?s=2" if self.show_only_live else "https://www.livescore.cz/"
+            req = Request(url,
+                          headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            import ssl
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=10, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=10)
+            html_data = response.read()
+            if isinstance(html_data, bytes):
+                html_data = html_data.decode('utf-8', errors='ignore')
+            parsed = parse_livescore_cz(html_data, 0)
+            if parsed:
+                reactor.callFromThread(self._on_refresh_done, parsed)
+        except Exception as e:
+            print("[SimplySports] LiveScoreCZMiniBar3 refresh failed:", e)
+
+    def _on_refresh_done(self, parsed_data):
+        if self._minibar_is_closed:
+            return
+        self.raw_parsed_data = parsed_data
+        self.filter_matches()
+        # Keep the current index in bounds after the list may have changed length.
+        if self.matches:
+            self.current_match_idx = self.current_match_idx % len(self.matches)
+        else:
+            self.current_match_idx = 0
+        self.update_display()
+        # Adaptive interval: slow down to 120 s when no live matches are present,
+        # so we don't hammer the site unnecessarily during quiet periods.
+        if self.show_only_live:
+            has_live = any(e.get("type") == "match" and e.get("status") == "live"
+                          for e in self.raw_parsed_data)
+            new_interval = 60000 if has_live else 120000
+            self.data_refresh_timer.stop()
+            self.data_refresh_timer.start(new_interval, False)
+
+    def toggle_live_filter(self):
+        self.show_only_live = not self.show_only_live
+        self.filter_matches()
+        self.current_match_idx = 0
+        self.update_display()
+        # Adjust the data-refresh cadence to match the new filter state.
+        self.data_refresh_timer.stop()
+        refresh_interval = 60000 if self.show_only_live else 120000
+        self.data_refresh_timer.start(refresh_interval, False)
+
+    def close_minibar(self):
+        self._minibar_is_closed = True
+        self.ticker_timer.stop()
+        self.data_refresh_timer.stop()
+        self.close(self.show_only_live)
+
+
+class LiveScoreFollowToast(Screen):
+    def __init__(self, session, home_team, away_team, score, notification_text, league_name, event_type="start", scoring_team=None):
+        self.session = session
+        self.score = score
+        self.notification_text = notification_text
+        self.league_name = league_name
+        self.theme = global_sports_monitor.theme_mode
+
+        band_hi  = "#00887050"   # gold highlight
+        band_mid = "#00604c2c"   # bronze body
+        band_lo  = "#00302016"   # dark shadow
+        center   = "#0020140c"   # darkest score box
+        bg = "#FF000000"         # transparent
+        border_color = "#00c9a020" if self.theme == "ucl" else "#00FF85"
+        score_color = "#ffffff"
+
+        # Default: both team names in white
+        h_color = "#ffffff"
+        a_color = "#ffffff"
+
+        if event_type == "goal":
+            if self.theme == "ucl":
+                band_hi  = "#00c9a020"
+                band_mid = "#00504010"
+            else:
+                band_hi  = "#0000FF85"
+                band_mid = "#0000300a"
+            # Highlight the scoring team in green (matches GoalToast goal style)
+            if scoring_team == "home":
+                h_color = "#0066FF66"
+                home_team = home_team + " <"
+            elif scoring_team == "away":
+                a_color = "#0066FF66"
+                away_team = "> " + away_team
+        elif event_type == "end":
+            score_color = "#00cccccc"
+
+        self.home_team = home_team
+        self.away_team = away_team
+
+        self.skin = (
+            u'<screen position="center,50" size="950,120" title="Match Follow Alert" flags="wfNoBorder" backgroundColor="{bg}">'
+            u'<eLabel position="0,0" size="950,120" backgroundColor="{bg}" zPosition="0" />'
+            u'<widget name="scorer" position="200,5" size="550,30" font="Regular;21" '
+            u'foregroundColor="#00FFD700" backgroundColor="{bg}" transparent="1" valign="center" halign="center" zPosition="3" />'
+            u'<eLabel position="0,40" size="950,2" backgroundColor="{bhi}" zPosition="2" />'
+            u'<eLabel position="0,42" size="950,38" backgroundColor="{bmid}" zPosition="2" />'
+            u'<eLabel position="0,80" size="950,2" backgroundColor="{blo}" zPosition="2" />'
+            u'<eLabel position="0,82" size="950,2" backgroundColor="{bc}" zPosition="3" />'
+            u'<eLabel position="400,42" size="150,38" backgroundColor="{ctr}" zPosition="3" />'
+            u'<widget name="score" position="400,42" size="150,38" font="Regular;26" '
+            u'foregroundColor="{sc}" backgroundColor="{ctr}" valign="center" halign="center" zPosition="4" />'
+            u'<widget name="home" position="100,42" size="290,38" font="Regular;32" '
+            u'foregroundColor="{hc}" backgroundColor="{bmid}" valign="center" halign="right" zPosition="4" />'
+            u'<widget name="away" position="560,42" size="290,38" font="Regular;32" '
+            u'foregroundColor="{ac}" backgroundColor="{bmid}" valign="center" halign="left" zPosition="4" />'
+            u'<widget name="league" position="200,90" size="550,28" font="Regular;17" '
+            u'foregroundColor="#00FFD700" backgroundColor="{bg}" transparent="1" valign="center" halign="center" zPosition="3" />'
+            u'</screen>'
+        ).format(
+            bg=bg, bhi=band_hi, bmid=band_mid, blo=band_lo, bc=border_color,
+            ctr=center, sc=score_color, hc=h_color, ac=a_color
+        )
+
+        Screen.__init__(self, session)
+        self["league"] = Label(self.league_name.upper())
+        self["home"] = Label(self.home_team.upper())
+        self["away"] = Label(self.away_team.upper())
+        self["score"] = Label(self.score)
+        self["scorer"] = Label(self.notification_text)
+
+        self.timer = eTimer()
+        safe_connect(self.timer, self.close)
+        self.timer.start(5000, True)
+
+
 class SimpleSportsScreen(Screen):
     @profile_function("SimpleSportsScreen")
     def __init__(self, session):
@@ -15584,7 +18742,7 @@ class SimpleSportsScreen(Screen):
         self["list"].l.setFont(2, gFont("SimplySportFont", 38))
         self["list"].l.setFont(3, gFont("SimplySportFont", 20))
         self["list"].l.setItemHeight(90)
-        self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Live Only")); self["key_blue"] = Label(_t("Watch Party"))
+        self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Livescore.cz")); self["key_blue"] = Label(_t("Watch Party"))
         self["key_epg"] = Label(_t("Info/EPG: Channels"))
         self["key_ch"] = Label(_t("< > / << >> Browse Days"))
 
@@ -15608,7 +18766,7 @@ class SimpleSportsScreen(Screen):
                 "cancel": self.close,
                 "red": self.open_league_menu,
                 "green": self.open_mini_bar,
-                "yellow": self.toggle_filter,
+                "yellow": self.open_livescore_screen,
                 "blue": self.open_watch_party,
                 "ok": self.open_game_info,
                 "menu": self.open_settings_menu,
@@ -15800,11 +18958,7 @@ class SimpleSportsScreen(Screen):
         self.update_top_status()
 
     def update_filter_button(self):
-        mode = self.monitor.filter_mode
-        if mode == 1:
-            self["key_yellow"].setText(_t("Show Today"))
-        else:
-            self["key_yellow"].setText(_t("Live Only"))
+        self["key_yellow"].setText(_t("SimplySports Arena"))
         self.update_header()
 
     def fetch_data(self):
@@ -16063,10 +19217,7 @@ class SimpleSportsScreen(Screen):
                 cur_time = int(time.time())
                 sys_time_str = datetime.datetime.fromtimestamp(cur_time).strftime('%Y-%m-%d %H:%M')
 
-                # Try reloading EPG if file found
-                if found_epg_path != "None":
-                    try: epg.load()
-                    except: pass
+
 
                 # Probe first few channels
                 checked_count = 0
@@ -16138,29 +19289,14 @@ class SimpleSportsScreen(Screen):
 
                         STOP_WORDS = ['al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs', 'live', 'hd', 'fhd', '4k', 'uhd']
 
-                        import difflib
                         def match_sig_score(keywords, text_blob, require_all=True):
                             sig = [w for w in keywords if w not in STOP_WORDS and len(w) > 1]
                             if not sig: sig = keywords
 
                             found_count = 0
-                            blob_words = text_blob.split()
-                            
                             for w in sig:
                                 if w in text_blob: 
                                     found_count += 1
-                                    continue
-                                
-                                if len(w) > 3:
-                                    best_ratio = 0.0
-                                    for bw in blob_words:
-                                        if len(bw) > 2:
-                                            r = difflib.SequenceMatcher(None, w, bw).ratio()
-                                            if r > best_ratio:
-                                                best_ratio = r
-                                    
-                                    if best_ratio >= 0.70:
-                                        found_count += 1
 
                             return found_count, len(sig)
 
@@ -16295,7 +19431,7 @@ class SimpleSportsScreen(Screen):
             self.current_match_ids = []
             return
 
-        mode = 4 if self.monitor.ch_day_offset != 0 else self.monitor.filter_mode
+        mode = 2 if self.monitor.ch_day_offset != 0 else self.monitor.filter_mode
         raw_entries = []  # Store (entry_data, match_id, is_live) for sorting
 
         # Pre-compute dates once per render pass
@@ -16600,10 +19736,14 @@ class SimpleSportsScreen(Screen):
         if d_mode == 0: alert_lbl = _t("Goal Alert: OFF")
         elif d_mode == 1: alert_lbl = _t("Goal Alert: VISUAL")
         else: alert_lbl = _t("Goal Alert: SOUND")
+        
+        minibar1_style_lbl = _t("Default") if getattr(self.monitor, "minibar_1_style", "default") == "default" else _t("World Cup")
+        
         menu_options = [
             (_t("Check for Updates"), "update"),
             (_t("Change Interface Theme"), "theme"),
-            (_t("Mini Bar Style (Default Theme only)"), "minibar_color"),
+            (_t("Top Minibar Style: ") + minibar1_style_lbl, "minibar_1_style"),
+            (_t("Bottom Minibar Style (Default Theme only)"), "minibar_color"),
             (_t("Main Screen Transparency (Default Theme only)"), "transparency"),
             (_t("Show Plugin in Main Menu: ") + in_menu_txt, "toggle_menu"),
             (_t("Set Voter Name: ") + self.monitor.voter_name, "voter_name"),
@@ -16620,6 +19760,7 @@ class SimpleSportsScreen(Screen):
             action = selection[1]
             if action == "update": self.check_for_updates()
             elif action == "theme": self.open_theme_selector()
+            elif action == "minibar_1_style": self.open_minibar_1_style_selector()
             elif action == "minibar_color": self.open_minibar_color_selector()
             elif action == "transparency": self.open_transparency_selector()
             elif action == "toggle_menu":
@@ -16958,6 +20099,20 @@ class SimpleSportsScreen(Screen):
             msg = (u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0627\u0633\u0645: " + self.monitor.voter_name) if PLUGIN_LANGUAGE == "ar" else ("Voter name saved: " + self.monitor.voter_name)
             self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
+    def open_minibar_1_style_selector(self):
+        options = [
+            (_t("Default"), "default"),
+            (_t("World Cup"), "worldcup")
+        ]
+        self.session.openWithCallback(self.minibar_1_style_selected, ChoiceBox, title=_t("Select Top Minibar Style"), list=options)
+
+    def minibar_1_style_selected(self, selection):
+        if selection:
+            self.monitor.minibar_1_style = selection[1]
+            self.monitor.save_config()
+            msg = _t("Top Minibar style saved.")
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO)
+
     def open_minibar_color_selector(self):
         c_options = [
             (_t("Default"), "default"),
@@ -16966,13 +20121,13 @@ class SimpleSportsScreen(Screen):
             (_t("Serie A (Blue/Cyan)"), "seriea"),
             (_t("French League (Dark/Yellow)"), "ligue1")
         ]
-        self.session.openWithCallback(self.minibar_color_selected, ChoiceBox, title=_t("Select Mini Bar Style (Default Theme Only)"), list=c_options)
+        self.session.openWithCallback(self.minibar_color_selected, ChoiceBox, title=_t("Select Bottom Minibar Style (Default Theme Only)"), list=c_options)
 
     def minibar_color_selected(self, selection):
         if selection:
             self.monitor.minibar_color_mode = selection[1]
             self.monitor.save_config()
-            msg = u"\u062a\u0645 \u062d\u0641\u0638 \u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631." if PLUGIN_LANGUAGE == "ar" else "Mini Bar color saved."
+            msg = _t("Bottom Minibar style saved.")
             self.session.open(MessageBox, msg, MessageBox.TYPE_INFO)
 
     def open_transparency_selector(self):
@@ -17392,6 +20547,11 @@ class SimpleSportsScreen(Screen):
         self.last_key_time = time.time()
         log_diag("BUTTON_YELLOW: toggle_filter pressed. is_custom={} discovery_mode={}".format(self.monitor.is_custom_mode, self.monitor.discovery_mode))
         self.monitor.toggle_filter(); self.update_filter_button(); self.monitor._trigger_callbacks(True, force_refresh=True)
+
+    def open_livescore_screen(self):
+        if time.time() - self.last_key_time < 0.5: return
+        self.last_key_time = time.time()
+        self.session.open(LiveScoreCZScreen)
 
     def ch_next_day_action(self):
         log_dbg("SimpleSportsScreen ActionTriggered: channelUp action mapping matched.")
@@ -17847,58 +21007,67 @@ class BroadcastingChannelsScreen(Screen):
         # --- SKIN ---
         if self.theme == "ucl":
             self.skin = """
-            <screen position="center,center" size="950,800" title="Match Broadcasts" backgroundColor="#00000000" flags="wfNoBorder">
-                <eLabel position="0,0" size="950,800" backgroundColor="#0d1b2e" zPosition="-1" />
+            <screen position="center,center" size="950,860" title="Match Broadcasts" backgroundColor="#00000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,860" backgroundColor="#0d1b2e" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#c9a020" zPosition="1" />
-                <eLabel position="0,796" size="950,4" backgroundColor="#c9a020" zPosition="1" />
-                <eLabel position="0,0" size="4,800" backgroundColor="#c9a020" zPosition="1" />
-                <eLabel position="946,0" size="4,800" backgroundColor="#c9a020" zPosition="1" />
+                <eLabel position="0,856" size="950,4" backgroundColor="#c9a020" zPosition="1" />
+                <eLabel position="0,0" size="4,860" backgroundColor="#c9a020" zPosition="1" />
+                <eLabel position="946,0" size="4,860" backgroundColor="#c9a020" zPosition="1" />
                 <widget name="title" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" />
                 <eLabel position="30,75" size="890,2" backgroundColor="#1a3a6b" />
                 <widget name="list" position="30,90" size="890,620" scrollbarMode="showOnDemand" transparent="1" />
                 <eLabel position="30,720" size="890,2" backgroundColor="#1a3a6b" />
-                <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="key_green" position="240,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="key_yellow" position="450,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#FFA000" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="hint" position="680,740" size="240,50" font="SimplySportFont;24" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
+                <widget name="key_red" position="30,730" size="210,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="255,730" size="210,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_yellow" position="480,730" size="210,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#FFA000" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_blue" position="705,730" size="210,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#0055CC" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="hint" position="30,795" size="890,45" font="SimplySportFont;22" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
             </screen>
             """
         else:
             self.skin = """
-            <screen position="center,center" size="950,800" title="Match Broadcasts" backgroundColor="#38003C" flags="wfNoBorder">
-                <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
+            <screen position="center,center" size="950,860" title="Match Broadcasts" backgroundColor="#38003C" flags="wfNoBorder">
+                <eLabel position="0,0" size="950,860" backgroundColor="#38003C" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
-                <eLabel position="0,796" size="950,4" backgroundColor="#00FF85" zPosition="1" />
-                <eLabel position="0,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
-                <eLabel position="946,0" size="4,800" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,856" size="950,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,0" size="4,860" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="946,0" size="4,860" backgroundColor="#00FF85" zPosition="1" />
                 <widget name="title" position="30,20" size="890,50" font="SimplySportFont;38" foregroundColor="#00FF85" backgroundColor="#38003C" transparent="1" halign="center" />
                 <eLabel position="30,75" size="890,2" backgroundColor="#505050" />
                 <widget name="list" position="30,90" size="890,620" scrollbarMode="showOnDemand" transparent="1" />
                 <eLabel position="30,720" size="890,2" backgroundColor="#505050" />
-                <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="key_green" position="240,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="key_yellow" position="450,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#FFA000" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="hint" position="680,740" size="240,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
+                <widget name="key_red" position="30,730" size="210,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="255,730" size="210,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_yellow" position="480,730" size="210,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#FFA000" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_blue" position="705,730" size="210,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#0055CC" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="hint" position="30,795" size="890,45" font="SimplySportFont;22" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
             </screen>
             """
 
-        match_title_str = _t("MATCH BROADCASTS")
+        match_title_str = _t("Broadcasting channels")
+        self._match_home = u""
+        self._match_away = u""
         if self.target_event:
             comps = self.target_event.get('competitions', [{}])[0].get('competitors', [])
             if len(comps) > 2:
-                match_title_str = self.target_event.get('shortName') or self.target_event.get('name') or "Event"
+                event_name = self.target_event.get('shortName') or self.target_event.get('name') or "Event"
+                match_title_str = _t("Broadcasting channels for ({})").format(event_name)
+                self._match_home = event_name
             elif len(comps) >= 2:
                 team_h = next((t for t in comps if t.get('homeAway') == 'home'), comps[0])
                 team_a = next((t for t in comps if t.get('homeAway') == 'away'), comps[1])
                 home = team_h.get('athlete', {}).get('shortName') or team_h.get('team', {}).get('displayName', 'Home')
                 away = team_a.get('athlete', {}).get('shortName') or team_a.get('team', {}).get('displayName', 'Away')
-                match_title_str = "{} vs {}".format(home, away).upper()
+                match_title_str = _t("Broadcasting channels for ({} vs {})").format(home, away)
+                self._match_home = home
+                self._match_away = away
 
         self["title"] = Label(match_title_str)
         self["hint"] = Label(_t("Select Channel to Zap"))
         self["key_red"] = Label(_t("Broadcasters"))
         self["key_green"] = Label(_t("EPG Search"))
         self["key_yellow"] = Label(_t("Sat Feeds"))
+        self["key_blue"] = Label(_t("Find in Bouquets"))
 
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         self["list"].l.setFont(0, gFont("SimplySportFont", 28))
@@ -17908,6 +21077,9 @@ class BroadcastingChannelsScreen(Screen):
         self._online_search_active = False
         self._sports_channels_cache = None  # Cache for iptv-org channels
         self._sat_feed_search_running = False
+        self._livesoccertv_search_running = False
+        self._livesoccertv_channels = None      # None = no fetch yet; list = channels shown
+        self._livesoccertv_list_start_idx = 0   # index in self["list"].list where LSTV entries begin
 
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
             "ok": self.zap_to_channel,
@@ -17918,6 +21090,7 @@ class BroadcastingChannelsScreen(Screen):
             "down": self["list"].down,
             "green": self.search_epg_internet,
             "yellow": self.search_satellite_feeds,
+            "blue": self.search_livesoccertv,
             "left": self["list"].pageUp,
             "right": self["list"].pageDown
         }, -1)
@@ -17935,10 +21108,25 @@ class BroadcastingChannelsScreen(Screen):
             self["list"].instance.setShowSelection(True)
         except:
             pass
-        # If no local EPG results, guide user to use Green/Red buttons
-        if not self.channels:
-            self["title"].setText(_t("No Local EPG Matches"))
-            self["hint"].setText(_t("Press Green for Web Search"))
+        self.auto_start_livesoccertv_search()
+
+    def auto_start_livesoccertv_search(self):
+        home = getattr(self, '_match_home', u'')
+        away = getattr(self, '_match_away', u'')
+        if not home and not away:
+            return
+
+        self._livesoccertv_search_running = True
+        self["hint"].setText(_t("Loading LiveSoccerTV..."))
+
+        from twisted.internet import threads
+        threads.deferToThread(
+            self._livesoccertv_worker, home, away
+        ).addCallback(
+            self._on_livesoccertv_done
+        ).addErrback(
+            self._livesoccertv_err
+        )
 
     def add_live_results(self, new_channels):
         if not new_channels:
@@ -18019,12 +21207,18 @@ class BroadcastingChannelsScreen(Screen):
         for item in self.channels:
             if len(item) == 4:
                 (sref, sname, event_name, cat_color) = item
+                res.append(self.build_entry(sref, sname, event_name, cat_color))
             elif len(item) == 3:
                 (sref, sname, event_name) = item
                 cat_color = 0x00FF00
-            else:
-                continue
-            res.append(self.build_entry(sref, sname, event_name, cat_color))
+                res.append(self.build_entry(sref, sname, event_name, cat_color))
+            elif len(item) >= 6 and item[3] == 0x1B5E20:
+                sref = item[0]
+                ch_name = item[4]
+                country = item[5]
+                scanned = item[6] if len(item) >= 7 else False
+                _raw, rendered = self._build_livesoccertv_list_entry(ch_name, country, sref, scanned)
+                res.append(rendered)
         self["list"].setList(res)
 
         if res:
@@ -18202,36 +21396,10 @@ class BroadcastingChannelsScreen(Screen):
         if self._epg_search_running:
             return                     # debounce — don't stack requests
 
-        # Extract Search Terms
-        team_terms = []
-        league = ""
-        if self.target_event:
-            comps = self.target_event.get('competitors', [])
-            for comp in comps[:2]:
-                if 'athlete' in comp:
-                    t = comp.get('athlete', {}).get('shortName', '')
-                else:
-                    t = comp.get('team', {}).get('displayName', '')
-                if t:
-                    team_terms.append(t)
-
-            # Fallback if no specific competitors
-            if not team_terms:
-                t = self.target_event.get('shortName') or self.target_event.get('name', '')
-                if t:
-                    team_terms.append(t)
-
-            league = self.target_event.get('league_name', '')
-
-        if not team_terms and not league:
+        if not self._match_home:
             from Screens.MessageBox import MessageBox
             self.session.open(MessageBox, "No match data available to search.", MessageBox.TYPE_INFO)
             return
-
-        # Prepare normalized search payload
-        self._xmltv_search_terms = [_normalize_name(t) for t in team_terms if len(t) > 2]
-        if league and len(league) > 2:
-            self._xmltv_search_terms.append(_normalize_name(league))
 
         self._launch_epg_search()
 
@@ -18239,90 +21407,151 @@ class BroadcastingChannelsScreen(Screen):
         self._epg_search_running = True
         self["key_green"].setText(_t("Searching..."))
         self["hint"].setText(_t("Parsing XMLTV..."))
-        log_dbg("XMLTV Search starting for terms: {}".format(self._xmltv_search_terms))
+
+        home_words = get_search_keywords(self._match_home)
+        away_words = get_search_keywords(self._match_away)
+
+        h_terms = [_normalize_name(w) for w in home_words]
+        a_terms = [_normalize_name(w) for w in away_words]
+
+        # Compile XMLTV sources list (Remote URL + Local files in /etc/epgimport)
+        sources = [XMLTV_EPG_URL]
+
+        import os
+        epgimport_dir = "/etc/epgimport"
+        if os.path.exists(epgimport_dir) and os.path.isdir(epgimport_dir):
+            try:
+                for f in os.listdir(epgimport_dir):
+                    if (f.endswith(".xml") or f.endswith(".xml.gz") or f.endswith(".gz")) and not f.endswith("sources.xml"):
+                        sources.append(os.path.join(epgimport_dir, f))
+            except Exception as e:
+                log_dbg("Error listing /etc/epgimport: {}".format(e))
+
+        log_dbg("XMLTV Search starting. Sources: {}, h_terms: {}, a_terms: {}".format(sources, h_terms, a_terms))
 
         from twisted.internet import threads
 
         # Run stream parser in background to prevent UI freeze
         threads.deferToThread(
-            self._parse_xmltv_stream_worker, XMLTV_EPG_URL, self._xmltv_search_terms
+            self._parse_xmltv_stream_worker, sources, h_terms, a_terms
         ).addCallback(
             self._on_xmltv_parsed
         ).addErrback(
             self._xmltv_search_err
         )
 
-    def _parse_xmltv_stream_worker(self, url, search_terms):
-        """Background worker to memory-safely parse XMLTV over HTTP stream."""
+    def _parse_xmltv_stream_worker(self, sources, h_terms, a_terms):
+        """Background worker to memory-safely parse XMLTV from local files or HTTP streams."""
         import xml.etree.ElementTree as ET
-        try:
-            import urllib.request as urllib2
-        except ImportError:
-            import urllib2
-
-        req = urllib2.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        response = urllib2.urlopen(req, timeout=EPG_SEARCH_TIMEOUT)
-
-        context = ET.iterparse(response, events=("start", "end"))
-        context = iter(context)
-        try:
-            _, root = next(context)
-        except StopIteration:
-            return []
-
-        channels = {}      # ch_id -> display_name
-        matched_channels = set()
-
+        import gzip
+        import os
         import time
-        t_start = time.time()
 
-        for event, elem in context:
+        # Helper to safely convert text to unicode
+        def _to_unicode(s):
+            if isinstance(s, bytes):
+                return s.decode('utf-8', errors='replace')
+            return s
+
+        t_start = time.time()
+        channels = {}      # ch_id -> display_name
+        matched_channels = {}  # ch_id -> source_label
+
+        for source in sources:
+            # Check elapsed time limit (45 seconds hard limit)
             if time.time() - t_start > 45:
                 log_dbg("XMLTV parser aborted after 45s hard limit to prevent box freeze.")
                 break
 
-            if event == "end":
-                if elem.tag == "channel":
-                    ch_id = elem.get("id")
-                    display = elem.find("display-name")
-                    if ch_id and display is not None and display.text:
-                        channels[ch_id] = display.text
-                    elem.clear()  # IMPORTANT: free memory
-                    root.clear()  # FREE parent references
+            log_dbg("Parsing XMLTV source: {}".format(source))
+            
+            # Determine source label
+            if source.startswith("http://") or source.startswith("https://"):
+                source_label = u"XMLTV"
+            else:
+                source_label = u"EPGI: {}".format(os.path.basename(source))
 
-                elif elem.tag == "programme":
-                    # Check text against search terms
-                    title = elem.find("title")
-                    desc = elem.find("desc")
+            response = None
+            try:
+                if source.startswith("http://") or source.startswith("https://"):
+                    # Remote URL
+                    try:
+                        import urllib.request as urllib2
+                    except ImportError:
+                        import urllib2
+                    req = urllib2.Request(source, headers={'User-Agent': 'Mozilla/5.0'})
+                    response = urllib2.urlopen(req, timeout=EPG_SEARCH_TIMEOUT)
+                else:
+                    # Local File
+                    if os.path.exists(source):
+                        if source.endswith(".gz") or source.endswith(".xml.gz"):
+                            response = gzip.open(source, 'rb')
+                        else:
+                            response = open(source, 'rb')
+                    else:
+                        continue
+            except Exception as e:
+                log_dbg("Failed to open XMLTV source {}: {}".format(source, e))
+                continue
 
-                    text_blob = ""
-                    if title is not None and title.text:
-                        text_blob += title.text + " "
-                    if desc is not None and desc.text:
-                        text_blob += desc.text
+            if not response:
+                continue
 
-                    if text_blob:
-                        norm_text = _normalize_name(text_blob)
-                        # Require at least one team, preferably two
-                        found_count = 0
-                        for term in search_terms:
-                            if term in norm_text:
-                                found_count += 1
+            try:
+                context = ET.iterparse(response, events=("start", "end"))
+                context = iter(context)
+                try:
+                    _, root = next(context)
+                except StopIteration:
+                    response.close()
+                    continue
 
-                        if found_count > 0 and (found_count >= len(search_terms) - 1 or found_count >= 2):
-                            ch_id = elem.get("channel")
-                            if ch_id:
-                                matched_channels.add(ch_id)
+                for event, elem in context:
+                    if time.time() - t_start > 45:
+                        log_dbg("XMLTV parser aborted inside source loop after 45s limit.")
+                        break
 
-                    elem.clear()  # IMPORTANT: free memory
-                    root.clear()  # FREE parent references
+                    if event == "end":
+                        if elem.tag == "channel":
+                            ch_id = elem.get("id")
+                            display = elem.find("display-name")
+                            if ch_id and display is not None and display.text:
+                                channels[ch_id] = _to_unicode(display.text)
+                            elem.clear()
+                            root.clear()
+
+                        elif elem.tag == "programme":
+                            title = elem.find("title")
+                            desc = elem.find("desc")
+                            
+                            title_text = _to_unicode(title.text) if title is not None and title.text else u""
+                            desc_text = _to_unicode(desc.text) if desc is not None and desc.text else u""
+                            
+                            prog_blob = _normalize_name(title_text + u" " + desc_text)
+                            
+                            h_ok = any(t in prog_blob for t in h_terms) if h_terms else True
+                            a_ok = any(t in prog_blob for t in a_terms) if a_terms else True
+                            
+                            if h_ok and a_ok:
+                                ch_id = elem.get("channel")
+                                if ch_id:
+                                    matched_channels[ch_id] = source_label
+                            elem.clear()
+                            root.clear()
+            except Exception as e:
+                log_dbg("Error parsing source {}: {}".format(source, e))
+            finally:
+                try:
+                    response.close()
+                except:
+                    pass
 
         results = []
-        for ch_id in matched_channels:
+        for ch_id, source_label in matched_channels.items():
             if ch_id in channels:
                 ch_name = channels[ch_id]
-                sref = _scan_bouquet_for_name(ch_name)
-                results.append((ch_name, sref, "XMLTV"))
+                sref = _scan_bouquet_for_name(ch_name) or u""
+                results.append((ch_name, sref, source_label))
 
         return results
 
@@ -18865,6 +22094,445 @@ class BroadcastingChannelsScreen(Screen):
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     line2, c_dim, c_sel))
 
+        return (raw, res)
+
+    # ==================================================================
+    # BLUE BUTTON — LiveSoccerTV Broadcasting Channel Search
+    #
+    # Stage 1 (first press, _livesoccertv_channels is None):
+    #   Background thread fetches LiveSoccerTV and returns channel names.
+    #   Results are shown immediately — no bouquet scan yet.
+    #   Button label changes to "Find in Bouquets" to hint at Stage 2.
+    #
+    # Stage 2 (second press, _livesoccertv_channels is a list):
+    #   Bouquets are scanned on the main thread for every channel name.
+    #   LSTV entries in the list are replaced in-place with updated
+    #   entries that carry a live sref where a bouquet match was found.
+    #   Button label resets to "LiveSoccerTV" so a fresh search is possible.
+    # ==================================================================
+
+    # ------------------------------------------------------------------ entry
+    def search_livesoccertv(self):
+        """
+        Blue button handler — now ONLY for scanning bouquets of the highlighted channel.
+        """
+        if self._livesoccertv_search_running:
+            return  # debounce: ignore while a background thread is active
+
+        idx = self["list"].getSelectedIndex()
+        if idx is not None and self["list"].list:
+            entry_tuple = self["list"].list[idx]
+            raw_item = entry_tuple[0]
+            if len(raw_item) >= 6 and raw_item[3] == 0x1B5E20:
+                ch_name = raw_item[4]
+                country = raw_item[5]
+
+                self["key_blue"].setText(_t("Scanning..."))
+                self["hint"].setText(_t("Checking bouquets..."))
+
+                sref = _scan_bouquet_for_name(ch_name, country=country) or u""
+
+                # Rebuild only the highlighted entry
+                updated_entry = self._build_livesoccertv_list_entry(ch_name, country, sref=sref, scanned=True)
+
+                if idx < len(self.channels):
+                    self.channels[idx] = updated_entry[0]
+
+                current = list(self["list"].list)
+                current[idx] = updated_entry[1]
+                self["list"].setList(current)
+
+                if sref:
+                    self["hint"].setText(u"Found in bouquets: {}".format(ch_name))
+                else:
+                    self["hint"].setText(u"Not in bouquets: {}".format(ch_name))
+
+                self["key_blue"].setText(_t("Find in Bouquets"))
+            else:
+                self["hint"].setText(_t("Please highlight a LiveSoccerTV channel"))
+
+    # --------------------------------------------------------------- worker
+    def _livesoccertv_worker(self, home, away):
+        """
+        Background thread: two-step scrape of LiveSoccerTV.
+
+        Step 1 – Search for the match and extract the first /match/ URL.
+        Step 2 – Fetch the match page and parse official TV listings (ichannels table).
+
+        Returns a list of (channel_name, country) tuples.
+        """
+        try:
+            import urllib.request as _ur
+            import urllib.parse as _up
+        except ImportError:
+            import urllib2 as _ur
+            import urllib as _up
+        import re
+        import sys
+        is_py2 = sys.version_info[0] < 3
+
+        HEADERS = {
+            'User-Agent': (
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                'Chrome/124.0.0.0 Safari/537.36'
+            ),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-GB,en;q=0.9',
+            'Referer': 'https://www.livesoccertv.com/',
+        }
+
+        # Helper to safely convert text to unicode
+        def _to_unicode(s):
+            if isinstance(s, bytes):
+                return s.decode('utf-8', errors='replace')
+            return s
+
+        debug_log = []
+        def log_step(msg):
+            debug_log.append(_to_unicode(msg))
+            log_dbg(msg)
+
+        # Clean common suffixes that interfere with LiveSoccerTV autocomplete database
+        def _clean_team_name(name):
+            if not name:
+                return u""
+            n = _to_unicode(name)
+            # Remove "PR" at the end (e.g., "China PR" -> "China")
+            n = re.sub(r'\bPR\b', '', n, flags=re.IGNORECASE)
+            # Remove "FC", "CF", "SC", "FK", "U21", etc.
+            n = re.sub(r'\b(?:FC|CF|SC|FK|U21|U23|U20|U17|Women)\b', '', n, flags=re.IGNORECASE)
+            # Remove special characters except letters, numbers and spaces
+            n = re.sub(r'[^a-zA-Z0-9\s\u00C0-\u017F]', '', n)
+            return u' '.join(n.split())
+
+        home_clean = _clean_team_name(home)
+        away_clean = _clean_team_name(away)
+        log_step("[LSTV] Search terms: '{}' vs '{}'".format(home_clean, away_clean))
+
+        def _get(url, is_json=False):
+            # Try curl first
+            try:
+                import subprocess
+                cmd = ["curl", "-k", "-sL", "--connect-timeout", "10", "-m", "15"]
+                for k, v in HEADERS.items():
+                    h_val = u"{}: {}".format(_to_unicode(k), _to_unicode(v))
+                    cmd.extend(["-H", h_val])
+                if is_json:
+                    cmd.extend(["-H", u"Accept: application/json, text/javascript, */*; q=0.01"])
+                cmd.append(_to_unicode(url))
+                
+                # In Py2, ensure all elements in cmd list are byte strings
+                if is_py2:
+                    cmd = [arg.encode('utf-8') if isinstance(arg, unicode) else str(arg) for arg in cmd]
+                
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                out, err = p.communicate()
+                if p.returncode == 0 and out:
+                    log_step("[_get] curl Success for " + url)
+                    return _to_unicode(out)
+                else:
+                    log_step("[_get] curl Code: {}, Error: {}".format(p.returncode, _to_unicode(err)))
+            except Exception as e:
+                log_step("[_get] curl Subprocess failed: " + str(e))
+
+            # Try wget second
+            try:
+                import subprocess
+                cmd = ["wget", "-qO-", "--no-check-certificate", "--timeout=15"]
+                for k, v in HEADERS.items():
+                    h_val = u"--header={}: {}".format(_to_unicode(k), _to_unicode(v))
+                    cmd.append(h_val)
+                if is_json:
+                    cmd.append(u"--header=Accept: application/json, text/javascript, */*; q=0.01")
+                cmd.append(_to_unicode(url))
+                
+                # In Py2, ensure all elements in cmd list are byte strings
+                if is_py2:
+                    cmd = [arg.encode('utf-8') if isinstance(arg, unicode) else str(arg) for arg in cmd]
+                
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                out, err = p.communicate()
+                if p.returncode == 0 and out:
+                    log_step("[_get] wget Success for " + url)
+                    return _to_unicode(out)
+                else:
+                    log_step("[_get] wget Code: {}, Error: {}".format(p.returncode, _to_unicode(err)))
+            except Exception as e:
+                log_step("[_get] wget Subprocess failed: " + str(e))
+
+            # Fallback to urllib
+            req = _ur.Request(url, headers=HEADERS)
+            if is_json:
+                req.add_header('Accept', 'application/json, text/javascript, */*; q=0.01')
+            
+            try:
+                import ssl
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+            except:
+                ctx = None
+
+            try:
+                if ctx:
+                    res = _ur.urlopen(req, context=ctx, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
+                else:
+                    res = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
+                log_step("[_get] urllib Success for " + url)
+                return res
+            except Exception as e:
+                log_step("[_get] urllib Error: " + str(e))
+                raise e
+
+        def _validate(link):
+            lnk_lower = _to_unicode(link).lower()
+            home_words = [re.sub(r'[^a-z0-9]', '', w.lower()) for w in home_clean.split()]
+            away_words = [re.sub(r'[^a-z0-9]', '', w.lower()) for w in away_clean.split()]
+            stop_words = {u'vs', u'and', u'the', u'fc', u'sc', u'united', u'city', u'de', u'la', u'del'}
+            home_words = [w for w in home_words if w and w not in stop_words]
+            away_words = [w for w in away_words if w and w not in stop_words]
+            
+            home_match = any(w in lnk_lower for w in home_words) if home_words else True
+            away_match = any(w in lnk_lower for w in away_words) if away_words else True
+            return home_match and away_match
+
+        # Python 2 and 3 compatible quoting helper
+        def _safe_quote(text, plus=False):
+            if isinstance(text, bytes):
+                text_bytes = text
+            else:
+                try:
+                    text_bytes = text.encode('utf-8')
+                except:
+                    text_bytes = text
+            quoted = _up.quote_plus(text_bytes) if plus else _up.quote(text_bytes)
+            if isinstance(quoted, bytes):
+                return quoted.decode('utf-8')
+            return quoted
+
+        # ---- Step 1: Resolve the match page URL using a hybrid strategy ----
+        valid_match_url = None
+
+        # Try 1: Autocomplete API with "Home vs Away"
+        q1 = u"{} vs {}".format(home_clean, away_clean)
+        url_ac1 = u"https://cdnapi.livesoccertv.com/autocomplete.php?q=" + _safe_quote(q1) + u"&iso=iq"
+        log_step("Try 1: Autocomplete VS (" + url_ac1 + ")")
+        try:
+            import json
+            res = _get(url_ac1, is_json=True)
+            data = json.loads(res)
+            html = data.get("html", "")
+            raw_links = re.findall(r'href=["\']([^"\']+)["\']', html)
+            log_step("AC1 links found: {}".format(len(raw_links)))
+            for lnk in raw_links:
+                m = re.search(r'[?&]url=([^&]+)', lnk)
+                if m:
+                    lnk_val = m.group(1)
+                    if not is_py2:
+                        decoded = _up.unquote(lnk_val)
+                    else:
+                        if isinstance(lnk_val, unicode):
+                            lnk_val = lnk_val.encode('utf-8')
+                        unquoted = _up.unquote(lnk_val)
+                        decoded = unquoted.decode('utf-8', errors='replace')
+                else:
+                    decoded = lnk
+                clean_lnk = decoded.split('#')[0]
+                if clean_lnk.startswith(u"/match") and _validate(clean_lnk):
+                    valid_match_url = u"https://www.livesoccertv.com" + clean_lnk
+                    log_step("AC1 validated match URL: " + valid_match_url)
+                    break
+        except Exception as e:
+            log_step("AC1 Exception: " + str(e))
+
+        # Try 2: Autocomplete API with "Home Away"
+        if not valid_match_url:
+            q2 = u"{} {}".format(home_clean, away_clean)
+            url_ac2 = u"https://cdnapi.livesoccertv.com/autocomplete.php?q=" + _safe_quote(q2) + u"&iso=iq"
+            log_step("Try 2: Autocomplete Space (" + url_ac2 + ")")
+            try:
+                import json
+                res = _get(url_ac2, is_json=True)
+                data = json.loads(res)
+                html = data.get("html", "")
+                raw_links = re.findall(r'href=["\']([^"\']+)["\']', html)
+                log_step("AC2 links found: {}".format(len(raw_links)))
+                for lnk in raw_links:
+                    m = re.search(r'[?&]url=([^&]+)', lnk)
+                    if m:
+                        lnk_val = m.group(1)
+                        if not is_py2:
+                            decoded = _up.unquote(lnk_val)
+                        else:
+                            if isinstance(lnk_val, unicode):
+                                lnk_val = lnk_val.encode('utf-8')
+                            unquoted = _up.unquote(lnk_val)
+                            decoded = unquoted.decode('utf-8', errors='replace')
+                    else:
+                        decoded = lnk
+                    clean_lnk = decoded.split('#')[0]
+                    if clean_lnk.startswith(u"/match") and _validate(clean_lnk):
+                        valid_match_url = u"https://www.livesoccertv.com" + clean_lnk
+                        log_step("AC2 validated match URL: " + valid_match_url)
+                        break
+            except Exception as e:
+                log_step("AC2 Exception: " + str(e))
+
+        # Try 3: Search page GET fallback
+        if not valid_match_url:
+            q3 = u"{} {}".format(home_clean, away_clean).strip()
+            search_url = u"https://www.livesoccertv.com/search/?q=" + _safe_quote(q3, plus=True)
+            log_step("Try 3: Search GET fallback (" + search_url + ")")
+            try:
+                search_html = _get(search_url)
+                match_links = re.findall(r'href=["\'](?:https://www\.livesoccertv\.com)?(/match(?:es)?/[^"\'#\s>]+)', search_html, re.IGNORECASE)
+                log_step("Search links found: {}".format(len(match_links)))
+                for lnk in match_links:
+                    clean_lnk = lnk.split('#')[0]
+                    if _validate(clean_lnk):
+                        valid_match_url = u"https://www.livesoccertv.com" + clean_lnk
+                        log_step("Search validated match URL: " + valid_match_url)
+                        break
+            except Exception as e:
+                log_step("Search GET Exception: " + str(e))
+
+        # ---- Step 2: Fetch the validated match page HTML ----
+        parse_html = u""
+        if valid_match_url:
+            log_step("Fetching match page: " + valid_match_url)
+            try:
+                parse_html = _get(valid_match_url)
+            except Exception as e:
+                log_step("Match Page Fetch Exception: " + str(e))
+
+        if not parse_html:
+            log_step("No match page HTML fetched.")
+            return ([], debug_log)
+
+        # ---- Step 3: extract channels from TV listings table ----
+        results = []
+        seen_pairs = set()
+
+        # Try to find tables containing 'ichannels' or located inside 'dynamic-international-tv'
+        tables = re.findall(r'<table[^>]+class=["\'][^"\']*ichannels[^"\']*["\'][^>]*>(.*?)</table>', parse_html, re.DOTALL | re.IGNORECASE)
+        log_step("Found ichannels tables count: {}".format(len(tables)))
+
+        if tables:
+            for table_html in tables:
+                for tr_html in re.findall(r'<tr[^>]*>(.*?)</tr>', table_html, re.DOTALL | re.IGNORECASE):
+                    tds = re.findall(r'<td[^>]*>(.*?)</td>', tr_html, re.DOTALL | re.IGNORECASE)
+                    if len(tds) >= 2:
+                        country = re.sub(r'<[^>]+>', u'', tds[0]).strip()
+                        for ch_html in re.findall(r'<a[^>]+href=["\'](?:https://www\.livesoccertv\.com)?/channels/[^"\'\s>]+["\'][^>]*>(.*?)</a>', tds[1], re.DOTALL | re.IGNORECASE):
+                            clean_ch = re.sub(r'<[^>]+>', u'', ch_html).strip()
+                            clean_ch = re.sub(r'\s+', u' ', clean_ch)
+                            if clean_ch and (clean_ch, country) not in seen_pairs:
+                                seen_pairs.add((clean_ch, country))
+                                results.append((clean_ch, country))
+        else:
+            log_step("No ichannels tables, trying links fallback scan")
+            # Fallback if no table found (e.g. search page fallback)
+            clean_html = re.sub(r'<div[^>]+class=["\'][^"\']*(?:bottom-menu|footer|header)[^"\']*["\'].*?</div>', u'', parse_html, flags=re.DOTALL|re.IGNORECASE)
+            channel_pat = re.compile(
+                r'<a[^>]+href=["\'](?:https://www\.livesoccertv\.com)?/channels/[^"\'\s>]+["\'][^>]*>(.*?)</a>',
+                re.IGNORECASE | re.DOTALL
+            )
+            seen_names = set()
+            for ch_html in channel_pat.findall(clean_html):
+                clean = re.sub(r'<[^>]+>', u'', ch_html).strip()
+                clean = re.sub(r'\s+', u' ', clean)
+                if clean and len(clean) > 1 and clean not in seen_names:
+                    seen_names.add(clean)
+                    results.append((clean, u""))
+
+        log_step("Scraping completed. Found {} channels".format(len(results)))
+        return (results, debug_log)
+
+    # ----------------------------------------- Stage 1 callback (main thread)
+    def _on_livesoccertv_done(self, worker_output):
+        """
+        Called on the main thread when the web scrape finishes.
+        """
+        self._livesoccertv_search_running = False
+
+        if isinstance(worker_output, tuple) and len(worker_output) == 2:
+            channel_names, debug_log = worker_output
+        else:
+            channel_names = worker_output
+            debug_log = [u"Worker returned invalid output format"]
+
+        if not channel_names:
+            self["hint"].setText(_t("No LSTV results"))
+            log_dbg("LiveSoccerTV search: No broadcasting channels found.")
+            return
+
+        self._livesoccertv_channels = channel_names
+
+        new_entries = []
+        for ch_name, country in channel_names:
+            entry = self._build_livesoccertv_list_entry(ch_name, country, sref=u"", scanned=False)
+            if entry:
+                self.channels.append(entry[0])
+                new_entries.append(entry)
+
+        if new_entries:
+            self._add_feed_entries_to_list(new_entries)
+            self["hint"].setText(u"LSTV: {} ch".format(len(new_entries)))
+
+    # -------------------------------------------- error handler
+    def _livesoccertv_err(self, failure):
+        """Called on main thread if the Stage 1 background thread raises."""
+        self._livesoccertv_search_running = False
+        self._livesoccertv_channels = None
+        self["key_blue"].setText(_t("Find in Bouquets"))
+        self["hint"].setText(_t("LSTV search failed"))
+        log_dbg("[LSTV] Worker error: " + str(failure))
+
+    # -------------------------------------------- list-entry builder
+    def _build_livesoccertv_list_entry(self, ch_name, country, sref, scanned):
+        """
+        Build a rendered list entry for a LiveSoccerTV channel result.
+
+        scanned=False  (Stage 1):
+          line2 = "Press Blue to find in your bouquets"
+
+        scanned=True   (Stage 2):
+          line2 = "▶ In your bouquets — OK to zap"   if sref is set
+          line2 = "Not in your bouquets"              otherwise
+
+        raw tuple: (sref, line1, line2, LSTV_STRIP, ch_name, country, scanned)
+        """
+        LSTV_STRIP = 0x1B5E20   # dark green — LiveSoccerTV identity
+        c_text     = 0xFFFFFF
+        c_dim      = 0x69F0AE   # light mint for secondary text
+        c_sel      = 0x00FF85 if self.theme != "ucl" else 0xC9A020
+
+        line1 = u"[LiveSoccerTV]  " + ch_name
+        if country:
+            line1 += u" (" + country + u")"
+
+        if not scanned:
+            line2 = u"\U0001f535 Press Blue to find in your bouquets"
+        elif sref:
+            line2 = u"\u25b6 In your bouquets \u2014 OK to zap"
+        else:
+            line2 = u"Not in your bouquets \u2014 add channel to zap"
+
+        raw = (sref, line1, line2, LSTV_STRIP, ch_name, country, scanned)
+        res = [raw]
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    5, 5, 8, 50, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    u"", 0x000000, LSTV_STRIP))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    20, 2, 860, 30, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    line1, c_text, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                    20, 32, 860, 25, 1,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                    line2, c_dim, c_sel))
         return (raw, res)
 
     def _add_feed_entries_to_list(self, new_entries):
