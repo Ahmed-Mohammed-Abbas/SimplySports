@@ -113,16 +113,22 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.2"
+VERSION = "6.3"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
 # ==============================================================================
 PLUGIN_LANGUAGE = "en"   # "en" or "ar" — loaded from config at start-up
+LAST_LIVESCORE_CZ_SPORT = "soccer"
 
 TRANSLATIONS = {
     "SIMPLYSPORTS ARENA":         {"ar": u"\u0633\u0627\u062d\u0629 \u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633"},
     "SIMPLYSPORTS ARENA - LIVE MATCHES": {"ar": u"\u0633\u0627\u062d\u0629 \u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633 - \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
+    "SIMPLYSPORTS ARENA - BASKETBALL": {"ar": u"\u0633\u0627\u062d\u0629 \u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633 - \u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629"},
+    "SIMPLYSPORTS ARENA - BASKETBALL - LIVE MATCHES": {"ar": u"\u0633\u0627\u062d\u0629 \u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633 - \u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629 - \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
+    "SIMPLYSPORTS ARENA - VOLLEYBALL": {"ar": u"\u0633\u0627\u062d\u0629 \u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633 - \u0627\u0644\u0643\u0631\u0629 \u0627\u0644\u0637\u0627\u0626\u0631\u0629"},
+    "SIMPLYSPORTS ARENA - VOLLEYBALL - LIVE MATCHES": {"ar": u"\u0633\u0627\u062d\u0629 \u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633 - \u0627\u0644\u0643\u0631\u0629 \u0627\u0644\u0637\u0627\u0626\u0631\u0629 - \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
+    "0: Soccer, 1: Basketball, 2: Volleyball": {"ar": u"0: \u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645\u060c 1: \u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629\u060c 2: \u0627\u0644\u0643\u0631\u0629 \u0627\u0644\u0637\u0627\u0626\u0631\u0629"},
     "League Standings":           {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062f\u0648\u0631\u064a"},
     "Follow Match":               {"ar": u"\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Today":                      {"ar": u"\u0627\u0644\u064a\u0648\u0645"},
@@ -1198,7 +1204,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.2"  # Update version to 6.2 - New SimplySports Arena feature (a comprehensive football scoring web-based source livescore.cz.). A new broadcasting channel screen searching method (EPG + a comprehensive web-based channel search source livesoccertv.com). A new top minibar World Cup style. Late-night match time bug fix. Double-voting bug fix.
+CURRENT_VERSION = "6.3"  # Update version to 6.3 - New SimplySports Arena sports (basketball and volleyball in addition to the football). The H2H screen is now displaying the last matches for the teams. Fixing the subscreens in the gameinfo screen for the Arena. Bugs fix of the tennis sport, and UFC sport addition.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1775,12 +1781,22 @@ def build_match_snapshot(event):
             stage_label = 'ROUND OF 16'
         elif '32' in rnd_text:
             stage_label = 'ROUND OF 32'
+        elif rnd_text in ('round 1', 'first round') or 'playoff' in rnd_text:
+            stage_label = 'ROUND OF 32'
         elif 'group' in rnd_text:
             md = rnd_num if rnd_num else 1
             stage_label = 'GROUP \xb7 MD{}'.format(md)    # e.g. "GROUP · MD2"
         else:
-            # Fallback: derive from tournament date (mirrors _on_summary_resolved brackets)
-            cur_md = time.strftime("%m-%d")
+            # Fallback: derive from the match's own date (not system date)
+            # so browsing future/past days always shows the correct stage.
+            ev_date_str = event.get('date', '')
+            if ev_date_str and len(ev_date_str) >= 10:
+                try:
+                    cur_md = ev_date_str[5:10]   # "YYYY-MM-DD..." -> "MM-DD"
+                except Exception:
+                    cur_md = time.strftime("%m-%d")
+            else:
+                cur_md = time.strftime("%m-%d")
             if   "06-11" <= cur_md <= "06-27": stage_label = 'GROUP STAGE'
             elif "06-28" <= cur_md <= "07-03": stage_label = 'ROUND OF 32'
             elif "07-04" <= cur_md <= "07-07": stage_label = 'ROUND OF 16'
@@ -2065,10 +2081,37 @@ def snapshot_passes_filter(snap, filter_mode, today, tomorrow, yesterday):
         except:
             pass
 
-    if filter_mode == 0 and ev_date != yesterday: return False
-    if filter_mode == 1 and state != 'in':        return False
-    if filter_mode == 2 and ev_date != today and state != 'in': return False
-    if filter_mode == 3 and ev_date != tomorrow:  return False
+    # For racing: check date range if endDate exists
+    is_racing = snap.get('sport_type') == SPORT_TYPE_RACING
+    ev_end_date = ev_date
+    if is_racing:
+        raw_evt = snap.get('raw_event', {})
+        end_utc = raw_evt.get('endDate', '')
+        if end_utc and 'T' in end_utc:
+            try:
+                date_part, time_part = end_utc.split('T')
+                y, m, d = map(int, date_part.split('-'))
+                time_part = time_part.replace('Z', '')
+                H, M = map(int, time_part.split(':')[:2])
+                dt_utc = datetime.datetime(y, m, d, H, M)
+                timestamp = calendar.timegm(dt_utc.timetuple())
+                local_dt = datetime.datetime.fromtimestamp(timestamp)
+                ev_end_date = local_dt.strftime("%Y-%m-%d")
+            except:
+                ev_end_date = end_utc[:10]
+        elif end_utc:
+            ev_end_date = end_utc[:10]
+
+    if is_racing:
+        if filter_mode == 0 and not (ev_date <= yesterday <= ev_end_date): return False
+        if filter_mode == 1 and state != 'in': return False
+        if filter_mode == 2 and not (ev_date <= today <= ev_end_date) and state != 'in': return False
+        if filter_mode == 3 and not (ev_date <= tomorrow <= ev_end_date): return False
+    else:
+        if filter_mode == 0 and ev_date != yesterday: return False
+        if filter_mode == 1 and state != 'in':        return False
+        if filter_mode == 2 and ev_date != today and state != 'in': return False
+        if filter_mode == 3 and ev_date != tomorrow:  return False
     return True
 
 
@@ -2457,7 +2500,7 @@ def parse_livescore_cz(html_data, day_offset=0):
         pending_header = {"type": "header", "name": league_name}
 
         # Add matches under this league
-        matches = matches_part.split('<br />')
+        matches = re.split(r'<br\s*/?>|<tr\b[^>]*>', matches_part, flags=re.IGNORECASE)
         for m_line in matches:
             m_line = m_line.strip()
             if not m_line:
@@ -3571,6 +3614,12 @@ class SportsMonitor:
         self.livescore_cz_scores = {}
         self._livescore_cz_last_check = 0    # epoch timestamp of last fetch
         self._livescore_cz_fetching = False   # guard against concurrent fetches
+        self.remote_config = {
+            "maintenance_mode": False,
+            "announcement_message": "",
+            "show_announcement": False,
+            "update_whole_repo": False,
+        }
 
         self.timer = eTimer()
         safe_connect(self.timer, self.check_goals)
@@ -4125,6 +4174,29 @@ class SportsMonitor:
         # Also ensure total_predictions and correct_predictions are always present.
         self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
 
+    def fetch_remote_config(self):
+        try:
+            import ssl
+            import json
+            from urllib.request import Request, urlopen
+            url = "{}/remote_config.json".format(FIREBASE_URL)
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=5, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=5)
+            data = response.read()
+            if isinstance(data, bytes):
+                data = data.decode('utf-8', errors='ignore')
+            if data and data != "null":
+                parsed = json.loads(data)
+                if isinstance(parsed, dict):
+                    self.remote_config.update(parsed)
+                    log_dbg("[RemoteConfig] Configuration loaded successfully.")
+        except Exception as e:
+            log_dbg("[RemoteConfig] Fetch failed: " + str(e))
+
     def save_config(self):
         data = {
             "league_index": self.current_league_index, "filter_mode": self.filter_mode,
@@ -4476,8 +4548,16 @@ class SportsMonitor:
         Append ?dates=YYYYMMDD-YYYYMMDD to an ESPN scoreboard URL when ch_day_offset != 0
         to cover timezone-shifted matches (fetching 1 day before to the target day).
         EuroLeague URLs (euroleague://) are passed through unchanged.
+        Tennis, MMA, and Racing URLs are passed through unchanged because ESPN's API
+        for those sports returns 0 events when the dates parameter is appended.
+        They use tournament-level/week-level date ranges and have their own internal filtering.
         """
         if url.startswith('euroleague://'):
+            return url
+
+        # Tennis, MMA/Boxing, and Racing APIs break with ?dates= parameter — skip them
+        url_lower = url.lower()
+        if '/tennis/' in url_lower or '/mma/' in url_lower or '/boxing/' in url_lower or '/racing/' in url_lower:
             return url
         
         # Query target and target - 1 day to cover all possible local-day timezone shifts.
@@ -4488,6 +4568,7 @@ class SportsMonitor:
         date_range = "{}-{}".format(t_prev.strftime('%Y%m%d'), target.strftime('%Y%m%d'))
         sep = '&' if '?' in url else '?'
         return url + sep + 'dates=' + date_range
+
 
     def navigate_day(self, delta):
         """
@@ -16686,6 +16767,7 @@ class LiveScoreCZScreen(Screen):
         <screen position="0,0" size="1920,1080" title="SimplySports Arena" flags="wfNoBorder" backgroundColor="#00000000">
             {bg}
             {top}
+            <widget name="sport_hint" position="40,25" size="450,35" font="SimplySportFont;24" foregroundColor="#aaaaaa" transparent="1" halign="left" valign="center" zPosition="2" />
             <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
             <widget name="clock" position="{cx},75" size="{cw},35" font="SimplySportFont;28" foregroundColor="{fg_ls}" transparent="1" halign="{ca}" zPosition="2" />
             {bar}
@@ -16712,6 +16794,7 @@ class LiveScoreCZScreen(Screen):
             self["bar_bg"] = Label("")
         
         self["top_title"] = Label(_t("SIMPLYSPORTS ARENA"))
+        self["sport_hint"] = Label(_t("0: Soccer, 1: Basketball, 2: Volleyball"))
         self["list_title"] = Label(_t("Loading..."))
         self["clock"] = Label("")
         self["head_status"] = Label(_t("STATUS"))
@@ -16729,6 +16812,8 @@ class LiveScoreCZScreen(Screen):
         self.raw_parsed_data = []
         self.day_offset = 0
         self.last_key_time = 0
+        global LAST_LIVESCORE_CZ_SPORT
+        self.current_sport = LAST_LIVESCORE_CZ_SPORT
 
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         self["list"].l.setFont(0, gFont("SimplySportFont", 26))
@@ -16758,7 +16843,7 @@ class LiveScoreCZScreen(Screen):
         # does not attempt to write to destroyed widgets (Step 5.1 thread safety).
         self._is_closed = False
 
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "EPGSelectActions", "EventViewActions", "InfobarBouquetActions", "InfobarSeekActions"],
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "EPGSelectActions", "EventViewActions", "InfobarBouquetActions", "InfobarSeekActions", "NumberActions"],
             {
                 "cancel": self.close,
                 "red": self.open_standings,
@@ -16783,10 +16868,43 @@ class LiveScoreCZScreen(Screen):
                 "bouquetDown": self.ch_prev_day,
                 "fastForward": self.ch_next_day,
                 "rewind":      self.ch_prev_day,
+                "0":           self.switchToSoccer,
+                "1":           self.switchToBasketball,
+                "2":           self.switchToVolleyball,
             }, -1)
 
         self.onLayoutFinish.append(self.start_ui)
         self.onClose.append(self.cleanup)
+
+    def switchToSoccer(self):
+        global LAST_LIVESCORE_CZ_SPORT
+        if self.current_sport != "soccer":
+            self.current_sport = "soccer"
+            LAST_LIVESCORE_CZ_SPORT = "soccer"
+            self.is_initial_load = True
+            self["list"].setList([])
+            self["list_title"].setText(_t("Fetching data from livescore.cz..."))
+            self.fetch_data()
+
+    def switchToBasketball(self):
+        global LAST_LIVESCORE_CZ_SPORT
+        if self.current_sport != "basketball":
+            self.current_sport = "basketball"
+            LAST_LIVESCORE_CZ_SPORT = "basketball"
+            self.is_initial_load = True
+            self["list"].setList([])
+            self["list_title"].setText(_t("Fetching data from livescore.cz..."))
+            self.fetch_data()
+
+    def switchToVolleyball(self):
+        global LAST_LIVESCORE_CZ_SPORT
+        if self.current_sport != "volleyball":
+            self.current_sport = "volleyball"
+            LAST_LIVESCORE_CZ_SPORT = "volleyball"
+            self.is_initial_load = True
+            self["list"].setList([])
+            self["list_title"].setText(_t("Fetching data from livescore.cz..."))
+            self.fetch_data()
 
     def open_broadcasting(self):
         sel = self["list"].getCurrent()
@@ -16876,10 +16994,16 @@ class LiveScoreCZScreen(Screen):
             # when the user toggles between "All Matches" and "Live Only" views.
             # The client-side filter in render_filtered_list() handles the
             # live-only display from the full dataset.
-            if self.day_offset == 0:
-                url = "https://www.livescore.cz/"
+            if self.current_sport == "basketball":
+                sport_path = "basketball/"
+            elif self.current_sport == "volleyball":
+                sport_path = "volleyball/"
             else:
-                url = "https://www.livescore.cz/?d={}".format(self.day_offset)
+                sport_path = ""
+            if self.day_offset == 0:
+                url = "https://www.livescore.cz/" + sport_path
+            else:
+                url = "https://www.livescore.cz/{}?d={}".format(sport_path, self.day_offset)
             req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
             
             import ssl
@@ -16924,10 +17048,16 @@ class LiveScoreCZScreen(Screen):
         self.render_filtered_list()
 
     def render_filtered_list(self):
-        if self.show_only_live:
-            self["top_title"].setText(_t("SIMPLYSPORTS ARENA - LIVE MATCHES"))
+        if self.current_sport == "basketball":
+            sport_label = " - BASKETBALL"
+        elif self.current_sport == "volleyball":
+            sport_label = " - VOLLEYBALL"
         else:
-            self["top_title"].setText(_t("SIMPLYSPORTS ARENA"))
+            sport_label = ""
+        if self.show_only_live:
+            self["top_title"].setText(_t("SIMPLYSPORTS ARENA" + sport_label + " - LIVE MATCHES"))
+        else:
+            self["top_title"].setText(_t("SIMPLYSPORTS ARENA" + sport_label))
 
         if not self.raw_parsed_data:
             self["list"].setList([])
@@ -17503,7 +17633,7 @@ def parse_livescore_cz_h2h(html_data):
 
         pending_header = {"type": "header", "name": section_name}
 
-        for m_line in matches_part.split('<br />'):
+        for m_line in re.split(r'<br\s*/?>|<tr\b[^>]*>', matches_part, flags=re.IGNORECASE):
             m_line = m_line.strip()
             if not m_line:
                 continue
@@ -17736,6 +17866,8 @@ class LiveScoreCZGameInfoScreen(Screen):
         self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
         self["info_list"].l.setFont(0, gFont("Regular", 24))
         self["info_list"].l.setFont(1, gFont("Regular", 20))
+        self["info_list"].l.setFont(2, gFont("Regular", 22))
+        self["info_list"].l.setFont(3, gFont("Regular", 18))
         self["info_list"].l.setItemHeight(50)
 
         # Colour buttons get their own, higher-priority map so that on STBs
@@ -17846,7 +17978,9 @@ class LiveScoreCZGameInfoScreen(Screen):
 
     def bg_fetch_lineups(self):
         try:
-            url = "https://www.livescore.cz" + self.match_entry.get("href", "") + "?t=lineups"
+            raw_href = self.match_entry.get("href", "")
+            clean_href = raw_href.split('?')[0] if raw_href else ""
+            url = "https://www.livescore.cz" + clean_href + "?t=lineups"
             req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
             import ssl
             try:
@@ -17905,6 +18039,9 @@ class LiveScoreCZGameInfoScreen(Screen):
         self.current_view = "events"
         self.current_page = 0
         self["match_title"].setText(_t("MATCH DETAILS"))
+        # Restore date/time labels (hidden by Stats/H2H/Lineups to avoid overlap)
+        self["countdown_label"].show()
+        self["start_time_label"].show()
         if self.match_events_data:
             self["loading"].hide()
             self.render_events()
@@ -17916,6 +18053,9 @@ class LiveScoreCZGameInfoScreen(Screen):
         self.current_view = "lineups"
         self.current_page = 0
         self["match_title"].setText(_t("TEAM LINEUPS"))
+        # Hide date/time labels so they don't overlap the full-width header
+        self["countdown_label"].hide()
+        self["start_time_label"].hide()
         if self.lineup_data:
             self.render_lineups()
         else:
@@ -17932,6 +18072,9 @@ class LiveScoreCZGameInfoScreen(Screen):
         self.current_view = "stats"
         self.current_page = 0
         self["match_title"].setText(_t("MATCH STATS"))
+        # Hide date/time labels so they don't overlap the full-width header
+        self["countdown_label"].hide()
+        self["start_time_label"].hide()
         if self.stats_data is not None:
             self.render_stats()
         else:
@@ -18020,6 +18163,9 @@ class LiveScoreCZGameInfoScreen(Screen):
         self.current_view = "h2h"
         self.current_page = 0
         self["match_title"].setText(_t("HEAD TO HEAD"))
+        # Hide date/time labels so they don't overlap the full-width header
+        self["countdown_label"].hide()
+        self["start_time_label"].hide()
         if self.h2h_data is not None:
             self.render_h2h()
         else:
@@ -18032,7 +18178,9 @@ class LiveScoreCZGameInfoScreen(Screen):
 
     def bg_fetch_h2h(self):
         try:
-            url = "https://www.livescore.cz" + self.match_entry.get("href", "") + "?t=h2h"
+            raw_href = self.match_entry.get("href", "")
+            clean_href = raw_href.split('?')[0] if raw_href else ""
+            url = "https://www.livescore.cz" + clean_href + "?t=h2h"
             req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
             import ssl
             try:
@@ -18298,7 +18446,8 @@ class LiveScoreCZTeamStandingScreen(Screen):
 
     def bg_fetch(self):
         try:
-            url = "https://www.livescore.cz" + self.match_href + "?t=standings"
+            clean_href = self.match_href.split('?')[0] if self.match_href else ""
+            url = "https://www.livescore.cz" + clean_href + "?t=standings"
             req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
             
             import ssl
@@ -18839,6 +18988,43 @@ class SimpleSportsScreen(Screen):
         self["list_title"].setText("Loading...")
         self.update_top_status()
         self.update_header(); self.update_filter_button(); self._update_ch_hint(); self.fetch_data()
+
+        # Remote Config fetch
+        try:
+            t = threading.Thread(target=self.bg_fetch_remote_config)
+            t.daemon = True
+            t.start()
+        except Exception as e:
+            log_dbg("[RemoteConfig] Thread start failed: " + str(e))
+
+    def bg_fetch_remote_config(self):
+        self.monitor.fetch_remote_config()
+        reactor.callFromThread(self.apply_remote_config)
+
+    def apply_remote_config(self):
+        if getattr(self, '_is_closed', False) or not self.session:
+            return
+        config = self.monitor.remote_config
+        
+        # 1. Maintenance Mode
+        if config.get("maintenance_mode", False):
+            from Screens.MessageBox import MessageBox
+            self.session.openWithCallback(
+                self.close, 
+                MessageBox, 
+                _t("SimplySport is currently under maintenance. Please try again later."), 
+                MessageBox.TYPE_ERROR
+            )
+            return
+
+        # 2. Announcement Message
+        if config.get("show_announcement", False) and config.get("announcement_message"):
+            last_msg = getattr(self.monitor, '_last_announcement', '')
+            curr_msg = config.get("announcement_message")
+            if last_msg != curr_msg:
+                self.monitor._last_announcement = curr_msg
+                from Screens.MessageBox import MessageBox
+                self.session.open(MessageBox, curr_msg, MessageBox.TYPE_INFO)
 
     def cleanup(self):
         self.clock_timer.stop()
@@ -20653,9 +20839,17 @@ class SimpleSportsScreen(Screen):
 
     def start_update(self, answer):
         if answer:
-            self["league_title"].setText(_t("FETCHING FILE LIST..."))
-            tree_url = "https://api.github.com/repos/Ahmed-Mohammed-Abbas/SimplySports/git/trees/main?recursive=1"
-            getPage(tree_url.encode('utf-8')).addCallback(self._got_file_tree).addErrback(self.update_fail)
+            if self.monitor.remote_config.get("update_whole_repo", False):
+                self["league_title"].setText(_t("FETCHING FILE LIST..."))
+                tree_url = "https://api.github.com/repos/Ahmed-Mohammed-Abbas/SimplySports/git/trees/main?recursive=1"
+                getPage(tree_url.encode('utf-8')).addCallback(self._got_file_tree).addErrback(self.update_fail)
+            else:
+                self["league_title"].setText(_t("DOWNLOADING UPDATE..."))
+                local_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/plugin.py")
+                self._update_files = [("plugin.py", local_path)]
+                self._update_index = 0
+                self._update_total = 1
+                self._download_next_file(None)
 
     def _got_file_tree(self, data):
         try:
