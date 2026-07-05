@@ -113,7 +113,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.3"
+VERSION = "6.4"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -461,6 +461,21 @@ TRANSLATIONS = {
     "new reaction(s)":                {"ar": u"\u062a\u0641\u0627\u0639\u0644\u0627\u062a \u062c\u062f\u064a\u062f\u0629"},
     "total":                          {"ar": u"\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a"},
     "WP Commentary: Every {} min":    {"ar": u"\u062a\u0639\u0644\u064a\u0642 \u062d\u0641\u0644\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629: \u0643\u0644 {} \u062f\u0642"},
+    "WIN%":                           {"ar": u"\u0646\u0633\u0628\u0629 \u0627\u0644\u0641\u0648\u0632 %"},
+    "WIN% (EST)":                     {"ar": u"\u0646\u0633\u0628\u0629 \u0627\u0644\u0641\u0648\u0632 % (\u062a\u0642\u062f\u064a\u0631)"},
+    "LIVE":                           {"ar": u"\u0645\u0628\u0627\u0634\u0631"},
+    "FIN":                            {"ar": u"\u0627\u0646\u062a\u0647\u062a"},
+    "SCH":                            {"ar": u"\u0642\u0627\u062f\u0645\u0629"},
+    "PPD":                            {"ar": u"\u0645\u0624\u062c\u0644\u0629"},
+    "CAN":                            {"ar": u"\u0645\u0644\u063a\u0627\u0629"},
+    "SUS":                            {"ar": u"\u0645\u0639\u0644\u0642\u0629"},
+    "FINISHED":                       {"ar": u"\u0645\u0646\u062a\u0647\u064a\u0629"},
+    "SCHEDULED":                      {"ar": u"\u0645\u062c\u062f\u0648\u0644\u0629"},
+    "CANCEL":                         {"ar": u"\u0625\u0644\u063a\u0627\u0621"},
+    "POSTPONED":                      {"ar": u"\u0645\u0624\u062c\u0644"},
+    "LIVE NOW":                       {"ar": u"\u0645\u0628\u0627\u0634\u0631 \u0627\u0644\u0622\u0646"},
+    "MATCH FINISHED":                 {"ar": u"\u0627\u0646\u062a\u0647ت \u0627\u0644م\u0628\u0627\u0631\u0627\u0629"},
+    "RACE FINISHED":                  {"ar": u"\u0627\u0646\u062a\u0647\u0649 \u0627\u0644\u0633\u0628\u0627\u0642"},
 }
 
 
@@ -1204,7 +1219,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.3"  # Update version to 6.3 - New SimplySports Arena sports (basketball and volleyball in addition to the football). The H2H screen is now displaying the last matches for the teams. Fixing the subscreens in the gameinfo screen for the Arena. Bugs fix of the tennis sport, and UFC sport addition.
+CURRENT_VERSION = "6.4"  # Update version to 6.4 - SimplySports vNext UI: modern dashboard header, card-based match list, icon-based bottom nav, live goal heatmap, and layout fixes.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -2274,6 +2289,100 @@ global_sports_monitor = None
 # ==============================================================================
 # UTILS
 # ==============================================================================
+def _spread_to_probs(spread, league_url):
+    """Rough WIN/DRAW/WIN estimate from a point spread alone, when no
+    moneyline is quoted anywhere (e.g. DraftKings soccer listings that only
+    show '-0.5 | O/U 2.5'). This is a genuine statistical approximation, not
+    a lookup of a real quoted probability - callers must label it as an
+    estimate rather than a 'prediction'.
+
+    Model: assume the eventual (home - away) margin is Normally distributed
+    around -spread (ESPN convention: negative spread = home favored) with a
+    sport-typical standard deviation, then use the standard continuity
+    correction (+/-0.5) to get P(home win) / P(draw) / P(away win) from that
+    continuous distribution. Sigma values are commonly-cited rough figures
+    for each sport's scoring variance, not precisely calibrated - treat the
+    output as a directional estimate, not a hard number.
+    """
+    try:
+        spread = float(spread)
+    except (TypeError, ValueError):
+        return None
+    url_l = (league_url or '').lower()
+    if 'soccer' in url_l:
+        sigma = 1.3; has_draw = True
+    elif 'hockey' in url_l or 'nhl' in url_l:
+        sigma = 1.6; has_draw = False
+    elif 'basketball' in url_l or 'nba' in url_l or 'ncaab' in url_l:
+        sigma = 11.0; has_draw = False
+    elif 'football' in url_l or 'nfl' in url_l or 'ncaaf' in url_l:
+        sigma = 13.5; has_draw = False
+    else:
+        sigma = 10.0; has_draw = False
+
+    def _phi(x):
+        return 0.5 * (1.0 + math.erf(x / math.sqrt(2)))
+
+    mean = -spread  # expected home margin
+    if has_draw:
+        p_home = 1.0 - _phi((0.5 - mean) / sigma)
+        p_away = _phi((-0.5 - mean) / sigma)
+    else:
+        p_home = 1.0 - _phi((0.0 - mean) / sigma)
+        p_away = 1.0 - p_home
+    total = p_home + p_away
+    if total <= 0:
+        return None
+    return (p_home / total) * 100.0, (p_away / total) * 100.0
+
+
+def _moneyline_to_prob(moneyline):
+    """Standard American-odds -> implied win probability (still includes the
+    book's vig at this point; callers normalize across all quoted outcomes to
+    strip it out). Returns None if moneyline isn't a usable number."""
+    try:
+        ml = float(moneyline)
+    except (TypeError, ValueError):
+        return None
+    if ml == 0:
+        return 0.5
+    if ml > 0:
+        return 100.0 / (ml + 100.0)
+    return (-ml) / ((-ml) + 100.0)
+
+
+def get_local_datetime(utc_date_str):
+    """Same parsing as get_local_time_str but returns a local datetime object
+    (or None). Used for the 'Next match in Xm' countdown."""
+    try:
+        if utc_date_str and 'T' in utc_date_str:
+            date_part, time_part = utc_date_str.split('T')
+            y, m, d = map(int, date_part.split('-'))
+            time_part = time_part.replace('Z', '')
+            H, M = map(int, time_part.split(':')[:2])
+            dt_utc = datetime.datetime(y, m, d, H, M)
+            timestamp = calendar.timegm(dt_utc.timetuple())
+            return datetime.datetime.fromtimestamp(timestamp)
+    except Exception:
+        pass
+    return None
+
+
+def format_countdown(delta_seconds):
+    """Compact 'in Xm' / 'in Xh Ym' / 'in Xd' style countdown string."""
+    delta_seconds = int(delta_seconds)
+    if delta_seconds < 60:
+        return _t("in <1m")
+    minutes = delta_seconds // 60
+    if minutes < 60:
+        return _t("in {}m").format(minutes)
+    hours, mins = divmod(minutes, 60)
+    if hours < 24:
+        return _t("in {}h {}m").format(hours, mins) if mins else _t("in {}h").format(hours)
+    days = hours // 24
+    return _t("in {}d").format(days)
+
+
 def get_local_time_str(utc_date_str):
     try:
         if 'T' in utc_date_str:
@@ -2391,6 +2500,458 @@ def draw_rounded_box(res, x, y, w, h, border_color, fill_color, is_solid):
                 inner_w = line_w - 2
                 if inner_w > 0:
                     res.append((eListboxPythonMultiContent.TYPE_TEXT, inner_x, y + i, inner_w, 1, 0, RT_HALIGN_CENTER, "", fill_color, fill_color, fill_color, fill_color))
+
+
+def draw_card(res, x, y, w, h, radius, fill, fill_sel, border=None, border_sel=None, border_w=2):
+    """Draw a 4-corner rounded card (fully rounded rect) with an optional border that
+    switches color on focus (fill_sel / border_sel), used for the vNext match cards.
+    This is a scanline approximation suited to eListboxPythonMultiContent (no native
+    rounded-rect primitive is available on this engine)."""
+    import math
+    if border is None: border = fill
+    if border_sel is None: border_sel = fill_sel
+    for i in range(h):
+        if i < radius:
+            dy = radius - 1 - i
+            dx = radius - int(math.sqrt(max(0, radius * radius - dy * dy)))
+        elif i >= h - radius:
+            dy = i - (h - radius)
+            dx = radius - int(math.sqrt(max(0, radius * radius - dy * dy)))
+        else:
+            dx = 0
+        line_x = x + dx
+        line_w = w - 2 * dx
+        if line_w <= 0:
+            continue
+        if border_w > 0 and (i < border_w or i >= h - border_w):
+            # Top/bottom edge rows: solid border color across the (curved) row
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x, y + i, line_w, 1, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
+        elif border_w > 0 and line_w > 2 * border_w:
+            # Middle rows: border strip on left/right edges, fill in between
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x, y + i, border_w, 1, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x + border_w, y + i, line_w - 2 * border_w, 1, 0, RT_HALIGN_CENTER, "", fill, fill_sel, fill, fill_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x + line_w - border_w, y + i, border_w, 1, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
+        else:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x, y + i, line_w, 1, 0, RT_HALIGN_CENTER, "", fill, fill_sel, fill, fill_sel))
+
+
+# ==============================================================================
+# VNEXT DESIGN TOKENS (SimplySports Main UI Renovation)
+# ==============================================================================
+VN_BG_DEEP      = 0x111418   # Deep charcoal - main background
+VN_BG_NAVY      = 0x0E1621   # Dark navy - top/bottom bars
+VN_CARD         = 0x171C24   # Card surface (default)
+VN_CARD_LIVE    = 0x151F1A   # Card surface tint for LIVE matches
+VN_BORDER       = 0x232B36   # Default card border (subtle)
+VN_ACCENT_BLUE  = 0x00AFFF   # Primary accent / focus glow
+VN_ACCENT_CYAN  = 0x00D9FF   # Secondary accent
+VN_GOLD         = 0xF2B530   # Highlight (winner / FIN)
+VN_LIVE_GREEN   = 0x00C853   # Live indicator
+VN_WARN_ORANGE  = 0xFF9800   # Warning / postponed
+VN_GRAY_FIN     = 0x8A8A8A   # Finished / muted text
+VN_TEXT_PRI     = 0xFFFFFF
+VN_TEXT_SEC     = 0xB0B8C1
+VN_LIVE_RED     = 0xFF3B3B   # Live status red (kept distinct from "warning" orange)
+
+
+_VNEXT_STATUS_ICON_CACHE = {}
+
+def _draw_form_dots(res, anchor_x, y, form_str, align='right'):
+    """Draw up to 5 small W/D/L dots (green/gray/red) anchored to anchor_x.
+    align='right' -> dots end at anchor_x (used under the home name).
+    align='left'  -> dots start at anchor_x (used under the away name)."""
+    if not form_str:
+        return
+    form_str = str(form_str).strip().upper()[:5]
+    if not form_str:
+        return
+    dot_size = 10
+    gap = 5
+    n = len(form_str)
+    total_w = n * dot_size + (n - 1) * gap
+    start_x = (anchor_x - total_w) if align == 'right' else anchor_x
+    for i, ch in enumerate(form_str):
+        if ch == 'W':
+            color = VN_LIVE_GREEN
+        elif ch == 'L':
+            color = VN_LIVE_RED
+        else:
+            color = VN_GRAY_FIN
+        dx = start_x + i * (dot_size + gap)
+        draw_card(res, dx, y, dot_size, dot_size, dot_size // 2, color, color, color, color, border_w=0)
+
+
+def _vnext_status_icon(status, time_str):
+    """Resolve (and cache) the 24x24 status icon path for a match card badge.
+    Returns None if the icon set isn't installed - callers must handle that
+    by simply not drawing a pixmap (the coloured text badge still works)."""
+    is_ht = (status == "LIVE" and isinstance(time_str, str) and time_str.strip().upper() in ("HT", "HALFTIME"))
+    key = "HT" if is_ht else status
+    if key in _VNEXT_STATUS_ICON_CACHE:
+        return _VNEXT_STATUS_ICON_CACHE[key]
+    fname = {
+        "LIVE": "status_live.png", "HT": "status_halftime.png", "FIN": "status_fin.png",
+        "PPD": "status_postponed.png", "SUS": "status_postponed.png",
+    }.get(key, "status_upcoming.png")
+    try:
+        path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/icons/vnext/status/" + fname)
+        if not os.path.exists(path):
+            path = None
+    except Exception:
+        path = None
+    _VNEXT_STATUS_ICON_CACHE[key] = path
+    return path
+
+
+_VNEXT_CARD_GLOW_PATH = None
+_VNEXT_CARD_GLOW_CHECKED = False
+
+def _vnext_card_glow():
+    global _VNEXT_CARD_GLOW_PATH, _VNEXT_CARD_GLOW_CHECKED
+    if not _VNEXT_CARD_GLOW_CHECKED:
+        _VNEXT_CARD_GLOW_CHECKED = True
+        try:
+            p = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/icons/vnext/card/card_focus_glow_1892x78.png")
+            _VNEXT_CARD_GLOW_PATH = p if os.path.exists(p) else None
+        except Exception:
+            _VNEXT_CARD_GLOW_PATH = None
+    return _VNEXT_CARD_GLOW_PATH
+
+
+def VNextListEntry(entry):
+    """SimplySports vNext match card renderer (modern TV sports broadcast style).
+    Drop-in replacement for SportListEntry: same entry tuple contract, new visuals -
+    rounded elevated cards, colour-coded status/time badges, live pulse dot,
+    gold-highlighted winners, and a blue focus glow border on the selected row."""
+    try:
+        h_poss = 0.0
+        a_poss = 0.0
+        h_pct_stats = []
+        a_pct_stats = []
+        h_shots = 0; a_shots = 0; h_on_target = 0; a_on_target = 0
+        h_form = ""; a_form = ""
+        h_pred_pct = 0.0; a_pred_pct = 0.0; pred_is_estimate = 0
+        goal_glow_side = None
+
+        if len(entry) >= 31:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side = entry[:31]
+        elif len(entry) >= 30:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate = entry[:30]
+        elif len(entry) >= 29:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct = entry[:29]
+        elif len(entry) >= 27:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form = entry[:27]
+        elif len(entry) >= 25:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target = entry[:25]
+        elif len(entry) >= 21:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats = entry[:21]
+        elif len(entry) >= 19:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss = entry[:19]
+        elif len(entry) >= 17:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards = entry[:17]
+        elif len(entry) >= 15:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png = entry[:15]
+             h_red_cards = 0; a_red_cards = 0
+        elif len(entry) >= 14:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg = entry[:14]
+             l_png = ""; h_red_cards = 0; a_red_cards = 0
+        elif len(entry) >= 13:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
+             c_score_bg = 0x171C24; has_epg = entry[12]; l_png = ""; h_red_cards = 0; a_red_cards = 0
+        elif len(entry) >= 12:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
+             c_score_bg = 0x171C24; has_epg = False; l_png = ""; h_red_cards = 0; a_red_cards = 0
+        else: return []
+
+        if h_png and h_png not in GLOBAL_VALID_LOGO_PATHS: h_png = None
+        if a_png and a_png not in GLOBAL_VALID_LOGO_PATHS: a_png = None
+        if l_png and l_png not in GLOBAL_VALID_LOGO_PATHS: l_png = None
+
+        c_text = VN_TEXT_PRI
+        c_dim = VN_TEXT_SEC
+        c_win = VN_GOLD            # winner highlight (replaces old green accent)
+        c_live = VN_LIVE_RED
+        c_sel = VN_ACCENT_BLUE     # focus glow colour used across the row
+
+        c_h_score = c_text
+        c_a_score = c_text
+        c_h_name = c_text
+        c_a_name = c_text
+
+        if status == "FIN":
+            if h_score_int > a_score_int:
+                c_h_score = c_win; c_h_name = c_win
+            elif a_score_int > h_score_int:
+                c_a_score = c_win; c_a_name = c_win
+        elif h_score_int > a_score_int:
+            c_h_score = VN_ACCENT_CYAN; c_h_name = VN_ACCENT_CYAN
+        elif a_score_int > h_score_int:
+            c_a_score = VN_ACCENT_CYAN; c_a_name = VN_ACCENT_CYAN
+
+        H = 136          # total row height (set via list.l.setItemHeight)
+        MARGIN_V = 3      # gap between cards, top+bottom (reduced for tighter row spacing)
+        card_y = MARGIN_V
+        card_h = H - 2 * MARGIN_V
+        card_x = 22
+        card_w = 1920 - 2 * card_x
+
+        res = [entry]
+
+        # Zebra background is not needed - deep charcoal canvas already comes from the
+        # screen skin's main_bg; just paint each row's outer gutter to match it so
+        # focus/selection never shows a "hole" between cards.
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1920, H, 0, RT_HALIGN_CENTER, "", VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP))
+
+        card_fill = VN_CARD_LIVE if status == "LIVE" else VN_CARD
+        border_default = VN_LIVE_RED if status == "LIVE" else VN_BORDER
+
+        # Card container: rounded on all 4 corners, border glows electric-blue on focus
+        draw_card(res, card_x, card_y, card_w, card_h, 18, card_fill, card_fill, border_default, c_sel, border_w=2)
+
+        # Brief gold edge glow on the scoring side (subtler companion to the goal
+        # chevron below) - inset from the rounded corners so it reads as a clean
+        # accent bar along the flat part of the edge, not a square corner poking
+        # out past the curve. Fades out automatically after 90s (see refresh_ui).
+        if goal_glow_side in ('home', 'away'):
+            glow_y = card_y + 18
+            glow_h = card_h - 36
+            glow_w = 5
+            glow_x = card_x if goal_glow_side == 'home' else card_x + card_w - glow_w
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, glow_x, glow_y, glow_w, glow_h, 0, RT_HALIGN_CENTER, "", VN_GOLD, VN_GOLD, VN_GOLD, VN_GOLD))
+
+        # Status badge colours
+        if status == "LIVE":
+            bg_status = VN_LIVE_RED; fg_status = 0xffffff; label_status = "LIVE"
+        elif status == "FIN":
+            bg_status = VN_GRAY_FIN; fg_status = 0x1a1a1a; label_status = "FIN"
+        elif status in ("PPD", "SUS"):
+            bg_status = VN_WARN_ORANGE; fg_status = 0x1a1a1a; label_status = "PPD" if status == "PPD" else "SUS"
+        elif status == "CAN":
+            bg_status = 0x555555; fg_status = 0xffffff; label_status = "CAN"
+        else:
+            bg_status = VN_BG_NAVY; fg_status = VN_ACCENT_CYAN; label_status = status if status else "SCH"
+
+        badge_x = card_x + 22
+        badge_y = card_y + (card_h - 40) // 2
+        status_icon = _vnext_status_icon(status, time_str)
+        badge_w = 112 if status_icon else 92
+        draw_card(res, badge_x, badge_y, badge_w, 40, 12, bg_status, bg_status, bg_status, bg_status, border_w=0)
+
+        text_x = badge_x + 14
+        if status_icon:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, badge_x + 10, badge_y + 8, 24, 24, get_scaled_pixmap(status_icon, 24, 24)))
+            text_x = badge_x + 40
+
+        # Live pulse dot inside the LIVE badge (small solid square read as a dot at TV distance)
+        if status == "LIVE" and not status_icon:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x + 12, badge_y + 16, 8, 8, 0, RT_HALIGN_CENTER, "", 0xffffff, 0xffffff, 0xffffff, 0xffffff))
+            text_x = badge_x + 24
+
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, badge_y, badge_x + badge_w - text_x, 40, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, _t(label_status), fg_status, fg_status))
+
+        # Extended name-length handling (unchanged thresholds)
+        font_h = 2; font_a = 2
+        if len(left_text) > 27: font_h = 0
+        elif len(left_text) > 23: font_h = 1
+        if len(right_text) > 27: font_a = 0
+        elif len(right_text) > 23: font_a = 1
+
+        center_cx = 960
+        LOGO_SIZE = 63   # +5% from the original 60px
+        HOME_LOGO_X = center_cx - 178   # left edge, same anchor as before
+        AWAY_LOGO_X = center_cx + 118
+
+        name_top = card_y + 14
+        name_h = LOGO_SIZE   # match the team-logo band exactly so names line up with logos
+
+        # Center block: home logo, league logo, score / kickoff time, away logo
+
+        # Home team name: right-aligned box that always leaves a clear gap before the
+        # home logo, regardless of how wide the status badge ended up being (fixes the
+        # name/logo overlap - previously this box's right edge could land under the logo).
+        home_name_right = HOME_LOGO_X - 12   # 770
+        home_name_left = badge_x + badge_w + 18
+        home_name_w = max(80, home_name_right - home_name_left)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_left, name_top, home_name_w, name_h, font_h, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
+
+        if h_png:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, HOME_LOGO_X - 1, card_y + 14, LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(h_png, LOGO_SIZE, LOGO_SIZE)))
+
+        # League logo: 40% bigger for scheduled/upcoming matches (nothing else is
+        # competing for that space pre-kickoff), kept centered on the same vertical
+        # band as the team names/logos in both cases.
+        is_scheduled = status not in ("LIVE", "FIN", "PPD", "SUS", "CAN")
+        logo_center_y = card_y + 14 + LOGO_SIZE // 2
+        league_size = 56 if is_scheduled else 40
+        league_y = logo_center_y - league_size // 2
+        if l_png:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - league_size // 2, league_y, league_size, league_size, get_scaled_pixmap(l_png, league_size, league_size)))
+        else:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - league_size // 2 - 10, league_y, league_size + 20, league_size, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+
+        if "-" in score_text:
+            parts = score_text.split('-')
+            s1 = parts[0].strip()
+            s2 = parts[1].strip()
+            font_idx = 2
+            max_len = max(len(s1), len(s2))
+            if max_len > 8: font_idx = 3
+            elif max_len > 5: font_idx = 0
+
+            score_bg = c_score_bg if isinstance(c_score_bg, int) else VN_BG_NAVY
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 100, card_y + 26, 80, 45, font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s1, c_h_score, c_sel, score_bg, score_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 20, card_y + 26, 80, 45, font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s2, c_a_score, c_sel, score_bg, score_bg))
+        # Scheduled matches: no score yet - just leave the league logo showing on its
+        # own (previously a "VS" placeholder was drawn here too, overlapping it).
+
+        if a_png:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, AWAY_LOGO_X - 1, card_y + 14, LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(a_png, LOGO_SIZE, LOGO_SIZE)))
+
+        away_name_left = AWAY_LOGO_X + LOGO_SIZE + 10   # keeps a clear gap after the (now bigger) logo
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, name_top, 470, name_h, font_a, RT_HALIGN_LEFT | RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+
+        # --- Game-prediction strip, scheduled matches only ---
+        # Sits right under each team name, in the space that LIVE cards use for
+        # stat bars. Shows nothing until the background predictor fetch (started
+        # in refresh_ui, capped at a few per cycle) has filled the cache for this
+        # match - typically within the next refresh or two. Real quoted
+        # probabilities (ESPN predictor or moneyline-derived) render in the
+        # confident cyan/gold; a bare spread-derived estimate renders muted with
+        # an "EST" tag, since it's a statistical approximation, not a real number.
+        if is_scheduled and (h_pred_pct > 0 or a_pred_pct > 0):
+            pred_y = card_y + LOGO_SIZE + 18
+            pred_w = 150
+            total_pred = h_pred_pct + a_pred_pct
+            if total_pred <= 0: total_pred = 100.0
+            h_pct_norm = max(0.0, min(100.0, h_pred_pct))
+            a_pct_norm = max(0.0, min(100.0, a_pred_pct))
+
+            if pred_is_estimate:
+                c_home_pred = VN_GRAY_FIN
+                c_away_pred = VN_WARN_ORANGE
+            else:
+                c_home_pred = VN_ACCENT_CYAN
+                c_away_pred = VN_GOLD
+
+            # Home side: percentage text + bar, right-aligned to sit under the home name
+            h_bar_w = int(pred_w * (h_pct_norm / total_pred))
+            h_track_x = home_name_right - pred_w
+            draw_card(res, h_track_x, pred_y, pred_w, 4, 2, 0x1E2530, 0x1E2530, 0x1E2530, 0x1E2530, border_w=0)
+            if h_bar_w > 0:
+                draw_card(res, h_track_x + pred_w - h_bar_w, pred_y, h_bar_w, 4, 2, c_home_pred, c_home_pred, c_home_pred, c_home_pred, border_w=0)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w - 46, pred_y + 9, 40, 22, 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, "{:.0f}%".format(h_pct_norm), c_home_pred, c_sel))
+
+            # Away side: bar + percentage text, left-aligned to sit under the away name
+            a_bar_w = int(pred_w * (a_pct_norm / total_pred))
+            draw_card(res, away_name_left, pred_y, pred_w, 4, 2, 0x1E2530, 0x1E2530, 0x1E2530, 0x1E2530, border_w=0)
+            if a_bar_w > 0:
+                draw_card(res, away_name_left, pred_y, a_bar_w, 4, 2, c_away_pred, c_away_pred, c_away_pred, c_away_pred, border_w=0)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left + pred_w + 6, pred_y + 9, 40, 22, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, "{:.0f}%".format(a_pct_norm), c_away_pred, c_sel))
+
+            label_text = _t("WIN% (EST)") if pred_is_estimate else _t("WIN%")
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 60, pred_y + 9, 120, 22, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, label_text, VN_GRAY_FIN, c_sel))
+
+        # --- Live possession bar (thin, directly under the score box) ---
+        if status == "LIVE" and (h_poss > 0 or a_poss > 0):
+            bar_total_w = 200; bar_x = center_cx - 100; bar_y = card_y + 74; bar_h = 5
+            total_poss = h_poss + a_poss
+            if total_poss == 0: total_poss = 100.0
+            h_w = int(bar_total_w * (h_poss / total_poss))
+            a_w = bar_total_w - h_w
+            if h_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x, bar_y, h_w, bar_h, 0, RT_HALIGN_CENTER, "", VN_ACCENT_CYAN, VN_ACCENT_CYAN, VN_ACCENT_CYAN, VN_ACCENT_CYAN))
+            if a_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x + h_w, bar_y, a_w, bar_h, 0, RT_HALIGN_CENTER, "", VN_GOLD, VN_GOLD, VN_GOLD, VN_GOLD))
+
+        # --- Shot-count text (absolute numbers), sits just under the possession bar ---
+        if status == "LIVE" and (h_shots > 0 or a_shots > 0):
+            h_shot_str = "{}({})".format(h_shots, h_on_target)
+            a_shot_str = "{}({})".format(a_shots, a_on_target)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 100, card_y + 82, 80, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, h_shot_str, VN_TEXT_SEC, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 20, card_y + 82, 80, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, a_shot_str, VN_TEXT_SEC, c_sel))
+
+        # --- Comparison stat bars (shots% / shots-on-target% / corners%) ---
+        # These come from h_pct_stats / a_pct_stats (build_match_snapshot). Sit
+        # under each team's name (left column under home, right column under away)
+        # rather than under the score box, so they don't compete with it for space.
+        if status == "LIVE" and (h_pct_stats or a_pct_stats):
+            track_w = 170
+            home_track_x = home_name_right - track_w   # ends flush with the home name
+            away_track_x = away_name_left              # starts flush with the away name
+            stat_colors = [VN_ACCENT_CYAN, VN_GOLD, VN_WARN_ORANGE]
+            stat_track_c = 0x1E2530
+            stat_y0 = card_y + 106
+            stat_stride = 7
+            max_stats = max(len(h_pct_stats), len(a_pct_stats))
+            for i in range(min(3, max_stats)):
+                y_pos = stat_y0 + i * stat_stride
+                c = stat_colors[i % len(stat_colors)]
+                # Dim background tracks
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, home_track_x, y_pos, track_w, 4, 0, RT_HALIGN_CENTER, "", stat_track_c, stat_track_c, stat_track_c, stat_track_c))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, away_track_x, y_pos, track_w, 4, 0, RT_HALIGN_CENTER, "", stat_track_c, stat_track_c, stat_track_c, stat_track_c))
+                if i < len(h_pct_stats):
+                    bw = int(track_w * (min(100.0, max(0.0, h_pct_stats[i])) / 100.0))
+                    if bw > 0:
+                        res.append((eListboxPythonMultiContent.TYPE_TEXT, home_track_x + track_w - bw, y_pos, bw, 4, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+                if i < len(a_pct_stats):
+                    bw = int(track_w * (min(100.0, max(0.0, a_pct_stats[i])) / 100.0))
+                    if bw > 0:
+                        res.append((eListboxPythonMultiContent.TYPE_TEXT, away_track_x, y_pos, bw, 4, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+
+        # Goal-side chevrons
+        if goal_side == 'home':
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 122, card_y + 35, 20, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "<", VN_GOLD, VN_GOLD))
+        elif goal_side == 'away':
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 102, card_y + 35, 20, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, ">", VN_GOLD, VN_GOLD))
+
+        # Red card indicators
+        if h_red_cards > 0 or a_red_cards > 0:
+            rc_img = None
+            try:
+                rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/icons/vnext/card/red_card_icon.png")
+                if rc_path not in GLOBAL_VALID_LOGO_PATHS:
+                    if os.path.exists(rc_path):
+                        GLOBAL_VALID_LOGO_PATHS.add(rc_path)
+                    else:
+                        rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
+                        if rc_path in GLOBAL_VALID_LOGO_PATHS or os.path.exists(rc_path):
+                            GLOBAL_VALID_LOGO_PATHS.add(rc_path)
+                        else:
+                            rc_path = None
+                if rc_path:
+                    rc_img = get_scaled_pixmap(rc_path, 14, 20)
+            except: pass
+            if h_red_cards > 0:
+                if rc_img:
+                    for i in range(h_red_cards):
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - 140, card_y + 4 + 22 * i, 14, 20, rc_img))
+                else:
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 150, card_y + 4, 30, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards), VN_LIVE_RED, c_sel))
+            if a_red_cards > 0:
+                if rc_img:
+                    for i in range(a_red_cards):
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx + 126, card_y + 4 + 22 * i, 14, 20, rc_img))
+                else:
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 120, card_y + 4, 30, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards), VN_LIVE_RED, c_sel))
+
+        # Time / kickoff badge (right edge of the card)
+        c_time = VN_LIVE_RED if status == "LIVE" else VN_TEXT_SEC
+        if status == "LIVE":
+            bg_time = VN_LIVE_RED; fg_time = 0xffffff
+        elif status == "FIN":
+            bg_time = VN_BG_NAVY; fg_time = VN_GRAY_FIN
+        else:
+            bg_time = VN_BG_NAVY; fg_time = VN_ACCENT_CYAN
+
+        time_w = 170
+        time_x = card_x + card_w - 22 - time_w
+        time_y = card_y + (card_h - 40) // 2
+        draw_card(res, time_x, time_y, time_w, 40, 12, bg_time, bg_time, bg_time, bg_time, border_w=0)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, time_x, time_y, time_w, 40, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, time_str, fg_time, fg_time))
+
+        return res
+    except Exception:
+        return []
 
 
 def convert_czech_time_to_local(time_str, date_offset=0):
@@ -3594,6 +4155,8 @@ class SportsMonitor:
         self.last_states = {}
         self.last_periods = {}       # Track halftime/period state per match_id
         self.last_details_seen = {}  # Track VAR/disallowed counts per match_id
+        self.predictor_cache = {}    # match_id -> {'h_pct':, 'a_pct':, 'fetched_at':} - ESPN pre-game win prediction
+        self.predictor_inflight = set()  # match_ids currently being fetched, to avoid duplicate requests
         self.notified_events = set()  # Track fired notifications: {(match_id, event_type)}
         self.filter_mode = 2
         self.ch_day_offset = 0   # 0 = today; +N = N days ahead; -N = N days ago
@@ -4315,6 +4878,98 @@ class SportsMonitor:
             }
             self.save_ledger()
             self.evaluate_pending_bets()
+
+    def fetch_predictor_async(self, match_id, league_url, event_id):
+        """Fetch a pre-game win-probability for one scheduled match in a
+        background thread, and cache it. Tries ESPN's own 'predictor' field
+        first; if that's not present for this match, falls back to converting
+        moneyline odds (from the same response's 'pickcenter' block - no extra
+        HTTP call) into an implied, vig-free probability. Spread/handicap and
+        Over/Under numbers (e.g. '-0.5 | O/U 2.5') are a different market and
+        are deliberately NOT converted - there's no clean, honest way to turn
+        a goal handicap alone into a win percentage without a separate
+        statistical model, so providers that only offer that are skipped."""
+        if not event_id or not league_url:
+            return
+        self.predictor_inflight.add(match_id)
+
+        def _run():
+            try:
+                import re
+                m = re.search(r'/sports/([^/]+)/([^/]+)/scoreboard', league_url)
+                if not m:
+                    return
+                sport, league = m.group(1), m.group(2)
+                url = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(sport, league, event_id)
+                try:
+                    req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                    resp = urlopen(req, timeout=6)
+                    data = json.loads(resp.read().decode('utf-8'))
+                except Exception:
+                    return
+
+                h_val = 0.0; a_val = 0.0; source = None
+
+                # 1) ESPN's own pre-game projection, when available
+                predictor = data.get('predictor', {}) or {}
+                if predictor:
+                    h_team_pred = predictor.get('homeTeam', {}) or {}
+                    a_team_pred = predictor.get('awayTeam', {}) or {}
+                    h_prob = h_team_pred.get('gameProjection') or h_team_pred.get('chanceToWin') or 0
+                    a_prob = a_team_pred.get('gameProjection') or a_team_pred.get('chanceToWin') or 0
+                    try:
+                        h_val = float(h_prob); a_val = float(a_prob)
+                        if h_val > 0 or a_val > 0:
+                            source = 'predictor'
+                    except (TypeError, ValueError):
+                        h_val = 0.0; a_val = 0.0
+
+                # 2) Fallback: moneyline odds -> implied probability (vig removed).
+                # Skips any provider that only quotes a spread/O-U with no moneyline.
+                if not source:
+                    for odd in (data.get('pickcenter', []) or []):
+                        h_ml = (odd.get('homeTeamOdds', {}) or {}).get('moneyLine')
+                        a_ml = (odd.get('awayTeamOdds', {}) or {}).get('moneyLine')
+                        d_ml = (odd.get('drawOdds', {}) or {}).get('moneyLine')
+                        h_p = _moneyline_to_prob(h_ml)
+                        a_p = _moneyline_to_prob(a_ml)
+                        if h_p is None or a_p is None:
+                            continue  # spread/O-U only, e.g. "-0.5 | O/U 2.5" - not convertible, skip
+                        d_p = _moneyline_to_prob(d_ml) if d_ml is not None else None
+                        raw_total = h_p + a_p + (d_p or 0.0)
+                        if raw_total <= 0:
+                            continue
+                        h_val = (h_p / raw_total) * 100.0
+                        a_val = (a_p / raw_total) * 100.0
+                        source = 'moneyline'
+                        break
+
+                # 3) Last resort: no moneyline anywhere either, but a provider quotes
+                # a plain point spread (e.g. DraftKings soccer "-0.5 | O/U 2.5").
+                # Derive a labeled ESTIMATE from that spread alone (see
+                # _spread_to_probs docstring) rather than leaving it blank.
+                if not source:
+                    for odd in (data.get('pickcenter', []) or []):
+                        spread_val = odd.get('spread')
+                        if spread_val is None:
+                            continue
+                        result = _spread_to_probs(spread_val, league_url)
+                        if not result:
+                            continue
+                        h_val, a_val = result
+                        source = 'spread_estimate'
+                        break
+
+                if not source or (h_val <= 0 and a_val <= 0):
+                    return
+                self.predictor_cache[match_id] = {'h_pct': h_val, 'a_pct': a_val, 'source': source, 'fetched_at': time.time()}
+            except Exception:
+                pass
+            finally:
+                self.predictor_inflight.discard(match_id)
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
 
     def evaluate_pending_bets(self):
         if not self.ledger.get("pending_bets"): return
@@ -18812,6 +19467,8 @@ class SimpleSportsScreen(Screen):
 
         # ... (Skin setup omitted - keep existing block) ...
         # Evaluate Theme Mode
+        self.is_vnext_theme = (self.monitor.theme_mode != "ucl")
+
         if self.monitor.theme_mode == "ucl":
             bg_base = "0d1b2e"; top_base = "071020"
             c_bg = "#" + self.current_alpha + bg_base; c_top = "#" + self.current_alpha + top_base
@@ -18828,61 +19485,163 @@ class SimpleSportsScreen(Screen):
             bottom_widget += '<eLabel position="20,990" size="1880,2" backgroundColor="#c9a020" zPosition="3" />'
             fg_title = "#c9a020"; bg_title = "#071020"; fg_list_h = "#ffffff"; fg_list_s = "#c9a020"
             clock_x = 1710; clock_w = 180; clock_a = "center"
+
+            self.skin = """
+            <screen position="0,0" size="1920,1080" title="SimplySports" flags="wfNoBorder" backgroundColor="#00000000">
+                {bg}
+                {top}
+                <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
+                <widget name="top_status" position="1280,30" size="520,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
+                <widget name="key_menu" position="40,30" size="1000,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
+                <widget name="credit" position="1800,20" size="100,30" font="SimplySportFont;20" foregroundColor="#888888" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
+                <widget name="clock" position="{cx},75" size="{cw},35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="{ca}" zPosition="2" />
+                {bar}
+                <widget name="league_title" position="50,75" size="500,35" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="{c_bar}" transparent="1" halign="left" zPosition="1" />
+                <widget name="list_title" position="0,75" size="1920,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="center" zPosition="1" />
+                {header}
+                <widget name="head_status" position="30,125" size="80,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
+                <widget name="head_home" position="110,125" size="660,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="1" />
+                <widget name="head_league" position="850,125" size="220,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
+                <widget name="head_score" position="0,0" size="0,0" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="0" />
+                <widget name="head_away" position="1150,125" size="520,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="1" />
+                <widget name="head_time" position="1710,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
+                <widget name="list" position="0,170" size="1920,800" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
+                {bottom}
+                <widget name="key_ch" position="0,972" size="1920,18" font="SimplySportFont;17" foregroundColor="#888888" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+                <widget name="key_red" position="40,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#CC0000" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+                <widget name="key_green" position="400,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#00FF85" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+                <widget name="key_yellow" position="760,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#FFD700" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+                <widget name="key_blue" position="1120,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#00AAFF" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+                <widget name="key_epg" position="1480,1005" size="400,60" font="SimplySportFont;30" foregroundColor="#BB77EE" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+            </screen>
+            """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_bar=c_bar, c_top=c_top)
+
         else:
-            bg_base = "100015"; bar_base = "38003C"; top_base = "1A0024"
-            c_bg = "#" + self.current_alpha + bg_base; c_bar = "#" + self.current_alpha + bar_base; c_top = "#" + self.current_alpha + top_base
-            bg_widget = '<eLabel position="0,0" size="1920,1080" backgroundColor="{c_bg}" zPosition="-1" />'.format(c_bg=c_bg)
+            # ==================================================================
+            # SimplySports vNext - modern TV sports broadcast dashboard
+            # (see: SimplySports Enigma2 UI Renovation brief)
+            # ==================================================================
+            c_bg_deep = "#" + self.current_alpha + "111418"
+            c_bg_navy = "#" + self.current_alpha + "0E1621"
+            c_bar = c_bg_navy; c_top = c_bg_navy  # kept for compatibility with helper methods that reference these
 
-            # TOP BAR: Enhanced with surface elevation and accent strip
-            top_widget = '<widget name="top_bar" position="0,0" size="1920,100" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
-            top_widget += '<eLabel position="0,0" size="3,100" backgroundColor="#00FF85" zPosition="3" />'
+            asset_root = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/icons/vnext/")
+            self.vnext_asset = lambda folder, name: asset_root + folder + "/" + name
 
-            header_widget = '<widget name="header_bg" position="0,110" size="1920,45" backgroundColor="{c_bg}" zPosition="0" />'.format(c_bg=c_bg)
-            bar_widget = '<widget name="bar_bg" position="0,70" size="1920,40" backgroundColor="{c_bar}" zPosition="0" />'.format(c_bar=c_bar)
+            def _pixmap_tag(name, x, y, w, h, z=0):
+                return '<widget name="{n}" position="{x},{y}" size="{w},{h}" zPosition="{z}" alphatest="blend" />'.format(n=name, x=x, y=y, w=w, h=h, z=z)
 
-            # BOTTOM BAR: Elevated surface with separator
-            bottom_widget = '<widget name="bottom_bar" position="0,990" size="1920,90" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
-            bottom_widget += '<eLabel position="20,990" size="1880,1" backgroundColor="#2C1040" zPosition="3" />'
+            # Flat charcoal base, then two optional layered Pixmaps (hidden until
+            # _load_vnext_pixmaps confirms the files exist) for the stadium photo
+            # + line-texture overlay described in the brief's "Background Design"
+            # section. A dark scrim sits above them so text stays readable either way.
+            bg_widget = '<eLabel position="0,0" size="1920,1080" backgroundColor="{c}" zPosition="-1" />'.format(c=c_bg_deep)
+            bg_widget += _pixmap_tag("main_bg_photo", 0, 0, 1920, 1080, z=-1)
+            bg_widget += _pixmap_tag("main_bg_texture", 0, 0, 1920, 1080, z=-1)
+            bg_widget += '<eLabel position="0,0" size="1920,1080" backgroundColor="{c}" zPosition="-1" transparent="1" alpha="150" />'.format(c=c_bg_deep)
 
-            fg_title = "#00FF85"; bg_title = "#1A0024"; fg_list_h = "#FFFFFF"; fg_list_s = "#00FF85"
-            clock_x = 1710; clock_w = 180; clock_a = "center"
+            # --- HEADER (dashboard) ---
+            top_widget = '<widget name="top_bar" position="0,0" size="1920,118" backgroundColor="{c}" zPosition="0" />'.format(c=c_bg_navy)
+            top_widget += '<eLabel position="0,118" size="1920,2" backgroundColor="#00AFFF" zPosition="3" />'
+            top_widget += _pixmap_tag("logo_mark", 32, 21, 64, 64, z=2)
 
-        self.skin = """
-        <screen position="0,0" size="1920,1080" title="SimplySports" flags="wfNoBorder" backgroundColor="#00000000">
-            {bg}
-            {top}
-            <widget name="top_title" position="0,10" size="1920,60" font="SimplySportFont;46" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" shadowColor="#000000" shadowOffset="-3,-3" />
-            <widget name="top_status" position="1280,30" size="520,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
-            <widget name="key_menu" position="40,30" size="1000,30" font="SimplySportFont;22" foregroundColor="#bbbbbb" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
-            <widget name="credit" position="1800,20" size="100,30" font="SimplySportFont;20" foregroundColor="#888888" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="2" />
-            <widget name="clock" position="{cx},75" size="{cw},35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="{ca}" zPosition="2" />
-            {bar}
-            <widget name="league_title" position="50,75" size="500,35" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="{c_bar}" transparent="1" halign="left" zPosition="1" />
-            <widget name="list_title" position="0,75" size="1920,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="center" zPosition="1" />
-            {header}
-            <widget name="head_status" position="30,125" size="80,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
-            <widget name="head_home" position="110,125" size="660,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="1" />
-            <widget name="head_league" position="850,125" size="220,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
-            <widget name="head_score" position="0,0" size="0,0" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="0" />
-            <widget name="head_away" position="1150,125" size="520,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="1" />
-            <widget name="head_time" position="1710,125" size="180,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
-            <widget name="list" position="0,170" size="1920,800" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
-            {bottom}
-            <widget name="key_ch" position="0,972" size="1920,18" font="SimplySportFont;17" foregroundColor="#888888" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
-            <widget name="key_red" position="40,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#CC0000" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
-            <widget name="key_green" position="400,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#00FF85" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
-            <widget name="key_yellow" position="760,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#FFD700" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
-            <widget name="key_blue" position="1120,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#00AAFF" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
-            <widget name="key_epg" position="1480,1005" size="400,60" font="SimplySportFont;30" foregroundColor="#BB77EE" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
-        </screen>
-        """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_bar=c_bar, c_top=c_top)
+            bar_widget = ""       # sub-header strip no longer used in vNext (cards are self-labelled)
+            header_widget = ""    # column headers removed - card layout is self-describing
+
+            # --- BOTTOM NAV (icon pills, focus-flash on press) ---
+            bottom_widget = '<widget name="bottom_bar" position="0,958" size="1920,122" backgroundColor="{c}" zPosition="0" />'.format(c=c_bg_navy)
+            bottom_widget += '<eLabel position="0,958" size="1920,2" backgroundColor="#00AFFF" zPosition="3" />'
+            pill_positions = [45, 415, 785, 1155, 1525]
+            pill_keys = ["red", "green", "yellow", "blue", "epg"]
+            pill_accents = ["#E53935", "#00C853", "#F2B530", "#00AFFF", "#FF9800"]
+            NAV_ICON_SIZE = 52   # bigger now that it sits beside the text instead of above it
+            NAV_TEXT_W = 240
+            NAV_GAP = 12
+            nav_group_w = NAV_ICON_SIZE + NAV_GAP + NAV_TEXT_W
+            nav_margin = (350 - nav_group_w) // 2
+            for px, pkey, accent in zip(pill_positions, pill_keys, pill_accents):
+                icon_x = px + nav_margin
+                text_x = icon_x + NAV_ICON_SIZE + NAV_GAP
+                # Focus pill background - invisible until _flash_nav() shows it on press
+                bottom_widget += _pixmap_tag("navfocus_bg_" + pkey, px + 5, 990, 340, 64, z=1)
+                bottom_widget += _pixmap_tag("navicon_" + pkey, icon_x, 990 + (64 - NAV_ICON_SIZE) // 2, NAV_ICON_SIZE, NAV_ICON_SIZE, z=2)
+                bottom_widget += '<eLabel position="{x},1050" size="350,3" backgroundColor="{c}" zPosition="2" />'.format(x=px, c=accent)
+
+            fg_title = "#00AFFF"; bg_title = c_bg_navy; fg_list_h = "#FFFFFF"; fg_list_s = "#00D9FF"
+            clock_x = 1726; clock_w = 170; clock_a = "center"
+
+            self.skin = """
+            <screen position="0,0" size="1920,1080" title="SimplySports" flags="wfNoBorder" backgroundColor="#00000000">
+                {bg}
+                {top}
+                <widget name="top_title" position="112,24" size="360,34" font="SimplySportFont;30" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="left" valign="center" zPosition="2" />
+                <widget name="league_title" position="112,58" size="480,24" font="SimplySportFont;18" foregroundColor="#B0B8C1" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
+                <widget name="key_menu" position="32,92" size="600,20" font="SimplySportFont;14" foregroundColor="#6E7885" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
+
+                <widget name="list_title" position="620,20" size="680,36" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
+                <widget name="live_indicator" position="620,58" size="680,24" font="SimplySportFont;18" foregroundColor="#00C853" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
+
+                {badge_alert_bg}
+                {badge_bell_icon}
+                <widget name="badge_alert" position="1354,16" size="156,40" font="SimplySportFont;14" foregroundColor="#00D9FF" backgroundColor="{bg_t}" transparent="1" halign="left" valign="center" zPosition="3" />
+                {badge_ai_bg}
+                {badge_ai_icon}
+                <widget name="badge_ai" position="1524,16" size="190,40" font="SimplySportFont;15" foregroundColor="#00D9FF" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="3" />
+                <widget name="clock" position="{cx},16" size="{cw},40" font="SimplySportFont;26" foregroundColor="#F2B530" backgroundColor="{bg_t}" transparent="1" halign="{ca}" valign="center" zPosition="2" />
+                {badge_updated_bg}
+                {badge_refresh_icon}
+                <widget name="badge_updated" position="1352,64" size="348,28" font="SimplySportFont;14" foregroundColor="#8A8A8A" backgroundColor="{bg_t}" transparent="1" halign="left" valign="center" zPosition="3" />
+                <widget name="credit" position="{cx},64" size="{cw},20" font="SimplySportFont;13" foregroundColor="#6E7885" backgroundColor="{bg_t}" transparent="1" halign="{ca}" zPosition="2" />
+
+                <widget name="head_status" position="0,0" size="0,0" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="0" />
+                <widget name="head_home" position="0,0" size="0,0" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="0" />
+                <widget name="head_league" position="0,0" size="0,0" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="0" />
+                <widget name="head_score" position="0,0" size="0,0" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="0" />
+                <widget name="head_away" position="0,0" size="0,0" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="0" />
+                <widget name="head_time" position="0,0" size="0,0" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="0" />
+
+                <widget name="list" position="0,128" size="1920,828" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
+                <widget name="nav_glow" position="22,131" size="1876,130" zPosition="5" alphatest="blend" />
+
+                {bottom}
+                <widget name="key_ch" position="0,940" size="1920,16" font="SimplySportFont;13" foregroundColor="#6E7885" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
+                <widget name="key_red" position="132,990" size="240,64" font="SimplySportFont;20" foregroundColor="#E53935" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
+                <widget name="key_green" position="502,990" size="240,64" font="SimplySportFont;20" foregroundColor="#00C853" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
+                <widget name="key_yellow" position="872,990" size="240,64" font="SimplySportFont;20" foregroundColor="#F2B530" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
+                <widget name="key_blue" position="1242,990" size="240,64" font="SimplySportFont;20" foregroundColor="#00AFFF" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
+                <widget name="key_epg" position="1612,990" size="240,64" font="SimplySportFont;20" foregroundColor="#FF9800" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
+            </screen>
+            """.format(
+                bg=bg_widget, top=top_widget, bottom=bottom_widget,
+                fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s,
+                cx=clock_x, cw=clock_w, ca=clock_a, c_top=c_top,
+                badge_alert_bg=_pixmap_tag("badge_alert_bg", 1320, 16, 190, 40, z=2),
+                badge_bell_icon=_pixmap_tag("badge_bell_icon", 1330, 26, 20, 20, z=3),
+                badge_ai_bg=_pixmap_tag("badge_ai_bg", 1524, 16, 190, 40, z=2),
+                badge_ai_icon=_pixmap_tag("badge_ai_icon", 1534, 26, 20, 20, z=3),
+                badge_updated_bg=_pixmap_tag("badge_updated_bg", 1320, 64, 380, 28, z=2),
+                badge_refresh_icon=_pixmap_tag("badge_refresh_icon", 1330, 69, 18, 18, z=3),
+            )
 
         self["top_bar"] = Label(""); self["header_bg"] = Label(""); self["bottom_bar"] = Label(""); self["main_bg"] = Pixmap(); self["bar_bg"] = Label("")
         self["top_title"] = Label(_t("SIMPLY SPORTS")); self["top_status"] = Label(""); self["league_title"] = Label(_t("LOADING...")); self["list_title"] = Label("")
         self["credit"] = Label("v" + CURRENT_VERSION); self["key_menu"] = Label(_t("MENU: Settings  |  1-8: Leagues  |  9: Custom  |  0: Lineups"))
         self["clock"] = Label("")  # Clock widget
+        self["logo_mark"] = Pixmap()
+        self["badge_alert_bg"] = Pixmap(); self["badge_ai_bg"] = Pixmap(); self["badge_updated_bg"] = Pixmap()
+        self["badge_bell_icon"] = Pixmap(); self["badge_ai_icon"] = Pixmap(); self["badge_refresh_icon"] = Pixmap()
+        self["badge_alert"] = Label(""); self["badge_ai"] = Label(""); self["badge_updated"] = Label("")
+        self["live_indicator"] = Label("")
+        self["main_bg_photo"] = Pixmap(); self["main_bg_texture"] = Pixmap()
+        self["nav_glow"] = Pixmap()
+        self._glow_idx = None    # last known selected index the glow overlay is tracking
+        self._glow_y = None      # last known absolute screen y of the overlay (None = unknown/hidden)
+        for _pkey in ("red", "green", "yellow", "blue", "epg"):
+            self["navfocus_bg_" + _pkey] = Pixmap()
+            self["navicon_" + _pkey] = Pixmap()
         self._last_refreshed = None  # datetime of last successful refresh_ui render
         self.last_update_text = ""
+        self.update_age_text = ""
         self["head_status"] = Label(_t("STATUS")); self["head_home"] = Label(_t("HOME")); self["head_league"] = Label(_t("LEAGUE")); self["head_score"] = Label(""); self["head_away"] = Label(_t("AWAY")); self["head_time"] = Label(_t("TIME"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         # Use Custom font "SimplySportFont" which is guaranteed to map to a valid system font
@@ -18890,10 +19649,15 @@ class SimpleSportsScreen(Screen):
         self["list"].l.setFont(1, gFont("SimplySportFont", 28))
         self["list"].l.setFont(2, gFont("SimplySportFont", 38))
         self["list"].l.setFont(3, gFont("SimplySportFont", 20))
-        self["list"].l.setItemHeight(90)
+        self["list"].l.setItemHeight(136 if self.is_vnext_theme else 90)
         self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Livescore.cz")); self["key_blue"] = Label(_t("Watch Party"))
         self["key_epg"] = Label(_t("Info/EPG: Channels"))
         self["key_ch"] = Label(_t("< > / << >> Browse Days"))
+
+        if self.is_vnext_theme:
+            # Load the static pixmap assets generated for the vNext theme. Missing
+            # files degrade gracefully (flat colour fallback from the eLabel bg).
+            self.onLayoutFinish.append(self._load_vnext_pixmaps)
 
         # Clock timer
         self.clock_timer = eTimer()
@@ -18919,8 +19683,8 @@ class SimpleSportsScreen(Screen):
                 "blue": self.open_watch_party,
                 "ok": self.open_game_info,
                 "menu": self.open_settings_menu,
-                "up": self["list"].up,
-                "down": self["list"].down,
+                "up": self._nav_up,
+                "down": self._nav_down,
                 "info": self.open_broadcasting,
                 "epg": self.open_broadcasting,
                 "guide": self.open_broadcasting,
@@ -18952,7 +19716,347 @@ class SimpleSportsScreen(Screen):
         self.container = eConsoleAppContainer(); self.container.appClosed.append(self.download_finished)
         global_sports_monitor.set_session(session)
         self.monitor.register_callback(self.refresh_ui)
+        if self.is_vnext_theme:
+            # Remote hint ghosting: after a few seconds of inactivity, do one
+            # brief left-to-right sweep across the bottom nav pills so new users
+            # notice that row exists. Re-arms after activity resumes, capped at
+            # a handful of times per session so it doesn't nag.
+            self._idle_hint_shown_count = 0
+            self._idle_hint_timer = eTimer()
+            safe_connect(self._idle_hint_timer, self._show_idle_hint)
+            self._idle_hint_timer.start(6000, True)
+
         self.onLayoutFinish.append(self.start_ui); self.onClose.append(self.cleanup)
+
+    def _start_stagger_reveal(self, list_content, new_match_ids, selected_id):
+        """Reveal a freshly-rebuilt match list a few rows at a time (~35ms apart)
+        instead of populating everything in one frame. Only runs when the row
+        set actually changed (initial load, filter/day change, favourites
+        re-sort) - the frequent in-place refresh path is untouched. This is a
+        bounded one-shot timer chain, not a continuous animation loop, so it
+        stays cheap on ARM hardware."""
+        total = len(list_content)
+        self.current_match_ids = new_match_ids
+        self._reset_selection_glow()
+        if total <= 1:
+            self["list"].setList(list_content)
+            self._finish_stagger_cursor(new_match_ids, selected_id)
+            return
+
+        self._stagger_content = list_content
+        self._stagger_ids = new_match_ids
+        self._stagger_selected_id = selected_id
+        # Cap total reveal time (~700ms) regardless of list length by revealing
+        # more rows per tick on long lists.
+        self._stagger_step = max(1, (total // 20) + 1)
+        self._stagger_index = min(total, self._stagger_step)
+        self["list"].setList(list_content[:self._stagger_index])
+
+        if not hasattr(self, '_stagger_timer'):
+            self._stagger_timer = eTimer()
+            safe_connect(self._stagger_timer, self._stagger_tick)
+        if self._stagger_index < total:
+            self._stagger_timer.start(35, True)
+        else:
+            self._finish_stagger_cursor(new_match_ids, selected_id)
+
+    def _stagger_tick(self):
+        total = len(self._stagger_content)
+        self._stagger_index = min(total, self._stagger_index + self._stagger_step)
+        self["list"].setList(self._stagger_content[:self._stagger_index])
+        if self._stagger_index < total:
+            self._stagger_timer.start(35, True)
+        else:
+            self._finish_stagger_cursor(self._stagger_ids, self._stagger_selected_id)
+
+    def _finish_stagger_cursor(self, new_match_ids, selected_id):
+        if selected_id:
+            try:
+                new_index = new_match_ids.index(selected_id)
+                self["list"].moveToIndex(new_index)
+            except ValueError:
+                pass
+
+    def _nav_up(self):
+        self._reset_idle_hint()
+        old_idx = self["list"].getSelectedIndex()
+        self["list"].up()
+        self._update_selection_glow(old_idx, self["list"].getSelectedIndex())
+
+    def _nav_down(self):
+        self._reset_idle_hint()
+        old_idx = self["list"].getSelectedIndex()
+        self["list"].down()
+        self._update_selection_glow(old_idx, self["list"].getSelectedIndex())
+
+    # --- Sliding selection glow ---
+    # eListboxPythonMultiContent has no notion of animating between two rows -
+    # each row is static content and focus is just an instant colour swap
+    # (which we already use for the border). To get an actual sliding glow
+    # without risky assumptions about the engine's internal scroll state, we
+    # track the overlay's position ourselves using *relative* deltas (a
+    # single-step move is always exactly one itemHeight away on screen) and
+    # only ever trust that tracking when we're confident no scroll happened -
+    # i.e. the old index had at least a full screen of rows as buffer on both
+    # sides. Everywhere else (near the top/bottom edge, page jumps, list
+    # rebuilds) we simply hide the overlay and fall back to the always-correct
+    # native border-colour glow, rather than risk showing it in the wrong spot.
+    _GLOW_ITEM_H = 136
+    _GLOW_LIST_TOP_Y = 128
+    _GLOW_CARD_MARGIN = 3
+    _GLOW_VISIBLE_ROWS = 6
+    _GLOW_X = 22
+
+    def _reset_selection_glow(self):
+        """Call this whenever the list is rebuilt (not just re-selected) -
+        any relative tracking from before the rebuild is no longer trustworthy."""
+        self._glow_idx = None
+        self._glow_y = None
+        try:
+            self["nav_glow"].hide()
+        except Exception:
+            pass
+
+    def _update_selection_glow(self, old_idx, new_idx):
+        if not getattr(self, 'is_vnext_theme', False):
+            return
+        try:
+            if new_idx is None:
+                return
+
+            if new_idx == 0:
+                # Always a known-safe baseline: top of the list, no scroll possible.
+                target_y = self._GLOW_LIST_TOP_Y + self._GLOW_CARD_MARGIN
+                self._glow_idx = 0
+                self._glow_y = target_y
+                self._show_glow_at(target_y, instant=True)
+                return
+
+            total = len(self.current_match_ids) if self.current_match_ids else 0
+            buf = self._GLOW_VISIBLE_ROWS - 1
+            safe = (
+                old_idx is not None and self._glow_y is not None and self._glow_idx == old_idx
+                and abs(new_idx - old_idx) == 1
+                and old_idx >= buf and old_idx <= (total - 1) - buf
+            )
+            if safe:
+                start_y = self._glow_y
+                target_y = start_y + self._GLOW_ITEM_H * (new_idx - old_idx)
+                self._glow_idx = new_idx
+                self._glow_y = target_y
+                self._animate_glow(start_y, target_y)
+            else:
+                self._reset_selection_glow()
+        except Exception:
+            pass
+
+    def _show_glow_at(self, y, instant=False):
+        try:
+            w = self["nav_glow"]
+            if not w.instance:
+                return
+            w.instance.move(ePoint(self._GLOW_X, y))
+            w.show()
+        except Exception:
+            pass
+
+    def _animate_glow(self, start_y, target_y):
+        """Quick ease-out slide, ~5 steps over ~90ms total - a bounded one-shot
+        chain, not a continuous loop, so it stays cheap on ARM hardware."""
+        try:
+            steps = 5
+
+            def _step(i):
+                t = i / float(steps)
+                t = 1 - (1 - t) ** 3  # ease-out cubic
+                y = int(start_y + (target_y - start_y) * t)
+                self._show_glow_at(y)
+                if i < steps:
+                    timer = eTimer()
+                    safe_connect(timer, lambda: _step(i + 1))
+                    if not hasattr(self, '_glow_anim_timers'):
+                        self._glow_anim_timers = []
+                    self._glow_anim_timers.append(timer)
+                    self._glow_anim_timers = self._glow_anim_timers[-4:]
+                    timer.start(18, True)
+
+            _step(0)
+        except Exception:
+            pass
+
+    def _reset_idle_hint(self):
+        """Any real user activity postpones the idle nav hint by another window."""
+        if not getattr(self, 'is_vnext_theme', False) or not hasattr(self, '_idle_hint_timer'):
+            return
+        try:
+            self._idle_hint_timer.start(6000, True)
+        except Exception:
+            pass
+
+    def _show_idle_hint(self):
+        """One-shot left-to-right 'wave' across the bottom nav pills, reusing the
+        same focus-pill/active-icon assets as a real press. Purely a passive
+        visual cue (no navigation happens) - capped at a few times per session."""
+        if not getattr(self, 'is_vnext_theme', False):
+            return
+        if getattr(self, '_idle_hint_shown_count', 0) >= 4:
+            return
+        self._idle_hint_shown_count = self._idle_hint_shown_count + 1
+        order = ['red', 'green', 'yellow', 'blue', 'epg']
+        icon_map = {'red': 'nav_leagues', 'green': 'nav_minibar', 'yellow': 'nav_arena', 'blue': 'nav_watchparty', 'epg': 'nav_epg'}
+
+        def _step(i):
+            if i > 0:
+                # revert the previous pill
+                prev_key = order[i - 1]
+                try:
+                    self['navfocus_bg_' + prev_key].hide()
+                    normal_path = self.vnext_asset('nav', icon_map[prev_key] + '.png')
+                    if os.path.exists(normal_path) and self['navicon_' + prev_key].instance:
+                        self['navicon_' + prev_key].instance.setPixmapFromFile(normal_path)
+                except Exception:
+                    pass
+            if i >= len(order):
+                return
+            key = order[i]
+            try:
+                pill_path = self.vnext_asset('nav', 'nav_pill_focus_340x64.png')
+                active_path = self.vnext_asset('nav', icon_map[key] + '_active.png')
+                bgw = self['navfocus_bg_' + key]; iconw = self['navicon_' + key]
+                if os.path.exists(pill_path) and bgw.instance:
+                    bgw.instance.setPixmapFromFile(pill_path); bgw.show()
+                if os.path.exists(active_path) and iconw.instance:
+                    iconw.instance.setPixmapFromFile(active_path)
+            except Exception:
+                pass
+            t = eTimer()
+            safe_connect(t, lambda: _step(i + 1))
+            if not hasattr(self, '_idle_hint_timers'):
+                self._idle_hint_timers = []
+            self._idle_hint_timers.append(t)
+            self._idle_hint_timers = self._idle_hint_timers[-8:]
+            t.start(140, True)
+
+        _step(0)
+        self._reset_idle_hint()
+
+    def _delay_after_flash(self, callback):
+        """Run *callback* ~160ms later instead of immediately. The nav press-flash
+        (icon swap + focus pill) was being started and then instantly painted over
+        by the new screen opening in the same tick, so it never had a chance to
+        actually render. This gives one GUI frame or two of breathing room first."""
+        if not getattr(self, 'is_vnext_theme', False):
+            callback()
+            return
+        t = eTimer()
+        safe_connect(t, callback)
+        if not hasattr(self, '_nav_delay_timers'):
+            self._nav_delay_timers = []
+        self._nav_delay_timers.append(t)
+        self._nav_delay_timers = self._nav_delay_timers[-8:]  # keep a handful alive, drop old ones
+        t.start(160, True)
+
+    def _flash_nav(self, key):
+        """Briefly show the focus-pill background + active-coloured icon behind a
+        bottom-nav item when its remote key is pressed, then revert. No-op if the
+        vNext icon set isn't installed or this is the UCL theme."""
+        self._reset_idle_hint()
+        if not getattr(self, 'is_vnext_theme', False):
+            return
+        icon_map = {'red': 'nav_leagues', 'green': 'nav_minibar', 'yellow': 'nav_arena', 'blue': 'nav_watchparty', 'epg': 'nav_epg'}
+        base = icon_map.get(key)
+        if not base:
+            return
+        try:
+            pill_path = self.vnext_asset('nav', 'nav_pill_focus_340x64.png')
+            active_path = self.vnext_asset('nav', base + '_active.png')
+            normal_path = self.vnext_asset('nav', base + '.png')
+            bgw = self['navfocus_bg_' + key]
+            iconw = self['navicon_' + key]
+            if os.path.exists(pill_path) and bgw.instance:
+                bgw.instance.setPixmapFromFile(pill_path)
+                bgw.show()
+            if os.path.exists(active_path) and iconw.instance:
+                iconw.instance.setPixmapFromFile(active_path)
+
+            def _revert():
+                try:
+                    bgw.hide()
+                    if os.path.exists(normal_path) and iconw.instance:
+                        iconw.instance.setPixmapFromFile(normal_path)
+                except Exception:
+                    pass
+
+            t = eTimer()
+            safe_connect(t, _revert)
+            t.start(380, True)
+            # Keep a reference so the timer isn't garbage-collected before it fires
+            if not hasattr(self, '_nav_flash_timers'):
+                self._nav_flash_timers = []
+            self._nav_flash_timers.append(t)
+            self._nav_flash_timers = self._nav_flash_timers[-8:]
+        except Exception:
+            pass
+
+    def _load_vnext_pixmaps(self):
+        """Load the static PNG assets for the vNext theme onto their named Pixmap
+        widgets. Every file is optional - a missing icon just leaves the flat
+        skin colour/accent showing through, so partial asset drops are safe."""
+        try:
+            va = self.vnext_asset
+            loads = [
+                ("logo_mark", va("header", "logo_mark.png")),
+                ("badge_alert_bg", va("header", "badge_pill_small.png")),
+                ("badge_ai_bg", va("header", "badge_pill_small.png")),
+                ("badge_updated_bg", va("header", "badge_pill_wide.png")),
+                ("nav_glow", va("card", "select_glow_1876x130.png")),
+                ("badge_bell_icon", va("header", "badge_bell_off.png")),
+                ("badge_ai_icon", va("header", "badge_ai_active.png")),
+                ("badge_refresh_icon", va("header", "badge_refresh_0.png")),
+            ]
+            nav_map = {"navicon_red": "nav_leagues.png", "navicon_green": "nav_minibar.png",
+                       "navicon_yellow": "nav_arena.png", "navicon_blue": "nav_watchparty.png",
+                       "navicon_epg": "nav_epg.png"}
+            for wname, fname in nav_map.items():
+                loads.append((wname, va("nav", fname)))
+
+            for wname, path in loads:
+                try:
+                    if os.path.exists(path) and wname in self and self[wname].instance:
+                        self[wname].instance.setPixmapFromFile(path)
+                except Exception:
+                    pass
+
+            # AI badge icon only shown once AI is actually enabled (toggled in update_top_status)
+            try:
+                if "badge_ai_icon" in self:
+                    self["badge_ai_icon"].hide()
+            except Exception:
+                pass
+            try:
+                self["nav_glow"].hide()
+            except Exception:
+                pass
+
+            # Optional stadium-atmosphere background photo + low-opacity line texture,
+            # per the "Background Design" section of the renovation brief. Falls back
+            # to the flat charcoal eLabel underneath if the files aren't present.
+            try:
+                bg_path = va("backgrounds", "bg_stadium_blur_1920x1080.png")
+                if os.path.exists(bg_path) and "main_bg_photo" in self and self["main_bg_photo"].instance:
+                    self["main_bg_photo"].instance.setPixmapFromFile(bg_path)
+                    self["main_bg_photo"].show()
+                tex_path = va("backgrounds", "bg_texture_lines_1920x1080.png")
+                if os.path.exists(tex_path) and "main_bg_texture" in self and self["main_bg_texture"].instance:
+                    self["main_bg_texture"].instance.setPixmapFromFile(tex_path)
+                    self["main_bg_texture"].show()
+            except Exception:
+                pass
+
+            self._nav_flash_timers = []
+            self._refresh_spin_frame = 0
+        except Exception:
+            pass
 
     def update_clock(self):
         """Update clock display (HH:MM:SS) and the last-refreshed age in top_status."""
@@ -18961,7 +20065,8 @@ class SimpleSportsScreen(Screen):
             self["clock"].setText(now.strftime("%H:%M:%S"))
 
             if self._last_refreshed is None:
-                self.last_update_text = u"  |  \u21bb " + _t("Waiting for data…")
+                self.update_age_text = u"\u21bb " + _t("Waiting for data…")
+                self.last_update_text = u"  |  " + self.update_age_text
             else:
                 delta_sec = int((now - self._last_refreshed).total_seconds())
                 if delta_sec < 60:
@@ -18970,6 +20075,7 @@ class SimpleSportsScreen(Screen):
                     age_str = u"{}m {}s ago".format(delta_sec // 60, delta_sec % 60)
                 else:
                     age_str = u"{}h {}m ago".format(delta_sec // 3600, (delta_sec % 3600) // 60)
+                self.update_age_text = u"\u21bb {}".format(age_str)
                 self.last_update_text = u"  |  \u21bb (updated {})".format(age_str)
 
             self["key_menu"].setText(_t("MENU: Settings  |  1-8: Leagues  |  9: Custom  |  0: Lineups"))
@@ -19070,6 +20176,47 @@ class SimpleSportsScreen(Screen):
             if hasattr(self, 'last_update_text') and self.last_update_text:
                 status_str += self.last_update_text
             self["top_status"].setText(status_str)
+
+            # vNext header badges (goal alert / AI / last-updated pills)
+            try:
+                alert_on = d_mode != 0
+                self["badge_alert"].setText(u"{}: {}".format(_t("ALERT"), alert_txt))
+                self["badge_alert"].instance.setForegroundColor(gRGB(0x00D9FF if alert_on else 0x6E7885))
+                if getattr(self, 'is_vnext_theme', False):
+                    bell_file = "badge_bell_on.png" if alert_on else "badge_bell_off.png"
+                    bell_path = self.vnext_asset("header", bell_file)
+                    if os.path.exists(bell_path) and self["badge_bell_icon"].instance:
+                        self["badge_bell_icon"].instance.setPixmapFromFile(bell_path)
+            except Exception:
+                pass
+            try:
+                ai_on = bool(self.monitor.ai_enabled)
+                self["badge_ai"].setText(u"AI: {}".format(ai_status))
+                self["badge_ai"].instance.setForegroundColor(gRGB(0x00AFFF if ai_on else 0x6E7885))
+                if getattr(self, 'is_vnext_theme', False):
+                    if ai_on:
+                        self["badge_ai_icon"].show()
+                    else:
+                        self["badge_ai_icon"].hide()
+            except Exception:
+                pass
+            try:
+                self["badge_updated"].setText(getattr(self, 'update_age_text', ''))
+                if getattr(self, 'is_vnext_theme', False):
+                    self._advance_refresh_spinner()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _advance_refresh_spinner(self):
+        """Cycle the 4-frame 'updated Xs ago' spinner icon each time the clock ticks."""
+        try:
+            frame = getattr(self, '_refresh_spin_frame', 0)
+            path = self.vnext_asset("header", "badge_refresh_{}.png".format(frame % 4))
+            if os.path.exists(path) and self["badge_refresh_icon"].instance:
+                self["badge_refresh_icon"].instance.setPixmapFromFile(path)
+            self._refresh_spin_frame = (frame + 1) % 4
         except Exception:
             pass
 
@@ -19129,6 +20276,19 @@ class SimpleSportsScreen(Screen):
                 title_str = date_label
 
         self["list_title"].setText(title_str)
+        try:
+            if count_live and count_live > 0:
+                self["live_indicator"].setText(u"\u25CF {} {}".format(count_live, _t("LIVE NOW")))
+                if getattr(self, 'is_vnext_theme', False):
+                    self["live_indicator"].instance.setForegroundColor(gRGB(VN_LIVE_GREEN))
+            elif getattr(self, '_next_match_label', ''):
+                self["live_indicator"].setText(self._next_match_label)
+                if getattr(self, 'is_vnext_theme', False):
+                    self["live_indicator"].instance.setForegroundColor(gRGB(VN_TEXT_SEC))
+            else:
+                self["live_indicator"].setText("")
+        except Exception:
+            pass
         # Green button: show 'Driver Position' for racing, 'Mini Bar' otherwise
         try:
             if not self.monitor.is_custom_mode:
@@ -19266,6 +20426,13 @@ class SimpleSportsScreen(Screen):
         return False
 
     def open_broadcasting(self, forced_event=None):
+        if forced_event is None:
+            self._flash_nav('epg')
+            self._delay_after_flash(lambda: self._open_broadcasting_impl(None))
+            return
+        self._open_broadcasting_impl(forced_event)
+
+    def _open_broadcasting_impl(self, forced_event=None):
         log_dbg("open_broadcasting called. Forced Event: {}".format(forced_event is not None))
         target_event = forced_event
         selected_id = None
@@ -19613,12 +20780,13 @@ class SimpleSportsScreen(Screen):
             msg = self.monitor.status_message or "No Matches Found"
             dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0, False, 0x202020, "")
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
-            else: self["list"].setList([SportListEntry(dummy_entry)])
+            else: self["list"].setList([VNextListEntry(dummy_entry)])
             self.current_match_ids = []
             return
 
         mode = 2 if self.monitor.ch_day_offset != 0 else self.monitor.filter_mode
         raw_entries = []  # Store (entry_data, match_id, is_live) for sorting
+        predictor_fetches_started = 0  # cap new ESPN prediction fetches per refresh cycle
 
         # Pre-compute dates once per render pass
         now = datetime.datetime.now()
@@ -19717,10 +20885,14 @@ class SimpleSportsScreen(Screen):
 
                 has_epg = False
                 # Check for recent goals to create a 'heat' effect on the score box
-                c_score_bg = 0x2A0040 if self.monitor.theme_mode != "ucl" else 0x060e1c
+                c_score_bg = VN_BG_NAVY if self.monitor.theme_mode != "ucl" else 0x060e1c
+                goal_glow_side = None  # brief (90s) gold edge tint on the scoring side's card border
                 if snap['state'] == 'in' and match_id in self.monitor.goal_flags:
                     goal_time = self.monitor.goal_flags[match_id].get('time', 0)
                     time_since_goal = time.time() - goal_time
+
+                    if time_since_goal <= 90:
+                        goal_glow_side = self.monitor.goal_flags[match_id].get('team')
 
                     if time_since_goal <= 300: # 5 minutes
                         total_goals = h_score_int + a_score_int
@@ -19736,8 +20908,8 @@ class SimpleSportsScreen(Screen):
                         # Fade progress (0.0 = just scored, 1.0 = 5 minutes ago)
                         progress = time_since_goal / 300.0
 
-                        # Target base color (cool) - updated to match new c_score_bg
-                        end_color = [42, 0, 64] if self.monitor.theme_mode != "ucl" else [5, 16, 48]
+                        # Target base color (cool) - matches the theme's score-box background
+                        end_color = [14, 22, 33] if self.monitor.theme_mode != "ucl" else [5, 16, 48]
 
                         # Interpolate
                         r = int(start_color[0] + (end_color[0] - start_color[0]) * progress)
@@ -19747,7 +20919,24 @@ class SimpleSportsScreen(Screen):
                         # Convert back to hex
                         c_score_bg = (r << 16) | (g << 8) | b
 
-                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0), snap.get('h_pct_stats', []), snap.get('a_pct_stats', []), snap.get('h_shots', 0), snap.get('a_shots', 0), snap.get('h_on_target', 0), snap.get('a_on_target', 0))
+                # --- ESPN game-prediction lookup (scheduled matches only) ---
+                # Uses the same summary endpoint / predictor field as the GameInfo
+                # screen, but only pre-game win% (cheap to parse) and only for a
+                # few matches per refresh so we don't burst-fetch the whole day's
+                # schedule at once.
+                h_pred_pct = 0.0; a_pred_pct = 0.0; pred_is_estimate = 0
+                if status_short not in ("LIVE", "FIN", "PPD", "SUS", "CAN"):
+                    cached = self.monitor.predictor_cache.get(match_id)
+                    if cached:
+                        h_pred_pct = cached.get('h_pct', 0.0)
+                        a_pred_pct = cached.get('a_pct', 0.0)
+                        pred_is_estimate = 1 if cached.get('source') == 'spread_estimate' else 0
+                    elif (match_id not in self.monitor.predictor_inflight
+                          and predictor_fetches_started < 3):
+                        predictor_fetches_started += 1
+                        self.monitor.fetch_predictor_async(match_id, snap.get('league_url', ''), snap.get('event_id', match_id))
+
+                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0), snap.get('h_pct_stats', []), snap.get('a_pct_stats', []), snap.get('h_shots', 0), snap.get('a_shots', 0), snap.get('h_on_target', 0), snap.get('a_on_target', 0), snap.get('h_form', ''), snap.get('a_form', ''), h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side)
 
                 # Store raw data for sorting (include event for excitement calculation)
                 raw_entries.append((entry_data, match_id, is_live, event))
@@ -19865,7 +21054,7 @@ class SimpleSportsScreen(Screen):
                 list_content.append(UCLListEntry(entry_data))
                 new_match_ids.append(match_id)
             else:
-                list_content.append(SportListEntry(entry_data))
+                list_content.append(VNextListEntry(entry_data))
                 new_match_ids.append(match_id)
 
         # Count match states for header breakdown
@@ -19876,6 +21065,35 @@ class SimpleSportsScreen(Screen):
             elif status_val == "FIN": count_fin += 1
             else: count_sch += 1
 
+        # --- "Next match" countdown (shown in the header when nothing is live) ---
+        self._next_match_label = ""
+        try:
+            best_delta = None
+            best_home = None
+            best_away = None
+            for entry_data, match_id, is_live, event in raw_entries:
+                status_val = entry_data[0] if entry_data else ""
+                if status_val in ("LIVE", "FIN", "PPD", "SUS", "CAN"):
+                    continue
+                kdt = get_local_datetime(event.get('date', ''))
+                if not kdt:
+                    continue
+                delta = (kdt - now).total_seconds()
+                if delta <= 0:
+                    continue
+                if best_delta is None or delta < best_delta:
+                    best_delta = delta
+                    best_home = entry_data[2] if len(entry_data) > 2 else ""
+                    best_away = entry_data[4] if len(entry_data) > 4 else ""
+            if best_delta is not None:
+                def _clean_name(n):
+                    n = (n or "").replace(u"\u2605 ", "").strip()
+                    return n if len(n) <= 16 else n[:14] + u"\u2026"
+                self._next_match_label = u"{}: {} {} {} {}".format(
+                    _t("Next"), _clean_name(best_home), _t("vs"), _clean_name(best_away), format_countdown(best_delta))
+        except Exception:
+            pass
+
         if not list_content:
             self.update_header(0, count_live, count_fin, count_sch)
             # Guard: internal error strings must not be shown when cached_events exist
@@ -19885,7 +21103,7 @@ class SimpleSportsScreen(Screen):
             msg = _t("No Matches Found") if (_raw_status in _INTERNAL_ERRORS or not _raw_status) else _raw_status
             dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0)
             if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
-            else: self["list"].setList([SportListEntry(dummy_entry)])
+            else: self["list"].setList([VNextListEntry(dummy_entry)])
             self.current_match_ids = []
             # Still stamp the refresh time — the fetch itself succeeded, just no matches
             self._last_refreshed = datetime.datetime.now()
@@ -19897,15 +21115,18 @@ class SimpleSportsScreen(Screen):
                     self["list"].list[i] = list_content[i]
                 self["list"].l.setList(self["list"].list)
             else:
-                self["list"].setList(list_content)
-                self.current_match_ids = new_match_ids
+                if getattr(self, 'is_vnext_theme', False):
+                    self._start_stagger_reveal(list_content, new_match_ids, selected_id)
+                else:
+                    self["list"].setList(list_content)
+                    self.current_match_ids = new_match_ids
 
-                # --- CURSOR RESTORE ---
-                if selected_id:
-                    try:
-                        new_index = new_match_ids.index(selected_id)
-                        self["list"].moveToIndex(new_index)
-                    except ValueError: pass
+                    # --- CURSOR RESTORE ---
+                    if selected_id:
+                        try:
+                            new_index = new_match_ids.index(selected_id)
+                            self["list"].moveToIndex(new_index)
+                        except ValueError: pass
 
             # Stamp the exact moment this render completed
             self._last_refreshed = datetime.datetime.now()
@@ -20342,6 +21563,10 @@ class SimpleSportsScreen(Screen):
                 self.monitor.theme_mode = new_theme; self.monitor.save_config(); self.close(True)
 
     def open_league_menu(self):
+        self._flash_nav('red')
+        self._delay_after_flash(self._open_league_menu_impl)
+
+    def _open_league_menu_impl(self):
         options = [
             (_t("Select Single League"), "single"),
             (_t("Custom Leagues (View/Edit)"), "custom_leagues"),
@@ -20405,6 +21630,10 @@ class SimpleSportsScreen(Screen):
     def keyNumber0(self): self.open_team_rosters()
 
     def open_mini_bar(self):
+        self._flash_nav('green')
+        self._delay_after_flash(self._open_mini_bar_impl)
+
+    def _open_mini_bar_impl(self):
         # Racing mode: open RacingMiniBar with selected event
         if not self.monitor.is_custom_mode:
             try:
@@ -20665,10 +21894,13 @@ class SimpleSportsScreen(Screen):
 
     def open_watch_party(self):
         """Blue button: Open Watch Party overlay for the selected live or scheduled soccer match."""
+        self._flash_nav('blue')
         if time.time() - self.last_key_time < 0.5: return
         self.last_key_time = time.time()
         log_diag("BUTTON_BLUE: open_watch_party pressed.")
+        self._delay_after_flash(self._open_watch_party_impl)
 
+    def _open_watch_party_impl(self):
         idx = self["list"].getSelectedIndex()
         event = None
         if idx is not None and 0 <= idx < len(self.current_match_ids):
@@ -20735,9 +21967,10 @@ class SimpleSportsScreen(Screen):
         self.monitor.toggle_filter(); self.update_filter_button(); self.monitor._trigger_callbacks(True, force_refresh=True)
 
     def open_livescore_screen(self):
+        self._flash_nav('yellow')
         if time.time() - self.last_key_time < 0.5: return
         self.last_key_time = time.time()
-        self.session.open(LiveScoreCZScreen)
+        self._delay_after_flash(lambda: self.session.open(LiveScoreCZScreen))
 
     def ch_next_day_action(self):
         log_dbg("SimpleSportsScreen ActionTriggered: channelUp action mapping matched.")
