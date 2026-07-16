@@ -113,7 +113,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.4"
+VERSION = "6.5"
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -229,6 +229,16 @@ TRANSLATIONS = {
     "Mark Favorites":             {"ar": u"\u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     "RED: Heart  GREEN: Save Favs": {"ar": u"\u0623\u062d\u0645\u0631: \u0642\u0644\u0628  \u0623\u062e\u0636\u0631: \u062d\u0641\u0638 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     "Favorites saved!":           {"ar": u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0645\u0641\u0636\u0644\u0629!"},
+    "Update Leagues":                   {"ar": u"\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0628\u0637\u0648\u0644\u0627\u062a"},
+    "Checking...":                      {"ar": u"\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0642\u0642..."},
+    "Checking for updates...":          {"ar": u"\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0648\u062c\u0648\u062f \u062a\u062d\u062f\u064a\u062b\u0627\u062a..."},
+    "No updates available":             {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u062d\u062f\u064a\u062b\u0627\u062a \u0645\u062a\u0627\u062d\u0629"},
+    "All leagues up to date!":          {"ar": u"\u062c\u0645\u064a\u0639 \u0627\u0644\u0628\u0637\u0648\u0644\u0627\u062a \u0645\u062d\u062f\u062b\u0629!"},
+    "Could not reach server":           {"ar": u"\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u062e\u0627\u062f\u0645"},
+    "{} new leagues found:\n\n{}\n\nAdd to your leagues list?":{"ar": u"\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 {} \u0628\u0637\u0648\u0644\u0627\u062a \u062c\u062f\u064a\u062f\u0629:\n\n{}\n\n\u0647\u0644 \u062a\u0631\u064a\u062f \u0625\u0636\u0627\u0641\u062a\u0647\u0627 \u0644\u0642\u0627\u0626\u0645\u062a\u0643\u061f"},
+    "{} new leagues found!":            {"ar": u"\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 {} \u0628\u0637\u0648\u0644\u0627\u062a \u062c\u062f\u064a\u062f\u0629!"},
+    "{} leagues added!":                {"ar": u"\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 {} \u0628\u0637\u0648\u0644\u0627\u062a!"},
+    "Error saving: ":                   {"ar": u"\u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062d\u0641\u0638: "},
     "No favorites yet. Use Select Single League to mark hearts.": {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0641\u0636\u0644\u0629 \u0628\u0639\u062f. \u0627\u0633\u062a\u062e\u062f\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 \u062f\u0648\u0631\u064a \u0648\u0627\u062d\u062f \u0644\u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0641\u0636\u0644\u0629."},
     "Select Favorite Leagues":    {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     "Locked (always active)":     {"ar": u"\u0645\u062b\u0628\u062a (\u0646\u0634\u0637 \u062f\u0627\u0626\u0645\u0627)"},
@@ -744,6 +754,81 @@ LEAGUE_NAMES_AR = {
     u"Lacrosse - PLL":                                u"\u0627\u0644\u0644\u0627\u0643\u0631\u0648\u0633 - PLL",
     u"Lacrosse - NCAA Men":                           u"\u0627\u0644\u0644\u0627\u0643\u0631\u0648\u0633 - NCAA (\u0631\u062c\u0627\u0644)",
     u"Lacrosse - NCAA Women":                         u"\u0627\u0644\u0644\u0627\u0643\u0631\u0648\u0633 - NCAA (\u0646\u0633\u0627\u0621)",
+    # ── Auto-Discovered Leagues ─────────────────────────────────────────────
+    u"AFC Asian Cup Qualifiers":                              u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0622\u0633\u064a\u0627",
+    u"AFC Champions League Two Qualifying":                   u"\u062a\u0635\u0641\u064a\u0627\u062a \u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0622\u0633\u064a\u0627 2",
+    u"AFC Women's Asian Cup":                                 u"\u0643\u0623\u0633 \u0622\u0633\u064a\u0627 \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    u"ASEAN Championship":                                    u"\u0628\u0637\u0648\u0644\u0629 \u0622\u0633\u064a\u0627\u0646",
+    u"African Nations Championship":                          u"\u0628\u0637\u0648\u0644\u0629 \u0623\u0645\u0645 \u0623\u0641\u0631\u064a\u0642\u064a\u0627 \u0644\u0644\u0645\u062d\u0644\u064a\u064a\u0646",
+    u"African Nations Championship Qualifying":               u"\u062a\u0635\u0641\u064a\u0627\u062a \u0628\u0637\u0648\u0644\u0629 \u0623\u0645\u0645 \u0623\u0641\u0631\u064a\u0642\u064a\u0627 \u0644\u0644\u0645\u062d\u0644\u064a\u064a\u0646",
+    u"Arabian Gulf Cup":                                      u"\u0643\u0623\u0633 \u0627\u0644\u062e\u0644\u064a\u062c \u0627\u0644\u0639\u0631\u0628\u064a",
+    u"Argentine Copa de la Superliga":                        u"\u0643\u0623\u0633 \u0627\u0644\u0633\u0648\u0628\u0631 \u0644\u064a\u063a\u0627 \u0627\u0644\u0623\u0631\u062c\u0646\u062a\u064a\u0646\u064a",
+    u"Argentine Nacional B":                                  u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0631\u062c\u0646\u062a\u064a\u0646\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"Argentine Primera B":                                   u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0631\u062c\u0646\u062a\u064a\u0646\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0644\u062b\u0629",
+    u"Argentine Supercopa":                                   u"\u0643\u0623\u0633 \u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0623\u0631\u062c\u0646\u062a\u064a\u0646\u064a",
+    u"Argentine Supercopa Internacional":                     u"\u0643\u0623\u0633 \u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0623\u0631\u062c\u0646\u062a\u064a\u0646\u064a \u0627\u0644\u062f\u0648\u0644\u064a",
+    u"Argentine Trofeo de Campeones":                         u"\u0643\u0623\u0633 \u0623\u0628\u0637\u0627\u0644 \u0627\u0644\u0623\u0631\u062c\u0646\u062a\u064a\u0646",
+    u"Arnold Clark Cup":                                      u"\u0643\u0623\u0633 \u0623\u0631\u0646\u0648\u0644\u062f \u0643\u0644\u0627\u0631\u0643",
+    u"Bangabandhu Cup":                                       u"\u0643\u0623\u0633 \u0628\u0627\u0646\u063a\u0627\u0628\u0627\u0646\u062f\u0648",
+    u"Belgian Pro League Promotion/Relegation Playoffs":      u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0644\u062c\u064a\u0643\u064a",
+    u"Bolivian Liga Profesional Promotion/Relegation Playoffs": u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0648\u0644\u064a\u0641\u064a",
+    u"Brazilian Campeonato Carioca":                          u"\u0628\u0637\u0648\u0644\u0629 \u0643\u0627\u0631\u064a\u0648\u0643\u0627 \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644\u064a\u0629",
+    u"Brazilian Campeonato Gaucho":                           u"\u0628\u0637\u0648\u0644\u0629 \u063a\u0627\u0648\u062a\u0634\u0648 \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644\u064a\u0629",
+    u"Brazilian Campeonato Mineiro":                          u"\u0628\u0637\u0648\u0644\u0629 \u0645\u064a\u0646\u064a\u0631\u0648 \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644\u064a\u0629",
+    u"Brazilian Campeonato Paulista":                         u"\u0628\u0637\u0648\u0644\u0629 \u0628\u0627\u0648\u0644\u064a\u0633\u062a\u0627 \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644\u064a\u0629",
+    u"Brazilian Supercopa Rei":                               u"\u0643\u0623\u0633 \u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644\u064a",
+    u"CONCACAF Champions Cup":                                u"\u0643\u0623\u0633 \u0623\u0628\u0637\u0627\u0644 \u0627\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641",
+    u"CONCACAF U23 Tournament":                               u"\u0628\u0637\u0648\u0644\u0629 \u0627\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641 \u062a\u062d\u062a 23 \u0633\u0646\u0629",
+    u"CONMEBOL Pre-Olympic Tournament":                       u"\u0628\u0637\u0648\u0644\u0629 \u0627\u0644\u0643\u0648\u0646\u0645\u064a\u0628\u0648\u0644 \u0627\u0644\u0645\u0624\u0647\u0644\u0629 \u0644\u0644\u0623\u0648\u0644\u0645\u0628\u064a\u0627\u062f",
+    u"CONMEBOL-UEFA Club Challenge":                          u"\u0643\u0623\u0633 \u0627\u0644\u062a\u062d\u062f\u064a \u0627\u0644\u0645\u0634\u062a\u0631\u0643 (\u0643\u0648\u0646\u0645\u064a\u0628\u0648\u0644 - \u064a\u0648\u064a\u0641\u0627)",
+    u"CONMEBOL-UEFA U20 Intercontinental Cup":                u"\u0643\u0623\u0633 \u0627\u0644\u0625\u0646\u062a\u0631\u0643\u0648\u0646\u062a\u064a\u0646\u0646\u062a\u0627\u0644 \u062a\u062d\u062a 20 \u0633\u0646\u0629",
+    u"CONMEBOL-UEFA Women's Cup of Champions":                u"\u0641\u064a\u0646\u0627\u0644\u064a\u0633\u064a\u0645\u0627 \u0627\u0644\u0633\u064a\u062f\u0627\u062a (\u0643\u0648\u0646\u0645\u064a\u0628\u0648\u0644 - \u064a\u0648\u064a\u0641\u0627)",
+    u"COSAFA Cup":                                            u"\u0643\u0623\u0633 \u0643\u0648\u0633\u0627\u0641\u0627",
+    u"Chilean Primera Divisi\u00f3n Promotion/Relegation Playoffs": u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u062a\u0634\u064a\u0644\u064a",
+    u"Chilean Supercopa":                                     u"\u0643\u0623\u0633 \u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u062a\u0634\u064a\u0644\u064a",
+    u"Chinese Super League Promotion/Relegation Playoffs":    u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0635\u064a\u0646\u064a",
+    u"Club Friendly":                                         u"\u0645\u0628\u0627\u0631\u0627\u0629 \u0648\u062f\u064a\u0629 \u0644\u0644\u0623\u0646\u062f\u064a\u0629",
+    u"Colombian Superliga":                                   u"\u0643\u0623\u0633 \u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0643\u0648\u0644\u0648\u0645\u0628\u064a",
+    u"Concacaf Central American Cup":                         u"\u0643\u0623\u0633 \u0623\u0645\u0631\u064a\u0643\u0627 \u0627\u0644\u0648\u0633\u0637\u0649 \u0644\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641",
+    u"Concacaf Cup":                                          u"\u0643\u0623\u0633 \u0627\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641",
+    u"Concacaf Gold Cup Qualifying":                          u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0630\u0647\u0628\u064a\u0629 \u0644\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641",
+    u"Concacaf W Championship":                               u"\u0628\u0637\u0648\u0644\u0629 \u0627\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641 \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    u"Concacaf Women's Olympic Qualifying":                   u"\u062a\u0635\u0641\u064a\u0627\u062a \u0627\u0644\u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641 \u0627\u0644\u0645\u0624\u0647\u0644\u0629 \u0644\u0644\u0623\u0648\u0644\u0645\u0628\u064a\u0627\u062f (\u0633\u064a\u062f\u0627\u062a)",
+    u"Copa Bolivia":                                          u"\u0643\u0623\u0633 \u0628\u0648\u0644\u064a\u0641\u064a\u0627",
+    u"Copa Chile":                                            u"\u0643\u0623\u0633 \u062a\u0634\u064a\u0644\u064a",
+    u"Copa Colombia":                                         u"\u0643\u0623\u0633 \u0643\u0648\u0644\u0648\u0645\u0628\u064a\u0627",
+    u"Costa Rican Primera Division":                          u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0643\u0648\u0633\u062a\u0627\u0631\u064a\u0643\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Dutch Eredivisie Promotion/Relegation Playoffs":        u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0648\u0644\u0646\u062f\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Dutch Tweede Divisie Promotion/Relegation Playoffs":    u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0648\u0644\u0646\u062f\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0644\u062b\u0629",
+    u"Emirates Cup":                                          u"\u0643\u0623\u0633 \u0627\u0644\u0625\u0645\u0627\u0631\u0627\u062a",
+    u"English Women's League Cup":                            u"\u0643\u0623\u0633 \u0631\u0627\u0628\u0637\u0629 \u0627\u0644\u0623\u0646\u062f\u064a\u0629 \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 \u0627\u0644\u0645\u062d\u062a\u0631\u0641\u0629 \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    u"English Women's Super League Promotion/Relegation Playoff": u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u062f\u0648\u0631\u064a \u0627\u0644\u0633\u064a\u062f\u0627\u062a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a",
+    u"FIFA World Cup Qualifying - Concacaf":                  u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645 - \u0643\u0648\u0646\u0643\u0627\u0643\u0627\u0641",
+    u"French Ligue 1 Promotion/Relegation Playoffs":          u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0631\u0646\u0633\u064a",
+    u"Guatemalan Liga Nacional":                              u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u063a\u0648\u0627\u062a\u064a\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Honduran Liga Nacional":                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0646\u062f\u0648\u0631\u0627\u0633\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Indian I-League":                                       u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0646\u062f\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"Intercontinental Cup (India)":                          u"\u0643\u0623\u0633 \u0627\u0644\u0625\u0646\u062a\u0631\u0643\u0648\u0646\u062a\u064a\u0646\u0646\u062a\u0627\u0644 (\u0627\u0644\u0647\u0646\u062f)",
+    u"Japanese J.League World Challenge":                     u"\u062a\u062d\u062f\u064a \u0627\u0644\u062c\u064a\u0644 \u0644\u0644\u0631\u0627\u0628\u0637\u0629 \u0627\u0644\u064a\u0627\u0628\u0627\u0646\u064a\u0629",
+    u"Maurice Revello Tournament":                            u"\u0628\u0637\u0648\u0644\u0629 \u062a\u0648\u0644\u0648\u0646 \u0627\u0644\u062f\u0648\u0644\u064a\u0629 (\u0645\u0648\u0631\u064a\u0633 \u0631\u064a\u0641\u064a\u0644\u0648)",
+    u"Men's Olympic Qualifying Playoff":                      u"\u0645\u0644\u062d\u0642 \u0627\u0644\u062a\u0623\u0647\u0644 \u0644\u0644\u0623\u0648\u0644\u0645\u0628\u064a\u0627\u062f (\u0631\u062c\u0627\u0644)",
+    u"Non-FIFA Friendly":                                     u"\u0645\u0628\u0627\u0631\u0627\u0629 \u0648\u062f\u064a\u0629 \u063a\u064a\u0631 \u0631\u0633\u0645\u064a\u0629",
+    u"Norwegian Eliteserien Promotion/Relegation Playoffs":   u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0646\u0631\u0648\u064a\u062c\u064a",
+    u"Paraguayan Supercopa":                                  u"\u0643\u0623\u0633 \u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0628\u0627\u0631\u0627\u063a\u0648\u0627\u064a\u0627\u0646\u064a",
+    u"Pinatar Cup":                                           u"\u0643\u0623\u0633 \u0628\u064a\u0646\u0627\u062a\u0627\u0631",
+    u"Portuguese Primeira Liga Promotion/Relegation Playoffs": u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0631\u062a\u063a\u0627\u0644\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Russian Premier League Relegation/Promotion Playoffs":  u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0631\u0648\u0633\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"SAFF Championship":                                     u"\u0628\u0637\u0648\u0644\u0629 \u0627\u062a\u062d\u0627\u062f \u062c\u0646\u0648\u0628 \u0622\u0633\u064a\u0627",
+    u"Salvadoran Primera Division":                           u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0633\u0644\u0641\u0627\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Scottish Championship Promotion/Relegation Playoffs":   u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0643\u062a\u0644\u0646\u062f\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"Scottish Cup Qualifying":                               u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0623\u0633 \u0625\u0633\u0643\u062a\u0644\u0646\u062f\u0627",
+    u"Scottish Premiership Promotion/Relegation Playoffs":    u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0643\u062a\u0644\u0646\u062f\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Segunda Divisi\u00f3n de Uruguay":                           u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0648\u0631\u0648\u063a\u0648\u0627\u064a\u0627\u0646\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"Swedish Allsvenskan Promotion/Relegation Playoffs":     u"\u0645\u0644\u062d\u0642 \u0627\u0644\u0635\u0639\u0648\u062f \u0648\u0627\u0644\u0647\u0628\u0648\u0637 \u0628\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0633\u0648\u064a\u062f\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"UEFA Women's Champions League Qualifying":              u"\u062a\u0635\u0641\u064a\u0627\u062a \u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0623\u0648\u0631\u0648\u0628\u0627 \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    u"UEFA Women's Europa Cup":                               u"\u0643\u0623\u0633 \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    u"USL Cup":                                               u"\u0643\u0623\u0633 \u062f\u0648\u0631\u064a \u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0645\u062a\u062d\u062f\u0629 (USL)",
+    u"Women's Africa Cup of Nations":                         u"\u0643\u0623\u0633 \u0623\u0645\u0645 \u0623\u0641\u0631\u064a\u0642\u064a\u0627 \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
 }
 
 
@@ -1219,11 +1304,12 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.4"  # Update version to 6.4 - SimplySports vNext UI: modern dashboard header, card-based match list, icon-based bottom nav, live goal heatmap, and layout fixes.
+CURRENT_VERSION = "6.5"  # Update version to 6.5 - Dynamic league updates, pulse score updates, enlarged logos, and stability fixes.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
 FAVORITE_LEAGUES_FILE = "/etc/enigma2/simplysports_favoriteleagues.json"
+DISCOVERED_LEAGUES_FILE = "/etc/enigma2/simply_sports_discovered.json"
 LOGO_CACHE_DIR = "/tmp/simplysports/logos"
 
 
@@ -1538,6 +1624,81 @@ DATA_SOURCES = [
     ("Malaysian Super League", "https://site.api.espn.com/apis/site/v2/sports/soccer/mys.1/scoreboard"),
     ("Indonesian Super League", "https://site.api.espn.com/apis/site/v2/sports/soccer/idn.1/scoreboard"),
     ("Singaporean Premier League", "https://site.api.espn.com/apis/site/v2/sports/soccer/sgp.1/scoreboard"),
+    # ── Dynamically Integrated Leagues ──────────────────────────────────────
+    ("AFC Asian Cup Qualifiers", "https://site.api.espn.com/apis/site/v2/sports/soccer/afc.cupq/scoreboard"),
+    ("AFC Champions League Two Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/afc.cup_qual/scoreboard"),
+    ("AFC Women's Asian Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/afc.w.asian.cup/scoreboard"),
+    ("ASEAN Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/aff.championship/scoreboard"),
+    ("African Nations Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/caf.championship/scoreboard"),
+    ("African Nations Championship Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/caf.championship_qual/scoreboard"),
+    ("Arabian Gulf Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/global.gulf_cup/scoreboard"),
+    ("Argentine Copa de la Superliga", "https://site.api.espn.com/apis/site/v2/sports/soccer/arg.copa_de_la_superliga/scoreboard"),
+    ("Argentine Nacional B", "https://site.api.espn.com/apis/site/v2/sports/soccer/arg.2/scoreboard"),
+    ("Argentine Primera B", "https://site.api.espn.com/apis/site/v2/sports/soccer/arg.3/scoreboard"),
+    ("Argentine Supercopa", "https://site.api.espn.com/apis/site/v2/sports/soccer/arg.supercopa/scoreboard"),
+    ("Argentine Supercopa Internacional", "https://site.api.espn.com/apis/site/v2/sports/soccer/arg.supercopa.internacional/scoreboard"),
+    ("Argentine Trofeo de Campeones", "https://site.api.espn.com/apis/site/v2/sports/soccer/arg.trofeo_de_la_campeones/scoreboard"),
+    ("Arnold Clark Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/global.arnold.clark_cup/scoreboard"),
+    ("Bangabandhu Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/bangabandhu.cup/scoreboard"),
+    ("Belgian Pro League Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/bel.promotion.relegation/scoreboard"),
+    ("Bolivian Liga Profesional Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/bol.ply.rel/scoreboard"),
+    ("Brazilian Campeonato Carioca", "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.camp.carioca/scoreboard"),
+    ("Brazilian Campeonato Gaucho", "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.camp.gaucho/scoreboard"),
+    ("Brazilian Campeonato Mineiro", "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.camp.mineiro/scoreboard"),
+    ("Brazilian Campeonato Paulista", "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.camp.paulista/scoreboard"),
+    ("Brazilian Supercopa Rei", "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.supercopa_do_brazil/scoreboard"),
+    ("CONCACAF Champions Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.champions_cup/scoreboard"),
+    ("CONCACAF U23 Tournament", "https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.u23/scoreboard"),
+    ("CONMEBOL Pre-Olympic Tournament", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.conmebol.olympicsq/scoreboard"),
+    ("CONMEBOL-UEFA Club Challenge", "https://site.api.espn.com/apis/site/v2/sports/soccer/global.club_challenge/scoreboard"),
+    ("CONMEBOL-UEFA U20 Intercontinental Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/global.u20.intercontinental_cup/scoreboard"),
+    ("CONMEBOL-UEFA Women's Cup of Champions", "https://site.api.espn.com/apis/site/v2/sports/soccer/global.w.finalissima/scoreboard"),
+    ("COSAFA Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/caf.cosafa/scoreboard"),
+    ("Chilean Primera División Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/chi.1.promotion.relegation/scoreboard"),
+    ("Chilean Supercopa", "https://site.api.espn.com/apis/site/v2/sports/soccer/chi.super_cup/scoreboard"),
+    ("Chinese Super League Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/chn.1.promotion.relegation/scoreboard"),
+    ("Club Friendly", "https://site.api.espn.com/apis/site/v2/sports/soccer/club.friendly/scoreboard"),
+    ("Colombian Superliga", "https://site.api.espn.com/apis/site/v2/sports/soccer/col.superliga/scoreboard"),
+    ("Concacaf Central American Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.central.american.cup/scoreboard"),
+    ("Concacaf Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.confederations_playoff/scoreboard"),
+    ("Concacaf Gold Cup Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.gold_qual/scoreboard"),
+    ("Concacaf W Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.womens.championship/scoreboard"),
+    ("Concacaf Women's Olympic Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.w.concacaf.olympicsq/scoreboard"),
+    ("Copa Bolivia", "https://site.api.espn.com/apis/site/v2/sports/soccer/bol.copa/scoreboard"),
+    ("Copa Chile", "https://site.api.espn.com/apis/site/v2/sports/soccer/chi.copa_chi/scoreboard"),
+    ("Copa Colombia", "https://site.api.espn.com/apis/site/v2/sports/soccer/col.copa/scoreboard"),
+    ("Costa Rican Primera Division", "https://site.api.espn.com/apis/site/v2/sports/soccer/crc.1/scoreboard"),
+    ("Dutch Eredivisie Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/ned.playoff.relegation/scoreboard"),
+    ("Dutch Tweede Divisie Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/ned.3.promotion.relegation/scoreboard"),
+    ("Emirates Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/friendly.emirates_cup/scoreboard"),
+    ("English Women's League Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.w.league_cup/scoreboard"),
+    ("English Women's Super League Promotion/Relegation Playoff", "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.w.promotion.relegation/scoreboard"),
+    ("FIFA World Cup Qualifying - Concacaf", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worldq.concacaf/scoreboard"),
+    ("French Ligue 1 Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1.promotion.relegation/scoreboard"),
+    ("Guatemalan Liga Nacional", "https://site.api.espn.com/apis/site/v2/sports/soccer/gua.1/scoreboard"),
+    ("Honduran Liga Nacional", "https://site.api.espn.com/apis/site/v2/sports/soccer/hon.1/scoreboard"),
+    ("Indian I-League", "https://site.api.espn.com/apis/site/v2/sports/soccer/ind.2/scoreboard"),
+    ("Intercontinental Cup (India)", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.intercontinental.cup/scoreboard"),
+    ("Japanese J.League World Challenge", "https://site.api.espn.com/apis/site/v2/sports/soccer/jpn.world_challenge/scoreboard"),
+    ("Maurice Revello Tournament", "https://site.api.espn.com/apis/site/v2/sports/soccer/global.toulon/scoreboard"),
+    ("Men's Olympic Qualifying Playoff", "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.concacaf.olympicsq/scoreboard"),
+    ("Non-FIFA Friendly", "https://site.api.espn.com/apis/site/v2/sports/soccer/nonfifa/scoreboard"),
+    ("Norwegian Eliteserien Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/nor.1.promotion.relegation/scoreboard"),
+    ("Paraguayan Supercopa", "https://site.api.espn.com/apis/site/v2/sports/soccer/par.1.supercopa/scoreboard"),
+    ("Pinatar Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/global.pinatar_cup/scoreboard"),
+    ("Portuguese Primeira Liga Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/por.1.promotion.relegation/scoreboard"),
+    ("Russian Premier League Relegation/Promotion Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/rus.1.promotion.relegation/scoreboard"),
+    ("SAFF Championship", "https://site.api.espn.com/apis/site/v2/sports/soccer/afc.saff.championship/scoreboard"),
+    ("Salvadoran Primera Division", "https://site.api.espn.com/apis/site/v2/sports/soccer/slv.1/scoreboard"),
+    ("Scottish Championship Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/sco.2.promotion.relegation/scoreboard"),
+    ("Scottish Cup Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/sco.tennents_qual/scoreboard"),
+    ("Scottish Premiership Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/sco.1.promotion.relegation/scoreboard"),
+    ("Segunda División de Uruguay", "https://site.api.espn.com/apis/site/v2/sports/soccer/uru.2/scoreboard"),
+    ("Swedish Allsvenskan Promotion/Relegation Playoffs", "https://site.api.espn.com/apis/site/v2/sports/soccer/swe.1.promotion.relegation/scoreboard"),
+    ("UEFA Women's Champions League Qualifying", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.wchampions_qual/scoreboard"),
+    ("UEFA Women's Europa Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.w.europa/scoreboard"),
+    ("USL Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.usl.l1.cup/scoreboard"),
+    ("Women's Africa Cup of Nations", "https://site.api.espn.com/apis/site/v2/sports/soccer/caf.w.nations/scoreboard"),
 ]
 
 # Filtered list of soccer-only DATA_SOURCES — used by FavoriteTeamLeagueSelector.
@@ -1546,6 +1707,64 @@ SOCCER_DATA_SOURCES = [
     (name, url) for name, url in DATA_SOURCES
     if "/sports/soccer/" in url
 ]
+
+# ==============================================================================
+# STABLE SLUG HELPERS  (index-to-slug migration for league selections)
+# ==============================================================================
+def get_slug_from_url(url):
+    """Extract a stable, sport-namespaced slug from an ESPN API URL.
+    e.g. 'https://site.api.espn.com/.../sports/soccer/eng.1/scoreboard' -> 'soccer/eng.1'
+    EuroLeague sentinel URLs return 'euroleague'."""
+    if url.startswith("euroleague://"):
+        return "euroleague"
+    try:
+        parts = url.split('/sports/')
+        if len(parts) > 1:
+            return parts[1].split('/scoreboard')[0]  # e.g. "soccer/eng.1"
+    except Exception:
+        pass
+    return url
+
+def _build_slug_maps():
+    """Build bidirectional slug <-> DATA_SOURCES index lookup dicts."""
+    s2i = {}
+    i2s = {}
+    for i, (_name, _url) in enumerate(DATA_SOURCES):
+        slug = get_slug_from_url(_url)
+        s2i[slug] = i
+        i2s[i] = slug
+    return s2i, i2s
+
+SLUG_TO_IDX, IDX_TO_SLUG = _build_slug_maps()
+
+def _load_discovered_leagues():
+    """Load auto-discovered leagues from local cache and append to DATA_SOURCES.
+    Called once at module load so discovered leagues are available immediately."""
+    global SLUG_TO_IDX, IDX_TO_SLUG
+    try:
+        if os.path.exists(DISCOVERED_LEAGUES_FILE):
+            with open(DISCOVERED_LEAGUES_FILE, "r") as _df:
+                discovered = json.load(_df)
+            if not isinstance(discovered, list):
+                return
+            existing_slugs = set(get_slug_from_url(u) for _, u in DATA_SOURCES)
+            added = 0
+            for entry in discovered:
+                d_name = entry.get("name", "")
+                d_url  = entry.get("url", "")
+                d_slug = get_slug_from_url(d_url)
+                if d_slug and d_slug not in existing_slugs and d_name and d_url:
+                    DATA_SOURCES.append((d_name, d_url))
+                    if "/sports/soccer/" in d_url:
+                        SOCCER_DATA_SOURCES.append((d_name, d_url))
+                    existing_slugs.add(d_slug)
+                    added += 1
+            if added > 0:
+                SLUG_TO_IDX, IDX_TO_SLUG = _build_slug_maps()
+    except Exception:
+        pass
+
+_load_discovered_leagues()
 
 # ==============================================================================
 # SPORT TYPE CLASSIFICATION
@@ -2632,8 +2851,11 @@ def VNextListEntry(entry):
         h_form = ""; a_form = ""
         h_pred_pct = 0.0; a_pred_pct = 0.0; pred_is_estimate = 0
         goal_glow_side = None
+        pulse_alpha = 0.0  # 0.0 = no pulse, >0.0 = recently-updated flash intensity
 
-        if len(entry) >= 31:
+        if len(entry) >= 32:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side, pulse_alpha = entry[:32]
+        elif len(entry) >= 31:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side = entry[:31]
         elif len(entry) >= 30:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate = entry[:30]
@@ -2708,6 +2930,30 @@ def VNextListEntry(entry):
         # Card container: rounded on all 4 corners, border glows electric-blue on focus
         draw_card(res, card_x, card_y, card_w, card_h, 18, card_fill, card_fill, border_default, c_sel, border_w=2)
 
+        # "Recently updated" pulse — brief (2s) soft flash overlay on the card
+        # when a score just changed. Separate from the 5-minute goal heatmap.
+        # Uses a fading tint that decays to transparent; no looping animation.
+        if pulse_alpha > 0.0:
+            # Blend a soft highlight colour into the card fill at the given alpha.
+            # For LIVE cards use a warm white-gold tint; for others a cool cyan-white.
+            pulse_base = (255, 240, 200) if status == "LIVE" else (200, 230, 255)
+            bg_r = (card_fill >> 16) & 0xFF
+            bg_g = (card_fill >> 8) & 0xFF
+            bg_b = card_fill & 0xFF
+            pa = min(1.0, pulse_alpha)  # clamp
+            pr = int(bg_r + (pulse_base[0] - bg_r) * pa * 0.35)
+            pg = int(bg_g + (pulse_base[1] - bg_g) * pa * 0.35)
+            pb = int(bg_b + (pulse_base[2] - bg_b) * pa * 0.35)
+            pulse_color = (max(0, min(255, pr)) << 16) | (max(0, min(255, pg)) << 8) | max(0, min(255, pb))
+            # Paint the pulse as an inset fill just inside the border radius so
+            # it doesn't poke past the rounded corners (same inset as goal_glow).
+            pulse_inset = 4
+            res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                card_x + pulse_inset, card_y + pulse_inset,
+                card_w - 2 * pulse_inset, card_h - 2 * pulse_inset,
+                0, RT_HALIGN_CENTER, "",
+                pulse_color, pulse_color, pulse_color, pulse_color))
+
         # Brief gold edge glow on the scoring side (subtler companion to the goal
         # chevron below) - inset from the rounded corners so it reads as a clean
         # accent bar along the flat part of the edge, not a square corner poking
@@ -2757,8 +3003,8 @@ def VNextListEntry(entry):
         elif len(right_text) > 23: font_a = 1
 
         center_cx = 960
-        LOGO_SIZE = 63   # +5% from the original 60px
-        HOME_LOGO_X = center_cx - 178   # left edge, same anchor as before
+        LOGO_SIZE = 69   # Increased by 10% from 63px
+        HOME_LOGO_X = center_cx - 184   # Shifted left to keep right edge and score-box gap unchanged
         AWAY_LOGO_X = center_cx + 118
 
         name_top = card_y + 14
@@ -4152,6 +4398,7 @@ class SportsMonitor:
         self.last_scores = {}
         self.last_red_cards = {}
         self.goal_flags = {}
+        self.score_update_timestamps = {}  # match_id -> time.time() of last score change (for 2s pulse)
         self.last_states = {}
         self.last_periods = {}       # Track halftime/period state per match_id
         self.last_details_seen = {}  # Track VAR/disallowed counts per match_id
@@ -4669,16 +4916,34 @@ class SportsMonitor:
             try:
                 with open(CONFIG_FILE, "r") as f:
                     data = json.load(f)
-                    self.current_league_index = int(data.get("league_index", 0))
+                    # --- Single league: prefer stable slug, fall back to legacy index ---
+                    _league_slug = data.get("league_slug")
+                    if _league_slug and _league_slug in SLUG_TO_IDX:
+                        self.current_league_index = SLUG_TO_IDX[_league_slug]
+                    else:
+                        self.current_league_index = int(data.get("league_index", 0))
                     self.filter_mode = int(data.get("filter_mode", 0))
                     self.theme_mode = data.get("theme_mode", "default")
                     self.transparency = data.get("transparency", "59")
                     self.discovery_mode = int(data.get("discovery_mode", 0))
                     self.active = (self.discovery_mode > 0)
-                    self.custom_league_indices = data.get("custom_indices", [])
+                    # --- Custom leagues: prefer stable slugs, fall back to legacy indices ---
+                    _custom_slugs = data.get("custom_league_slugs")
+                    if _custom_slugs is not None:
+                        self.custom_league_indices = [SLUG_TO_IDX[s] for s in _custom_slugs if s in SLUG_TO_IDX]
+                    else:
+                        self.custom_league_indices = data.get("custom_indices", [])
                     self.is_custom_mode = bool(data.get("is_custom_mode", False))
-                    self.saved_custom_league_indices = data.get("saved_custom_indices", list(self.custom_league_indices))
-                    self.favorite_league_indices = data.get("favorite_league_indices", [])
+                    _saved_slugs = data.get("saved_custom_league_slugs")
+                    if _saved_slugs is not None:
+                        self.saved_custom_league_indices = [SLUG_TO_IDX[s] for s in _saved_slugs if s in SLUG_TO_IDX]
+                    else:
+                        self.saved_custom_league_indices = data.get("saved_custom_indices", list(self.custom_league_indices))
+                    _fav_slugs = data.get("favorite_league_slugs")
+                    if _fav_slugs is not None:
+                        self.favorite_league_indices = [SLUG_TO_IDX[s] for s in _fav_slugs if s in SLUG_TO_IDX]
+                    else:
+                        self.favorite_league_indices = data.get("favorite_league_indices", [])
                     self.is_favorite_mode = bool(data.get("is_favorite_mode", False))
                     self.reminders = data.get("reminders", [])
                     self.menu_section = data.get("menu_section", "all")
@@ -4762,12 +5027,18 @@ class SportsMonitor:
 
     def save_config(self):
         data = {
-            "league_index": self.current_league_index, "filter_mode": self.filter_mode,
+            "league_index": self.current_league_index,
+            "league_slug": IDX_TO_SLUG.get(self.current_league_index, ""),
+            "filter_mode": self.filter_mode,
             "theme_mode": self.theme_mode, "transparency": self.transparency,
             "discovery_mode": self.discovery_mode, "active": self.active,
-            "custom_indices": self.custom_league_indices, "is_custom_mode": self.is_custom_mode,
+            "custom_indices": self.custom_league_indices,
+            "custom_league_slugs": [IDX_TO_SLUG[i] for i in self.custom_league_indices if i in IDX_TO_SLUG],
+            "is_custom_mode": self.is_custom_mode,
             "saved_custom_indices": self.saved_custom_league_indices,
+            "saved_custom_league_slugs": [IDX_TO_SLUG[i] for i in self.saved_custom_league_indices if i in IDX_TO_SLUG],
             "favorite_league_indices": self.favorite_league_indices,
+            "favorite_league_slugs": [IDX_TO_SLUG[i] for i in self.favorite_league_indices if i in IDX_TO_SLUG],
             "is_favorite_mode": self.is_favorite_mode,
             "reminders": self.reminders, "menu_section": self.menu_section,
             "show_in_menu": self.show_in_menu, "minibar_color_mode": self.minibar_color_mode,
@@ -5191,6 +5462,8 @@ class SportsMonitor:
         else: self.theme_mode = "default"
         self.save_config(); return self.theme_mode
     def toggle_filter(self):
+        # Two modes only: Live(1) <-> Today(2). Today strictly shows only
+        # matches whose date is today (plus anything currently live).
         if self.filter_mode == 1:
             self.filter_mode = 2
         else:
@@ -5214,7 +5487,7 @@ class SportsMonitor:
         url_lower = url.lower()
         if '/tennis/' in url_lower or '/mma/' in url_lower or '/boxing/' in url_lower or '/racing/' in url_lower:
             return url
-        
+
         # Query target and target - 1 day to cover all possible local-day timezone shifts.
         offset = self.ch_day_offset
         target = datetime.date.today() + datetime.timedelta(days=offset)
@@ -7392,6 +7665,9 @@ class SportsMonitor:
             now = time.time()
             keys_to_del = [mid for mid, info in self.goal_flags.items() if now - info['time'] > 300]
             for k in keys_to_del: del self.goal_flags[k]
+            # Cleanup stale score-pulse timestamps (keep 5s margin beyond the 2s fade)
+            pulse_del = [mid for mid, ts in self.score_update_timestamps.items() if now - ts > 5]
+            for k in pulse_del: del self.score_update_timestamps[k]
 
             for event in self.cached_events:
                 status = event.get('status', {})
@@ -7488,6 +7764,7 @@ class SportsMonitor:
                         )
                     if match_id in self.last_scores:
                         if self.last_scores[match_id] != score_str:
+                            self.score_update_timestamps[match_id] = time.time()  # for 2s recently-updated pulse
                             try:
                                 prev_h, prev_a = map(int, self.last_scores[match_id].split('-'))
                                 diff_h = h_score - prev_h
@@ -7745,8 +8022,10 @@ class SportsMonitor:
                 try:
                     json_str = body.decode('utf-8', errors='ignore')
                     data = json.loads(json_str)
-                    league_obj = data.get('leagues', [{}])[0]
-                    cur_l_logo = league_obj.get('logos', [{}])[0].get('href', '')
+                    _leagues_list = data.get('leagues') or [{}]
+                    league_obj = _leagues_list[0]
+                    _league_logos = league_obj.get('logos') or [{}]
+                    cur_l_logo = _league_logos[0].get('href', '') if _league_logos else ''
                     cur_l_id = str(league_obj.get('id', ''))
                     if l_name: league_name = l_name
                     else: league_name = league_obj.get('name') or league_obj.get('shortName') or ""
@@ -7952,7 +8231,9 @@ class SportsMonitor:
                     for rk in reap_keys:
                         if rk in self.event_map: del self.event_map[rk]
                     if reap_keys: has_changes = True
-                except Exception: pass
+                except Exception as _proc_e:
+                    log_dbg("[process_events_data] Skipped league '{}' ({}) due to error: {}".format(
+                        l_name or '?', l_url or '?', _proc_e))
 
             # Rebuild cached_events from map
             unique_list = list(self.event_map.values())
@@ -13018,12 +13299,12 @@ class LeagueSelector(Screen):
         self["list"].l.setFont(0, gFont("SimplySportFont", 28))
         self["list"].l.setItemHeight(50)
 
-        self["key_red"] = Label(_t("Cancel") if mode == "multi" else _t("Mark Favorites"))
+        self["key_red"] = Label(_t("Update Leagues") if mode == "multi" else (_t("Mark Favorites") if mode == "single" else _t("Cancel")))
         self["key_green"] = Label(_t("Save") if mode == "multi" else _t("Save") if mode == "favorite" else "")
         self["info"] = Label(_t("Press OK to Toggle") if mode == "multi" else (_t("RED: Heart  GREEN: Save Favs") if mode == "single" else _t("Press OK to Select")))
 
         # In single mode: RED toggles heart, GREEN saves hearts, OK selects league
-        # In multi  mode: RED cancels,       GREEN saves selection
+        # In multi  mode: RED updates leagues, GREEN saves selection
         # In favorite mode: RED cancels,      GREEN applies active selection
         if mode == "single":
             self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
@@ -13034,11 +13315,20 @@ class LeagueSelector(Screen):
                 "up": self["list"].up,
                 "down": self["list"].down,
             }, -1)
+        elif mode == "multi":
+            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+                "cancel": self.cancel,
+                "red": self.check_for_updates,
+                "green": self.save,
+                "ok": self.toggle,
+                "up": self["list"].up,
+                "down": self["list"].down,
+            }, -1)
         else:
             self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
                 "cancel": self.cancel,
                 "red": self.cancel,
-                "green": self.save if mode == "multi" else (self.apply_favorites if mode == "favorite" else self.dummy),
+                "green": self.apply_favorites if mode == "favorite" else self.dummy,
                 "ok": self.toggle,
                 "up": self["list"].up,
                 "down": self["list"].down,
@@ -13518,6 +13808,109 @@ class LeagueSelector(Screen):
         else:
             global_sports_monitor.set_custom_leagues(new_indices)
             self.close(True)
+
+
+    def check_for_updates(self):
+        """Red button in multi mode: check for newly discovered leagues from the remote catalog."""
+        self["info"].setText(_t("Checking for updates..."))
+        self["key_red"].setText(_t("Checking..."))
+        # Use callLater to allow the UI label to repaint before the blocking fetch
+        from twisted.internet import reactor
+        reactor.callLater(0.1, self._do_catalog_fetch)
+
+    def _do_catalog_fetch(self):
+        """Synchronous fetch of the remote leagues catalog (called after a short UI delay)."""
+        try:
+            import ssl
+            try:
+                from urllib.request import Request, urlopen
+            except ImportError:
+                from urllib2 import Request, urlopen
+            url = "{}/leagues_catalog.json".format(FIREBASE_URL)
+            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            try:
+                context = ssl._create_unverified_context()
+                response = urlopen(req, timeout=8, context=context)
+            except AttributeError:
+                response = urlopen(req, timeout=8)
+            raw = response.read()
+            if isinstance(raw, bytes):
+                raw = raw.decode('utf-8', errors='ignore')
+            if not raw or raw == "null":
+                self["info"].setText(_t("No updates available"))
+                self["key_red"].setText(_t("Update Leagues"))
+                return
+            catalog = json.loads(raw)
+            if not isinstance(catalog, list):
+                self["info"].setText(_t("No updates available"))
+                self["key_red"].setText(_t("Update Leagues"))
+                return
+
+            existing_slugs = set(get_slug_from_url(u) for _, u in DATA_SOURCES)
+            new_entries = []
+            for entry in catalog:
+                c_name = entry.get("name", "")
+                c_url  = entry.get("url", "")
+                c_slug = get_slug_from_url(c_url)
+                if c_slug and c_slug not in existing_slugs and c_name and c_url:
+                    new_entries.append({"name": c_name, "url": c_url})
+
+            if new_entries:
+                names_preview = "\n".join("  \u2022 " + e["name"] for e in new_entries[:10])
+                if len(new_entries) > 10:
+                    names_preview += "\n  ... and {} more".format(len(new_entries) - 10)
+                self.session.openWithCallback(
+                    lambda confirmed: self._apply_discovered(new_entries) if confirmed else None,
+                    MessageBox,
+                    _t("{} new leagues found:\n\n{}\n\nAdd to your leagues list?").format(len(new_entries), names_preview),
+                    MessageBox.TYPE_YESNO
+                )
+                self["info"].setText(_t("{} new leagues found!").format(len(new_entries)))
+            else:
+                self["info"].setText(_t("All leagues up to date!"))
+            self["key_red"].setText(_t("Update Leagues"))
+        except Exception as e:
+            log_dbg("[UpdateLeagues] Fetch failed: " + str(e))
+            self["info"].setText(_t("Could not reach server"))
+            self["key_red"].setText(_t("Update Leagues"))
+
+    def _apply_discovered(self, new_entries):
+        """Persist newly discovered leagues and reload the list."""
+        global SLUG_TO_IDX, IDX_TO_SLUG
+        try:
+            # Load existing discovered entries
+            existing = []
+            if os.path.exists(DISCOVERED_LEAGUES_FILE):
+                with open(DISCOVERED_LEAGUES_FILE, "r") as _df:
+                    existing = json.load(_df)
+            if not isinstance(existing, list):
+                existing = []
+            # Merge new entries (deduplicate by slug)
+            existing_slugs = set(get_slug_from_url(e.get("url", "")) for e in existing)
+            for entry in new_entries:
+                e_slug = get_slug_from_url(entry.get("url", ""))
+                if e_slug not in existing_slugs:
+                    existing.append(entry)
+                    existing_slugs.add(e_slug)
+            # Persist to disk
+            with open(DISCOVERED_LEAGUES_FILE, "w") as _df:
+                json.dump(existing, _df, indent=2)
+            # Extend DATA_SOURCES in memory
+            ds_slugs = set(get_slug_from_url(u) for _, u in DATA_SOURCES)
+            for entry in new_entries:
+                e_slug = get_slug_from_url(entry.get("url", ""))
+                if e_slug not in ds_slugs:
+                    DATA_SOURCES.append((entry["name"], entry["url"]))
+                    if "/sports/soccer/" in entry["url"]:
+                        SOCCER_DATA_SOURCES.append((entry["name"], entry["url"]))
+                    ds_slugs.add(e_slug)
+            # Rebuild slug maps
+            SLUG_TO_IDX, IDX_TO_SLUG = _build_slug_maps()
+            # Reload the selector list so new leagues appear immediately
+            self.load_list()
+            self["info"].setText(_t("{} leagues added!").format(len(new_entries)))
+        except Exception as e:
+            self["info"].setText(_t("Error saving: ") + str(e)[:40])
 
 
 # ==============================================================================
@@ -20887,6 +21280,14 @@ class SimpleSportsScreen(Screen):
                 # Check for recent goals to create a 'heat' effect on the score box
                 c_score_bg = VN_BG_NAVY if self.monitor.theme_mode != "ucl" else 0x060e1c
                 goal_glow_side = None  # brief (90s) gold edge tint on the scoring side's card border
+                # "Recently updated" pulse alpha (2s fade, separate from the 5-min heatmap)
+                pulse_alpha = 0.0
+                pulse_ts = self.monitor.score_update_timestamps.get(match_id, 0)
+                if pulse_ts > 0:
+                    pulse_age = time.time() - pulse_ts
+                    if pulse_age <= 2.0:
+                        pulse_alpha = 1.0 - (pulse_age / 2.0)  # linear fade 1.0 -> 0.0
+
                 if snap['state'] == 'in' and match_id in self.monitor.goal_flags:
                     goal_time = self.monitor.goal_flags[match_id].get('time', 0)
                     time_since_goal = time.time() - goal_time
@@ -20936,7 +21337,7 @@ class SimpleSportsScreen(Screen):
                         predictor_fetches_started += 1
                         self.monitor.fetch_predictor_async(match_id, snap.get('league_url', ''), snap.get('event_id', match_id))
 
-                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0), snap.get('h_pct_stats', []), snap.get('a_pct_stats', []), snap.get('h_shots', 0), snap.get('a_shots', 0), snap.get('h_on_target', 0), snap.get('a_on_target', 0), snap.get('h_form', ''), snap.get('a_form', ''), h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side)
+                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0), snap.get('h_pct_stats', []), snap.get('a_pct_stats', []), snap.get('h_shots', 0), snap.get('a_shots', 0), snap.get('h_on_target', 0), snap.get('a_on_target', 0), snap.get('h_form', ''), snap.get('a_form', ''), h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side, pulse_alpha)
 
                 # Store raw data for sorting (include event for excitement calculation)
                 raw_entries.append((entry_data, match_id, is_live, event))
@@ -21577,11 +21978,15 @@ class SimpleSportsScreen(Screen):
 
     def league_menu_callback(self, selection):
         if selection:
-            if selection[1] == "single": self.open_single_league_select()
-            elif selection[1] == "custom_leagues": self.session.openWithCallback(self.on_selector_closed, LeagueSelector)
-            elif selection[1] == "favorite_leagues": self.session.openWithCallback(self.on_selector_closed, FavoriteLeagueSelector)
+            from twisted.internet import reactor
+            if selection[1] == "single": 
+                reactor.callLater(0.1, self.open_single_league_select)
+            elif selection[1] == "custom_leagues": 
+                reactor.callLater(0.1, lambda: self.session.openWithCallback(self.on_selector_closed, LeagueSelector))
+            elif selection[1] == "favorite_leagues": 
+                reactor.callLater(0.1, lambda: self.session.openWithCallback(self.on_selector_closed, FavoriteLeagueSelector))
             elif selection[1] == "favorite_teams":
-                self.session.openWithCallback(self.on_favorite_teams_closed, FavoriteTeamsManagerScreen)
+                reactor.callLater(0.1, lambda: self.session.openWithCallback(self.on_favorite_teams_closed, FavoriteTeamsManagerScreen))
 
     def on_selector_closed(self, result=None):
         if result: self.update_header(); self.fetch_data()
