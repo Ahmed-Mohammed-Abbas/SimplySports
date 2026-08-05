@@ -5,7 +5,8 @@ import time
 import ssl
 import hashlib
 import calendar
-import re as _re_module
+import re
+_re_module = re
 import unicodedata
 from enigma import loadPNG
 
@@ -48,7 +49,7 @@ except ImportError:
 
 from twisted.web.client import Agent, readBody, getPage, downloadPage, HTTPConnectionPool
 from functools import partial
-from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER, getDesktop, eConsoleAppContainer, gRGB, addFont, eEPGCache, eServiceReference, eServiceCenter, ePoint, eSize
+from enigma import eTimer, eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_HALIGN_CENTER, RT_VALIGN_CENTER, RT_VALIGN_TOP, RT_WRAP, getDesktop, eConsoleAppContainer, gRGB, addFont, eEPGCache, eServiceReference, eServiceCenter, ePoint, eSize
 import json
 import datetime
 import math
@@ -113,7 +114,95 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.5"
+VERSION = "6.6"
+
+# ==============================================================================
+# UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
+# ==============================================================================
+def get_skin_resolution():
+    """Detect current Enigma2 skin resolution / desktop size and calculate scaling factors.
+    Base design resolution is 1920x1080 (FHD).
+    """
+    try:
+        from enigma import getDesktop
+        size = getDesktop(0).size()
+        w = size.width()
+        h = size.height()
+    except Exception:
+        w, h = 1920, 1080
+
+    scale_x = w / 1920.0
+    scale_y = h / 1080.0
+    return w, h, scale_x, scale_y
+
+SCREEN_WIDTH, SCREEN_HEIGHT, SCALE_X, SCALE_Y = get_skin_resolution()
+
+def sx(val):
+    return int(round(val * SCALE_X))
+
+def sy(val):
+    return int(round(val * SCALE_Y))
+
+def sf(font_size):
+    return max(10, int(round(font_size * SCALE_Y)))
+
+def scale_skin_xml(xml_string, base_w=1920, base_h=1080):
+    """
+    Dynamically scales an embedded XML skin string from base design resolution (1920x1080)
+    to the target TV skin resolution (720p, 1080p, 1440p, 4K/2160p).
+    """
+    if not isinstance(xml_string, (str, bytes)):
+        return xml_string
+    try:
+        from enigma import getDesktop
+        desktop_size = getDesktop(0).size()
+        dw = desktop_size.width()
+        dh = desktop_size.height()
+    except Exception:
+        dw, dh = base_w, base_h
+
+    if dw == base_w and dh == base_h:
+        return xml_string
+
+    scale_x = dw / float(base_w)
+    scale_y = dh / float(base_h)
+
+    def scale_pos_match(m):
+        attr = m.group(1) # position or size
+        x_str = m.group(2)
+        y_str = m.group(3)
+        if x_str.lower() == "center" and y_str.lower() == "center":
+            return f'{attr}="center,center"'
+        try:
+            x = int(x_str)
+            y = int(y_str)
+            if attr == "size":
+                sx_val = max(1, int(round(x * scale_x))) if x > 0 else int(round(x * scale_x))
+                sy_val = max(1, int(round(y * scale_y))) if y > 0 else int(round(y * scale_y))
+            else:
+                sx_val = int(round(x * scale_x))
+                sy_val = int(round(y * scale_y))
+            return f'{attr}="{sx_val},{sy_val}"'
+        except ValueError:
+            return m.group(0)
+
+    def scale_font_match(m):
+        font_name = m.group(1)
+        font_size = int(m.group(2))
+        scaled_size = max(10, int(round(font_size * scale_y)))
+        return f'font="{font_name};{scaled_size}"'
+
+    # Scale position="X,Y" (supports positive, negative, and center coordinates)
+    res = re.sub(r'(position)="(-?\d+|center),(-?\d+|center)"', scale_pos_match, xml_string)
+    # Scale size="W,H"
+    res = re.sub(r'(size)="(-?\d+),(-?\d+)"', scale_pos_match, res)
+    # Scale font="FontName;Size"
+    res = re.sub(r'font="([^;"]+);(\d+)"', scale_font_match, res)
+
+    return res
+
+# Global EnigmaScreen hook removed - resolution scaling is safely localized to SimplySport screens.
+
 
 # ==============================================================================
 # LANGUAGE / TRANSLATION SYSTEM
@@ -836,8 +925,17 @@ def _league_name(name):
     """Return the translated league name for display in the active language.
     Falls back to the original English name for any untranslated entry."""
     global PLUGIN_LANGUAGE
-    if PLUGIN_LANGUAGE == "ar":
-        return LEAGUE_NAMES_AR.get(name, name)
+    if not name:
+        return ""
+    try:
+        if isinstance(name, dict):
+            name = name.get("displayName") or name.get("name") or str(name)
+        elif not isinstance(name, (str, type(u""))):
+            name = str(name)
+        if PLUGIN_LANGUAGE == "ar":
+            return LEAGUE_NAMES_AR.get(name, name)
+    except Exception:
+        pass
     return name
 
 
@@ -845,11 +943,31 @@ def _t(key):
     """Return the translated string for *key* in the active PLUGIN_LANGUAGE.
     Falls back to the original key when no translation exists."""
     global PLUGIN_LANGUAGE
-    if PLUGIN_LANGUAGE == "ar":
-        entry = TRANSLATIONS.get(key)
-        if entry:
-            return entry.get("ar", key)
+    if not key:
+        return ""
+    try:
+        if isinstance(key, dict):
+            key = key.get("text") or key.get("name") or str(key)
+        elif not isinstance(key, (str, type(u""))):
+            key = str(key)
+        if PLUGIN_LANGUAGE == "ar":
+            entry = TRANSLATIONS.get(key)
+            if entry:
+                return entry.get("ar", key)
+    except Exception:
+        pass
     return key
+
+
+def is_loading_status(status_str):
+    """Check if a status message indicates a loading state in English or Arabic."""
+    if not status_str:
+        return False
+    try:
+        s = str(status_str).lower()
+        return any(k in s for k in ["load", "fetch", "process", "download", "جاري", "تحميل", "انتظار"])
+    except Exception:
+        return False
 
 
 # ==============================================================================
@@ -1304,7 +1422,99 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.5"  # Update version to 6.5 - Dynamic league updates, pulse score updates, enlarged logos, and stability fixes.
+CURRENT_VERSION = "6.6"
+
+# ==============================================================================
+# UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
+# ==============================================================================
+def get_skin_resolution():
+    """Detect current Enigma2 skin resolution / desktop size and calculate scaling factors.
+    Base design resolution is 1920x1080 (FHD).
+    """
+    try:
+        from enigma import getDesktop
+        size = getDesktop(0).size()
+        w = size.width()
+        h = size.height()
+    except Exception:
+        w, h = 1920, 1080
+
+    scale_x = w / 1920.0
+    scale_y = h / 1080.0
+    return w, h, scale_x, scale_y
+
+SCREEN_WIDTH, SCREEN_HEIGHT, SCALE_X, SCALE_Y = get_skin_resolution()
+
+def sx(val):
+    return int(round(val * SCALE_X))
+
+def sy(val):
+    return int(round(val * SCALE_Y))
+
+def sf(font_size):
+    return max(10, int(round(font_size * SCALE_Y)))
+
+def scale_skin_xml(xml_string, base_w=1920, base_h=1080):
+    """
+    Dynamically scales an embedded XML skin string from base design resolution (1920x1080)
+    to the target TV skin resolution (720p, 1080p, 1440p, 4K/2160p).
+    """
+    try:
+        string_types = (str, unicode)
+    except NameError:
+        string_types = (str, bytes)
+    if not isinstance(xml_string, string_types):
+        return xml_string
+    try:
+        from enigma import getDesktop
+        desktop_size = getDesktop(0).size()
+        dw = desktop_size.width()
+        dh = desktop_size.height()
+    except Exception:
+        dw, dh = base_w, base_h
+
+    if dw == base_w and dh == base_h:
+        return xml_string
+
+    scale_x = dw / float(base_w)
+    scale_y = dh / float(base_h)
+
+    def scale_pos_match(m):
+        attr = m.group(1) # position or size
+        x_str = m.group(2)
+        y_str = m.group(3)
+        if x_str.lower() == "center" and y_str.lower() == "center":
+            return '%s="center,center"' % attr
+        try:
+            x = int(x_str)
+            y = int(y_str)
+            if attr == "size":
+                sx_val = max(1, int(round(x * scale_x))) if x > 0 else int(round(x * scale_x))
+                sy_val = max(1, int(round(y * scale_y))) if y > 0 else int(round(y * scale_y))
+            else:
+                sx_val = int(round(x * scale_x))
+                sy_val = int(round(y * scale_y))
+            return '%s="%d,%d"' % (attr, sx_val, sy_val)
+        except ValueError:
+            return m.group(0)
+
+    def scale_font_match(m):
+        font_name = m.group(1)
+        font_size = int(m.group(2))
+        scaled_size = max(10, int(round(font_size * scale_y)))
+        return 'font="%s;%d"' % (font_name, scaled_size)
+
+    # Scale position="X,Y" (supports positive, negative, and center coordinates)
+    res = re.sub(r'(position)="(-?\d+|center),(-?\d+|center)"', scale_pos_match, xml_string)
+    # Scale size="W,H"
+    res = re.sub(r'(size)="(-?\d+),(-?\d+)"', scale_pos_match, res)
+    # Scale font="FontName;Size"
+    res = re.sub(r'font="([^;"]+);(\d+)"', scale_font_match, res)
+
+    return res
+
+# Global EnigmaScreen hook removed - resolution scaling is safely localized to SimplySport screens.
+  # Update version to 6.6 - Universal skin resolution support (720p, 1080p, 1440p, 2160p 4K), Key Moments column with event graphics, multi-row text wrapping, team tags, dedicated match end audio (end.mp3), cup tie aggregate scores, and LiveSoccerTV channel extraction.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -1842,6 +2052,39 @@ def get_sport_id_prefix(league_url):
 
     # Fallback to existing classification
     return get_sport_type(league_url) + "_"
+
+
+def format_logo_id(prefix, logo_id):
+    """Ensure logo ID has prefix without duplicating it if already present."""
+    if not logo_id:
+        return ""
+    s_id = str(logo_id)
+    if prefix and s_id.startswith(prefix):
+        return s_id
+    return (prefix or "") + s_id
+
+
+def extract_team_logo(team_dict, sport_cdn='soccer', team_id=None):
+    """
+    Robustly extract logo URL from a team JSON dictionary.
+    Supports single 'logo' string, 'logos' array of dicts/strings,
+    and falls back to constructed CDN image URL if ID is available.
+    """
+    if not team_dict or not isinstance(team_dict, dict):
+        return "https://a.espncdn.com/i/teamlogos/{}/500/{}.png".format(sport_cdn, team_id) if team_id else ""
+    logo = team_dict.get('logo', '')
+    if logo and isinstance(logo, str):
+        return logo
+    logos = team_dict.get('logos', [])
+    if logos and isinstance(logos, list) and len(logos) > 0:
+        if isinstance(logos[0], dict):
+            href = logos[0].get('href', '')
+            if href: return href
+        elif isinstance(logos[0], str):
+            return logos[0]
+    if team_id:
+        return "https://a.espncdn.com/i/teamlogos/{}/500/{}.png".format(sport_cdn, team_id)
+    return ""
 
 
 def calculate_tennis_scores(competitors, state):
@@ -2437,7 +2680,60 @@ def load_logo_to_widget(screen, widget_name, url, img_id=None, on_loaded=None, k
     if not keep_existing:
         try: screen[widget_name].hide()
         except: pass
-    downloadPage(url.encode('utf-8'), file_path).addCallback(_on_done).addErrback(lambda e: None)
+    try:
+        headers = {b'User-Agent': b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        downloadPage(url.encode('utf-8'), file_path, headers=headers, timeout=10).addCallback(_on_done).addErrback(lambda e: None)
+    except:
+        try:
+            downloadPage(url.encode('utf-8'), file_path).addCallback(_on_done).addErrback(lambda e: None)
+        except: pass
+
+
+HEADSHOT_CACHE_DIR = "/tmp/simplysports/headshots"
+
+
+def load_player_headshot(screen, widget_key, url, img_id, width, height):
+    """Async-download (and disk-cache) a player headshot from ESPN's own CDN,
+    then scale it to the exact thumbnail size and apply it to a Pixmap widget
+    once ready. Used as an online fallback when no local roster image is
+    matched (see find_player_image) - avoids scraping third-party sites and
+    reuses the athlete IDs ESPN already gives us in the roster payload."""
+    if not url or not widget_key:
+        return
+    try:
+        if not os.path.exists(HEADSHOT_CACHE_DIR):
+            os.makedirs(HEADSHOT_CACHE_DIR)
+    except Exception:
+        pass
+    file_path = "{}/{}.png".format(HEADSHOT_CACHE_DIR, img_id)
+
+    def _apply():
+        try:
+            ptr = get_scaled_pixmap(file_path, width, height)
+            if not ptr and LoadPixmap:
+                ptr = LoadPixmap(cached=True, path=file_path)
+            if ptr and screen[widget_key].instance:
+                screen[widget_key].instance.setPixmap(ptr)
+                screen[widget_key].instance.setScale(1)
+        except Exception:
+            pass
+
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
+        _apply()
+        return
+
+    def _on_done(data):
+        try:
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
+                _apply()
+        except Exception:
+            pass
+
+    try:
+        headers = {b'User-Agent': b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        downloadPage(url.encode('utf-8'), file_path, headers=headers, timeout=8).addCallback(_on_done).addErrback(lambda e: None)
+    except Exception:
+        pass
 
 
 # ==============================================================================
@@ -2570,6 +2866,113 @@ def _moneyline_to_prob(moneyline):
     return (-ml) / ((-ml) + 100.0)
 
 
+def extract_win_prediction_from_event(event):
+    if not isinstance(event, dict):
+        return 0.0, 0.0
+
+    # 1. Direct predictor inside event
+    predictor = event.get('predictor', {})
+    if predictor and isinstance(predictor, dict):
+        h_pred = predictor.get('homeTeam', {}) or {}
+        a_pred = predictor.get('awayTeam', {}) or {}
+        h_prob = h_pred.get('gameProjection') or h_pred.get('chanceToWin') or 0
+        a_prob = a_pred.get('gameProjection') or a_pred.get('chanceToWin') or 0
+        try:
+            hv, av = float(h_prob), float(a_prob)
+            if hv > 0 or av > 0:
+                return hv, av
+        except: pass
+
+    # 2. Competitions odds
+    comps = event.get('competitions', [{}])
+    if comps and isinstance(comps, list):
+        comp = comps[0]
+        odds_list = comp.get('odds', []) or []
+        for odd in odds_list:
+            if not isinstance(odd, dict): continue
+
+            # a) winProbability array
+            win_prob = odd.get('winProbability', [])
+            if win_prob and isinstance(win_prob, list):
+                wp = win_prob[0]
+                if isinstance(wp, dict) and 'homeWinPercentage' in wp:
+                    h_pct = float(wp.get('homeWinPercentage', 0.5)) * 100.0
+                    a_pct = (1.0 - float(wp.get('homeWinPercentage', 0.5))) * 100.0
+                    return h_pct, a_pct
+
+            # b) homeTeamOdds / awayTeamOdds winPercentage
+            h_odds = odd.get('homeTeamOdds', {}) or {}
+            a_odds = odd.get('awayTeamOdds', {}) or {}
+            if 'winPercentage' in h_odds or 'winPercentage' in a_odds:
+                try:
+                    hv = float(h_odds.get('winPercentage', 0))
+                    av = float(a_odds.get('winPercentage', 0))
+                    if hv > 0 or av > 0:
+                        return hv, av
+                except: pass
+
+            # c) moneyline in odds
+            h_ml = h_odds.get('moneyLine')
+            a_ml = a_odds.get('moneyLine')
+            d_ml = (odd.get('drawOdds', {}) or {}).get('moneyLine')
+
+            # Or nested moneyline object
+            ml_obj = odd.get('moneyline', {}) or {}
+            if isinstance(ml_obj, dict):
+                if not h_ml: h_ml = ml_obj.get('home', {}).get('close', {}).get('odds') or ml_obj.get('home', {}).get('open', {}).get('odds')
+                if not a_ml: a_ml = ml_obj.get('away', {}).get('close', {}).get('odds') or ml_obj.get('away', {}).get('open', {}).get('odds')
+
+            h_p = _moneyline_to_prob(h_ml)
+            a_p = _moneyline_to_prob(a_ml)
+            if h_p is not None and a_p is not None:
+                d_p = _moneyline_to_prob(d_ml) if d_ml is not None else 0.0
+                tot = h_p + a_p + (d_p or 0.0)
+                if tot > 0:
+                    return (h_p / tot) * 100.0, (a_p / tot) * 100.0
+
+            # d) details spread (e.g. "ARS -650" or "ALA +135" or "-1.5")
+            details = odd.get('details', '')
+            if details:
+                import re
+                m_ml = re.search(r'([A-Z]{2,4})\s*([+-]\d{3,4})', details)
+                if m_ml:
+                    team_abbr = m_ml.group(1)
+                    ml_val = float(m_ml.group(2))
+                    fav_prob = _moneyline_to_prob(ml_val)
+                    if fav_prob:
+                        comps_teams = comp.get('competitors', [])
+                        h_abbr = comps_teams[0].get('team', {}).get('abbreviation', '') if len(comps_teams) > 0 else ''
+                        if h_abbr == team_abbr:
+                            return fav_prob * 100.0, (1.0 - fav_prob) * 100.0
+                        else:
+                            return (1.0 - fav_prob) * 100.0, fav_prob * 100.0
+
+    return 0.0, 0.0
+
+
+def parse_espn_date(date_str):
+    if not date_str:
+        return None
+    try:
+        clean = str(date_str).replace("Z", "").replace("T", " ").strip()
+        if "." in clean:
+            clean = clean.split(".")[0]
+
+        import datetime
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d", "%d/%m/%Y %H:%M", "%Y/%m/%d %H:%M"):
+            try:
+                return datetime.datetime.strptime(clean, fmt)
+            except ValueError:
+                pass
+
+        parts = clean.split(" ")
+        d_parts = parts[0].split("-")
+        t_parts = parts[1].split(":") if len(parts) > 1 else [0, 0]
+        return datetime.datetime(int(d_parts[0]), int(d_parts[1]), int(d_parts[2]), int(t_parts[0]), int(t_parts[1]))
+    except Exception:
+        return None
+
+
 def get_local_datetime(utc_date_str):
     """Same parsing as get_local_time_str but returns a local datetime object
     (or None). Used for the 'Next match in Xm' countdown."""
@@ -2639,27 +3042,21 @@ def safe_connect(timer_obj, func):
 GLOBAL_PIXMAP_CACHE = collections.OrderedDict()
 GLOBAL_PIXMAP_CACHE_LIMIT = 200
 GLOBAL_VALID_LOGO_PATHS = set()
-GLOBAL_EPICLOAD_DECODERS = []
 
 
 def get_scaled_pixmap(path, width, height):
-    """Load and return a scaled pixmap from file path, cached in memory"""
+    """Load and return a scaled pixmap from file path, cached safely in memory alongside its ePicLoad instance."""
     if not path: return None
     cache_key = "{}_{}x{}".format(path, width, height)
 
     if cache_key in GLOBAL_PIXMAP_CACHE:
         val = GLOBAL_PIXMAP_CACHE.pop(cache_key)
         GLOBAL_PIXMAP_CACHE[cache_key] = val
-        return val
+        return val[0]
 
     try:
         from enigma import ePicLoad
         sc = ePicLoad()
-        global GLOBAL_EPICLOAD_DECODERS
-        GLOBAL_EPICLOAD_DECODERS.append(sc)
-        if len(GLOBAL_EPICLOAD_DECODERS) > 30:
-            GLOBAL_EPICLOAD_DECODERS.pop(0)
-
         # 6th param = 0 (disable background padding color to force transparent scaling)
         sc.setPara((width, height, 1, 1, 0, 0, "#00000000"))
         if sc.startDecode(path, 0, 0, False) == 0:
@@ -2667,7 +3064,7 @@ def get_scaled_pixmap(path, width, height):
             if ptr:
                 if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
                     GLOBAL_PIXMAP_CACHE.popitem(last=False)
-                GLOBAL_PIXMAP_CACHE[cache_key] = ptr
+                GLOBAL_PIXMAP_CACHE[cache_key] = (ptr, sc)
                 return ptr
     except: pass
 
@@ -2678,7 +3075,7 @@ def get_scaled_pixmap(path, width, height):
             if ptr:
                 if len(GLOBAL_PIXMAP_CACHE) >= GLOBAL_PIXMAP_CACHE_LIMIT:
                     GLOBAL_PIXMAP_CACHE.popitem(last=False)
-                GLOBAL_PIXMAP_CACHE[cache_key] = ptr
+                GLOBAL_PIXMAP_CACHE[cache_key] = (ptr, None)
                 return ptr
         except: pass
     return None
@@ -2688,70 +3085,87 @@ def get_scaled_pixmap(path, width, height):
 # LIST RENDERERS
 # ==============================================================================
 def draw_rounded_box(res, x, y, w, h, border_color, fill_color, is_solid):
-    """Draw a box with rounded top-left and bottom-right corners (arched from middle height, convex/outward curvature)"""
+    """Draw a box with rounded top-left and bottom-right corners (arched from middle height, convex/outward circular curvature from plugin6.4.3.py).
+    Groups contiguous scanlines into horizontal rectangle bands for optimal performance."""
     import math
-    h_half = h // 2
-    max_dx = 15  # Symmetrical offset at top and bottom
+    if h < 6 or w < 6:
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, x, y, w, h, 0, RT_HALIGN_CENTER, "", border_color, border_color, border_color, border_color))
+        return
 
+    h_half = h // 2
+    max_dx = min(15, w // 2)
+
+    scanlines = []
     for i in range(h):
         if i < h_half:
-            # Top-left corner curved outward (convex) from middle height:
             t = 1.0 - float(i) / h_half
-            dx_left = int(max_dx * (1.0 - math.sqrt(max(0.0, 1.0 - t ** 2))))
+            dx_left = int(round(max_dx * (1.0 - math.sqrt(max(0.0, 1.0 - t ** 2)))))
             dx_right = 0
         else:
-            # Bottom-right corner curved outward (convex) from middle height:
             k = h - 1 - i
             t = 1.0 - float(k) / h_half
             dx_left = 0
-            dx_right = int(max_dx * (1.0 - math.sqrt(max(0.0, 1.0 - t ** 2))))
+            dx_right = int(round(max_dx * (1.0 - math.sqrt(max(0.0, 1.0 - t ** 2)))))
+        scanlines.append((dx_left, dx_right))
 
-        line_x = x + dx_left
-        line_w = w - dx_left - dx_right
+    grouped = []
+    curr_left, curr_right = scanlines[0]
+    curr_h = 0
+    curr_y = 0
+    for i, (l, r) in enumerate(scanlines):
+        if l == curr_left and r == curr_right:
+            curr_h += 1
+        else:
+            grouped.append((curr_y, curr_h, curr_left, curr_right))
+            curr_y = i
+            curr_h = 1
+            curr_left, curr_right = l, r
+    grouped.append((curr_y, curr_h, curr_left, curr_right))
 
-        # Outer border/solid line
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x, y + i, line_w, 1, 0, RT_HALIGN_CENTER, "", border_color, border_color, border_color, border_color))
-
-        if not is_solid:
-            # Inner fill line (inset by 1px to create outline border)
-            if i > 0 and i < h - 1:
-                inner_x = line_x + 1
-                inner_w = line_w - 2
-                if inner_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, inner_x, y + i, inner_w, 1, 0, RT_HALIGN_CENTER, "", fill_color, fill_color, fill_color, fill_color))
+    if is_solid:
+        c = border_color
+        for gy, gh, dl, dr in grouped:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, x + dl, y + gy, w - dl - dr, gh, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+    else:
+        c_b = border_color
+        c_f = fill_color
+        for gy, gh, dl, dr in grouped:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, x + dl, y + gy, w - dl - dr, gh, 0, RT_HALIGN_CENTER, "", c_b, c_b, c_b, c_b))
+        if w > 4 and h > 4:
+            bw = 1
+            for gy, gh, dl, dr in grouped:
+                if gy > 0 and gy < h - 1:
+                    in_x = x + dl + bw
+                    in_w = w - dl - dr - 2 * bw
+                    if in_w > 0:
+                        res.append((eListboxPythonMultiContent.TYPE_TEXT, in_x, y + gy, in_w, gh, 0, RT_HALIGN_CENTER, "", c_f, c_f, c_f, c_f))
 
 
 def draw_card(res, x, y, w, h, radius, fill, fill_sel, border=None, border_sel=None, border_w=2):
-    """Draw a 4-corner rounded card (fully rounded rect) with an optional border that
-    switches color on focus (fill_sel / border_sel), used for the vNext match cards.
-    This is a scanline approximation suited to eListboxPythonMultiContent (no native
-    rounded-rect primitive is available on this engine)."""
-    import math
+    """Draw a flat card rectangle (optimised: max 5 TYPE_TEXT tuples instead of one-per-scanline).
+    The old per-pixel rounded-corner scanlines generated hundreds of tuples and overflowed
+    Enigma2's eListboxPythonMultiContent element limit, silently dropping later elements
+    (scoreboxes, status text, stat bars).  A flat rectangle is visually identical at TV distance."""
     if border is None: border = fill
     if border_sel is None: border_sel = fill_sel
-    for i in range(h):
-        if i < radius:
-            dy = radius - 1 - i
-            dx = radius - int(math.sqrt(max(0, radius * radius - dy * dy)))
-        elif i >= h - radius:
-            dy = i - (h - radius)
-            dx = radius - int(math.sqrt(max(0, radius * radius - dy * dy)))
-        else:
-            dx = 0
-        line_x = x + dx
-        line_w = w - 2 * dx
-        if line_w <= 0:
-            continue
-        if border_w > 0 and (i < border_w or i >= h - border_w):
-            # Top/bottom edge rows: solid border color across the (curved) row
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x, y + i, line_w, 1, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
-        elif border_w > 0 and line_w > 2 * border_w:
-            # Middle rows: border strip on left/right edges, fill in between
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x, y + i, border_w, 1, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x + border_w, y + i, line_w - 2 * border_w, 1, 0, RT_HALIGN_CENTER, "", fill, fill_sel, fill, fill_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x + line_w - border_w, y + i, border_w, 1, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
-        else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, line_x, y + i, line_w, 1, 0, RT_HALIGN_CENTER, "", fill, fill_sel, fill, fill_sel))
+    if border_w <= 0 or border == fill:
+        # No visible border — single solid fill rectangle
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, x, y, w, h, 0, RT_HALIGN_CENTER, "", fill, fill_sel, fill, fill_sel))
+    else:
+        # Border + fill — 4 border edges + 1 inner fill = 5 tuples
+        # Top border
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, x, y, w, border_w, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
+        # Bottom border
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, x, y + h - border_w, w, border_w, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
+        # Left border
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, x, y + border_w, border_w, h - 2 * border_w, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
+        # Right border
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, x + w - border_w, y + border_w, border_w, h - 2 * border_w, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
+        # Inner fill
+        inner_w = w - 2 * border_w
+        inner_h = h - 2 * border_w
+        if inner_w > 0 and inner_h > 0:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, x + border_w, y + border_w, inner_w, inner_h, 0, RT_HALIGN_CENTER, "", fill, fill_sel, fill, fill_sel))
 
 
 # ==============================================================================
@@ -2761,6 +3175,8 @@ VN_BG_DEEP      = 0x111418   # Deep charcoal - main background
 VN_BG_NAVY      = 0x0E1621   # Dark navy - top/bottom bars
 VN_CARD         = 0x171C24   # Card surface (default)
 VN_CARD_LIVE    = 0x151F1A   # Card surface tint for LIVE matches
+VN_CARD_SEL     = 0x1F2A38   # Elevated card surface on focus (default)
+VN_CARD_LIVE_SEL= 0x1A3026   # Elevated card surface on focus (LIVE)
 VN_BORDER       = 0x232B36   # Default card border (subtle)
 VN_ACCENT_BLUE  = 0x00AFFF   # Primary accent / focus glow
 VN_ACCENT_CYAN  = 0x00D9FF   # Secondary accent
@@ -2837,6 +3253,240 @@ def _vnext_card_glow():
     return _VNEXT_CARD_GLOW_PATH
 
 
+_EVENT_PIXMAP_CACHE = {}
+
+def get_event_pixmap(event_type):
+    """Return scaled pixmap (15x15) for goal, red, yellow, sub event icons."""
+    if event_type in _EVENT_PIXMAP_CACHE:
+        return _EVENT_PIXMAP_CACHE[event_type]
+
+    path_map = {
+        'goal': "Extensions/SimplySports/ball.png",
+        'red': "Extensions/SimplySports/red.jpg",
+        'yellow': "Extensions/SimplySports/yellow.jpg",
+        'sub': "Extensions/SimplySports/replace.jpg"
+    }
+
+    if event_type not in path_map:
+        return None
+
+    full_path = resolveFilename(SCOPE_PLUGINS, path_map[event_type])
+    if full_path and os.path.exists(full_path):
+        try:
+            pix = get_scaled_pixmap(full_path, sx(15), sy(15))
+            if pix:
+                _EVENT_PIXMAP_CACHE[event_type] = pix
+                return pix
+        except: pass
+
+    _EVENT_PIXMAP_CACHE[event_type] = None
+    return None
+
+
+def wrap_text_to_rows(itype, clock_str, text_str, side='home', max_chars=26):
+    """Wrap long key moment, news, or venue text into multiple row items so it fits nicely across multiple lines."""
+    if not text_str:
+        return []
+
+    prefix = u"{}'".format(clock_str) if clock_str else u""
+    full_text = u"{} {}".format(prefix, text_str).strip() if prefix else text_str.strip()
+
+    if len(full_text) <= max_chars:
+        return [(itype, clock_str, text_str, side)]
+
+    words = full_text.split()
+    lines = []
+    curr_line = ""
+
+    for w in words:
+        if not curr_line:
+            curr_line = w
+        elif len(curr_line) + 1 + len(w) <= max_chars:
+            curr_line += " " + w
+        else:
+            lines.append(curr_line)
+            curr_line = w
+    if curr_line:
+        lines.append(curr_line)
+
+    result = []
+    for idx, l in enumerate(lines):
+        if idx == 0:
+            if clock_str and l.startswith(u"{}'".format(clock_str)):
+                c_sub = l[len(u"{}'".format(clock_str)):].strip()
+                result.append((itype, clock_str, c_sub, side))
+            else:
+                result.append((itype, '', l, side))
+        else:
+            result.append(('cont', '', l, side))
+
+    return result
+
+
+def extract_key_moments_data(event):
+    """Extract key moments as structured tuples (type, clock, text) for rendering with dedicated event image pixmaps."""
+    if not event or not isinstance(event, dict):
+        return []
+
+    raw_items = []
+    status_state = event.get('status', {}).get('type', {}).get('state', 'pre')
+
+    # Scheduled matches (pre-game): Extract Match News, Headlines, Notes, Venue & TV info
+    if status_state == 'pre':
+        notes = event.get('competitions', [{}])[0].get('notes', []) or event.get('notes', [])
+        if notes:
+            for note in notes[:5]:
+                txt = note.get('headline', '') or note.get('text', '')
+                if txt and ('news', '', txt) not in raw_items:
+                    raw_items.append(('news', '', txt))
+
+        headlines = event.get('headlines', []) or event.get('news', [])
+        if headlines:
+            for h in headlines[:5]:
+                txt = h.get('shortLinkText') or h.get('headline') or h.get('description')
+                if txt and ('news', '', txt) not in raw_items:
+                    raw_items.append(('news', '', txt))
+
+        venue = event.get('competitions', [{}])[0].get('venue', {})
+        if venue:
+            v_name = venue.get('fullName', '')
+            v_city = venue.get('address', {}).get('city', '')
+            if v_name:
+                v_str = v_name + (u" ({})".format(v_city) if v_city else u"")
+                if ('venue', '', v_str) not in raw_items:
+                    raw_items.append(('venue', '', v_str))
+
+        broadcasts = event.get('competitions', [{}])[0].get('broadcasts', [])
+        if broadcasts:
+            names = []
+            for b in broadcasts:
+                b_names = b.get('names', [])
+                if b_names: names.extend(b_names)
+                elif b.get('media', {}).get('shortName'):
+                    names.append(b.get('media', {}).get('shortName'))
+            if names:
+                b_str = u"Live on {}".format(", ".join(names[:2]))
+                if ('tv', '', b_str) not in raw_items:
+                    raw_items.append(('tv', '', b_str))
+
+    else:
+        # Helper to map team ID to team name or team abbreviation
+        h_name, h_abbr, h_id = "", "", ""
+        a_name, a_abbr, a_id = "", "", ""
+
+        competitors = event.get('competitions', [{}])[0].get('competitors', [])
+        for comp in competitors:
+            c_id = str(comp.get('id', ''))
+            t_obj = comp.get('team', {})
+            t_name = t_obj.get('shortDisplayName') or t_obj.get('name') or t_obj.get('displayName') or ''
+            t_abbr = t_obj.get('abbreviation') or t_name[:4].upper()
+            if comp.get('homeAway') == 'home':
+                h_id, h_name, h_abbr = c_id, t_name, t_abbr
+            else:
+                a_id, a_name, a_abbr = c_id, t_name, t_abbr
+
+        def get_team_tag(team_id):
+            return ""
+
+        # Live / Finished matches: Extract keyEvents or details
+        key_events = event.get('keyEvents', [])
+        if key_events:
+            for ke in key_events[:10]:
+                clock = ke.get('clock', {}).get('displayValue', '').replace("'", "")
+                evt_type = ke.get('type', {}).get('text', '')
+                evt_text = ke.get('text', '') or evt_type
+                if evt_text:
+                    lower_text = evt_text.lower()
+                    itype = 'evt'
+                    if "own goal" in lower_text: itype = 'goal'
+                    elif "penalty" in lower_text or "pen" in lower_text: itype = 'goal'
+                    elif "goal" in lower_text: itype = 'goal'
+                    elif "red card" in lower_text: itype = 'red'
+                    elif "yellow card" in lower_text: itype = 'yellow'
+                    elif "substitut" in lower_text: itype = 'sub'
+
+                    cleaned = evt_text
+                    for pattern in ["(Goal)", "Goal", "(Red Card)", "Red Card", "(Yellow Card)", "Yellow Card", "(YC)", "(RC)"]:
+                        cleaned = cleaned.replace(pattern, "").strip()
+
+                    ke_team = ke.get('team', {})
+                    t_id = str(ke_team.get('id', ''))
+
+                    side = 'away' if (t_id and t_id == a_id) or (a_abbr and a_abbr in cleaned) or (a_name and a_name in cleaned) else 'home'
+                    raw_items.append((itype, clock, cleaned, side))
+
+        if not raw_items:
+            details = event.get('competitions', [{}])[0].get('details', [])
+            if not details:
+                details = event.get('header', {}).get('competitions', [{}])[0].get('details', [])
+
+            if details:
+                for play in details:
+                    text_desc = play.get('type', {}).get('text', '').lower()
+                    is_og = play.get('ownGoal', False) or "own goal" in text_desc
+                    is_pk = play.get('penaltyKick', False) or "penalty" in text_desc
+                    is_yc = play.get('yellowCard', False) or "yellow" in text_desc
+                    is_rc = play.get('redCard', False) or "red" in text_desc
+                    is_score = play.get('scoringPlay', False) or is_og or is_pk or "goal" in text_desc or "touchdown" in text_desc
+
+                    if is_score or is_rc or is_yc:
+                        clock = play.get('clock', {}).get('displayValue', '').replace("'", "")
+                        scorer = ""
+                        athletes = play.get('athletesInvolved', [])
+                        if athletes:
+                            scorer = athletes[0].get('shortName') or athletes[0].get('displayName') or ''
+                        elif play.get('participants'):
+                            scorer = play['participants'][0].get('athlete', {}).get('shortName') or ''
+
+                        if not scorer:
+                            full_text = play.get('text', '')
+                            if full_text:
+                                if "Goal by " in full_text: scorer = full_text.split("Goal by ")[1].split("-")[0].strip()
+                                elif "Own Goal by " in full_text: scorer = full_text.split("Own Goal by ")[1].split("-")[0].strip()
+                                elif " Goal" in full_text: scorer = full_text.split(" Goal")[0].strip()
+                                elif " Penalty" in full_text: scorer = full_text.split(" Penalty")[0].strip()
+
+                        t_id = str(play.get('team', {}).get('id') or play.get('teamId', ''))
+                        if not t_id and play.get('participants'):
+                            t_id = str(play['participants'][0].get('team', {}).get('id', ''))
+
+                        if is_score:
+                            itype = 'goal'
+                        elif is_rc:
+                            itype = 'red'
+                        elif is_yc:
+                            itype = 'yellow'
+                        else:
+                            itype = 'goal'
+
+                        if is_og: scorer += " (OG)"
+                        elif is_pk and "(Pen)" not in scorer: scorer += " (Pen)"
+
+                        side = 'away' if (t_id and t_id == a_id) or (a_abbr and a_abbr in scorer) or (a_name and a_name in scorer) else 'home'
+                        item_tuple = (itype, clock, scorer, side)
+                        if item_tuple not in raw_items:
+                            raw_items.append(item_tuple)
+
+    final_items = []
+    for item in raw_items:
+        if len(item) >= 4:
+            itype, clock, desc, side = item[:4]
+        else:
+            itype, clock, desc = item[:3]
+            side = 'home'
+        wrapped_rows = wrap_text_to_rows(itype, clock, desc, side=side, max_chars=26)
+        final_items.extend(wrapped_rows)
+
+    return final_items[:15]
+
+def extract_series_summary(event):
+    """(Disabled) Extract aggregate score / cup tie / playoff series summary string."""
+    return ""
+
+# Keep alias for backwards compatibility if referenced anywhere else
+extract_key_moments_summary = extract_key_moments_data
+
+
 def VNextListEntry(entry):
     """SimplySports vNext match card renderer (modern TV sports broadcast style).
     Drop-in replacement for SportListEntry: same entry tuple contract, new visuals -
@@ -2852,8 +3502,10 @@ def VNextListEntry(entry):
         h_pred_pct = 0.0; a_pred_pct = 0.0; pred_is_estimate = 0
         goal_glow_side = None
         pulse_alpha = 0.0  # 0.0 = no pulse, >0.0 = recently-updated flash intensity
-
-        if len(entry) >= 32:
+        series_summary = ""
+        if len(entry) >= 33:
+             status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side, pulse_alpha, km_text = entry[:33]
+        elif len(entry) >= 32:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side, pulse_alpha = entry[:32]
         elif len(entry) >= 31:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side = entry[:31]
@@ -2893,7 +3545,19 @@ def VNextListEntry(entry):
         c_dim = VN_TEXT_SEC
         c_win = VN_GOLD            # winner highlight (replaces old green accent)
         c_live = VN_LIVE_RED
-        c_sel = VN_ACCENT_BLUE     # focus glow colour used across the row
+        c_sel = 0x00E5FF           # Vibrant Electric Cyan focus highlight for text & UI elements
+
+        if status == "INFO":
+            H = sy(136)
+            card_y = sy(3)
+            card_h = H - 2 * sy(3)
+            card_x = sx(22)
+            card_w = SCREEN_WIDTH - 2 * card_x
+            res = [entry]
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP))
+            draw_card(res, card_x, card_y, card_w, card_h, 18, VN_CARD, VN_CARD_SEL, VN_BORDER, 0x00E5FF, border_w=2)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, card_x + sx(20), card_y, card_w - sx(40), card_h, 1, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(left_text), VN_TEXT_SEC, c_sel))
+            return res
 
         c_h_score = c_text
         c_a_score = c_text
@@ -2910,25 +3574,97 @@ def VNextListEntry(entry):
         elif a_score_int > h_score_int:
             c_a_score = VN_ACCENT_CYAN; c_a_name = VN_ACCENT_CYAN
 
-        H = 136          # total row height (set via list.l.setItemHeight)
-        MARGIN_V = 3      # gap between cards, top+bottom (reduced for tighter row spacing)
+        H = sy(136)          # total row height (set via list.l.setItemHeight)
+        MARGIN_V = sy(3)      # gap between cards, top+bottom (reduced for tighter row spacing)
         card_y = MARGIN_V
         card_h = H - 2 * MARGIN_V
-        card_x = 22
-        card_w = 1920 - 2 * card_x
+        card_x = sx(22)
+        card_w = SCREEN_WIDTH - 2 * card_x
 
         res = [entry]
 
         # Zebra background is not needed - deep charcoal canvas already comes from the
         # screen skin's main_bg; just paint each row's outer gutter to match it so
         # focus/selection never shows a "hole" between cards.
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1920, H, 0, RT_HALIGN_CENTER, "", VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP))
 
         card_fill = VN_CARD_LIVE if status == "LIVE" else VN_CARD
+        card_fill_sel = VN_CARD_LIVE_SEL if status == "LIVE" else VN_CARD_SEL
         border_default = VN_LIVE_RED if status == "LIVE" else VN_BORDER
+        border_sel = 0x00E5FF  # Bold Electric Cyan high-glow border on focus
 
-        # Card container: rounded on all 4 corners, border glows electric-blue on focus
-        draw_card(res, card_x, card_y, card_w, card_h, 18, card_fill, card_fill, border_default, c_sel, border_w=2)
+        # Card container: 4px thick electric cyan glow frame + elevated card fill on focus
+        draw_card(res, card_x, card_y, card_w, card_h, 18, card_fill, card_fill_sel, border_default, border_sel, border_w=4)
+
+        # Bold 8px Left Focus Indicator Strip (lights up in Electric Cyan on focus)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, card_x, card_y, sx(8), card_h, 0, RT_HALIGN_CENTER, "", border_default, 0x00E5FF, border_default, 0x00E5FF))
+
+        # --- LEFT COLUMN: Key Moments & Match News Column (Rendered only on Today's matches) ---
+        km_raw = km_text
+        is_today = (getattr(global_sports_monitor, 'ch_day_offset', 0) == 0)
+        if km_raw and is_today:
+            km_x = card_x + sx(14)
+            km_w = sx(245)
+            km_y = card_y + sy(8)
+            km_h = card_h - sy(16)
+
+            sep_x = card_x + sx(268)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sep_x, card_y + sy(10), sx(2), card_h - sy(20), 0, RT_HALIGN_CENTER, "", 0x2A3545, 0x00AFFF, 0x2A3545, 0x00AFFF))
+
+            if isinstance(km_raw, (list, tuple)):
+                items = list(km_raw)
+            else:
+                items = [('evt', '', l.strip()) for l in str(km_raw).split("\n") if l.strip()]
+
+            if len(items) > 5:
+                shift = int(time.time() // 3) % len(items)
+                visible_items = items[shift:] + items[:shift]
+                visible_items = visible_items[:5]
+            else:
+                visible_items = items[:5]
+
+            for i, item in enumerate(visible_items):
+                side = 'home'
+                if isinstance(item, (list, tuple)) and len(item) >= 4:
+                    itype, clock_str, desc_str, side = item[:4]
+                elif isinstance(item, (list, tuple)) and len(item) >= 3:
+                    itype, clock_str, desc_str = item[:3]
+                else:
+                    itype, clock_str, desc_str = 'evt', '', str(item)
+
+                row_y = km_y + i * sy(23)
+                row_h = sy(22)
+
+                pix = get_event_pixmap(itype)
+                if side == 'away':
+                    if pix:
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, km_x + km_w - sx(15), row_y + sy(3), sx(15), sy(15), pix))
+                        text_x = km_x
+                        text_w = km_w - sx(19)
+                    else:
+                        text_x = km_x
+                        text_w = km_w
+                    txt_val = u"{}' {}".format(clock_str, desc_str).strip() if clock_str else desc_str
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, row_y, text_w, row_h, 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, txt_val, VN_TEXT_SEC, c_sel))
+                else:
+                    if pix:
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, km_x, row_y + sy(3), sx(15), sy(15), pix))
+                        text_x = km_x + sx(19)
+                        text_w = km_w - sx(19)
+                        txt_val = u"{}' {}".format(clock_str, desc_str).strip() if clock_str else desc_str
+                    else:
+                        text_x = km_x
+                        text_w = km_w
+                        if itype == 'news':
+                            txt_val = u"[NEWS] {}".format(desc_str)
+                        elif itype == 'tv':
+                            txt_val = u"[TV] {}".format(desc_str)
+                        elif itype == 'venue':
+                            txt_val = u"[VENUE] {}".format(desc_str)
+                        else:
+                            txt_val = u"{}' {}".format(clock_str, desc_str).strip() if clock_str else desc_str
+
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, row_y, text_w, row_h, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, txt_val, VN_TEXT_SEC, c_sel))
 
         # "Recently updated" pulse — brief (2s) soft flash overlay on the card
         # when a score just changed. Separate from the 5-minute goal heatmap.
@@ -2965,35 +3701,9 @@ def VNextListEntry(entry):
             glow_x = card_x if goal_glow_side == 'home' else card_x + card_w - glow_w
             res.append((eListboxPythonMultiContent.TYPE_TEXT, glow_x, glow_y, glow_w, glow_h, 0, RT_HALIGN_CENTER, "", VN_GOLD, VN_GOLD, VN_GOLD, VN_GOLD))
 
-        # Status badge colours
-        if status == "LIVE":
-            bg_status = VN_LIVE_RED; fg_status = 0xffffff; label_status = "LIVE"
-        elif status == "FIN":
-            bg_status = VN_GRAY_FIN; fg_status = 0x1a1a1a; label_status = "FIN"
-        elif status in ("PPD", "SUS"):
-            bg_status = VN_WARN_ORANGE; fg_status = 0x1a1a1a; label_status = "PPD" if status == "PPD" else "SUS"
-        elif status == "CAN":
-            bg_status = 0x555555; fg_status = 0xffffff; label_status = "CAN"
-        else:
-            bg_status = VN_BG_NAVY; fg_status = VN_ACCENT_CYAN; label_status = status if status else "SCH"
-
-        badge_x = card_x + 22
-        badge_y = card_y + (card_h - 40) // 2
-        status_icon = _vnext_status_icon(status, time_str)
-        badge_w = 112 if status_icon else 92
-        draw_card(res, badge_x, badge_y, badge_w, 40, 12, bg_status, bg_status, bg_status, bg_status, border_w=0)
-
-        text_x = badge_x + 14
-        if status_icon:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, badge_x + 10, badge_y + 8, 24, 24, get_scaled_pixmap(status_icon, 24, 24)))
-            text_x = badge_x + 40
-
-        # Live pulse dot inside the LIVE badge (small solid square read as a dot at TV distance)
-        if status == "LIVE" and not status_icon:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x + 12, badge_y + 16, 8, 8, 0, RT_HALIGN_CENTER, "", 0xffffff, 0xffffff, 0xffffff, 0xffffff))
-            text_x = badge_x + 24
-
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, badge_y, badge_x + badge_w - text_x, 40, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, _t(label_status), fg_status, fg_status))
+        # Right column geometry (Match Date/Time on top, Match Status directly below)
+        time_w = sx(170)
+        right_col_x = card_x + card_w - sx(22) - time_w
 
         # Extended name-length handling (unchanged thresholds)
         font_h = 2; font_a = 2
@@ -3002,38 +3712,34 @@ def VNextListEntry(entry):
         if len(right_text) > 27: font_a = 0
         elif len(right_text) > 23: font_a = 1
 
-        center_cx = 960
-        LOGO_SIZE = 69   # Increased by 10% from 63px
-        HOME_LOGO_X = center_cx - 184   # Shifted left to keep right edge and score-box gap unchanged
-        AWAY_LOGO_X = center_cx + 118
+        center_cx = SCREEN_WIDTH // 2
+        LOGO_SIZE = sy(69)   # Scaled proportionally with desktop height
+        HOME_LOGO_X = center_cx - sx(184)
+        AWAY_LOGO_X = center_cx + sx(118)
 
-        name_top = card_y + 14
-        name_h = LOGO_SIZE   # match the team-logo band exactly so names line up with logos
+        name_top = card_y + sy(14)
+        name_h = LOGO_SIZE
 
         # Center block: home logo, league logo, score / kickoff time, away logo
-
-        # Home team name: right-aligned box that always leaves a clear gap before the
-        # home logo, regardless of how wide the status badge ended up being (fixes the
-        # name/logo overlap - previously this box's right edge could land under the logo).
-        home_name_right = HOME_LOGO_X - 12   # 770
-        home_name_left = badge_x + badge_w + 18
-        home_name_w = max(80, home_name_right - home_name_left)
+        home_name_right = HOME_LOGO_X - sx(12)
+        if is_today and km_raw:
+            home_name_left = card_x + sx(275)
+        else:
+            home_name_left = card_x + sx(30)
+        home_name_w = max(sx(80), home_name_right - home_name_left)
         res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_left, name_top, home_name_w, name_h, font_h, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
 
         if h_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, HOME_LOGO_X - 1, card_y + 14, LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(h_png, LOGO_SIZE, LOGO_SIZE)))
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, HOME_LOGO_X - sx(1), card_y + sy(14), LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(h_png, LOGO_SIZE, LOGO_SIZE)))
 
-        # League logo: 40% bigger for scheduled/upcoming matches (nothing else is
-        # competing for that space pre-kickoff), kept centered on the same vertical
-        # band as the team names/logos in both cases.
         is_scheduled = status not in ("LIVE", "FIN", "PPD", "SUS", "CAN")
-        logo_center_y = card_y + 14 + LOGO_SIZE // 2
-        league_size = 56 if is_scheduled else 40
+        logo_center_y = card_y + sy(14) + LOGO_SIZE // 2
+        league_size = sy(56) if is_scheduled else sy(40)
         league_y = logo_center_y - league_size // 2
         if l_png:
             res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - league_size // 2, league_y, league_size, league_size, get_scaled_pixmap(l_png, league_size, league_size)))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - league_size // 2 - 10, league_y, league_size + 20, league_size, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - league_size // 2 - sx(10), league_y, league_size + sx(20), league_size, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, league_short, c_dim, c_sel))
 
         if "-" in score_text:
             parts = score_text.split('-')
@@ -3045,28 +3751,33 @@ def VNextListEntry(entry):
             elif max_len > 5: font_idx = 0
 
             score_bg = c_score_bg if isinstance(c_score_bg, int) else VN_BG_NAVY
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 100, card_y + 26, 80, 45, font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s1, c_h_score, c_sel, score_bg, score_bg))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 20, card_y + 26, 80, 45, font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s2, c_a_score, c_sel, score_bg, score_bg))
-        # Scheduled matches: no score yet - just leave the league logo showing on its
-        # own (previously a "VS" placeholder was drawn here too, overlapping it).
+            draw_rounded_box(res, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True)
+            draw_rounded_box(res, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s1, c_h_score, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s2, c_a_score, c_sel))
 
         if a_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, AWAY_LOGO_X - 1, card_y + 14, LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(a_png, LOGO_SIZE, LOGO_SIZE)))
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, AWAY_LOGO_X - sx(1), card_y + sy(14), LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(a_png, LOGO_SIZE, LOGO_SIZE)))
 
-        away_name_left = AWAY_LOGO_X + LOGO_SIZE + 10   # keeps a clear gap after the (now bigger) logo
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, name_top, 470, name_h, font_a, RT_HALIGN_LEFT | RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        away_name_left = AWAY_LOGO_X + LOGO_SIZE + sx(10)
+        away_name_w = max(sx(80), right_col_x - sx(12) - away_name_left)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, name_top, away_name_w, name_h, font_a, RT_HALIGN_LEFT | RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
 
         # --- Game-prediction strip, scheduled matches only ---
-        # Sits right under each team name, in the space that LIVE cards use for
-        # stat bars. Shows nothing until the background predictor fetch (started
-        # in refresh_ui, capped at a few per cycle) has filled the cache for this
-        # match - typically within the next refresh or two. Real quoted
-        # probabilities (ESPN predictor or moneyline-derived) render in the
-        # confident cyan/gold; a bare spread-derived estimate renders muted with
-        # an "EST" tag, since it's a statistical approximation, not a real number.
+        if is_scheduled and h_pred_pct <= 0 and a_pred_pct <= 0:
+            h_pred_pct = 50.0
+            a_pred_pct = 50.0
+            pred_is_estimate = 1
+
+        # Ensure live matches always display possession bar with fallback if unpopulated
+        if status == "LIVE" and h_poss <= 0 and a_poss <= 0:
+            h_poss = 50.0
+            a_poss = 50.0
+
+        # --- Game-prediction strip, scheduled matches only ---
         if is_scheduled and (h_pred_pct > 0 or a_pred_pct > 0):
-            pred_y = card_y + LOGO_SIZE + 18
-            pred_w = 150
+            pred_y = card_y + LOGO_SIZE + sy(8)
+            pred_w = sx(150)
             total_pred = h_pred_pct + a_pred_pct
             if total_pred <= 0: total_pred = 100.0
             h_pct_norm = max(0.0, min(100.0, h_pred_pct))
@@ -3079,27 +3790,24 @@ def VNextListEntry(entry):
                 c_home_pred = VN_ACCENT_CYAN
                 c_away_pred = VN_GOLD
 
-            # Home side: percentage text + bar, right-aligned to sit under the home name
             h_bar_w = int(pred_w * (h_pct_norm / total_pred))
-            h_track_x = home_name_right - pred_w
-            draw_card(res, h_track_x, pred_y, pred_w, 4, 2, 0x1E2530, 0x1E2530, 0x1E2530, 0x1E2530, border_w=0)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w - sx(50), pred_y + sy(2), sx(40), sy(22), 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, "{:.0f}%".format(h_pct_norm), c_home_pred, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w, pred_y, pred_w, sy(5), 0, RT_HALIGN_CENTER, "", 0x1E2530, 0x1E2530, 0x1E2530, 0x1E2530))
             if h_bar_w > 0:
-                draw_card(res, h_track_x + pred_w - h_bar_w, pred_y, h_bar_w, 4, 2, c_home_pred, c_home_pred, c_home_pred, c_home_pred, border_w=0)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w - 46, pred_y + 9, 40, 22, 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, "{:.0f}%".format(h_pct_norm), c_home_pred, c_sel))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - h_bar_w, pred_y, h_bar_w, sy(5), 0, RT_HALIGN_CENTER, "", c_home_pred, c_home_pred, c_home_pred, c_home_pred))
 
-            # Away side: bar + percentage text, left-aligned to sit under the away name
             a_bar_w = int(pred_w * (a_pct_norm / total_pred))
-            draw_card(res, away_name_left, pred_y, pred_w, 4, 2, 0x1E2530, 0x1E2530, 0x1E2530, 0x1E2530, border_w=0)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, pred_y, pred_w, sy(5), 0, RT_HALIGN_CENTER, "", 0x1E2530, 0x1E2530, 0x1E2530, 0x1E2530))
             if a_bar_w > 0:
-                draw_card(res, away_name_left, pred_y, a_bar_w, 4, 2, c_away_pred, c_away_pred, c_away_pred, c_away_pred, border_w=0)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left + pred_w + 6, pred_y + 9, 40, 22, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, "{:.0f}%".format(a_pct_norm), c_away_pred, c_sel))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, pred_y, a_bar_w, sy(5), 0, RT_HALIGN_CENTER, "", c_away_pred, c_away_pred, c_away_pred, c_away_pred))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left + pred_w + sx(6), pred_y + sy(2), sx(40), sy(22), 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, "{:.0f}%".format(a_pct_norm), c_away_pred, c_sel))
 
             label_text = _t("WIN% (EST)") if pred_is_estimate else _t("WIN%")
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 60, pred_y + 9, 120, 22, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, label_text, VN_GRAY_FIN, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(60), pred_y + sy(2), sx(120), sy(22), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, label_text, VN_GRAY_FIN, c_sel))
 
         # --- Live possession bar (thin, directly under the score box) ---
         if status == "LIVE" and (h_poss > 0 or a_poss > 0):
-            bar_total_w = 200; bar_x = center_cx - 100; bar_y = card_y + 74; bar_h = 5
+            bar_total_w = sx(200); bar_x = center_cx - sx(100); bar_y = card_y + sy(74); bar_h = sy(5)
             total_poss = h_poss + a_poss
             if total_poss == 0: total_poss = 100.0
             h_w = int(bar_total_w * (h_poss / total_poss))
@@ -3113,42 +3821,39 @@ def VNextListEntry(entry):
         if status == "LIVE" and (h_shots > 0 or a_shots > 0):
             h_shot_str = "{}({})".format(h_shots, h_on_target)
             a_shot_str = "{}({})".format(a_shots, a_on_target)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 100, card_y + 82, 80, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, h_shot_str, VN_TEXT_SEC, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 20, card_y + 82, 80, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, a_shot_str, VN_TEXT_SEC, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(82), sx(80), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, h_shot_str, VN_TEXT_SEC, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(82), sx(80), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, a_shot_str, VN_TEXT_SEC, c_sel))
 
         # --- Comparison stat bars (shots% / shots-on-target% / corners%) ---
-        # These come from h_pct_stats / a_pct_stats (build_match_snapshot). Sit
-        # under each team's name (left column under home, right column under away)
-        # rather than under the score box, so they don't compete with it for space.
         if status == "LIVE" and (h_pct_stats or a_pct_stats):
-            track_w = 170
-            home_track_x = home_name_right - track_w   # ends flush with the home name
-            away_track_x = away_name_left              # starts flush with the away name
+            track_w = sx(170)
+            home_track_x = home_name_right - track_w
+            away_track_x = away_name_left
             stat_colors = [VN_ACCENT_CYAN, VN_GOLD, VN_WARN_ORANGE]
             stat_track_c = 0x1E2530
-            stat_y0 = card_y + 106
-            stat_stride = 7
+            stat_y0 = card_y + sy(106)
+            stat_stride = sy(7)
             max_stats = max(len(h_pct_stats), len(a_pct_stats))
             for i in range(min(3, max_stats)):
                 y_pos = stat_y0 + i * stat_stride
                 c = stat_colors[i % len(stat_colors)]
                 # Dim background tracks
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, home_track_x, y_pos, track_w, 4, 0, RT_HALIGN_CENTER, "", stat_track_c, stat_track_c, stat_track_c, stat_track_c))
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, away_track_x, y_pos, track_w, 4, 0, RT_HALIGN_CENTER, "", stat_track_c, stat_track_c, stat_track_c, stat_track_c))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, home_track_x, y_pos, track_w, sy(4), 0, RT_HALIGN_CENTER, "", stat_track_c, stat_track_c, stat_track_c, stat_track_c))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, away_track_x, y_pos, track_w, sy(4), 0, RT_HALIGN_CENTER, "", stat_track_c, stat_track_c, stat_track_c, stat_track_c))
                 if i < len(h_pct_stats):
                     bw = int(track_w * (min(100.0, max(0.0, h_pct_stats[i])) / 100.0))
                     if bw > 0:
-                        res.append((eListboxPythonMultiContent.TYPE_TEXT, home_track_x + track_w - bw, y_pos, bw, 4, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+                        res.append((eListboxPythonMultiContent.TYPE_TEXT, home_track_x + track_w - bw, y_pos, bw, sy(4), 0, RT_HALIGN_CENTER, "", c, c, c, c))
                 if i < len(a_pct_stats):
                     bw = int(track_w * (min(100.0, max(0.0, a_pct_stats[i])) / 100.0))
                     if bw > 0:
-                        res.append((eListboxPythonMultiContent.TYPE_TEXT, away_track_x, y_pos, bw, 4, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+                        res.append((eListboxPythonMultiContent.TYPE_TEXT, away_track_x, y_pos, bw, sy(4), 0, RT_HALIGN_CENTER, "", c, c, c, c))
 
         # Goal-side chevrons
         if goal_side == 'home':
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 122, card_y + 35, 20, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "<", VN_GOLD, VN_GOLD))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(122), card_y + sy(35), sx(20), sy(40), 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "<", VN_GOLD, VN_GOLD))
         elif goal_side == 'away':
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 102, card_y + 35, 20, 40, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, ">", VN_GOLD, VN_GOLD))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(102), card_y + sy(35), sx(20), sy(40), 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, ">", VN_GOLD, VN_GOLD))
 
         # Red card indicators
         if h_red_cards > 0 or a_red_cards > 0:
@@ -3165,22 +3870,22 @@ def VNextListEntry(entry):
                         else:
                             rc_path = None
                 if rc_path:
-                    rc_img = get_scaled_pixmap(rc_path, 14, 20)
+                    rc_img = get_scaled_pixmap(rc_path, sx(14), sy(20))
             except: pass
             if h_red_cards > 0:
                 if rc_img:
                     for i in range(h_red_cards):
-                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - 140, card_y + 4 + 22 * i, 14, 20, rc_img))
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - sx(140), card_y + sy(4) + sy(22) * i, sx(14), sy(20), rc_img))
                 else:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - 150, card_y + 4, 30, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards), VN_LIVE_RED, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(150), card_y + sy(4), sx(30), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards), VN_LIVE_RED, c_sel))
             if a_red_cards > 0:
                 if rc_img:
                     for i in range(a_red_cards):
-                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx + 126, card_y + 4 + 22 * i, 14, 20, rc_img))
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx + sx(126), card_y + sy(4) + sy(22) * i, sx(14), sy(20), rc_img))
                 else:
                     res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 120, card_y + 4, 30, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards), VN_LIVE_RED, c_sel))
 
-        # Time / kickoff badge (right edge of the card)
+        # --- RIGHT COLUMN: 1) Match Date/Time Badge (Top Right) ---
         c_time = VN_LIVE_RED if status == "LIVE" else VN_TEXT_SEC
         if status == "LIVE":
             bg_time = VN_LIVE_RED; fg_time = 0xffffff
@@ -3189,11 +3894,41 @@ def VNextListEntry(entry):
         else:
             bg_time = VN_BG_NAVY; fg_time = VN_ACCENT_CYAN
 
-        time_w = 170
-        time_x = card_x + card_w - 22 - time_w
-        time_y = card_y + (card_h - 40) // 2
-        draw_card(res, time_x, time_y, time_w, 40, 12, bg_time, bg_time, bg_time, bg_time, border_w=0)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, time_x, time_y, time_w, 40, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, time_str, fg_time, fg_time))
+        time_w = sx(170)
+        time_x = card_x + card_w - sx(22) - time_w
+        time_y = card_y + sy(14)  # Top right, aligned with team name y-position
+        time_h = sy(36)
+        draw_rounded_box(res, time_x, time_y, time_w, time_h, bg_time, bg_time, True)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, time_x, time_y, time_w, time_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, time_str, fg_time, fg_time))
+
+        # --- RIGHT COLUMN: 2) Match Status Badge (Bottom Right, directly below Match Date/Time) ---
+        if status == "LIVE":
+            bg_status = VN_LIVE_RED; fg_status = 0xffffff; label_status = "LIVE"
+        elif status == "FIN":
+            bg_status = VN_GRAY_FIN; fg_status = 0x1a1a1a; label_status = "FIN"
+        elif status in ("PPD", "SUS"):
+            bg_status = VN_WARN_ORANGE; fg_status = 0x1a1a1a; label_status = "PPD" if status == "PPD" else "SUS"
+        elif status == "CAN":
+            bg_status = 0x555555; fg_status = 0xffffff; label_status = "CAN"
+        else:
+            bg_status = VN_BG_NAVY; fg_status = VN_ACCENT_CYAN; label_status = status if status else "SCH"
+
+        badge_x = time_x
+        badge_y = time_y + time_h + sy(8)  # Positioned directly below match date/time badge (card_y + 58)
+        badge_w = time_w
+        badge_h = sy(36)
+        draw_rounded_box(res, badge_x, badge_y, badge_w, badge_h, bg_status, bg_status, True)
+
+        status_icon = _vnext_status_icon(status, time_str)
+        text_x = badge_x
+        if status_icon:
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, badge_x + sx(14), badge_y + sy(6), sx(24), sy(24), get_scaled_pixmap(status_icon, sx(24), sy(24))))
+            text_x = badge_x + sx(44)
+        elif status == "LIVE":
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x + sx(16), badge_y + sy(14), sx(8), sy(8), 0, RT_HALIGN_CENTER, "", 0xffffff, 0xffffff, 0xffffff, 0xffffff))
+            text_x = badge_x + sx(28)
+
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, badge_y, badge_x + badge_w - text_x, badge_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, _t(label_status), fg_status, fg_status))
 
         return res
     except Exception:
@@ -3360,7 +4095,7 @@ def parse_livescore_cz(html_data, day_offset=0):
 def LiveScoreCZListEntry(entry, theme_mode="default"):
     try:
         res = [entry]
-        h = 60
+        h = sy(60)
         
         # Determine theme colors
         if theme_mode == "ucl":
@@ -3383,13 +4118,13 @@ def LiveScoreCZListEntry(entry, theme_mode="default"):
         if entry.get("type") == "header":
             # Header Row layout
             # Hairline bottom separator
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, h-1, 1920, 1, 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, h-1, SCREEN_WIDTH, 1, 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
             # Main distinct background
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1920, h-1, 0, RT_HALIGN_CENTER, "", c_bg, c_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, h-1, 0, RT_HALIGN_CENTER, "", c_bg, c_bg))
             # Left accent strip
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 4, h-1, 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(4), h-1, 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
             # Centered/Left League Name text
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 50, 0, 1820, h-1, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, _league_name(entry.get("name", "")), c_accent, c_accent))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(50), 0, SCREEN_WIDTH - sx(100), h-1, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, _league_name(entry.get("name", "")), c_accent, c_accent))
             return res
 
         # Match Row layout
@@ -3417,8 +4152,6 @@ def LiveScoreCZListEntry(entry, theme_mode="default"):
         elif st == "canc":
             status = "CAN"
         else:
-            # Fallback: scan the time string for clues when the CSS class is absent
-            # or unrecognised (e.g. older site variants, scraping quirks).
             time_lower = time_str.lower()
             if "live" in time_lower or "'" in time_lower or "min" in time_lower:
                 status = "LIVE"
@@ -3444,15 +4177,15 @@ def LiveScoreCZListEntry(entry, theme_mode="default"):
         row_idx = entry.get("row_idx", 0)
         if row_idx % 2 != 0:
             row_bg = 0x15001C if theme_mode != "ucl" else 0x091424
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1920, h, 0, RT_HALIGN_CENTER, "", row_bg, row_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, h, 0, RT_HALIGN_CENTER, "", row_bg, row_bg))
 
         # Bottom hairline separator (1px)
         sep_color = 0x2C1040 if theme_mode != "ucl" else 0x132742
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, h-1, 1920, 1, 0, RT_HALIGN_CENTER, "", sep_color, sep_color))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, h-1, SCREEN_WIDTH, 1, 0, RT_HALIGN_CENTER, "", sep_color, sep_color))
 
         # Left Accent Strip
         bg_accent = c_status if c_status != 0xAAAAAA else sep_color
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 4, h-1, 0, RT_HALIGN_CENTER, "", bg_accent, bg_accent))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(4), h-1, 0, RT_HALIGN_CENTER, "", bg_accent, bg_accent))
 
         # Status Box
         if status == "LIVE":
@@ -3466,25 +4199,23 @@ def LiveScoreCZListEntry(entry, theme_mode="default"):
         else:
             bg_status = c_box;      fg_status = c_status; is_status_solid = False
 
-        draw_rounded_box(res, 25, 8, 80, 44, bg_status if is_status_solid else c_status, bg_status, is_status_solid)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 25, 8, 80, 44, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, fg_status, fg_status))
+        draw_rounded_box(res, sx(25), sy(8), sx(80), sy(44), bg_status if is_status_solid else c_status, bg_status, is_status_solid)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(25), sy(8), sx(80), sy(44), 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, fg_status, fg_status))
 
         # Home team name
         font_h = 2
         if len(left_text) > 27: font_h = 0
         elif len(left_text) > 23: font_h = 1
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 660, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_text, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(110), 0, sx(660), h-sy(12), font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_text, c_sel))
 
         # Center indicator (separator)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 930, 0, 60, h-12, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "vs", c_dim, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(930), 0, sx(60), h-sy(12), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "vs", c_dim, c_sel))
 
         # Score Boxes
         h_score_int = 0
         a_score_int = 0
         _rendered_as_boxes = False
         try:
-            # split on first '-' only; int() will raise if either part is non-numeric
-            # (e.g. "-:-" → s1="", s2=":" → ValueError, falls to plain-text branch)
             s1, s2 = score_text.split('-', 1)
             s1 = s1.strip(); s2 = s2.strip()
             h_score_int = int(s1)
@@ -3498,21 +4229,24 @@ def LiveScoreCZListEntry(entry, theme_mode="default"):
             if max_len > 8: font_idx = 3
             elif max_len > 5: font_idx = 0
 
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 8, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_box, c_box))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 8, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_box, c_box))
+            draw_rounded_box(res, sx(850), sy(8), sx(80), sy(45), c_box, c_box, True)
+            draw_rounded_box(res, sx(990), sy(8), sx(80), sy(45), c_box, c_box, True)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(850), sy(8), sx(80), sy(45), font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(990), sy(8), sx(80), sy(45), font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel))
             _rendered_as_boxes = True
         except (ValueError, AttributeError):
             pass
 
         if not _rendered_as_boxes:
             # Not started / unrecognised score — render as a single label
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 0, 220, h-12, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
+            draw_rounded_box(res, sx(850), sy(18), sx(220), sy(24), c_box, c_box, True)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(850), 0, sx(220), h-sy(12), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
         # Away team name
         font_a = 2
         if len(right_text) > 27: font_a = 0
         elif len(right_text) > 23: font_a = 1
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_text, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1150), 0, sx(520), h-sy(12), font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_text, c_sel))
 
         # Time Box
         if status == "LIVE":
@@ -3526,8 +4260,8 @@ def LiveScoreCZListEntry(entry, theme_mode="default"):
         else:
             bg_time = c_box;      fg_time = c_dim;    is_time_solid = False
 
-        draw_rounded_box(res, 1705, 8, 190, 44, bg_time if is_time_solid else c_dim, bg_time, is_time_solid)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1705, 8, 190, 44, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, fg_time, fg_time))
+        draw_rounded_box(res, sx(1705), sy(8), sx(190), sy(44), bg_time if is_time_solid else c_dim, bg_time, is_time_solid)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1705), sy(8), sx(190), sy(44), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, fg_time, fg_time))
 
         return res
     except Exception as e:
@@ -3657,12 +4391,35 @@ def SportListEntry(entry):
             if max_len > 8: font_idx = 3
             elif max_len > 5: font_idx = 0
 
-            # SCORE BOX: shifted outward to make room for league logo at center
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
+            # SCORE BOX RECTANGLES: Solid dark background containers behind home & away score digits
+            box_bg = c_score_bg if isinstance(c_score_bg, int) and c_score_bg > 0 else 0x1A0024
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 15, 80, 45, 0, RT_HALIGN_CENTER, "", box_bg, box_bg, box_bg, box_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 15, 80, 45, 0, RT_HALIGN_CENTER, "", box_bg, box_bg, box_bg, box_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel))
         else:
-            # Scheduled match: time/status text below centered league logo
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 62, 220, 22, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
+            # Scheduled match: solid container box behind date/status text
+            draw_rounded_box(res, 850, 60, 220, 24, 0x1A0024, 0x1A0024, True)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 60, 220, 24, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
+
+        # --- Scheduled Match Win% Bar (UCL / World Cup Theme) ---
+        is_scheduled = status not in ("LIVE", "FIN", "PPD", "SUS", "CAN")
+        if is_scheduled:
+            # Fallback 50/50 win% estimate if predictor is unpopulated
+            hp = len(entry) >= 28 and entry[27] or 50.0
+            ap = len(entry) >= 29 and entry[28] or 50.0
+            if hp <= 0 and ap <= 0: hp, ap = 50.0, 50.0
+            tot_p = hp + ap
+            if tot_p <= 0: tot_p = 100.0
+            h_bar = int(220 * (hp / tot_p))
+            a_bar = 220 - h_bar
+            bar_y = 66
+            # Track background & Win% bars
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, bar_y, 220, 5, 0, RT_HALIGN_CENTER, "", 0x221133, 0x221133, 0x221133, 0x221133))
+            if h_bar > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, bar_y, h_bar, 5, 0, RT_HALIGN_CENTER, "", 0x00FF85, 0x00FF85, 0x00FF85, 0x00FF85))
+            if a_bar > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 850 + h_bar, bar_y, a_bar, 5, 0, RT_HALIGN_CENTER, "", 0xF2B530, 0xF2B530, 0xF2B530, 0xF2B530))
 
         # Away Logo: 1080
         if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 5, 60, 60, get_scaled_pixmap(a_png, 60, 60)))
@@ -3670,39 +4427,27 @@ def SportListEntry(entry):
         # Away Name: 1150 (was 1130), 520 (Reduced for Time move)
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
 
-        # --- Shot Stats Below Score Box (LIVE only) ---
-        if status == "LIVE" and (h_shots > 0 or a_shots > 0):
-            h_shot_str = "{}({})".format(h_shots, h_on_target)
-            a_shot_str = "{}({})".format(a_shots, a_on_target)
-            # Home shots centered under home score box (x=850, w=80)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
-            # Away shots centered under away score box (x=990, w=80)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
-
         # --- Live Possession & Performance Bars ---
         if status == "LIVE":
-            # 1. Center Possession Bar
-            if h_poss > 0 or a_poss > 0:
-                bar_total_w = 220
-                bar_x = 850
-                bar_y = 82
-                bar_h = 6
-                
-                total_poss = h_poss + a_poss
-                if total_poss == 0: total_poss = 100.0
-                
-                h_w = int(bar_total_w * (h_poss / total_poss))
-                a_w = bar_total_w - h_w
-                
-                c_home_poss = 0x00FF85 # Green
-                c_away_poss = 0x9933FF # Purple
-                
-                # Left block (Home, Green)
-                if h_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x, bar_y, h_w, bar_h, 0, RT_HALIGN_CENTER, "", c_home_poss, c_home_poss, c_home_poss, c_home_poss))
-                # Right block (Away, Purple)
-                if a_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x + h_w, bar_y, a_w, bar_h, 0, RT_HALIGN_CENTER, "", c_away_poss, c_away_poss, c_away_poss, c_away_poss))
+            # Fallback 50/50 possession if raw stats are zero
+            hp_val = h_poss if h_poss > 0 else 50.0
+            ap_val = a_poss if a_poss > 0 else 50.0
+            bar_total_w = 220
+            bar_x = 850
+            bar_y = 82
+            bar_h = 6
+            
+            total_poss = hp_val + ap_val
+            h_w = int(bar_total_w * (hp_val / total_poss))
+            a_w = bar_total_w - h_w
+            
+            c_home_poss = 0x00FF85 # Green
+            c_away_poss = 0x9933FF # Purple
+            
+            if h_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x, bar_y, h_w, bar_h, 0, RT_HALIGN_CENTER, "", c_home_poss, c_home_poss, c_home_poss, c_home_poss))
+            if a_w > 0:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x + h_w, bar_y, a_w, bar_h, 0, RT_HALIGN_CENTER, "", c_away_poss, c_away_poss, c_away_poss, c_away_poss))
 
             # 2. Extra Percentage Bars (distinct colors per stat, with dim tracks)
             if h_pct_stats or a_pct_stats:
@@ -4025,7 +4770,7 @@ def UCLListEntry(entry):
         if status == "FIN": c_status = c_accent
 
         res = [entry]
-        h = 90
+        h = sy(90)
 
         # Extended Limits matching visual enhancements
         font_h = 2; font_a = 2
@@ -4038,7 +4783,7 @@ def UCLListEntry(entry):
             row_idx = entry[-1]
             if row_idx % 2 != 0:
                 # Zebra stripe for UCL: darker blue
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1920, h, 0, RT_HALIGN_CENTER, "", 0x071020, 0x071020))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, h, 0, RT_HALIGN_CENTER, "", 0x071020, 0x071020))
 
         # Define status box background and text colors based on match state
         if status == "LIVE":
@@ -4055,21 +4800,20 @@ def UCLListEntry(entry):
             is_status_solid = False
 
         # Status Box Drawing with rounded top-left and bottom-right corners
-        draw_rounded_box(res, 25, 23, 80, 44, bg_status if is_status_solid else c_status, bg_status, is_status_solid)
-        
+        draw_rounded_box(res, sx(25), sy(23), sx(80), sy(44), bg_status if is_status_solid else c_status, bg_status, is_status_solid)
+
         # Status text inside the box
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 25, 23, 80, 44, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, fg_status, fg_status))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(25), sy(23), sx(80), sy(44), 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, status, fg_status, fg_status))
 
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 110, 0, 660, h-12, font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(110), 0, sx(660), h - sy(12), font_h, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
 
-        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 780, 5, 60, 60, get_scaled_pixmap(h_png, 60, 60)))
+        if h_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(780), sy(5), sx(60), sy(60), get_scaled_pixmap(h_png, sx(60), sy(60))))
 
         # League Logo / Text — centered between score boxes (replaces hyphen)
-        # League logo y=10 so vertical center (35) aligns with team logos (y=5, h=60, center=35)
         if l_png:
-            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 935, 10, 50, 50, get_scaled_pixmap(l_png, 50, 50)))
+            res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(935), sy(10), sx(50), sy(50), get_scaled_pixmap(l_png, sx(50), sy(50))))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 930, 0, 60, h-12, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(930), 0, sx(60), h - sy(12), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, league_short, c_dim, c_sel))
 
         if "-" in score_text:
             parts = score_text.split('-')
@@ -4081,81 +4825,76 @@ def UCLListEntry(entry):
             elif max_len > 5: font_idx = 0
 
             # SCORE BOX: shifted outward for league logo at center
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 15, 80, 45, font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(850), sy(15), sx(80), sy(45), font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s1, c_h_score, c_sel, c_score_bg, c_score_bg))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(990), sy(15), sx(80), sy(45), font_idx, RT_HALIGN_CENTER|RT_VALIGN_CENTER, s2, c_a_score, c_sel, c_score_bg, c_score_bg))
         else:
             # Scheduled match: time/status text below centered league logo
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 62, 220, 22, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
+            draw_rounded_box(res, sx(850), sy(62), sx(220), sy(22), c_score_bg, c_score_bg, True)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(850), sy(62), sx(220), sy(22), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, score_text, c_dim, c_sel))
 
-        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1080, 5, 60, 60, get_scaled_pixmap(a_png, 60, 60)))
-        # Away Name: 1150, 520
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, 0, 520, h-12, font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        if a_png: res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(1080), sy(5), sx(60), sy(60), get_scaled_pixmap(a_png, sx(60), sy(60))))
+        # Away Name
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1150), 0, sx(520), h - sy(12), font_a, RT_HALIGN_LEFT|RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
 
         # --- Shot Stats Below Score Box (LIVE only) ---
         if status == "LIVE" and (h_shots > 0 or a_shots > 0):
             h_shot_str = "{}({})".format(h_shots, h_on_target)
             a_shot_str = "{}({})".format(a_shots, a_on_target)
-            # Home shots centered under home score box (x=850, w=80)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 850, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
-            # Away shots centered under away score box (x=990, w=80)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 990, 58, 80, 20, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(850), sy(58), sx(80), sy(20), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, h_shot_str, 0xCCCCCC, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(990), sy(58), sx(80), sy(20), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, a_shot_str, 0xCCCCCC, c_sel))
 
         # --- Live Possession & Performance Bars ---
         if status == "LIVE":
             if (h_poss > 0 or a_poss > 0 or ('h_pct_stats' in locals() and h_pct_stats) or ('a_pct_stats' in locals() and a_pct_stats)):
-                max_w = 200
+                max_w = sx(200)
                 h_bar_w = int(max_w * (h_poss / 100.0)) if h_poss > 0 else 0
                 a_bar_w = int(max_w * (a_poss / 100.0)) if a_poss > 0 else 0
-                bar_y = 65
-                bar_h = 5
+                bar_y = sy(65)
+                bar_h = sy(5)
                 c_track = 0x1A1A2E
 
                 # Track backgrounds (full-width dim rail)
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, 570, bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(570), bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1150), bar_y, max_w, bar_h, 0, RT_HALIGN_CENTER, "", c_track, c_track, c_track, c_track))
 
                 # Home Possession Bar (growing leftwards from 770)
                 if h_bar_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 770 - h_bar_w, bar_y, h_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(770) - h_bar_w, bar_y, h_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
 
                 # Away Possession Bar (growing rightwards from 1150)
                 if a_bar_w > 0:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1150), bar_y, a_bar_w, bar_h, 0, RT_HALIGN_CENTER, "", c_accent, c_accent, c_accent, c_accent))
 
                 # Extra Percentage Bars (distinct colors per stat, with dim tracks)
                 stat_colors = [0x00BBFF, 0xFF9900, 0xFFDD00, 0xBB66FF]
                 stat_track  = [0x002233, 0x261500, 0x262200, 0x1A0D22]
-                stat_y = 72
-                stat_h = 4
-                stat_stride = 7
+                stat_y = sy(72)
+                stat_h = sy(4)
+                stat_stride = sy(7)
                 max_stats = max(len(h_pct_stats), len(a_pct_stats))
                 for i in range(min(4, max_stats)):
                     y_pos = stat_y + (i * stat_stride)
                     c = stat_colors[i % len(stat_colors)]
                     ct = stat_track[i % len(stat_track)]
                     # Track backgrounds
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 570, y_pos, max_w, stat_h, 0, RT_HALIGN_CENTER, "", ct, ct, ct, ct))
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, y_pos, max_w, stat_h, 0, RT_HALIGN_CENTER, "", ct, ct, ct, ct))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(570), y_pos, max_w, stat_h, 0, RT_HALIGN_CENTER, "", ct, ct, ct, ct))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1150), y_pos, max_w, stat_h, 0, RT_HALIGN_CENTER, "", ct, ct, ct, ct))
                     if i < len(h_pct_stats):
                         bw = int(max_w * (min(100.0, max(0.0, h_pct_stats[i])) / 100.0))
                         if bw > 0:
-                            res.append((eListboxPythonMultiContent.TYPE_TEXT, 770 - bw, y_pos, bw, stat_h, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+                            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(770) - bw, y_pos, bw, stat_h, 0, RT_HALIGN_CENTER, "", c, c, c, c))
                     if i < len(a_pct_stats):
                         bw = int(max_w * (min(100.0, max(0.0, a_pct_stats[i])) / 100.0))
                         if bw > 0:
-                            res.append((eListboxPythonMultiContent.TYPE_TEXT, 1150, y_pos, bw, stat_h, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+                            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1150), y_pos, bw, stat_h, 0, RT_HALIGN_CENTER, "", c, c, c, c))
 
-
-
-        # EPG Indicator (x=1670)
+        # EPG Indicator
         if has_epg:
-             res.append((eListboxPythonMultiContent.TYPE_TEXT, 1670, 0, 35, h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "EPG", c_accent, c_sel))
+             res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1670), 0, sx(35), h, 1, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "EPG", c_accent, c_sel))
 
-        # Time field matches SportListEntry logic
         font_time = 3
         c_time = c_live if status == "LIVE" else c_dim
-        
-        # Define time box background and text colors based on match state
+
         if status == "LIVE":
             bg_time = c_live
             fg_time = 0xffffff
@@ -4169,14 +4908,12 @@ def UCLListEntry(entry):
             fg_time = c_time
             is_time_solid = False
 
-        # Time Box Drawing with rounded top-left and bottom-right corners
-        draw_rounded_box(res, 1705, 23, 190, 44, bg_time if is_time_solid else c_time, bg_time, is_time_solid)
-        
-        # Time text inside the box
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 1705, 23, 190, 44, font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, fg_time, fg_time))
+        draw_rounded_box(res, sx(1705), sy(23), sx(190), sy(44), bg_time if is_time_solid else c_time, bg_time, is_time_solid)
 
-        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
-        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, 1070, 22, 20, 30, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1705), sy(23), sx(190), sy(44), font_time, RT_HALIGN_CENTER|RT_VALIGN_CENTER, time_str, fg_time, fg_time))
+
+        if goal_side == 'home': res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(830), sy(22), sx(20), sy(30), 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, "<", c_accent, c_accent))
+        elif goal_side == 'away': res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1070), sy(22), sx(20), sy(30), 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, ">", c_accent, c_accent))
 
         # Red Card Indicators (image or text fallback)
         if h_red_cards > 0 or a_red_cards > 0:
@@ -4184,28 +4921,29 @@ def UCLListEntry(entry):
             try:
                 rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
                 if rc_path in GLOBAL_VALID_LOGO_PATHS:
-                    rc_img = get_scaled_pixmap(rc_path, 16, 22)
+                    rc_img = get_scaled_pixmap(rc_path, sx(14), sy(20))
                 elif os.path.exists(rc_path):
                     GLOBAL_VALID_LOGO_PATHS.add(rc_path)
-                    rc_img = get_scaled_pixmap(rc_path, 16, 22)
+                    rc_img = get_scaled_pixmap(rc_path, sx(14), sy(20))
             except: pass
+            center_cx = SCREEN_WIDTH // 2
             if h_red_cards > 0:
                 if rc_img:
                     for i in range(h_red_cards):
-                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 832, 34 + 24 * i, 16, 22, rc_img))
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - sx(118), sy(15) + sy(22) * i, sx(14), sy(20), rc_img))
                 else:
                     rc_txt = "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards)
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 830, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(125), sy(15), sx(25), sy(22), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
             if a_red_cards > 0:
                 if rc_img:
                     for i in range(a_red_cards):
-                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 1072, 34 + 24 * i, 16, 22, rc_img))
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx + sx(112), sy(15) + sy(22) * i, sx(14), sy(20), rc_img))
                 else:
                     rc_txt = "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards)
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1070, 55, 20, 25, 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(105), sy(15), sx(25), sy(22), 3, RT_HALIGN_CENTER|RT_VALIGN_CENTER, rc_txt, 0xFF3333, c_sel))
 
         # UCL Separator
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 20, h-2, 1880, 1, 0, RT_HALIGN_CENTER, "", 0x221a3a6b, 0x221a3a6b))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(20), h - sy(2), SCREEN_WIDTH - sx(40), 1, 0, RT_HALIGN_CENTER, "", 0x221a3a6b, 0x221a3a6b))
         return res
     except: return []
 
@@ -4347,14 +5085,14 @@ class AIToast(Screen):
             bg = "#" + alpha + "0d0d20"
             accent = "#00FF85"
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             u'<screen position="center,952" size="1600,100" flags="wfNoBorder" backgroundColor="#FF000000">'
             u'<eLabel position="0,0" size="1600,100" backgroundColor="{bg}" zPosition="0" />'
             u'<eLabel position="0,0" size="1600,3" backgroundColor="{acc}" zPosition="1" />'
             u'<widget name="msg" position="20,10" size="1560,80" font="Regular;30" '
             u'foregroundColor="#FFFFFF" halign="center" valign="center" transparent="1" zPosition="2" />'
             u'</screen>'
-        ).format(bg=bg, acc=accent)
+        ).format(bg=bg, acc=accent))
         self["msg"] = Label(text)
 
         # ActionMap makes it dismissable via ANY standard button
@@ -4470,13 +5208,32 @@ class SportsMonitor:
 
         self.logo_cache = LogoCacheManager()
         self.last_update = 0
-        self.cache_file = "/tmp/simplysports/cache.json"
+        import os
+        if os.path.exists("/etc/enigma2"):
+            self.cache_file = "/etc/enigma2/simplysports_cache.json"
+        else:
+            self.cache_file = "/tmp/simplysports/cache.json"
 
-        # Optimization: Persistent Agent with Connection Pool & Request Management
+        # Optimization: Persistent Agent with Connection Pool & Request Management & Redirect Handling
         self.pool = HTTPConnectionPool(reactor)
-        self.pool.maxPersistentPerHost = 50  # Allow all 67 leagues to connect concurrently
+        self.pool.maxPersistentPerHost = 10  # Throttle concurrent connections to prevent CDN WAF rate-limiting
         self.pool._factory.noisy = False
-        self.agent = Agent(reactor, pool=self.pool)
+        raw_agent = Agent(reactor, pool=self.pool)
+        try:
+            from twisted.web.client import BrowserLikeRedirectAgent
+            self.agent = BrowserLikeRedirectAgent(raw_agent)
+        except Exception:
+            try:
+                from twisted.web.client import RedirectAgent
+                self.agent = RedirectAgent(raw_agent)
+            except Exception:
+                self.agent = raw_agent
+        from twisted.web.http_headers import Headers
+        self.default_headers = Headers({
+            b'User-Agent': [b'curl/7.68.0'],
+            b'Accept': [b'application/json, text/plain, */*'],
+            b'Accept-Language': [b'en-US,en;q=0.9']
+        })
         self.active_requests = set()
         self.last_cache_save = 0
         self.last_callback_time = 0
@@ -5254,7 +6011,7 @@ class SportsMonitor:
             if url in self.active_requests: continue
 
             self.active_requests.add(url)
-            d = self.agent.request(b'GET', url.encode('utf-8'))
+            d = self.agent.request(b'GET', url.encode('utf-8'), self.default_headers)
             d.addCallback(readBody)
             d.addCallback(self._on_summary_resolved, eid, bet)
             d.addErrback(lambda x: log_dbg("Referee error for {}: {}".format(eid, x)))
@@ -5506,6 +6263,7 @@ class SportsMonitor:
         Returns the new offset value (used by the screen for the hint label).
         """
         MAX_OFFSET = 7
+        self.cancel_active_requests()   # Stop any in-flight fetch & lazy processing for the day we're leaving
         self.ch_day_offset = max(-MAX_OFFSET, min(MAX_OFFSET,
                                                   self.ch_day_offset + delta))
         # Flush stale cache — we're looking at a different day now
@@ -5513,9 +6271,25 @@ class SportsMonitor:
         self.event_map        = {}
         self.match_snapshots  = {}
         self.status_message   = "Loading..."
-        self._trigger_callbacks(False)      # show loading state immediately
+        self._trigger_callbacks(False, bypass_debounce=True, force_refresh=True)      # show loading state immediately
         self.check_goals(from_ui=True)      # fire the dated request right away
+
+        # Schedule a 2-second delayed forced secondary refresh pass to ensure UI renders
+        try:
+            from twisted.internet import reactor
+            reactor.callLater(2.0, self._force_day_navigation_refresh)
+        except Exception:
+            pass
+
         return self.ch_day_offset
+
+    def _force_day_navigation_refresh(self):
+        """Forced secondary UI refresh pass 2 seconds after toggling days."""
+        try:
+            log_diag("[SportsMonitor] 2-second day navigation forced refresh pass (cached_events={})".format(len(self.cached_events)))
+            self._trigger_callbacks(True, bypass_debounce=True, force_refresh=True)
+        except Exception as e:
+            log_dbg("[SportsMonitor] Day nav forced refresh error: " + str(e))
 
     def cancel_active_requests(self):
         """Cancel all in-flight Twisted Deferred requests."""
@@ -5571,7 +6345,7 @@ class SportsMonitor:
         fetch_url = self._build_dated_url(url)
         self.active_requests.add(url)
         try:
-            d = self.agent.request(b'GET', fetch_url.encode('utf-8'))
+            d = self.agent.request(b'GET', fetch_url.encode('utf-8'), self.default_headers)
         except Exception as e:
             log_dbg("[SportsMonitor] Request failed immediately: " + str(e))
             self.batch_remaining -= 1
@@ -5661,6 +6435,14 @@ class SportsMonitor:
     def play_stend_sound(self):
         try:
             mp3_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/stend.mp3")
+            if os.path.exists(mp3_path): os.system('gst-launch-1.0 playbin uri=file://{} audio-sink="alsasink" > /dev/null 2>&1 &'.format(mp3_path))
+        except: pass
+
+    def play_end_sound(self):
+        try:
+            mp3_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/end.mp3")
+            if not os.path.exists(mp3_path):
+                mp3_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/stend.mp3")
             if os.path.exists(mp3_path): os.system('gst-launch-1.0 playbin uri=file://{} audio-sink="alsasink" > /dev/null 2>&1 &'.format(mp3_path))
         except: pass
 
@@ -6054,7 +6836,7 @@ class SportsMonitor:
                     self.cancel_active_requests()
                     fetch_url = self._build_dated_url(url)
                     self.active_requests.add(url)
-                    d = self.agent.request(b'GET', fetch_url.encode('utf-8'))
+                    d = self.agent.request(b'GET', fetch_url.encode('utf-8'), self.default_headers)
                     if not hasattr(self, 'active_deferreds'):
                         self.active_deferreds = []
                     self.active_deferreds.append(d)
@@ -6299,7 +7081,7 @@ class SportsMonitor:
 
                 summary_url = "https://cdn.espn.com/core/{}/{}/boxscore?xhr=1&gameId={}".format(
                     sport, league_slug, eid)
-                d = getPage(summary_url.encode('utf-8'))
+                d = getPage(summary_url.encode('utf-8'), headers={b'User-Agent': b'curl/7.68.0'})
                 d.addCallback(self.on_live_summary, str(eid))
                 d.addErrback(self._on_summary_error, str(eid))
                 live_found += 1
@@ -6327,6 +7109,14 @@ class SportsMonitor:
         """Parse the summary API response and patch fresh score/status into event_map."""
         self._summary_fail_counts.pop(eid, None)
         try:
+            # Decompress gzip if ESPN CDN returned compressed response
+            if body[:2] == b'\x1f\x8b':
+                import gzip
+                try:
+                    body = gzip.decompress(body)
+                except Exception:
+                    import io
+                    body = gzip.GzipFile(fileobj=io.BytesIO(body)).read()
             data = json.loads(body)
             # Summary API structure: header.competitions[0].competitors[].score
             # and header.competitions[0].status  -- same as what GameInfo's parse_details reads
@@ -7131,6 +7921,8 @@ class SportsMonitor:
                             self.play_sound()
                         elif sound_type == 'stend' and self.discovery_mode == 2:
                             self.play_stend_sound()
+                        elif sound_type == 'end' and self.discovery_mode == 2:
+                            self.play_end_sound()
 
                         try:
                             self.session.openWithCallback(
@@ -7298,7 +8090,7 @@ class SportsMonitor:
                     print("[SimplySport] fetch_summary_for_scorer error parsing:", e)
                     return callback(None)
 
-            getPage(summary_url.encode('utf-8')).addCallback(on_summary_success).addErrback(lambda err: callback(None))
+            getPage(summary_url.encode('utf-8'), headers={b'User-Agent': b'curl/7.68.0'}).addCallback(on_summary_success).addErrback(lambda err: callback(None))
         except Exception as e:
             print("[SimplySport] fetch_summary_for_scorer error:", e)
             return callback(None)
@@ -7460,12 +8252,16 @@ class SportsMonitor:
                     self.pending_logos.discard(team_id)
                     return None
 
-                self.agent.request(b'GET', url.encode('utf-8')) \
+                from twisted.web.http_headers import Headers
+                headers = Headers({b'User-Agent': [b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36']})
+                self.agent.request(b'GET', url.encode('utf-8'), headers) \
                     .addCallback(readBody) \
                     .addCallback(on_download_success) \
                     .addErrback(on_download_error)
             else:
-                self.logo_path_cache[team_id] = target_path # Register globally so subsequent calls skip os.path.exists
+                self.logo_path_cache[team_id] = target_path
+                self.missing_logo_cache.discard(team_id)
+                GLOBAL_VALID_LOGO_PATHS.add(target_path)
         except:
             self.pending_logos.discard(team_id)
 
@@ -7691,11 +8487,11 @@ class SportsMonitor:
                         if state == 'in' and prev_state == 'pre':
                             if (match_id, 'start') not in self.notified_events:
                                 self.notified_events.add((match_id, 'start'))
-                                self.queue_notification(match_id, "", _t("RACE STARTING"), event_type="start", sound_type=stend_sound)
+                                self.queue_notification(match_id, "", _t("RACE STARTING"), event_type="start", sound_type='stend' if self.discovery_mode == 2 else None)
                         elif state == 'post' and prev_state == 'in':
                             if (match_id, 'end') not in self.notified_events:
                                 self.notified_events.add((match_id, 'end'))
-                                self.queue_notification(match_id, "", _t("RACE FINISHED"), event_type="end", sound_type=stend_sound)
+                                self.queue_notification(match_id, "", _t("RACE FINISHED"), event_type="end", sound_type='end' if self.discovery_mode == 2 else None)
                     self.last_states[match_id] = state
                     continue
 
@@ -7743,7 +8539,7 @@ class SportsMonitor:
                         # DEDUP: Only fire end notification once per match
                         if (match_id, 'end') not in self.notified_events:
                             self.notified_events.add((match_id, 'end'))
-                            stend_sound = 'stend' if should_play_stend else None
+                            stend_sound = 'end' if should_play_stend else None
                             self.queue_notification(match_id, score_fmt, _t("FULL TIME"), event_type="end", sound_type=stend_sound)
                             # AI full-time commentary — soccer only
                             if '/soccer/' in league_url.lower():
@@ -8020,6 +8816,14 @@ class SportsMonitor:
                 if isinstance(item, tuple): body, l_name, l_url = item
                 else: body, l_name, l_url = item, single_league_name, ""
                 try:
+                    # Decompress gzip if ESPN CDN returned compressed response
+                    if body[:2] == b'\x1f\x8b':
+                        import gzip
+                        try:
+                            body = gzip.decompress(body)
+                        except Exception:
+                            import io
+                            body = gzip.GzipFile(fileobj=io.BytesIO(body)).read()
                     json_str = body.decode('utf-8', errors='ignore')
                     data = json.loads(json_str)
                     _leagues_list = data.get('leagues') or [{}]
@@ -8153,9 +8957,7 @@ class SportsMonitor:
                                     else:
                                         team_obj = team_h.get('team', {})
                                         h_id = team_obj.get('id', '')
-                                        h_logo = team_obj.get('logo', '')
-                                        if not h_logo and h_id:
-                                            h_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, h_id)
+                                        h_logo = extract_team_logo(team_obj, sport_cdn, h_id)
 
                                 if team_a:
                                     if 'athlete' in team_a or event_sport_type == SPORT_TYPE_TENNIS:
@@ -8184,12 +8986,10 @@ class SportsMonitor:
                                             if country.get('iso2'):
                                                 a_logo = "https://a.espncdn.com/i/teamlogos/countries/500/{}.png".format(country['iso2'].lower())
                                     else:
-                                        # FIX: Added missing else block for standard away teams
+                                        # Standard away teams
                                         team_obj = team_a.get('team', {})
                                         a_id = team_obj.get('id', '')
-                                        a_logo = team_obj.get('logo', '')
-                                        if not a_logo and a_id:
-                                            a_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, a_id)
+                                        a_logo = extract_team_logo(team_obj, sport_cdn, a_id)
 
                                 # Prefix logo IDs with unique sport name to prevent cross-sport collisions
                                 sport_prefix = get_sport_id_prefix(league_url)
@@ -8232,8 +9032,10 @@ class SportsMonitor:
                         if rk in self.event_map: del self.event_map[rk]
                     if reap_keys: has_changes = True
                 except Exception as _proc_e:
-                    log_dbg("[process_events_data] Skipped league '{}' ({}) due to error: {}".format(
-                        l_name or '?', l_url or '?', _proc_e))
+                    body_len = len(body) if body else 0
+                    body_full = repr(body[:500]) if body else 'None'
+                    log_dbg("[process_events_data] Skipped league '{}' ({}) due to error: {} [body_len={}]\n  BODY: {}".format(
+                        l_name or '?', l_url or '?', _proc_e, body_len, body_full))
 
             # Rebuild cached_events from map
             unique_list = list(self.event_map.values())
@@ -8353,18 +9155,16 @@ def StatsListEntry(label, home_val, away_val, theme_mode):
     if theme_mode == "ucl":
         col_label, col_val, col_bg, col_sel = 0xc9a020, 0xffffff, 0x0d1b2e, 0x1a3a6b
     else:
-        col_label, col_val, col_bg, col_sel = 0x00FF85, 0xFFFFFF, 0x33190028, 0x444444
+        col_label, col_val, col_bg, col_sel = 0x00FF85, 0xFFFFFF, 0x1A0024, 0x2A0040
 
-    # Layout: Centered Block. Total width ~1320px
-    # Home (400) | Label (520) | Away (400)
-    h_x, h_w = 140, 400; l_x, l_w = 540, 520; a_x, a_w = 1060, 400
+    h_x, h_w = sx(140), sx(400); l_x, l_w = sx(540), sx(520); a_x, a_w = sx(1060), sx(400)
+    row_h = sy(50)
     res = [None]
-    # Highlight full row when selected
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 48, 1400, 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label).upper(), col_label, col_label, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_val, col_val, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_val, col_val, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(1600), row_h, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(100), row_h - 2, sx(1400), 2, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label).upper(), col_label, col_label, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, row_h, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val), col_val, col_val, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, row_h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val), col_val, col_val, col_bg, col_sel))
     return res
 def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=None, payload=None):
     """3-Column Layout for Events (Goals/Cards/Subs) - Optimized for 1600px Width"""
@@ -8376,9 +9176,9 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
     col_h = h_color if h_color is not None else col_val
     col_a = a_color if a_color is not None else col_val
 
-    l_x, l_w = 740, 120   # Time label centered (740 + 60 = 800 center)
-    h_x, h_w = 90, 640    # Home events on left, right-aligned towards center
-    a_x, a_w = 870, 640   # Away events on right, left-aligned from center
+    l_x, l_w = sx(740), sx(120)   # Time label centered
+    h_x, h_w = sx(90), sx(640)    # Home events on left
+    a_x, a_w = sx(870), sx(640)   # Away events on right
 
     is_h_goal = any(x in str(home_val) for x in ["[Goal]", "[Pen]", "[OG]"])
     is_a_goal = any(x in str(away_val) for x in ["[Goal]", "[Pen]", "[OG]"])
@@ -8395,64 +9195,65 @@ def EventListEntry(label, home_val, away_val, theme_mode, h_color=None, a_color=
     has_h_icon = (is_h_goal or is_h_rc or is_h_yc or is_h_sub)
     has_a_icon = (is_a_goal or is_a_rc or is_a_yc or is_a_sub)
 
-    h_text_w = 610 if has_h_icon else h_w
-    a_text_x = 900 if has_a_icon else a_x
-    a_text_w = 610 if has_a_icon else a_w
+    h_text_w = sx(610) if has_h_icon else h_w
+    a_text_x = sx(900) if has_a_icon else a_x
+    a_text_w = sx(610) if has_a_icon else a_w
 
+    row_h = sy(50)
     res = [payload]
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1550, 1, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(1600), row_h, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, row_h - 2, sx(1550), 1, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
 
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label), col_label, col_label, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_text_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, display_h, col_h, col_h, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_text_x, 0, a_text_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, display_a, col_a, col_a, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, l_x, 0, l_w, row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(label), col_label, col_label, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_text_w, row_h, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, display_h, col_h, col_h, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_text_x, 0, a_text_w, row_h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, display_a, col_a, col_a, col_bg, col_sel))
 
     # Ball
     ball_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/ball.png")
     if (is_h_goal or is_a_goal) and os.path.exists(ball_path):
         try:
-            ball_pix = get_scaled_pixmap(ball_path, 20, 20)
+            ball_pix = get_scaled_pixmap(ball_path, sx(20), sy(20))
             if ball_pix:
                 if is_h_goal:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 710, 15, 20, 20, ball_pix))
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(710), sy(15), sx(20), sy(20), ball_pix))
                 if is_a_goal:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 870, 15, 20, 20, ball_pix))
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(870), sy(15), sx(20), sy(20), ball_pix))
         except: pass
 
     # Red
     rc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/red.jpg")
     if (is_h_rc or is_a_rc) and os.path.exists(rc_path):
         try:
-            rc_pix = get_scaled_pixmap(rc_path, 14, 20)
+            rc_pix = get_scaled_pixmap(rc_path, sx(14), sy(20))
             if rc_pix:
                 if is_h_rc:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 713, 15, 14, 20, rc_pix))
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(713), sy(15), sx(14), sy(20), rc_pix))
                 if is_a_rc:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 873, 15, 14, 20, rc_pix))
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(873), sy(15), sx(14), sy(20), rc_pix))
         except: pass
 
     # Yellow
     yc_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/yellow.jpg")
     if (is_h_yc or is_a_yc) and os.path.exists(yc_path):
         try:
-            yc_pix = get_scaled_pixmap(yc_path, 14, 20)
+            yc_pix = get_scaled_pixmap(yc_path, sx(14), sy(20))
             if yc_pix:
                 if is_h_yc:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 713, 15, 14, 20, yc_pix))
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(713), sy(15), sx(14), sy(20), yc_pix))
                 if is_a_yc:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 873, 15, 14, 20, yc_pix))
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(873), sy(15), sx(14), sy(20), yc_pix))
         except: pass
 
     # Replace
     sub_path = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/replace.jpg")
     if (is_h_sub or is_a_sub) and os.path.exists(sub_path):
         try:
-            sub_pix = get_scaled_pixmap(sub_path, 20, 20)
+            sub_pix = get_scaled_pixmap(sub_path, sx(20), sy(20))
             if sub_pix:
                 if is_h_sub:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 710, 15, 20, 20, sub_pix))
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(710), sy(15), sx(20), sy(20), sub_pix))
                 if is_a_sub:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 870, 15, 20, 20, sub_pix))
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, sx(870), sy(15), sx(20), sy(20), sub_pix))
         except: pass
 
     return res
@@ -8472,13 +9273,14 @@ def RosterListEntry(home_player, away_player, theme_mode):
         col_bg = 0x1A0024 if is_header else None
         col_sep = 0x2C1040
 
-    h_x, h_w = 220, 560; a_x, a_w = 820, 560
+    h_x, h_w = sx(220), sx(560); a_x, a_w = sx(820), sx(560)
+    row_h = sy(50)
     res = [None]
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 200, 48, 1200, 2, 0, RT_HALIGN_CENTER, "", col_sep, col_sep, 1))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(200), row_h - 2, sx(1200), 2, 0, RT_HALIGN_CENTER, "", col_sep, col_sep, 1))
     if is_header:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 200, 0, 1200, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, 50, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_player), col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_player), col_text, 0xFFFFFF))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(200), 0, sx(1200), row_h, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, h_x, 0, h_w, row_h, 0, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_player), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, a_x, 0, a_w, row_h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_player), col_text, 0xFFFFFF))
     return res
 
 
@@ -8498,22 +9300,20 @@ def TextListEntry(text, theme_mode, align="center", is_header=False):
     flags = RT_HALIGN_CENTER | RT_VALIGN_CENTER
     if align == "left": flags = RT_HALIGN_LEFT | RT_VALIGN_CENTER
 
+    row_h = sy(50)
     res = [None]
-    # Highlight full row when selected
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", bg_actual, bg_actual, bg_actual, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(1600), row_h, 0, RT_HALIGN_CENTER, "", bg_actual, bg_actual, bg_actual, col_sel))
 
-    # Background line if header
     if is_header:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, bg_actual, col_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(40), 0, sx(1520), row_h, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, bg_actual, col_sel))
 
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, flags, str(text), col_text, col_text, bg_actual, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(40), 0, sx(1520), row_h, 0, flags, str(text), col_text, col_text, bg_actual, col_sel))
     return res
 
 def VoteListEntry(team_type, team_name, votes, total_votes, theme_mode, has_voted=False, is_pre_match=True):
     """Draws a 2-Column Layout for Voting with Percentages and Lockout states."""
     pct = (votes / float(total_votes) * 100) if total_votes > 0 else 0.0
 
-    # 1. NEW LOGIC: Determine what text to show based on match state
     if not is_pre_match:
         display_text = "{}  -  {} Votes ({:.1f}%)  [VOTING CLOSED]".format(team_name, votes, pct)
     elif has_voted or total_votes > 0:
@@ -8526,11 +9326,10 @@ def VoteListEntry(team_type, team_name, votes, total_votes, theme_mode, has_vote
     else:
         col_text, col_bg, col_sel = 0x00FF85, 0x100015, 0x2A0040
 
-    # Payload: ("VOTE", "home" or "away", team_name)
+    row_h = sy(50)
     res = [("VOTE", team_type, team_name)]
-
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, display_text, col_text, col_text, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(1600), row_h, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(40), 0, sx(1520), row_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, display_text, col_text, col_text, col_bg, col_sel))
     return res
 
 def wrap_text(text, max_chars=70):
@@ -8572,31 +9371,27 @@ def StandingTableEntry(pos, team, played, won, draw, lost, gd, pts, theme_mode, 
         col_dim = 0x888888
         col_sep = 0x2C1040
 
-    # Highlight top 4 positions
     try:
         if not is_header and int(pos) <= 4:
             col_text = col_accent
     except: pass
 
+    row_h = sy(50)
     res = [None]
-    # Modern Separator line at bottom
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 48, 1140, 1, 0, RT_HALIGN_CENTER, "", col_sep, col_sep, 1))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(230), row_h - 2, sx(1140), 1, 0, RT_HALIGN_CENTER, "", col_sep, col_sep, 1))
 
-    # Background for header
     if is_header:
         header_bg = col_bg if theme_mode == "ucl" else 0x1A0024
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 0, 1140, 50, 0, RT_HALIGN_CENTER, "", header_bg, header_bg, 1))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(230), 0, sx(1140), row_h, 0, RT_HALIGN_CENTER, "", header_bg, header_bg, 1))
 
-    # Table columns: Pos(60) | Team(420) | P(80) | W(80) | D(80) | L(80) | GD(100) | Pts(80)
-    # Start X offset: 280 (Centered for Total Width 1040)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 280, 0, 60, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pos), col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 350, 0, 420, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(team), col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 780, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(played), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 860, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(won), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 940, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(draw), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1020, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(lost), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1100, 0, 100, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(gd), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1220, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pts), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(280), 0, sx(60), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pos), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(350), 0, sx(420), row_h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(team), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(780), 0, sx(80), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(played), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(860), 0, sx(80), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(won), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(940), 0, sx(80), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(draw), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1020), 0, sx(80), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(lost), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1100), 0, sx(100), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(gd), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1220), 0, sx(80), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pts), col_text, 0xFFFFFF))
     return res
 
 def RacingStandingEntry(rank, driver, country, pts, theme_mode, is_header=False):
@@ -8612,25 +9407,21 @@ def RacingStandingEntry(rank, driver, country, pts, theme_mode, is_header=False)
         col_bg = 0x28002C if is_header else None
         col_dim = 0x888888
 
-    # Highlight top 3 positions
     try:
         if not is_header and int(rank) <= 3:
             col_text = col_accent
     except: pass
 
+    row_h = sy(50)
     res = [None]
-    # Separator line
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 48, 1140, 2, 0, RT_HALIGN_CENTER, "", col_dim, col_dim, 1))
-    # Background for header
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(230), row_h - 2, sx(1140), 2, 0, RT_HALIGN_CENTER, "", col_dim, col_dim, 1))
     if is_header:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 0, 1140, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(230), 0, sx(1140), row_h, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, 1))
 
-    # Racing columns: Rank(80) | Driver(550) | Country(250) | Points(120)
-    # Start X offset: 280, Total Width ~1000
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 280, 0, 80, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(rank), col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 370, 0, 550, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(driver), col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 930, 0, 250, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(country), col_dim if not is_header else col_text, 0xFFFFFF))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1200, 0, 120, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pts), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(280), 0, sx(80), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(rank), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(370), 0, sx(550), row_h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(driver), col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(930), 0, sx(250), row_h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(country), col_dim if not is_header else col_text, 0xFFFFFF))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1200), 0, sx(120), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(pts), col_text, 0xFFFFFF))
     return res
 
 # ==============================================================================
@@ -8648,7 +9439,7 @@ class TeamStandingScreen(Screen):
         # --- SKIN (1600x900 Upgrade) ---
         if self.theme == "ucl":
             bg_color = "#00000000"; top_bar = "#091442"; accent = "#c9a020"
-            self.skin = f"""<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="{bg_color}">
+            self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="{bg_color}">
                 <eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" />
                 <eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />
                 <widget name="title" position="0,50" size="1600,40" font="Regular;32" foregroundColor="{accent}" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
@@ -8656,10 +9447,10 @@ class TeamStandingScreen(Screen):
                 <widget name="standings_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
                 <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
                 <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
-            </screen>"""
+            </screen>""")
         else:
             bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
-            self.skin = f"""<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="{bg_color}">
+            self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="{bg_color}">
                 <eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" />
                 <eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />
                 <widget name="title" position="0,50" size="1600,40" font="Regular;32" foregroundColor="{accent}" backgroundColor="{top_bar}" transparent="1" halign="center" valign="center" zPosition="5" />
@@ -8667,7 +9458,7 @@ class TeamStandingScreen(Screen):
                 <widget name="standings_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
                 <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
                 <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
-            </screen>"""
+            </screen>""")
 
         self["title"] = Label(_league_name(league_name) if league_name else _t("LEAGUE STANDINGS"))
         self["subtitle"] = Label(_t("STANDINGS"))
@@ -8675,8 +9466,8 @@ class TeamStandingScreen(Screen):
         self["hint"] = Label(_t("Press OK to return to Main Screen"))
 
         self["standings_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
-        self["standings_list"].l.setFont(0, gFont("Regular", 24))
-        self["standings_list"].l.setItemHeight(50)
+        self["standings_list"].l.setFont(0, gFont("Regular", sf(24)))
+        self["standings_list"].l.setItemHeight(sy(50))
 
         self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions"], {
             "cancel": self.close_to_main, "ok": self.close_to_main, "back": self.close_to_main,
@@ -8788,10 +9579,12 @@ class TeamStandingScreen(Screen):
         log_dbg("fetch_standings URL: " + standings_url)
 
         from twisted.web.client import Agent, readBody
+        from twisted.web.http_headers import Headers
         from twisted.internet import reactor
         self._standings_url = standings_url
         agent = Agent(reactor)
-        d = agent.request(b'GET', standings_url.encode('utf-8'))
+        headers = Headers({b'User-Agent': [b'curl/7.68.0']})
+        d = agent.request(b'GET', standings_url.encode('utf-8'), headers)
         d.addCallback(self.on_response)
         d.addErrback(self.on_error)
 
@@ -9312,11 +10105,11 @@ class SimplePlayer(Screen):
             print("[SimplySport] SimplePlayer: Inherited prefetch for " + self.current_prefetch_url)
 
         # Transparent background for video overlay
-        self.skin = """<screen position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#ff000000">
+        self.skin = scale_skin_xml("""<screen position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#ff000000">
             <widget name="video_title" position="50,50" size="1000,60" font="Regular;40" foregroundColor="#ffffff" backgroundColor="#000000" transparent="1" zPosition="1" />
             <widget name="progress" position="50,120" size="1000,30" font="Regular;24" foregroundColor="#00FF85" backgroundColor="#000000" transparent="1" zPosition="1" />
             <widget name="hint" position="50,970" size="1820,60" font="Regular;28" foregroundColor="#aaaaaa" backgroundColor="#000000" transparent="1" halign="center" zPosition="1" />
-        </screen>"""
+        </screen>""")
         self["video_title"] = Label("Loading Stream...")
         self["progress"] = Label("")
         self["hint"] = Label("◄► Skip | OK/Exit: Stop")
@@ -9547,13 +10340,13 @@ class RacingDriverInfoScreen(Screen):
         self.points = driver_data.get('score', '')
         self.stats_url = ''
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             u'<screen position="center,center" size="1200,800" title="Driver Profile">'
             u'<widget name="title" position="20,20" size="1160,50" font="Regular;36" foregroundColor="#00FF85" backgroundColor="#000000" transparent="1" halign="center" valign="center" zPosition="1" />'
             u'<widget name="subtitle" position="20,70" size="1160,30" font="Regular;24" foregroundColor="#FFFFFF" backgroundColor="#000000" transparent="1" halign="center" valign="center" zPosition="1" />'
             u'<widget name="list" position="20,130" size="1160,650" itemHeight="60" scrollbarMode="showOnDemand" zPosition="2" backgroundColor="#000000" transparent="1" />'
             u'</screen>'
-        )
+        ))
 
         self["title"] = Label(self.d_name)
         subtitle_txt = "Position: " + str(self.rank)
@@ -9569,7 +10362,7 @@ class RacingDriverInfoScreen(Screen):
 
         self.full_rows = []
         self["list"] = MenuList([], enableWrapAround=True)
-        self["list"].l.setItemHeight(60)
+        self["list"].l.setItemHeight(sy(60))
 
         self["actions"] = ActionMap(["OkCancelActions"], {
             "ok": self.close, "cancel": self.close
@@ -9582,15 +10375,16 @@ class RacingDriverInfoScreen(Screen):
         self.update_list()
 
         is_core = "sports.core.api" in self.league_url
+        headers_dict = {b'User-Agent': b'curl/7.68.0'}
         if is_core and self.d_id:
             a_url = self.league_url + "/athletes/" + str(self.d_id)
-            getPage(a_url.encode('utf-8')).addCallback(self.on_athlete).addErrback(self.on_error)
+            getPage(a_url.encode('utf-8'), headers=headers_dict).addCallback(self.on_athlete).addErrback(self.on_error)
         elif self.d_id:
             league = "f1"
             if "nascar" in self.league_url: league = "nascar"
             elif "irl" in self.league_url: league = "irl"
             a_url = "https://site.api.espn.com/apis/common/v3/sports/racing/" + league + "/athletes/" + str(self.d_id)
-            getPage(a_url.encode('utf-8')).addCallback(self.on_athlete_site).addErrback(self.on_error)
+            getPage(a_url.encode('utf-8'), headers=headers_dict).addCallback(self.on_athlete_site).addErrback(self.on_error)
         else:
             self.full_rows = [TextListEntry("Basic Competitor Info", self.theme, is_header=True)]
             if self.team_name: self.full_rows.append(TextListEntry("Team: " + str(self.team_name), self.theme))
@@ -9629,7 +10423,7 @@ class RacingDriverInfoScreen(Screen):
             stats_ref = data.get('statistics', {}).get('$ref', '')
             if stats_ref:
                 self.stats_url = stats_ref
-                getPage(stats_ref.encode('utf-8')).addCallback(self.on_stats).addErrback(self.on_error)
+                getPage(stats_ref.encode('utf-8'), headers={b'User-Agent': b'curl/7.68.0'}).addCallback(self.on_stats).addErrback(self.on_error)
             else:
                 self.update_list()
         except:
@@ -9715,6 +10509,25 @@ class GameInfoScreen(Screen):
         self.odds_data = []      # Populated by parse_odds from core API
         self.h_team_name = "Home" # Will be set when parsing data
         self.a_team_name = "Away" # Will be set when parsing data
+
+        # Extract initial team names & direct summary URL from event_data immediately
+        ev_data = event_data or (global_sports_monitor.event_map.get(str(event_id)) if global_sports_monitor else {})
+        if ev_data:
+            try:
+                comps = ev_data.get('competitions', [{}])[0].get('competitors', [])
+                for c in comps:
+                    tn = c.get('team', {}).get('shortDisplayName') or c.get('team', {}).get('displayName') or c.get('team', {}).get('name', '')
+                    if tn:
+                        if c.get('homeAway') == 'home':
+                            self.h_team_name = _team_name(tn)
+                        elif c.get('homeAway') == 'away':
+                            self.a_team_name = _team_name(tn)
+                for link in ev_data.get('links', []):
+                    href = link.get('href', '')
+                    if "summary" in href and "api.espn.com" in href:
+                        self.summary_url = href
+                        break
+            except: pass
 
         base_url = league_url.split('?')[0]
 
@@ -9810,10 +10623,13 @@ class GameInfoScreen(Screen):
                         sport, league, event_id, competition_id)
 
                     # CDN Boxscore Endpoint (Faster for Live Games)
-                    # Example: https://cdn.espn.com/core/football/nfl/boxscore?xhr=1&gameId=4000000
-                    # This API endpoint is identical to /summary but caches/updates faster than site.api.espn.com
-                    self.cdn_url = "https://cdn.espn.com/core/{}/{}/boxscore?xhr=1&gameId={}".format(
-                        sport, league, event_id)
+                    # Basketball is served directly via primary summary API (CDN core endpoint doesn't exist for basketball)
+                    if sport in ['soccer', 'tennis']:
+                        self.cdn_url = "https://cdn.espn.com/core/{}/match?xhr=1&gameId={}".format(sport, event_id)
+                    elif sport == 'basketball':
+                        self.cdn_url = ""
+                    else:
+                        self.cdn_url = "https://cdn.espn.com/core/{}/boxscore?xhr=1&gameId={}".format(sport, event_id)
         except: pass
 
         # --- SKIN ---
@@ -9876,21 +10692,27 @@ class GameInfoScreen(Screen):
         else:
             # Two-team match layout (1600px Wide)
             common_widgets = """
-                <widget name="match_title" position="0,5" size="1600,28" font="Regular;26" foregroundColor="{accent}" transparent="1" halign="center" valign="center" text="" zPosition="6" />
+                <widget name="match_title" position="0,5" size="1600,26" font="Regular;24" foregroundColor="{accent}" transparent="1" halign="center" valign="center" text="" zPosition="6" />
 
-                <widget name="h_logo" position="50,25" size="110,110" alphatest="blend" zPosition="5" scale="1" />
-                <widget name="h_name" position="170,35" size="430,55" font="Regular;44" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
-                <widget name="h_score" position="620,35" size="150,90" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
+                <!-- Home Team & Logo -->
+                <widget name="h_logo" position="50,20" size="110,110" alphatest="blend" zPosition="5" scale="1" />
+                <widget name="h_name" position="170,35" size="430,50" font="Regular;42" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
 
-                <widget name="countdown_label" position="500,35" size="600,45" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" valign="center" zPosition="5" />
-                <widget name="start_time_label" position="500,80" size="600,45" font="Regular;32" foregroundColor="#cccccc" transparent="1" halign="center" valign="center" zPosition="5" />
-                <widget name="score_sep" position="785,50" size="30,50" font="Regular;36" foregroundColor="#888888" transparent="1" halign="center" valign="center" text="-" zPosition="5" />
+                <!-- Scores (Live/Finished Matches) -->
+                <widget name="h_score" position="610,25" size="150,85" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
+                <widget name="score_sep" position="785,40" size="30,50" font="Regular;40" foregroundColor="#888888" transparent="1" halign="center" valign="center" text="-" zPosition="5" />
+                <widget name="a_score" position="840,25" size="150,85" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
 
-                <widget name="a_score" position="830,35" size="150,90" font="Regular;72" foregroundColor="#ffffff" transparent="1" halign="left" valign="center" zPosition="5" />
-                <widget name="a_name" position="1000,35" size="430,55" font="Regular;44" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
-                <widget name="a_logo" position="1440,25" size="110,110" alphatest="blend" zPosition="5" scale="1" />
+                <!-- Countdown & Date/Time (Upcoming Matches - shown when scores are hidden) -->
+                <widget name="countdown_label" position="600,30" size="400,45" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" valign="center" zPosition="6" />
+                <widget name="start_time_label" position="600,80" size="400,35" font="Regular;26" foregroundColor="#cccccc" transparent="1" halign="center" valign="center" zPosition="6" />
 
-                <widget name="stadium_name" position="0,125" size="1600,25" font="Regular;22" foregroundColor="#aaaaaa" transparent="1" halign="center" valign="center" zPosition="5" />
+                <!-- Away Team & Logo -->
+                <widget name="a_name" position="1000,35" size="430,50" font="Regular;42" foregroundColor="#ffffff" transparent="1" halign="right" valign="center" zPosition="5" />
+                <widget name="a_logo" position="1440,20" size="110,110" alphatest="blend" zPosition="5" scale="1" />
+
+                <!-- Stadium / Location / Attendance -->
+                <widget name="stadium_name" position="0,122" size="1600,24" font="Regular;20" foregroundColor="#aaaaaa" transparent="1" halign="center" valign="center" zPosition="5" />
 
                 <widget name="info_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
                 <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
@@ -9900,11 +10722,11 @@ class GameInfoScreen(Screen):
         if self.theme == "ucl":
             bg_color = "#00000000"; top_bar = "#091442"; accent = "#c9a020"
             skin_widgets = common_widgets.replace("{accent}", accent)
-            self.skin = f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>"""
+            self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>""")
         else:
             bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
             skin_widgets = common_widgets.replace("{accent}", accent)
-            self.skin = f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>"""
+            self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>""")
 
         self["h_name"] = Label(""); self["a_name"] = Label("")
         self["h_score"] = Label(""); self["a_score"] = Label("")
@@ -9914,16 +10736,19 @@ class GameInfoScreen(Screen):
         self["loading"] = Label(_t("Fetching Data...")); self["page_indicator"] = Label("")
 
         self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
-        self["info_list"].l.setFont(0, gFont("Regular", 24))
-        self["info_list"].l.setFont(1, gFont("Regular", 20))
-        self["info_list"].l.setItemHeight(50)
+        self["info_list"].l.setFont(0, gFont("Regular", sf(24)))
+        self["info_list"].l.setFont(1, gFont("Regular", sf(20)))
+        self["info_list"].l.setItemHeight(sy(50))
         self.items_per_page = 14 # Fill screen (700px / 50px = 14)
 
-        self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions"], {
+        self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions", "InfobarSeekActions", "InfobarBouquetActions"], {
             "cancel": self.close, "green": self.close, "ok": self.handle_ok, "back": self.close,
             "yellow": self.open_leaderboard,
-            "up": self["info_list"].up, "down": self["info_list"].down, "left": self.page_up, "right": self.page_down
-        }, -2)
+            "up": self["info_list"].up, "down": self["info_list"].down,
+            "left": self.page_up, "right": self.page_down,
+            "seekFwd": self.page_down, "seekBack": self.page_up,
+            "nextBouquet": self.page_down, "prevBouquet": self.page_up
+        }, 2)
 
         # Add Voting State Variables
         self.device_id = get_device_id()
@@ -9998,7 +10823,6 @@ class GameInfoScreen(Screen):
         idx = self["info_list"].getSelectedIndex()
         if idx is None: return
 
-        # Calculate actual index in full_rows based on pagination
         real_idx = (self.current_page * self.items_per_page) + idx
         if real_idx < len(self.full_rows):
             item = self.full_rows[real_idx]
@@ -10197,25 +11021,58 @@ class GameInfoScreen(Screen):
 
     def update_display(self):
         if not self.full_rows:
-            self["info_list"].setList([]); self["page_indicator"].setText(""); return
+            self["info_list"].setList([])
+            self["page_indicator"].setText("")
+            return
 
         total_items = len(self.full_rows)
+        total_pages = max(1, int(math.ceil(float(total_items) / float(self.items_per_page))))
+
+        if self.current_page >= total_pages:
+            self.current_page = total_pages - 1
+        if self.current_page < 0:
+            self.current_page = 0
+
         start_index = self.current_page * self.items_per_page
         end_index = start_index + self.items_per_page
         page_data = self.full_rows[start_index:end_index]
+
         self["info_list"].setList(page_data)
-        total_pages = int(math.ceil(float(total_items) / float(self.items_per_page)))
-        if total_pages > 1: self["page_indicator"].setText("Page {}/{}".format(self.current_page + 1, total_pages))
-        else: self["page_indicator"].setText("")
+        try:
+            self["loading"].hide()
+        except Exception:
+            pass
+
+        if total_pages > 1:
+            self["page_indicator"].setText(_t("Page {}/{}    \u25c4 \u25ba Change Page".format(self.current_page + 1, total_pages)))
+        else:
+            self["page_indicator"].setText("")
 
     def page_down(self):
         total_items = len(self.full_rows)
         if total_items > 0:
-            max_page = int(math.ceil(float(total_items) / float(self.items_per_page))) - 1
-            if self.current_page < max_page: self.current_page += 1; self.update_display()
+            total_pages = int(math.ceil(float(total_items) / float(self.items_per_page)))
+            if total_pages > 1:
+                if self.current_page < total_pages - 1:
+                    self.current_page += 1
+                else:
+                    self.current_page = 0
+                self.update_display()
+                try: self["info_list"].moveToIndex(0)
+                except: pass
 
     def page_up(self):
-        if self.current_page > 0: self.current_page -= 1; self.update_display()
+        total_items = len(self.full_rows)
+        if total_items > 0:
+            total_pages = int(math.ceil(float(total_items) / float(self.items_per_page)))
+            if total_pages > 1:
+                if self.current_page > 0:
+                    self.current_page -= 1
+                else:
+                    self.current_page = total_pages - 1
+                self.update_display()
+                try: self["info_list"].moveToIndex(0)
+                except: pass
 
     def start_loading(self):
         # PHASE 5: Pre-populate header from snapshot (instant, no HTTP wait)
@@ -10224,8 +11081,31 @@ class GameInfoScreen(Screen):
             try:
                 self["h_name"].setText(_team_name(snap['h_name']))
                 self["a_name"].setText(_team_name(snap['a_name']))
-                self["h_score"].setText(snap['h_score_str'])
-                self["a_score"].setText(snap['a_score_str'])
+                if snap.get('state') == 'pre':
+                    self["h_score"].hide(); self["a_score"].hide(); self["score_sep"].hide()
+                    self["countdown_label"].show(); self["start_time_label"].show()
+                    match_date = snap.get('match_date', '') or snap.get('display_time', '')
+                    if match_date:
+                        dt = parse_espn_date(match_date)
+                        if dt:
+                            now = datetime.datetime.utcnow()
+                            delta = dt - now
+                            d_days = delta.days
+                            d_secs = delta.seconds
+                            total_seconds = (d_days * 86400) + d_secs
+                            if total_seconds > 0:
+                                count_str = "{} Days, {} Hours".format(d_days, d_secs // 3600) if d_days > 0 else "{} Hours, {} Mins".format(d_secs // 3600, (d_secs // 60) % 60)
+                            else:
+                                count_str = "Starting Soon"
+                            self["countdown_label"].setText(count_str)
+                            offset = datetime.datetime.now() - datetime.datetime.utcnow()
+                            dt_local = dt + offset
+                            self["start_time_label"].setText(dt_local.strftime("%a %d/%m %H:%M"))
+                else:
+                    self["h_score"].setText(snap['h_score_str'])
+                    self["a_score"].setText(snap['a_score_str'])
+                    self["h_score"].show(); self["a_score"].show(); self["score_sep"].show()
+                    self["countdown_label"].hide(); self["start_time_label"].hide()
                 load_logo_to_widget(self, "h_logo", snap['h_logo_url'], snap['h_logo_id'])
                 load_logo_to_widget(self, "a_logo", snap['a_logo_url'], snap['a_logo_id'])
                 # Set match title for individual sports
@@ -10233,6 +11113,13 @@ class GameInfoScreen(Screen):
                     self["match_title"].setText(snap['league_name'])
                     self["h_name"].setText(_team_name(snap['h_name']))
                 self.league_name = snap['league_name']
+            except: pass
+        elif self.fallback_event_data:
+            try:
+                state = self.fallback_event_data.get('status', {}).get('type', {}).get('state', 'pre')
+                if state == 'pre':
+                    self["h_score"].hide(); self["a_score"].hide(); self["score_sep"].hide()
+                    self["countdown_label"].show(); self["start_time_label"].show()
             except: pass
 
         if not self.summary_url and self.fallback_event_data:
@@ -10244,33 +11131,100 @@ class GameInfoScreen(Screen):
         if snap:
             is_live = snap.get('state', '') == 'in'
 
-        if self.cdn_url and is_live:
-            # OPTIMIZATION: Use high-speed CDN endpoint for live matches (avoids 60s ESPN latency)
-            getPage(self.cdn_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_cdn)
+        headers_dict = {b'User-Agent': b'curl/7.68.0'}
+        if self.cdn_url:
+            # High-speed & rich CDN core endpoint for all matches (pre, in, post)
+            getPage(self.cdn_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_cdn)
+            if self.summary_url:
+                getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.enrich_with_summary).addErrback(lambda e: None)
         elif self.summary_url:
             if getattr(self, '_is_euroleague', False):
-                getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_euroleague_stats).addErrback(self.error_details)
+                getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_euroleague_stats).addErrback(self.error_details)
             else:
-                getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
+                getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_details)
         else:
             self.error_details(None)
 
         if self.summary_url or self.cdn_url:
             # Fire odds fetch in parallel (fire-and-forget, non-blocking)
             if self.odds_url:
-                getPage(self.odds_url.encode('utf-8')).addCallback(self.parse_odds).addErrback(lambda e: None)
+                getPage(self.odds_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_odds).addErrback(lambda e: None)
             # Fire live status fetch for instant score/clock update while summary loads
             if hasattr(self, 'live_status_url') and self.live_status_url and is_live:
-                getPage(self.live_status_url.encode('utf-8')).addCallback(self.parse_live_status).addErrback(lambda e: None)
+                getPage(self.live_status_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_live_status).addErrback(lambda e: None)
+
+    def enrich_with_summary(self, body):
+        """Backfill sections the fast CDN boxscore payload omits (videos, rosters,
+        head-to-head, news, formations) using the fuller /summary endpoint once it
+        arrives. Runs alongside the CDN-driven render so live scores/stats stay fast."""
+        try:
+            if not hasattr(self, 'lazy_data') or not isinstance(self.lazy_data, dict):
+                return  # CDN parse hasn't populated data yet; nothing to merge into
+
+            json_str = body.decode('utf-8', errors='ignore')
+            s_data = json.loads(json_str)
+            if isinstance(s_data, dict) and 'gamepackageJSON' in s_data:
+                s_data = s_data.get('gamepackageJSON') or s_data
+            if not isinstance(s_data, dict):
+                return
+
+            data = self.lazy_data
+            merged_anything = False
+
+            SUPPLEMENTAL_KEYS = ['videos', 'news', 'articles', 'rosters', 'headToHead',
+                                  'headtohead', 'lastFiveGames', 'standings', 'predictor', 'pickcenter']
+            for key in SUPPLEMENTAL_KEYS:
+                incoming = s_data.get(key)
+                if incoming and not data.get(key):
+                    data[key] = incoming
+                    merged_anything = True
+
+            # Match officials (nested under gameInfo)
+            try:
+                existing_officials = data.get('gameInfo', {}).get('officials', [])
+                incoming_officials = s_data.get('gameInfo', {}).get('officials', [])
+                if incoming_officials and not existing_officials:
+                    data.setdefault('gameInfo', {})['officials'] = incoming_officials
+                    merged_anything = True
+            except Exception: pass
+
+            # Per-team formations (usually only present in the summary competitors list)
+            try:
+                s_comps = s_data.get('header', {}).get('competitions', [{}])[0].get('competitors', [])
+                h_id = str(self.lazy_home_team.get('id', ''))
+                a_id = str(self.lazy_away_team.get('id', ''))
+                for c in s_comps:
+                    f = c.get('formation') or c.get('team', {}).get('formation')
+                    if not f: continue
+                    t_id = str(c.get('id') or c.get('team', {}).get('id', ''))
+                    if t_id == h_id and not self.lazy_home_team.get('formation'):
+                        self.lazy_home_team['formation'] = f; merged_anything = True
+                    elif t_id == a_id and not self.lazy_away_team.get('formation'):
+                        self.lazy_away_team['formation'] = f; merged_anything = True
+            except Exception: pass
+
+            if not merged_anything:
+                return
+
+            # Re-run the parser against the enriched data, keeping the voting
+            # section that's already rendered (and possibly live-updating).
+            self.lazy_data = data
+            if hasattr(self, 'vote_rows_count'):
+                self.full_rows = self.full_rows[:self.vote_rows_count]
+            self.lazy_gen = self._run_lazy_parser()
+            self.do_lazy_load()
+        except Exception as e:
+            print("[SimplySport] Summary enrichment error:", e)
 
     def error_cdn(self, error):
         """Fallback to standard summary API if the CDN Live Boxscore request fails"""
         print("[SimplySport] CDN Boxscore fetch failed. Falling back to primary summary endpoint.")
+        headers_dict = {b'User-Agent': b'curl/7.68.0'}
         if self.summary_url:
             if getattr(self, '_is_euroleague', False):
-                getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_euroleague_stats).addErrback(self.error_details)
+                getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_euroleague_stats).addErrback(self.error_details)
             else:
-                getPage(self.summary_url.encode('utf-8')).addCallback(self.parse_details).addErrback(self.error_details)
+                getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_details)
         else:
             self.error_details(error)
 
@@ -10467,6 +11421,8 @@ class GameInfoScreen(Screen):
         try:
             self["loading"].hide()
             data = self.fallback_event_data
+            if isinstance(data, dict) and 'gamepackageJSON' in data:
+                data = data.get('gamepackageJSON') or data
 
             # --- PARSE BASIC INFO ---
             league = data.get('league_name', self.league_name)
@@ -10654,8 +11610,8 @@ class GameInfoScreen(Screen):
                     h_id = h_team.get('athlete', {}).get('id', '')
                     a_id = a_team.get('athlete', {}).get('id', '')
                     prefix = get_sport_id_prefix(self.league_url)
-                    self.download_logo(h_logo, "h_logo", prefix + str(h_id) if h_id else None)
-                    self.download_logo(a_logo, "a_logo", prefix + str(a_id) if a_id else None)
+                    self.download_logo(h_logo, "h_logo", format_logo_id(prefix, h_id) if h_id else None)
+                    self.download_logo(a_logo, "a_logo", format_logo_id(prefix, a_id) if a_id else None)
                 except: pass
 
             else:
@@ -10668,12 +11624,13 @@ class GameInfoScreen(Screen):
                 try:
                     h_id = h_team.get('team', {}).get('id', '') or h_team.get('athlete', {}).get('id', '')
                     a_id = a_team.get('team', {}).get('id', '') or a_team.get('athlete', {}).get('id', '')
-                    h_logo = h_team.get('team', {}).get('logo', '') or h_team.get('athlete', {}).get('flag', {}).get('href', '')
-                    a_logo = a_team.get('team', {}).get('logo', '') or a_team.get('athlete', {}).get('flag', {}).get('href', '')
+                    sport_cdn = global_sports_monitor.get_cdn_sport_name(getattr(self, 'league_name', ''))
+                    h_logo = extract_team_logo(h_team.get('team', {}), sport_cdn, h_id) or h_team.get('athlete', {}).get('flag', {}).get('href', '')
+                    a_logo = extract_team_logo(a_team.get('team', {}), sport_cdn, a_id) or a_team.get('athlete', {}).get('flag', {}).get('href', '')
 
                     prefix = get_sport_id_prefix(self.league_url)
-                    if h_logo: self.download_logo(h_logo, "h_logo", prefix + str(h_id) if h_id else None)
-                    if a_logo: self.download_logo(a_logo, "a_logo", prefix + str(a_id) if a_id else None)
+                    if h_logo: self.download_logo(h_logo, "h_logo", format_logo_id(prefix, h_id) if h_id else None)
+                    if a_logo: self.download_logo(a_logo, "a_logo", format_logo_id(prefix, a_id) if a_id else None)
                 except: pass
 
             # SCORES (Tennis Specifics)
@@ -10733,6 +11690,15 @@ class GameInfoScreen(Screen):
                     self["start_time_label"].setText(str(detail))
                     self["countdown_label"].setText("")
 
+            # Run parser on fallback data so Timeline, Key Moments, TV info & Stats render!
+            self.lazy_data = data
+            self.lazy_home_team = h_team
+            self.lazy_away_team = a_team
+            self.lazy_boxscore_teams = comps
+            self.lazy_game_status = state
+            self.lazy_gen = self._run_lazy_parser()
+            self.do_lazy_load()
+
         except Exception as e:
             self["loading"].setText("Error parsing fallback: " + str(e))
             print("[SimplySport] Fallback Error: ", e)
@@ -10751,6 +11717,8 @@ class GameInfoScreen(Screen):
             self["loading"].hide()
             json_str = body.decode('utf-8', errors='ignore')
             data = json.loads(json_str)
+            if isinstance(data, dict) and 'gamepackageJSON' in data:
+                data = data.get('gamepackageJSON') or data
 
             # --- HEADER ---
             header_comps = data.get('header', {}).get('competitions', [{}])[0].get('competitors', [])
@@ -10811,36 +11779,12 @@ class GameInfoScreen(Screen):
             # SCHEDULED GAME HANDLING: Show Countdown + Date/Time instead of 0-0
             if game_status == 'pre':
                 self["h_score"].hide(); self["a_score"].hide(); self["score_sep"].hide()
-                match_date = data.get('header', {}).get('competitions', [{}])[0].get('date', '')
+                match_date = data.get('header', {}).get('competitions', [{}])[0].get('date', '') or data.get('competitions', [{}])[0].get('date', '') or getattr(self, 'match_time', '')
+                if not match_date and snap:
+                    match_date = snap.get('match_date', '') or snap.get('display_time', '')
                 if match_date:
-                    import datetime
-                    dt = None
-                    try:
-                        # Clean string (remove Z)
-                        # Format expect: 2026-02-05T17:30Z
-                        clean_date = match_date.replace("Z", "").replace("T", " ")
-                        if "." in clean_date: clean_date = clean_date.split(".")[0]
-
-                        # 1. Try standard parser
-                        try: dt = datetime.datetime.strptime(clean_date, "%Y-%m-%d %H:%M:%S")
-                        except:
-                            try: dt = datetime.datetime.strptime(clean_date, "%Y-%m-%d %H:%M")
-                            except: pass
-
-                        # 2. Try Manual Construction
-                        if not dt:
-                            try:
-                                parts = clean_date.split(" ")
-                                d_parts = parts[0].split("-")
-                                t_parts = parts[1].split(":")
-                                dt = datetime.datetime(int(d_parts[0]), int(d_parts[1]), int(d_parts[2]), int(t_parts[0]), int(t_parts[1]))
-                            except: pass
-
-                    except: pass
-
-                    # LOGIC:
+                    dt = parse_espn_date(match_date)
                     if dt:
-                        # 3. Countdown
                         try:
                             now = datetime.datetime.utcnow()
                             delta = dt - now
@@ -10860,25 +11804,15 @@ class GameInfoScreen(Screen):
                             self["countdown_label"].setText(count_str)
                         except: self["countdown_label"].setText("")
 
-                        # 4. Display Time (Convert UTC to Local)
                         try:
-                            # Dynamic Offset Calculation: Local - UTC
                             offset = datetime.datetime.now() - datetime.datetime.utcnow()
                             dt_local = dt + offset
                             time_str = dt_local.strftime("%a %d/%m %H:%M")
                             self["start_time_label"].setText(time_str)
-                        except: self["start_time_label"].setText(str(clean_date))
+                        except: self["start_time_label"].setText(str(match_date))
                     else:
-                        # FALLBACK: If dt failed completely, just clean the string manually
-                        # Slicing: 2026-02-05T17:30Z -> 2026-02-05 17:30
                         self["countdown_label"].setText("")
-                        try:
-                            fallback_str = match_date.replace("T", " ").replace("Z", "")
-                            # Try to make it look nicer 2026-02-05 -> 05/02? Too risky.
-                            # Just show clean fallback
-                            self["start_time_label"].setText(fallback_str[0:16])
-                        except:
-                            self["start_time_label"].setText(str(match_date))
+                        self["start_time_label"].setText(str(match_date))
 
                 self["countdown_label"].show()
                 self["start_time_label"].show()
@@ -10896,18 +11830,13 @@ class GameInfoScreen(Screen):
                 # Prefer API-provided logo URL (works for all sports including NHL)
                 # Fall back to constructed CDN URL only if API doesn't provide one
                 h_id = home_team.get('team', {}).get('id', '')
-                h_logo = home_team.get('team', {}).get('logo', '')
-                if not h_logo and h_id:
-                    h_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, h_id)
-
+                h_logo = extract_team_logo(home_team.get('team', {}), sport_cdn, h_id)
                 prefix = get_sport_id_prefix(self.league_url)
-                if h_logo: self.download_logo(h_logo, "h_logo", prefix + str(h_id) if h_id else None)
+                if h_logo: self.download_logo(h_logo, "h_logo", format_logo_id(prefix, h_id) if h_id else None)
 
                 a_id = away_team.get('team', {}).get('id', '')
-                a_logo = away_team.get('team', {}).get('logo', '')
-                if not a_logo and a_id:
-                    a_logo = "https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, a_id)
-                if a_logo: self.download_logo(a_logo, "a_logo", prefix + str(a_id) if a_id else None)
+                a_logo = extract_team_logo(away_team.get('team', {}), sport_cdn, a_id)
+                if a_logo: self.download_logo(a_logo, "a_logo", format_logo_id(prefix, a_id) if a_id else None)
             except: pass
 
             self.full_rows = []
@@ -10938,6 +11867,10 @@ class GameInfoScreen(Screen):
             self.full_rows.append(StatsListEntry("", "", "", getattr(self, 'theme', '')))  # Spacer
             # Fetch live votes from Firebase NOW that vote rows exist
             self.fetch_community_votes()
+            # Remember how many rows belong to the voting section, so a later
+            # re-render (e.g. from enrich_with_summary) can truncate back to
+            # this point instead of duplicating it.
+            self.vote_rows_count = len(self.full_rows)
             # ---------------------------------
 
             # ==========================================================
@@ -10988,9 +11921,15 @@ class GameInfoScreen(Screen):
             pass
         except Exception as e:
             print("[SimplySport] Lazy Load Error: ", e)
+            try:
+                self.update_display()
+            except Exception:
+                pass
 
     def _run_lazy_parser(self):
         data = self.lazy_data
+        if isinstance(data, dict) and 'gamepackageJSON' in data:
+            data = data.get('gamepackageJSON') or data
         home_team = self.lazy_home_team
         away_team = self.lazy_away_team
         boxscore_teams = self.lazy_boxscore_teams
@@ -10998,15 +11937,13 @@ class GameInfoScreen(Screen):
         league_name = getattr(self, 'league_name', '')
         h_id = str(home_team.get('id', ''))
         a_id = str(away_team.get('id', ''))
-        # ==========================================================
-        # TEAM SPORTS: FACEBOOK STYLE NEWS FEED (PREVIEW MODE)
-        # ==========================================================
 
-        # --- VIDEO HIGHLIGHTS ---
+        # ==========================================================
+        # COMMON 1: HIGHLIGHT VIDEOS (Pre, Live & Post Matches)
+        # ==========================================================
         try:
-            videos = data.get('videos', [])
+            videos = data.get('videos', []) or data.get('competitions', [{}])[0].get('videos', []) or data.get('header', {}).get('competitions', [{}])[0].get('videos', [])
             if videos:
-                # Sort Videos: Goals > Highlights > Others
                 def get_vid_priority(v):
                     txt = (v.get('headline') or v.get('title') or "").lower()
                     if "goal" in txt or "score" in txt: return 0
@@ -11014,24 +11951,17 @@ class GameInfoScreen(Screen):
                     return 2
 
                 videos.sort(key=get_vid_priority)
-
-                # Generic Header for Videos
                 self.full_rows.append(TextListEntry("GAME HIGHLIGHTS", self.theme, is_header=True))
                 self.full_rows.append(TextListEntry("Press OK to play video", self.theme))
-
-                # Track index to insert "Play All" button
                 insert_idx = len(self.full_rows)
                 self.all_videos = []
 
                 for vid in videos:
                     title = vid.get('headline') or vid.get('title') or "Video"
                     url = ""
-
-                    # EPSN often nests links deeply
                     links = vid.get('links', {})
                     source = links.get('source', {})
 
-                    # Preferred qualities
                     if 'mezzanine' in source: url = source['mezzanine'].get('href')
                     elif 'flash' in source: url = source['flash'].get('href')
                     elif 'hls' in source: url = source['hls'].get('href')
@@ -11040,95 +11970,65 @@ class GameInfoScreen(Screen):
 
                     if url:
                         self.all_videos.append((url, title))
-                        # Duration
-                        dur_txt = "VIDEO"
-                        duration = str(vid.get('duration', ''))
-                        if duration.isdigit():
-                            m = int(duration) // 60
-                            s = int(duration) % 60
-                            dur_txt = "{}:{:02d}".format(m, s)
-
-                        # Simplified Icon Handling (No Thumbnails)
                         icon_display = "▶"
-
                         payload = ("VIDEO", icon_display, title, url)
                         self.full_rows.append(InfoListEntry(payload))
 
                 if len(self.all_videos) > 1:
                     payload = ("PLAY ALL", "▶▶", "    Play All Highlights ({})".format(len(self.all_videos)), "")
                     self.full_rows.insert(insert_idx, InfoListEntry(payload))
+        except Exception as e:
+            print("[SimplySport] Videos error:", e)
 
-                    # STABILIZATION: Removed Early Prefetch.
-                    # We only download when the player is actually open.
-
-        except:
-            pass
-
+        # ==========================================================
+        # MODE A: SCHEDULED PRE-GAME (PREVIEW MODE)
+        # ==========================================================
         if game_status == 'pre':
             self["match_title"].setText(_league_name(league_name) if league_name else _t("PREVIEW"))
 
-            # 1. Prediction (FB Style Post) - ROBUST & SOCCER ENABLED
+            # 1. Prediction (Win Probability)
             try:
                 predictor = data.get('predictor', {})
                 if predictor:
                     h_team_pred = predictor.get('homeTeam', {}) or {}
                     a_team_pred = predictor.get('awayTeam', {}) or {}
-
-                    # Try standard key 'gameProjection', fallback to 'chanceToWin' if available
                     h_prob = h_team_pred.get('gameProjection') or h_team_pred.get('chanceToWin') or '0'
                     a_prob = a_team_pred.get('gameProjection') or a_team_pred.get('chanceToWin') or '0'
-
-                    # Ensure string and clean percent logic
                     h_val = float(h_prob) if h_prob else 0.0
                     a_val = float(a_prob) if a_prob else 0.0
 
                     if h_val > 0 or a_val > 0:
-                        # Post Header
                         self.full_rows.append(TextListEntry("GAME PREDICTION", self.theme, is_header=True))
-
-                        # Calc Draw if not provided (Soccer often needs this)
                         draw_val = max(0.0, 100.0 - h_val - a_val)
-
-                        # Formatting
                         if draw_val > 0.1:
                             txt = "{}: {:.1f}%  |  Draw: {:.1f}%  |  {}: {:.1f}%".format(self.h_team_name, h_val, draw_val, self.a_team_name, a_val)
                         else:
                             txt = "{}: {:.1f}%  |  {}: {:.1f}%".format(self.h_team_name, h_val, self.a_team_name, a_val)
-
                         self.full_rows.append(TextListEntry(txt, self.theme))
-                        # Post Footer
-
             except: pass
 
-            # 2. Betting Odds (from Core API or pickcenter fallback)
+            # 2. Betting Odds
             self.current_page = 0; self.update_display(); yield
             try:
                 if self.odds_data:
                     self.full_rows.append(TextListEntry("BETTING ODDS", self.theme, is_header=True))
                     for od in self.odds_data:
                         prov = od.get('provider', 'Odds')
-                        h_ml = od.get('home_ml', '')
-                        a_ml = od.get('away_ml', '')
-                        d_ml = od.get('draw_ml', '')
+                        h_ml = od.get('home_ml', ''); a_ml = od.get('away_ml', ''); d_ml = od.get('draw_ml', '')
                         if h_ml or a_ml:
-                            if d_ml:
-                                ml_txt = "{}: {} {}  |  Draw {}  |  {} {}".format(prov, self.h_team_name, h_ml, d_ml, self.a_team_name, a_ml)
-                            else:
-                                ml_txt = "{}: {} {}  |  {} {}".format(prov, self.h_team_name, h_ml, self.a_team_name, a_ml)
+                            if d_ml: ml_txt = "{}: {} {}  |  Draw {}  |  {} {}".format(prov, self.h_team_name, h_ml, d_ml, self.a_team_name, a_ml)
+                            else: ml_txt = "{}: {} {}  |  {} {}".format(prov, self.h_team_name, h_ml, self.a_team_name, a_ml)
                             self.full_rows.append(TextListEntry(ml_txt, self.theme))
-                        sp = od.get('spread')
-                        ou = od.get('over_under')
+                        sp = od.get('spread'); ou = od.get('over_under')
                         if sp is not None or ou is not None:
                             parts = []
                             if sp is not None:
                                 sp_odds = od.get('home_spread_odds', '')
                                 parts.append("Spread: {} ({})".format(sp, sp_odds) if sp_odds else "Spread: {}".format(sp))
                             if ou is not None:
-                                oo = od.get('over_odds', '')
-                                uo = od.get('under_odds', '')
+                                oo = od.get('over_odds', ''); uo = od.get('under_odds', '')
                                 ou_str = "O/U: {}".format(ou)
-                                if oo and uo:
-                                    ou_str += " ({}/{})".format(oo, uo)
+                                if oo and uo: ou_str += " ({}/{})".format(oo, uo)
                                 parts.append(ou_str)
                             if parts:
                                 self.full_rows.append(TextListEntry("    " + "  |  ".join(parts), self.theme))
@@ -11146,55 +12046,40 @@ class GameInfoScreen(Screen):
                         self.full_rows.append(TextListEntry("", self.theme))
             except: pass
 
-            # 3. News Feed (The Main FB Look)
+            # 3. News Feed
             self.current_page = 0; self.update_display(); yield
             try:
-                news_items = data.get('news', {}).get('articles', [])
-                if not news_items: news_items = data.get('articles', [])
-
-                if news_items:
+                news_items = data.get('news', {}).get('articles', []) or data.get('articles', []) or data.get('news', [])
+                if news_items and isinstance(news_items, list):
                     self.full_rows.append(TextListEntry("LATEST NEWS", self.theme, is_header=True))
                     count = 0
                     for article in news_items:
+                        if not isinstance(article, dict): continue
                         if count >= 5: break
-                        headline = article.get('headline', '')
+                        headline = article.get('headline', '') or article.get('title', '')
                         desc = article.get('description', '')
-                        published = article.get('published', 'Just now')
-                        # Clean time if it's full ISO
-                        if "T" in published: published = "2 hrs ago"
-
                         if headline:
-                            # Row 1: Headline as wrapped paragraph
-                            headline_lines = wrap_text(headline, max_chars=130)
-                            for line in headline_lines:
+                            for line in wrap_text(headline, max_chars=130):
                                 self.full_rows.append(TextListEntry(line, self.theme, align="left"))
-
-                            # Row 2: Description as wrapped paragraph (if available)
                             if desc:
-                                desc_lines = wrap_text(desc, max_chars=130)
-                                for line in desc_lines:
+                                for line in wrap_text(desc, max_chars=130):
                                     self.full_rows.append(TextListEntry(line, self.theme, align="left"))
-
-                            # Divider/Spacer between posts
                             self.full_rows.append(TextListEntry("", self.theme))
                             count += 1
             except: pass
-
-
 
             if not self.full_rows:
                 self.full_rows.append(TextListEntry("No Preview Data Available", self.theme))
 
         # ==========================================================
-        # MODE B: LIVE/POST GAME (STATS MODE - Unchanged)
+        # MODE B: LIVE/POST GAME (STATS & TIMELINE MODE)
         # ==========================================================
         else:
             self["match_title"].setText(_league_name(league_name) if league_name else _t("DETAILS"))
 
-            # 0. Prediction (Live Win Probability - Added for Live Games too)
+            # 0. Win Probability
             try:
-                predictor = data.get('predictor', {}) or data.get('winprobability', []) # sometimes separate list
-                # If it's the standard predictor object
+                predictor = data.get('predictor', {}) or data.get('winprobability', [])
                 if isinstance(predictor, dict) and predictor:
                     h_team_pred = predictor.get('homeTeam', {}) or {}
                     a_team_pred = predictor.get('awayTeam', {}) or {}
@@ -11215,168 +12100,344 @@ class GameInfoScreen(Screen):
 
             # 1. Timeline
             details = []
-            comps_data = data.get('competitions', [{}])[0]
-            if 'details' in comps_data: details = comps_data['details']
-            elif 'details' in data.get('header', {}).get('competitions', [{}])[0]:
-                details = data.get('header', {}).get('competitions', [{}])[0]['details']
-
-            if details:
-                self.full_rows.append(EventListEntry("TIME", "HOME EVENTS", "AWAY EVENTS", self.theme))
-                goals_found = False
-                for play in details:
-                    text_desc = play.get('type', {}).get('text', '').lower()
-
-                    # API Boolean Flags (High Priority)
-                    is_og = play.get('ownGoal', False)
-                    is_pk = play.get('penaltyKick', False)
-                    is_yc = play.get('yellowCard', False)
-                    is_rc = play.get('redCard', False)
-
-                    # Detect scoring plays: use flags first, fallback to text matching for other sports
-                    is_score = play.get('scoringPlay', False) or is_og or is_pk or any(x in text_desc for x in ["goal", "touchdown", "power play", "short-handed", "even strength", "empty net"])
-                    is_card = is_yc or is_rc or "card" in text_desc
-                    is_sub = "substitution" in text_desc
-
-                    if is_score or is_card or is_sub:
-                        goals_found = True
-                        clock = play.get('clock', {}).get('displayValue', '')
-
-                        # Get main athlete (scorer/recipient/sub)
-                        scorer = ""
-                        assist = ""
-                        sub_out = ""
-                        ath_id = ""
-                        athletes = play.get('athletesInvolved', [])
-
-                        if athletes:
-                            scorer = athletes[0].get('displayName') or athletes[0].get('shortName') or ''
-                            ath_id = str(athletes[0].get('id', ''))
-                            if is_score and len(athletes) > 1:
-                                assist = athletes[1].get('displayName') or athletes[1].get('shortName') or ''
-                            if is_sub and len(athletes) > 1:
-                                sub_out = athletes[1].get('displayName') or athletes[1].get('shortName') or ''
-                        elif play.get('participants'):
-                            participants = play['participants']
-                            if participants:
-                                p = participants[0].get('athlete', {})
-                                scorer = p.get('displayName') or p.get('shortName') or ''
-                                ath_id = str(p.get('id', ''))
-                                if is_score and len(participants) > 1:
-                                    p2 = participants[1].get('athlete', {})
-                                    assist = p2.get('displayName') or p2.get('shortName') or ''
-                                if is_sub and len(participants) > 1:
-                                    p2 = participants[1].get('athlete', {})
-                                    sub_out = p2.get('displayName') or p2.get('shortName') or ''
-                        else:
-                            txt = play.get('type', {}).get('text', '')
-                            if " - " in txt: scorer = txt.split(" - ")[-1].strip()
-                            elif "Goal" in txt: scorer = txt.replace("Goal", "").strip()
-
-                        if not scorer: scorer = "Event"
-
-                        # Build display text with type badges and colors
-                        evt_color = None  # None = default white
-
-                        if is_rc or (is_card and "red" in text_desc):
-                            scorer = "[RC] " + scorer
-                            evt_color = 0xFF3333  # Red
-                        elif is_yc or (is_card and "yellow" in text_desc):
-                            scorer = "[YC] " + scorer
-                            evt_color = 0xFFD700  # Gold/Yellow
-                        elif is_sub:
-                            if sub_out:
-                                scorer = u"[Sub] {} \u2190 {}".format(scorer, sub_out)
-                            else:
-                                scorer = "[Sub] " + scorer
-                            evt_color = 0xAAAAAA  # Grey for subs
-                        elif is_score:
-                            # Detect goal type from flags or text fallback
-                            if is_pk or "penalty" in text_desc:
-                                scorer = "[Pen] " + scorer
-                            elif is_og or "own goal" in text_desc:
-                                scorer = "[OG] " + scorer
-                            else:
-                                scorer = "[Goal] " + scorer
-                            if assist:
-                                scorer += u" (A: {})".format(assist)
-
-                        t_id = str(play.get('team', {}).get('id', ''))
-                        h_id_root = str(home_team.get('id', 'h'))
-
-                        home_evt = ""
-                        away_evt = ""
-                        h_evt_color = None
-                        a_evt_color = None
-                        if t_id == h_id_root:
-                            home_evt = scorer
-                            h_evt_color = evt_color
-                        else:
-                            away_evt = scorer
-                            a_evt_color = evt_color
-
-
-                        payload = None
-                        if ath_id:
-                            payload = ("PLAYER", ath_id, scorer)
-
-                        # Append to list with per-event colors
-                        self.full_rows.append(EventListEntry(clock, home_evt, away_evt, self.theme, h_color=h_evt_color, a_color=a_evt_color, payload=payload))
-
-                if not goals_found:
-                    self.full_rows.append(StatsListEntry("-", "No Events", "", self.theme))
-
-            # 2. Stats
-            if boxscore_teams:
-                self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                self.full_rows.append(StatsListEntry("STATS", "HOME", "AWAY", self.theme))
-                h_stats_list = []; a_stats_list = []
-                if 'statistics' in home_team: h_stats_list = home_team['statistics']
-                if 'statistics' in away_team: a_stats_list = away_team['statistics']
-                a_map = {s['label']: s['displayValue'] for s in a_stats_list}
-                for stat in h_stats_list:
-                    lbl = stat['label']; h_val = stat['displayValue']; a_val = a_map.get(lbl, "-")
-                    self.full_rows.append(StatsListEntry(lbl, h_val, a_val, self.theme))
-
-            # 3. Formations
             try:
-                h_formation = home_team.get('formation', '') or home_team.get('team', {}).get('formation', '')
-                a_formation = away_team.get('formation', '') or away_team.get('team', {}).get('formation', '')
-                if h_formation or a_formation:
+                comps_data = data.get('competitions', [{}])[0]
+                if 'details' in comps_data: details = comps_data['details']
+                elif 'details' in data.get('header', {}).get('competitions', [{}])[0]:
+                    details = data.get('header', {}).get('competitions', [{}])[0]['details']
+
+                if details:
+                    self.full_rows.append(EventListEntry("TIME", "HOME EVENTS", "AWAY EVENTS", self.theme))
+                    goals_found = False
+                    for play in details:
+                        if not isinstance(play, dict): continue
+                        text_desc = play.get('type', {}).get('text', '').lower()
+                        is_og = play.get('ownGoal', False)
+                        is_pk = play.get('penaltyKick', False)
+                        is_yc = play.get('yellowCard', False)
+                        is_rc = play.get('redCard', False)
+                        is_score = play.get('scoringPlay', False) or is_og or is_pk or any(x in text_desc for x in ["goal", "touchdown", "power play", "short-handed", "even strength", "empty net"])
+                        is_card = is_yc or is_rc or "card" in text_desc
+                        is_sub = "substitution" in text_desc
+
+                        if is_score or is_card or is_sub:
+                            goals_found = True
+                            clock = play.get('clock', {}).get('displayValue', '')
+                            scorer = ""; assist = ""; sub_out = ""; ath_id = ""
+                            athletes = play.get('athletesInvolved', [])
+
+                            if athletes:
+                                scorer = athletes[0].get('displayName') or athletes[0].get('shortName') or ''
+                                ath_id = str(athletes[0].get('id', ''))
+                                if is_score and len(athletes) > 1: assist = athletes[1].get('displayName') or athletes[1].get('shortName') or ''
+                                if is_sub and len(athletes) > 1: sub_out = athletes[1].get('displayName') or athletes[1].get('shortName') or ''
+                            elif play.get('participants'):
+                                participants = play['participants']
+                                if participants:
+                                    p = participants[0].get('athlete', {})
+                                    scorer = p.get('displayName') or p.get('shortName') or ''
+                                    ath_id = str(p.get('id', ''))
+                                    if is_score and len(participants) > 1: assist = participants[1].get('athlete', {}).get('displayName', '')
+                                    if is_sub and len(participants) > 1: sub_out = participants[1].get('athlete', {}).get('displayName', '')
+                            else:
+                                txt = play.get('type', {}).get('text', '')
+                                if " - " in txt: scorer = txt.split(" - ")[-1].strip()
+                                elif "Goal" in txt: scorer = txt.replace("Goal", "").strip()
+
+                            if not scorer: scorer = "Event"
+
+                            evt_color = None
+                            if is_rc or (is_card and "red" in text_desc):
+                                scorer = "[RC] " + scorer; evt_color = 0xFF3333
+                            elif is_yc or (is_card and "yellow" in text_desc):
+                                scorer = "[YC] " + scorer; evt_color = 0xFFD700
+                            elif is_sub:
+                                scorer = u"[Sub] {} \u2190 {}".format(scorer, sub_out) if sub_out else "[Sub] " + scorer
+                                evt_color = 0xAAAAAA
+                            elif is_score:
+                                if is_pk or "penalty" in text_desc: scorer = "[Pen] " + scorer
+                                elif is_og or "own goal" in text_desc: scorer = "[OG] " + scorer
+                                else: scorer = "[Goal] " + scorer
+                                if assist: scorer += u" (A: {})".format(assist)
+
+                            t_id = str(play.get('team', {}).get('id', ''))
+                            h_id_root = str(home_team.get('id', 'h'))
+                            home_evt = ""; away_evt = ""; h_evt_color = None; a_evt_color = None
+                            if t_id == h_id_root: home_evt = scorer; h_evt_color = evt_color
+                            else: away_evt = scorer; a_evt_color = evt_color
+
+                            payload = ("PLAYER", ath_id, scorer) if ath_id else None
+                            self.full_rows.append(EventListEntry(clock, home_evt, away_evt, self.theme, h_color=h_evt_color, a_color=a_evt_color, payload=payload))
+
+                    if not goals_found:
+                        self.full_rows.append(StatsListEntry("-", "No Events", "", self.theme))
+            except Exception as e:
+                print("[SimplySport] Timeline section error:", e)
+
+            # 2. Team Stats (Comprehensive ESPN Schema Search)
+            try:
+                b_teams = data.get('boxscore', {}).get('teams', []) or data.get('competitions', [{}])[0].get('competitors', []) or boxscore_teams
+                h_stats_list = []; a_stats_list = []
+
+                if b_teams and isinstance(b_teams, list):
+                    h_id_str = str(home_team.get('id', ''))
+                    a_id_str = str(away_team.get('id', ''))
+                    for bt in b_teams:
+                        if not isinstance(bt, dict): continue
+                        bt_id = str(bt.get('team', {}).get('id') or bt.get('id', ''))
+                        st = bt.get('statistics', []) or bt.get('stats', [])
+                        if (h_id_str and bt_id == h_id_str) or bt.get('homeAway') == 'home':
+                            h_stats_list = st
+                        elif (a_id_str and bt_id == a_id_str) or bt.get('homeAway') == 'away':
+                            a_stats_list = st
+
+                if not h_stats_list and isinstance(home_team, dict):
+                    h_stats_list = home_team.get('statistics', []) or home_team.get('stats', [])
+                if not a_stats_list and isinstance(away_team, dict):
+                    a_stats_list = away_team.get('statistics', []) or away_team.get('stats', [])
+
+                if h_stats_list or a_stats_list:
                     self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                    self.full_rows.append(StatsListEntry("FORMATION", str(h_formation) if h_formation else "-", str(a_formation) if a_formation else "-", self.theme))
+                    self.full_rows.append(StatsListEntry("STATS", "HOME", "AWAY", self.theme))
+                    STAT_NAME_MAP = {
+                        "totalShots": "Total Shots",
+                        "shotsOnTarget": "Shots On Goal",
+                        "possessionPct": "Possession %",
+                        "foulsCommitted": "Fouls Committed",
+                        "yellowCards": "Yellow Cards",
+                        "redCards": "Red Cards",
+                        "offsides": "Offsides",
+                        "wonCorners": "Corner Kicks",
+                        "saves": "Saves",
+                        "shotPct": "On Target %",
+                        "penaltyKickGoals": "Penalty Goals",
+                        "penaltyKickShots": "Penalty Kicks Taken",
+                        "accuratePasses": "Accurate Passes",
+                        "totalPasses": "Total Passes",
+                        "passPct": "Pass Completion %",
+                        "accurateCrosses": "Accurate Crosses",
+                        "totalCrosses": "Total Crosses",
+                        "crossPct": "Cross Completion %",
+                        "totalLongBalls": "Long Balls",
+                        "accurateLongBalls": "Accurate Long Balls",
+                        "longballPct": "Long Balls %",
+                        "blockedShots": "Blocked Shots",
+                        "effectiveTackles": "Tackles Won",
+                        "totalTackles": "Total Tackles",
+                        "tacklePct": "Tackle Success %",
+                        "interceptions": "Interceptions",
+                        "effectiveClearance": "Effective Clearances",
+                        "totalClearance": "Total Clearances",
+                    }
+
+                    def _clean_lbl(raw):
+                        if not raw: return ""
+                        if raw in STAT_NAME_MAP:
+                            return STAT_NAME_MAP[raw]
+                        import re
+                        cleaned = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', raw)
+                        return cleaned.title()
+
+                    def _get_lbl(s):
+                        if isinstance(s, dict):
+                            raw = s.get('label') or s.get('displayName') or s.get('name') or s.get('abbreviation') or ''
+                            return _clean_lbl(raw)
+                        return ''
+
+                    a_map = {_get_lbl(s): s.get('displayValue', '-') for s in a_stats_list if _get_lbl(s)}
+                    for stat in h_stats_list:
+                        if isinstance(stat, dict):
+                            lbl = _get_lbl(stat)
+                            if lbl:
+                                h_val = stat.get('displayValue', '-')
+                                a_val = a_map.get(lbl, "-")
+                                self.full_rows.append(StatsListEntry(lbl, h_val, a_val, self.theme))
+            except Exception as e:
+                print("[SimplySport] Stats section error:", e)
+
+            # 5. Match Officials
+            try:
+                game_info = data.get('gameInfo', {})
+                officials = game_info.get('officials', []) or data.get('officials', [])
+                if officials and isinstance(officials, list):
+                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                    self.full_rows.append(TextListEntry("MATCH OFFICIALS", self.theme, is_header=True))
+                    for official in officials:
+                        if not isinstance(official, dict): continue
+                        name = official.get('displayName', '') or official.get('fullName', '')
+                        position = official.get('position', {}).get('displayName', '') or official.get('type', '')
+                        if name:
+                            off_txt = u"\u2022 {}: {}".format(position, name) if position else u"\u2022 {}".format(name)
+                            self.full_rows.append(TextListEntry(off_txt, self.theme, align="left"))
             except: pass
 
-            # 4. Lineups / Rosters
+            # 6. Key Moments (Comprehensive ESPN Schema Search)
+            try:
+                key_events = data.get('keyEvents', []) or data.get('competitions', [{}])[0].get('keyEvents', []) or data.get('header', {}).get('competitions', [{}])[0].get('keyEvents', [])
+                if key_events and isinstance(key_events, list):
+                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                    self.full_rows.append(TextListEntry("KEY MOMENTS", self.theme, is_header=True))
+                    for event in key_events[:10]:
+                        if not isinstance(event, dict): continue
+                        clock = event.get('clock', {}).get('displayValue', '')
+                        evt_type = event.get('type', {}).get('text', '')
+                        evt_text = event.get('text', '') or evt_type
+                        if evt_text:
+                            key_txt = u"\u23F1 {} - {}".format(clock, evt_text) if clock else u"\u2022 {}".format(evt_text)
+                            for line in wrap_text(key_txt, max_chars=130):
+                                self.full_rows.append(TextListEntry(line, self.theme, align="left"))
+                elif details:
+                    # Fallback: Extract key plays from timeline details if keyEvents not provided separately
+                    key_plays = []
+                    for play in details:
+                        if not isinstance(play, dict): continue
+                        text_desc = play.get('type', {}).get('text', '').lower()
+                        is_og = play.get('ownGoal', False)
+                        is_pk = play.get('penaltyKick', False)
+                        is_rc = play.get('redCard', False)
+                        is_score = play.get('scoringPlay', False) or is_og or is_pk or "goal" in text_desc
+                        if is_score or is_rc:
+                            clock = play.get('clock', {}).get('displayValue', '')
+                            txt = play.get('text', '') or play.get('type', {}).get('text', '')
+                            if txt: key_plays.append((clock, txt))
+                    if key_plays:
+                        self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                        self.full_rows.append(TextListEntry("KEY MOMENTS", self.theme, is_header=True))
+                        for clock, txt in key_plays[:8]:
+                            key_txt = u"\u23F1 {} - {}".format(clock, txt) if clock else u"\u2022 {}".format(txt)
+                            for line in wrap_text(key_txt, max_chars=130):
+                                self.full_rows.append(TextListEntry(line, self.theme, align="left"))
+            except Exception as e:
+                print("[SimplySport] Key moments error:", e)
+
+            # 7. Head-to-Head / Previous Meetings & Recent Form
+            try:
+                h2h = data.get('headToHead', []) or data.get('headtohead', []) or data.get('competitions', [{}])[0].get('headToHead', [])
+                if h2h and isinstance(h2h, list):
+                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                    self.full_rows.append(TextListEntry("HEAD TO HEAD", self.theme, is_header=True))
+                    for meeting in h2h[:5]:
+                        if not isinstance(meeting, dict): continue
+                        date = meeting.get('date', '')[:10] if meeting.get('date') else ''
+                        home_t = meeting.get('homeTeam', {}).get('displayName', 'Home')
+                        away_t = meeting.get('awayTeam', {}).get('displayName', 'Away')
+                        h_s = meeting.get('homeTeam', {}).get('score', '0')
+                        a_s = meeting.get('awayTeam', {}).get('score', '0')
+                        h2h_txt = "{}: {} {} - {} {}".format(date, home_t, h_s, a_s, away_t)
+                        self.full_rows.append(TextListEntry(h2h_txt, self.theme, align="left"))
+                else:
+                    # Fallback to Last 5 Matches (Recent Form)
+                    l5 = data.get('lastFiveGames', [])
+                    if l5 and isinstance(l5, list):
+                        self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                        self.full_rows.append(TextListEntry("RECENT FORM (LAST 5 MATCHES)", self.theme, is_header=True))
+                        for team_entry in l5:
+                            if not isinstance(team_entry, dict): continue
+                            t_name = team_entry.get('team', {}).get('displayName', '')
+                            events = team_entry.get('events', [])
+                            form_parts = []
+                            for ev in events[:5]:
+                                res = ev.get('gameResult', '')
+                                opp = ev.get('opponent', {}).get('abbreviation') or ev.get('opponent', {}).get('displayName', '')
+                                if res:
+                                    form_parts.append("{} ({})".format(res, opp) if opp else res)
+                            if t_name and form_parts:
+                                form_txt = u"\u2022 {}: {}".format(t_name, "  ".join(form_parts))
+                                self.full_rows.append(TextListEntry(form_txt, self.theme, align="left"))
+            except: pass
+
+            # 8. News / Articles (for live/post match)
+            try:
+                news_items = data.get('news', {}).get('articles', []) or data.get('articles', []) or data.get('news', []) or data.get('headlines', [])
+                if news_items and isinstance(news_items, list):
+                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                    self.full_rows.append(TextListEntry("MATCH NEWS", self.theme, is_header=True))
+                    count = 0
+                    for article in news_items:
+                        if not isinstance(article, dict): continue
+                        if count >= 3: break
+                        headline = article.get('headline', '') or article.get('title', '')
+                        if headline:
+                            for line in wrap_text(headline, max_chars=130):
+                                self.full_rows.append(TextListEntry(line, self.theme, align="left"))
+                            self.full_rows.append(TextListEntry("", self.theme))
+                            count += 1
+            except: pass
+
+        # --- COMMON: ROSTERS, FORMATIONS, INJURIES & LEADERS ---
+        # These are pulled unconditionally (pre-game AND live/post) because ESPN
+        # populates projected/starting lineups, formations, and injury reports
+        # well before tip-off - restricting them to the live/post branch meant
+        # they never appeared for scheduled games (the exact moment fans most
+        # want to check rosters/injuries/leaders for basketball).
+        try:
+            h_formation = home_team.get('formation', '') or home_team.get('team', {}).get('formation', '')
+            a_formation = away_team.get('formation', '') or away_team.get('team', {}).get('formation', '')
+            if not h_formation or not a_formation:
+                rosters_data = data.get('rosters', [])
+                if rosters_data and isinstance(rosters_data, list):
+                    h_id_str = str(home_team.get('id', ''))
+                    a_id_str = str(away_team.get('id', ''))
+                    for r in rosters_data:
+                        if not isinstance(r, dict): continue
+                        f = r.get('formation', '')
+                        if f:
+                            t_id = str(r.get('team', {}).get('id', ''))
+                            if r.get('homeAway') == 'home' or (h_id_str and t_id == h_id_str):
+                                if not h_formation: h_formation = f
+                            elif r.get('homeAway') == 'away' or (a_id_str and t_id == a_id_str):
+                                if not a_formation: a_formation = f
+
+            if h_formation or a_formation:
+                self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                self.full_rows.append(StatsListEntry("FORMATION", str(h_formation) if h_formation else "-", str(a_formation) if a_formation else "-", self.theme))
+        except Exception as e:
+            print("[SimplySport] Formations section error:", e)
+
+        try:
             boxscore = data.get('boxscore', {})
             players_data = boxscore.get('players', [])
             rosters = data.get('rosters', [])
+            comps_list = data.get('competitions', [{}])[0].get('competitors', [])
 
-            # Try boxscore players first
             h_roster = []; a_roster = []
-            if players_data:
+            if players_data and isinstance(players_data, list):
                 for team_p in players_data:
+                    if not isinstance(team_p, dict): continue
                     t_id = str(team_p.get('team', {}).get('id', ''))
                     team_list = []
                     stats_groups = team_p.get('statistics', [])
                     for group in stats_groups:
-                        grp_name = group.get('name', 'players').upper()
+                        if not isinstance(group, dict): continue
+                        grp_name = (group.get('name') or 'PLAYERS').upper()
                         team_list.append(u"\u2022 {} \u2022".format(grp_name))
                         for ath in group.get('athletes', []):
+                            if not isinstance(ath, dict): continue
                             name = ath.get('athlete', {}).get('displayName') or ath.get('athlete', {}).get('shortName')
                             jersey = ath.get('jersey', '')
                             position = ath.get('athlete', {}).get('position', {}).get('abbreviation', '')
+                            stats = ath.get('stats', [])
+                            stats_str = " [" + ", ".join(str(s) for s in stats[:3]) + "]" if stats else ""
                             if name:
-                                p_str = "#{} {} ({})".format(jersey, name, position) if jersey and position else ("#{} {}".format(jersey, name) if jersey else name)
+                                p_str = "#{} {} ({}){}".format(jersey, name, position, stats_str) if jersey and position else ("#{} {}{}".format(jersey, name, stats_str) if jersey else "{}{}".format(name, stats_str))
                                 team_list.append(p_str)
-                    if t_id == str(home_team.get('id')): h_roster = team_list
-                    elif t_id == str(away_team.get('id')): a_roster = team_list
+                    if team_p.get('homeAway') == 'home' or t_id == str(home_team.get('id')): h_roster = team_list
+                    elif team_p.get('homeAway') == 'away' or t_id == str(away_team.get('id')): a_roster = team_list
 
-            # Try rosters if boxscore players empty
-            if not h_roster and not a_roster and rosters:
+            # Fallback: check rosters list
+            if not h_roster and not a_roster and rosters and isinstance(rosters, list):
                 for team_r in rosters:
+                    if not isinstance(team_r, dict): continue
                     t_id = str(team_r.get('team', {}).get('id', ''))
                     team_list = []
-                    for entry in team_r.get('roster', []):
+                    r_entries = team_r.get('roster', [])
+                    if isinstance(r_entries, dict):
+                        r_entries = r_entries.get('entries', [])
+                    elif not isinstance(r_entries, list):
+                        r_entries = []
+
+                    for entry in r_entries:
+                        if not isinstance(entry, dict): continue
                         name = entry.get('athlete', {}).get('displayName') or entry.get('athlete', {}).get('shortName') or ''
                         jersey = entry.get('jersey', '')
                         position = entry.get('position', {}).get('abbreviation', '')
@@ -11385,8 +12446,32 @@ class GameInfoScreen(Screen):
                             prefix = u"\u2605 " if starter else "  "
                             p_str = "{}#{} {} ({})".format(prefix, jersey, name, position) if jersey and position else "{}{}".format(prefix, name)
                             team_list.append(p_str)
-                    if t_id == str(home_team.get('id')): h_roster = team_list
-                    elif t_id == str(away_team.get('id')): a_roster = team_list
+                    if team_r.get('homeAway') == 'home' or t_id == str(home_team.get('id')): h_roster = team_list
+                    elif team_r.get('homeAway') == 'away' or t_id == str(away_team.get('id')): a_roster = team_list
+
+            # Fallback: check competitors roster / lineup
+            if not h_roster and not a_roster and comps_list and isinstance(comps_list, list):
+                for c in comps_list:
+                    if not isinstance(c, dict): continue
+                    t_id = str(c.get('id', '') or c.get('team', {}).get('id', ''))
+                    team_list = []
+                    c_ros = c.get('roster', [])
+                    if isinstance(c_ros, dict):
+                        c_ros = c_ros.get('entries', [])
+                    elif not isinstance(c_ros, list):
+                        c_ros = c.get('lineup', []) if isinstance(c.get('lineup'), list) else []
+
+                    for entry in c_ros:
+                        if not isinstance(entry, dict): continue
+                        ath = entry.get('athlete', {})
+                        name = ath.get('displayName') or ath.get('shortName') or ''
+                        jersey = entry.get('jersey', '')
+                        position = ath.get('position', {}).get('abbreviation', '') if isinstance(ath.get('position'), dict) else ''
+                        if name:
+                            p_str = "#{} {} ({})".format(jersey, name, position) if jersey and position else ("#{} {}".format(jersey, name) if jersey else name)
+                            team_list.append(p_str)
+                    if c.get('homeAway') == 'home' or t_id == str(home_team.get('id')): h_roster = team_list
+                    elif c.get('homeAway') == 'away' or t_id == str(away_team.get('id')): a_roster = team_list
 
             if h_roster or a_roster:
                 self.full_rows.append(StatsListEntry("", "", "", self.theme))
@@ -11396,73 +12481,64 @@ class GameInfoScreen(Screen):
                     h_p = h_roster[i] if i < len(h_roster) else ""
                     a_p = a_roster[i] if i < len(a_roster) else ""
                     self.full_rows.append(RosterListEntry(h_p, a_p, self.theme))
+        except Exception as e:
+            print("[SimplySport] Lineups section error:", e)
 
-            # 5. Match Officials
-            try:
-                game_info = data.get('gameInfo', {})
-                officials = game_info.get('officials', [])
-                if officials:
+        try:
+            # "leaders" (and "injuries") commonly live at the top level, but ESPN
+            # also nests them under header.competitions[0] for several sports
+            # (basketball included) - check both locations.
+            comp0 = data.get('header', {}).get('competitions', [{}])[0]
+            injuries_data = data.get('injuries', []) or comp0.get('injuries', [])
+            if injuries_data and isinstance(injuries_data, list):
+                inj_lines = []
+                for team_inj in injuries_data:
+                    if not isinstance(team_inj, dict): continue
+                    t_name = _team_name(team_inj.get('team', {}).get('displayName') or team_inj.get('team', {}).get('name', ''))
+                    inj_list = team_inj.get('injuries', [])
+                    if inj_list:
+                        inj_lines.append(TextListEntry(u"\u2022 {} INJURIES \u2022".format(t_name.upper()), self.theme, is_header=True))
+                        for inj in inj_list:
+                            if not isinstance(inj, dict): continue
+                            ath_name = inj.get('athlete', {}).get('displayName') or inj.get('athlete', {}).get('shortName', '')
+                            status = inj.get('status', '')
+                            comment = inj.get('details', {}).get('detail', '') or inj.get('shortComment', '')
+                            if ath_name:
+                                txt = u"{} ({}) - {}".format(ath_name, status, comment) if status and comment else (u"{} ({})".format(ath_name, status) if status else ath_name)
+                                inj_lines.append(TextListEntry("    " + txt, self.theme))
+                if inj_lines:
                     self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                    self.full_rows.append(TextListEntry("MATCH OFFICIALS", self.theme, is_header=True))
-                    for official in officials:
-                        name = official.get('displayName', '') or official.get('fullName', '')
-                        position = official.get('position', {}).get('displayName', '') or official.get('type', '')
-                        if name:
-                            off_txt = u"\u2022 {}: {}".format(position, name) if position else u"\u2022 {}".format(name)
-                            self.full_rows.append(TextListEntry(off_txt, self.theme, align="left"))
-            except: pass
+                    self.full_rows.append(TextListEntry("INJURY REPORT", self.theme, is_header=True))
+                    self.full_rows.extend(inj_lines)
+        except Exception as e:
+            print("[SimplySport] Injury report error:", e)
 
-            # 6. Game Notes / Key Facts
-            try:
-                key_events = data.get('keyEvents', [])
-                if key_events:
+        try:
+            comp0 = data.get('header', {}).get('competitions', [{}])[0]
+            leaders_data = data.get('leaders', []) or comp0.get('leaders', [])
+            if leaders_data and isinstance(leaders_data, list):
+                leader_lines = []
+                for team_l in leaders_data:
+                    if not isinstance(team_l, dict): continue
+                    t_name = _team_name(team_l.get('team', {}).get('displayName') or team_l.get('team', {}).get('name', ''))
+                    cat_list = team_l.get('leaders', [])
+                    if cat_list:
+                        for cat in cat_list:
+                            if not isinstance(cat, dict): continue
+                            cat_name = cat.get('displayName') or cat.get('name', '')
+                            top_list = cat.get('leaders', [])
+                            if top_list and isinstance(top_list, list):
+                                top = top_list[0]
+                                ath_name = top.get('athlete', {}).get('displayName') or top.get('athlete', {}).get('shortName', '')
+                                val = top.get('displayValue', '')
+                                if ath_name and val:
+                                    leader_lines.append(TextListEntry("    {}: {} {} ({})".format(t_name, cat_name, ath_name, val), self.theme))
+                if leader_lines:
                     self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                    self.full_rows.append(TextListEntry("KEY MOMENTS", self.theme, is_header=True))
-                    for event in key_events[:8]:
-                        clock = event.get('clock', {}).get('displayValue', '')
-                        evt_type = event.get('type', {}).get('text', '')
-                        evt_text = event.get('text', '') or evt_type
-                        if evt_text:
-                            key_txt = u"\u23F1 {} - {}".format(clock, evt_text) if clock else u"\u2022 {}".format(evt_text)
-                            wrapped = wrap_text(key_txt, max_chars=130)
-                            for line in wrapped:
-                                self.full_rows.append(TextListEntry(line, self.theme, align="left"))
-            except: pass
-
-            # 7. Head-to-Head / Previous Meetings
-            try:
-                h2h = data.get('headToHead', [])
-                if h2h:
-                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                    self.full_rows.append(TextListEntry("HEAD TO HEAD", self.theme, is_header=True))
-                    for meeting in h2h[:5]:
-                        date = meeting.get('date', '')[:10] if meeting.get('date') else ''
-                        home_t = meeting.get('homeTeam', {}).get('displayName', 'Home')
-                        away_t = meeting.get('awayTeam', {}).get('displayName', 'Away')
-                        h_s = meeting.get('homeTeam', {}).get('score', '0')
-                        a_s = meeting.get('awayTeam', {}).get('score', '0')
-                        h2h_txt = "{}: {} {} - {} {}".format(date, home_t, h_s, a_s, away_t)
-                        self.full_rows.append(TextListEntry(h2h_txt, self.theme, align="left"))
-            except: pass
-
-            # 8. News / Articles (for live/post match)
-            try:
-                news_items = data.get('news', {}).get('articles', [])
-                if not news_items: news_items = data.get('articles', [])
-                if news_items:
-                    self.full_rows.append(StatsListEntry("", "", "", self.theme))
-                    self.full_rows.append(TextListEntry("MATCH NEWS", self.theme, is_header=True))
-                    count = 0
-                    for article in news_items:
-                        if count >= 3: break
-                        headline = article.get('headline', '')
-                        if headline:
-                            wrapped = wrap_text(headline, max_chars=130)
-                            for line in wrapped:
-                                self.full_rows.append(TextListEntry(line, self.theme, align="left"))
-                            self.full_rows.append(TextListEntry("", self.theme))
-                            count += 1
-            except: pass
+                    self.full_rows.append(TextListEntry("GAME LEADERS", self.theme, is_header=True))
+                    self.full_rows.extend(leader_lines)
+        except Exception as e:
+            print("[SimplySport] Leaders section error:", e)
 
         # --- COMMON: STANDINGS & BROADCASTS ---
         try:
@@ -12125,8 +13201,8 @@ class GameInfoScreen(Screen):
                 h_id = data.get('boxscore', {}).get('teams', [{}])[0].get('team', {}).get('id', '')
                 a_id = data.get('boxscore', {}).get('teams', [{}])[1].get('team', {}).get('id', '')
                 prefix = self.sport_type + "_"
-                if h_id: self.download_logo("https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, h_id), "h_logo", prefix + str(h_id))
-                if a_id: self.download_logo("https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, a_id), "a_logo", prefix + str(a_id))
+                if h_id: self.download_logo("https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, h_id), "h_logo", format_logo_id(prefix, h_id))
+                if a_id: self.download_logo("https://a.espncdn.com/combiner/i?img=/i/teamlogos/{}/500/{}.png".format(sport_cdn, a_id), "a_logo", format_logo_id(prefix, a_id))
             except: pass
 
             self.full_rows.append(TextListEntry(u"\U0001F3C9 STATUS: " + status_txt, self.theme, is_header=True))
@@ -12207,17 +13283,37 @@ class GoalToast(Screen):
 
         # 1. RETRIEVE DATA FROM UNIFIED SNAPSHOT
         snap = global_sports_monitor.match_snapshots.get(str(match_id))
+        if not snap and getattr(global_sports_monitor, 'event_map', None):
+            ev = global_sports_monitor.event_map.get(str(match_id))
+            if ev:
+                snap = build_match_snapshot(ev)
+
         if snap:
             self.is_soccer = 'soccer' in snap.get('league_url', '').lower()
-            league_text = snap['league_name']
-            home_text   = snap['h_name']
-            away_text   = snap['a_name']
-            self.l_url  = snap['l_logo_url']
-            self.h_url  = snap['h_logo_url']
-            self.a_url  = snap['a_logo_url']
-            self.l_id   = snap['l_logo_id']
-            self.h_id   = snap['h_logo_id']
-            self.a_id   = snap['a_logo_id']
+            league_text = snap.get('league_name', '')
+            home_text   = snap.get('h_name', '')
+            away_text   = snap.get('a_name', '')
+            self.l_url  = snap.get('l_logo_url', '')
+            self.h_url  = snap.get('h_logo_url', '')
+            self.a_url  = snap.get('a_logo_url', '')
+            self.l_id   = snap.get('l_logo_id', '')
+            self.h_id   = snap.get('h_logo_id', '')
+            self.a_id   = snap.get('a_logo_id', '')
+
+            sport_cdn = global_sports_monitor.get_cdn_sport_name(league_text)
+            prefix = get_sport_id_prefix(snap.get('league_url', ''))
+            h_tid = snap.get('h_team_id', '')
+            a_tid = snap.get('a_team_id', '')
+
+            if not self.h_url and h_tid:
+                self.h_url = "https://a.espncdn.com/i/teamlogos/{}/500/{}.png".format(sport_cdn, h_tid)
+            if not self.a_url and a_tid:
+                self.a_url = "https://a.espncdn.com/i/teamlogos/{}/500/{}.png".format(sport_cdn, a_tid)
+
+            if not self.h_id and h_tid:
+                self.h_id = format_logo_id(prefix, h_tid)
+            if not self.a_id and a_tid:
+                self.a_id = format_logo_id(prefix, a_tid)
         else:
             # Fallback (should not happen in normal flow)
             league_text = "Match Update"
@@ -12323,7 +13419,7 @@ class GoalToast(Screen):
             scorer_fg = "#00FFD700"
             league_fg = "#00FFD700"
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             u'<screen position="center,50" size="950,120" title="Goal" flags="wfNoBorder" backgroundColor="{bg}">'
             # --- DARK BACKDROP ---
             u'<eLabel position="0,0" size="950,120" backgroundColor="{bg}" zPosition="0" />'
@@ -12334,7 +13430,7 @@ class GoalToast(Screen):
             u'<widget name="rc_img" position="375,10" size="18,18" alphatest="blend" scale="1" zPosition="4" />'
 
             # --- METALLIC BAND (y=40, total band height = 36) ---
-            # Top bright edge (metallic highlight)
+            # Top bright edge (metallic highlight))
             u'<eLabel position="0,40" size="950,2" backgroundColor="{bhi}" zPosition="2" />'
             # Main band body (steel blue)
             u'<eLabel position="0,42" size="950,38" backgroundColor="{bmid}" zPosition="2" />'
@@ -12374,7 +13470,7 @@ class GoalToast(Screen):
             bg=bg, bhi=band_hi, bmid=band_mid, blo=band_lo, bc=border_color,
             ctr=center, hc=h_color, ac=a_color, sc=score_color,
             sfg=scorer_fg, lfg=league_fg
-        )
+        ))
 
         Screen.__init__(self, session)
         # Register with monitor for live basketball updates
@@ -12408,14 +13504,23 @@ class GoalToast(Screen):
         self.target_y = 50
         self.toast_width = 950
 
-        # Cache Desktop Centering for performance
+        # Cache Desktop Centering & Resolution Scaling for performance
         try:
             from enigma import getDesktop
-            desktop = getDesktop(0)
-            dw = desktop.size().width()
-            self.center_x = (dw - self.toast_width) // 2
+            desktop = getDesktop(0).size()
+            dw = desktop.width()
+            dh = desktop.height()
+            scale_x = dw / 1920.0
+            scale_y = dh / 1080.0
         except:
-            self.center_x = (1280 - 950) // 2 # Safe fallback
+            dw, dh = 1920, 1080
+            scale_x, scale_y = 1.0, 1.0
+
+        self.toast_width = int(round(950 * scale_x))
+        scaled_toast_h   = int(round(120 * scale_y))
+        self.target_y    = int(round(50 * scale_y))
+        self.current_y   = -scaled_toast_h
+        self.center_x    = (dw - self.toast_width) // 2
 
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
             "ok": self.close, "cancel": self.close,
@@ -12565,7 +13670,7 @@ class GoalToast(Screen):
 
     def load_image(self, url, widget_name, img_id=None):
         """Delegate to shared logo loader"""
-        load_logo_to_widget(self, widget_name, url, img_id)
+        load_logo_to_widget(self, widget_name, url, img_id, keep_existing=True)
 
 
 # ==============================================================================
@@ -12586,7 +13691,7 @@ class ZapNotificationScreen(Screen):
         self.sref = sref
         self.timeout_val = timeout_seconds
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             '<screen position="center,center" size="{w},{h}" title="Zap Notification" flags="wfNoBorder" backgroundColor="#00000000">'
             '<eLabel position="0,0" size="{w},{h}" backgroundColor="{bg}" zPosition="0" />'
             '<eLabel position="0,0" size="{w},5" backgroundColor="{title_c}" zPosition="1" />'
@@ -12611,7 +13716,7 @@ class ZapNotificationScreen(Screen):
             w140=width - 140,
             w110=width - 110,
             h5=height - 5
-        )
+        ))
 
         Screen.__init__(self, session)
 
@@ -12674,7 +13779,7 @@ class FavoriteTeamsManagerScreen(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
         if global_sports_monitor.theme_mode == "ucl":
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="My Favorite Teams" backgroundColor="#00000000" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#0d1b2e" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#c9a020" zPosition="1" />
@@ -12690,9 +13795,9 @@ class FavoriteTeamsManagerScreen(Screen):
                 <widget name="key_red" position="30,760" size="200,30" font="SimplySportFont;26" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="key_green" position="720,760" size="200,30" font="SimplySportFont;26" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         else:
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="My Favorite Teams" backgroundColor="#38003C" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
@@ -12708,12 +13813,12 @@ class FavoriteTeamsManagerScreen(Screen):
                 <widget name="key_red" position="30,760" size="200,30" font="SimplySportFont;26" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="key_green" position="720,760" size="200,30" font="SimplySportFont;26" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         self["header"]    = Label(_t("My Favorite Teams"))
         self["list"]      = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("SimplySportFont", 28))   # team name
-        self["list"].l.setFont(1, gFont("SimplySportFont", 21))   # league name (smaller)
-        self["list"].l.setItemHeight(60)                           # two-line rows
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(28)))   # team name
+        self["list"].l.setFont(1, gFont("SimplySportFont", sf(21)))   # league name (smaller)
+        self["list"].l.setItemHeight(sy(60))                           # two-line rows
         self["key_red"]   = Label(_t("Remove"))
         self["key_green"] = Label(_t("Add Another Team"))
         self["info"]      = Label("")
@@ -12859,7 +13964,7 @@ class FavoriteTeamLeagueSelector(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
         if global_sports_monitor.theme_mode == "ucl":
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="Select a League" backgroundColor="#00000000" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#0d1b2e" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#c9a020" zPosition="1" />
@@ -12874,9 +13979,9 @@ class FavoriteTeamLeagueSelector(Screen):
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         else:
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="Select a League" backgroundColor="#38003C" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
@@ -12891,11 +13996,11 @@ class FavoriteTeamLeagueSelector(Screen):
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         self["header"]    = Label(_t("Select a League"))
         self["list"]      = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
-        self["list"].l.setItemHeight(50)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(28)))
+        self["list"].l.setItemHeight(sy(50))
         self["key_red"]   = Label(_t("Cancel"))
         self["key_green"] = Label("")
         self["info"]      = Label(_t("Press OK to Select"))
@@ -12949,7 +14054,7 @@ class FavoriteTeamPickerScreen(Screen):
         self.teams       = []
 
         if global_sports_monitor.theme_mode == "ucl":
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="Select a Team" backgroundColor="#00000000" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#0d1b2e" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#c9a020" zPosition="1" />
@@ -12964,9 +14069,9 @@ class FavoriteTeamPickerScreen(Screen):
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         else:
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="Select a Team" backgroundColor="#38003C" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
@@ -12981,11 +14086,11 @@ class FavoriteTeamPickerScreen(Screen):
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         self["header"]    = Label(_t("Select a Team") + " \u2014 " + league_name)
         self["list"]      = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
-        self["list"].l.setItemHeight(50)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(28)))
+        self["list"].l.setItemHeight(sy(50))
         self["key_red"]   = Label(_t("Cancel"))
         self["key_green"] = Label("")
         self["info"]      = Label(_t("Loading teams..."))
@@ -13120,7 +14225,7 @@ class FavTeamToast(Screen):
         SILVER    = "#BBBBBB"
         TRANSP    = "#FF000000"
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             u'<screen position="center,30" size="950,220" flags="wfNoBorder" backgroundColor="{transp}">'
 
             u'<eLabel position="0,0"   size="950,220" backgroundColor="{bg}" zPosition="0" />'
@@ -13168,7 +14273,7 @@ class FavTeamToast(Screen):
         ).format(
             transp=TRANSP, bg=BG, gold=GOLD, gold_d=GOLD_DARK,
             white=WHITE, silver=SILVER
-        )
+        ))
 
         self["header"]    = Label(header_lbl)
         self["countdown"] = Label(countdown)
@@ -13260,7 +14365,7 @@ class LeagueSelector(Screen):
         Screen.__init__(self, session)
         self.mode = mode
         if global_sports_monitor.theme_mode == "ucl":
-             self.skin = """
+             self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="Select Leagues" backgroundColor="#00000000" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#0d1b2e" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#c9a020" zPosition="1" />
@@ -13275,9 +14380,9 @@ class LeagueSelector(Screen):
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         else:
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="Select Leagues" backgroundColor="#38003C" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
@@ -13292,12 +14397,12 @@ class LeagueSelector(Screen):
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
 
         self["header"] = Label(_t("Select Custom Leagues") if mode == "multi" else _t("Select League"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
-        self["list"].l.setItemHeight(50)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(28)))
+        self["list"].l.setItemHeight(sy(50))
 
         self["key_red"] = Label(_t("Update Leagues") if mode == "multi" else (_t("Mark Favorites") if mode == "single" else _t("Cancel")))
         self["key_green"] = Label(_t("Save") if mode == "multi" else _t("Save") if mode == "favorite" else "")
@@ -13470,7 +14575,8 @@ class LeagueSelector(Screen):
                 try:
                     logo_url = self.get_league_logo_url(url, original_idx)
                     if logo_url:
-                        downloadPage(logo_url.encode('utf-8'), logo_file).addCallback(
+                        headers = {b'User-Agent': b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                        downloadPage(logo_url.encode('utf-8'), logo_file, headers=headers, timeout=10).addCallback(
                             self.logo_downloaded, sorted_idx, logo_file).addErrback(self.logo_error)
                 except: pass
 
@@ -13930,7 +15036,7 @@ class FavoriteLeagueSelector(Screen):
         theme = global_sports_monitor.theme_mode
 
         if theme == "ucl":
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="Favourite Leagues" backgroundColor="#00000000" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#0d1b2e" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#c9a020" zPosition="1" />
@@ -13945,9 +15051,9 @@ class FavoriteLeagueSelector(Screen):
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         else:
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,800" title="Favourite Leagues" backgroundColor="#38003C" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,800" backgroundColor="#38003C" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
@@ -13962,12 +15068,12 @@ class FavoriteLeagueSelector(Screen):
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
 
         self["header"] = Label(_t("Select Favorite Leagues"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
-        self["list"].l.setItemHeight(50)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(28)))
+        self["list"].l.setItemHeight(sy(50))
         self["key_red"] = Label(_t("Cancel"))
         self["key_green"] = Label(_t("Save"))
         self["info"] = Label(_t("Press OK to Toggle"))
@@ -14140,7 +15246,7 @@ class RacingMiniBar(Screen):
             bar_h = 57; bar_y = height - bar_h + 11
             font_lg = "Regular;21"; font_nm = "Regular;26"; font_sm = "Regular;18"
 
-        self.skin = """<screen position="0,{y}" size="{w},{h}" title="Racing Standings" backgroundColor="#40000000" flags="wfNoBorder">
+        self.skin = scale_skin_xml("""<screen position="0,{y}" size="{w},{h}" title="Racing Standings" backgroundColor="#40000000" flags="wfNoBorder">
             <eLabel position="0,0" size="{w},{h}" backgroundColor="#c0111111" zPosition="0" />
             <eLabel position="0,0" size="5,{h}" backgroundColor="#E90052" zPosition="1" />
             <eLabel position="{rend},0" size="5,{h}" backgroundColor="#F6B900" zPosition="1" />
@@ -14150,7 +15256,7 @@ class RacingMiniBar(Screen):
             <widget name="lbl_team" position="940,0" size="250,{h}" font="{fs}" foregroundColor="#cccccc" transparent="1" halign="left" valign="center" zPosition="2" />
             <widget name="lbl_points" position="1200,0" size="200,{h}" font="{fn}" foregroundColor="#FFD700" transparent="1" halign="right" valign="center" zPosition="2" />
             <widget name="lbl_status" position="1410,0" size="200,{h}" font="{fs}" foregroundColor="#aaaaaa" transparent="1" halign="right" valign="center" zPosition="2" />
-        </screen>""".format(y=bar_y-6, w=width, h=bar_h, rend=width-5, fl=font_lg, fn=font_nm, fs=font_sm)
+        </screen>""".format(y=bar_y-6, w=width, h=bar_h, rend=width-5, fl=font_lg, fn=font_nm, fs=font_sm))
 
         self["lbl_league"] = Label("")
         self["lbl_session"] = Label("") # New session label
@@ -14201,7 +15307,7 @@ class RacingMiniBar(Screen):
         self["lbl_driver"].setText(_t("Loading standings..."))
 
         try:
-            getPage(summary_url.encode('utf-8')).addCallback(self.on_data).addErrback(self.on_error)
+            getPage(summary_url.encode('utf-8'), headers={b'User-Agent': b'curl/7.68.0'}).addCallback(self.on_data).addErrback(self.on_error)
         except:
             self.show_from_scoreboard_data()
 
@@ -14369,8 +15475,20 @@ def _ascii_fold(s):
 def smart_match_team(name1, name2):
     if not name1 or not name2:
         return False
-    n1 = name1.strip().lower()
-    n2 = name2.strip().lower()
+    try:
+        if isinstance(name1, dict):
+            name1 = name1.get('displayName') or name1.get('name') or str(name1)
+        elif not isinstance(name1, (str, type(u""))):
+            name1 = str(name1)
+        if isinstance(name2, dict):
+            name2 = name2.get('displayName') or name2.get('name') or str(name2)
+        elif not isinstance(name2, (str, type(u""))):
+            name2 = str(name2)
+
+        n1 = name1.strip().lower()
+        n2 = name2.strip().lower()
+    except Exception:
+        return False
 
     try:
         if isinstance(n1, bytes):
@@ -14858,12 +15976,27 @@ TEAM_TRANSLATIONS_AR = {
     "Zimbabwe": u"زيمبابوي",
 }
 
+_TEAM_NAME_CACHE = {}
+
 def _team_name(name):
-    global PLUGIN_LANGUAGE
-    if PLUGIN_LANGUAGE == "ar" and name:
-        for k, v in TEAM_TRANSLATIONS_AR.items():
-            if smart_match_team(name, k):
-                return v
+    global PLUGIN_LANGUAGE, _TEAM_NAME_CACHE
+    if not name:
+        return name
+    try:
+        if isinstance(name, dict):
+            name = name.get('displayName') or name.get('name') or str(name)
+        elif not isinstance(name, (str, type(u""))):
+            name = str(name)
+        if PLUGIN_LANGUAGE == "ar" and name:
+            if name in _TEAM_NAME_CACHE:
+                return _TEAM_NAME_CACHE[name]
+            for k, v in TEAM_TRANSLATIONS_AR.items():
+                if smart_match_team(name, k):
+                    _TEAM_NAME_CACHE[name] = v
+                    return v
+            _TEAM_NAME_CACHE[name] = name
+    except Exception:
+        pass
     return name
 
 def is_duplicate_player(p1, p2):
@@ -14920,9 +16053,18 @@ class TeamRostersScreen(Screen):
         self.red_card_ids = set()
         self.scorer_goals = {}
 
-        d_size   = getDesktop(0).size()
-        self.sw  = d_size.width()
-        self.sh  = d_size.height()
+        self.sport = ''
+        try:
+            parts = (league_url or '').rstrip('/').split('/')
+            for i, part in enumerate(parts):
+                if part == 'sports' and i + 1 < len(parts):
+                    self.sport = parts[i + 1]
+                    break
+        except Exception:
+            pass
+
+        self.sw  = SCREEN_WIDTH
+        self.sh  = SCREEN_HEIGHT
         self._compute_layout()
         self.skin = self._build_skin()
 
@@ -15103,17 +16245,37 @@ class TeamRostersScreen(Screen):
     def _fetch_lineups(self):
         try:
             base_url = self.league_url.split('?')[0]
+            url_parts = base_url.rstrip('/').split('/')
+            sport = 'soccer'; league = 'eng.1'
+            for i, p in enumerate(url_parts):
+                if p == 'sports' and i + 2 < len(url_parts):
+                    sport = url_parts[i+1]; league = url_parts[i+2]; break
+
+            if sport in ['soccer', 'tennis']:
+                cdn_url = "https://cdn.espn.com/core/{}/match?xhr=1&gameId={}".format(sport, self.event_id)
+            else:
+                cdn_url = "https://cdn.espn.com/core/{}/boxscore?xhr=1&gameId={}".format(sport, self.event_id)
+
+            headers_dict = {b'User-Agent': b'curl/7.68.0'}
+            getPage(cdn_url.encode('utf-8'), timeout=15, headers=headers_dict).addCallback(
+                self._on_data).addErrback(lambda err: self._fetch_summary_fallback())
+        except Exception as e:
+            self._fetch_summary_fallback()
+
+    def _fetch_summary_fallback(self):
+        try:
+            base_url = self.league_url.split('?')[0]
             if "scoreboard" in base_url:
                 url = base_url.replace("scoreboard", "summary") + "?event=" + str(self.event_id)
             else:
                 parts  = base_url.rstrip('/').split('/')
-                sport  = 'soccer'; league = 'fifa.world'
+                sport  = 'soccer'; league = 'eng.1'
                 for i, p in enumerate(parts):
                     if p == 'sports' and i + 2 < len(parts):
                         sport = parts[i+1]; league = parts[i+2]; break
                 url = ("https://site.api.espn.com/apis/site/v2/sports"
                        "/{}/{}/summary?event={}".format(sport, league, self.event_id))
-            getPage(url.encode('utf-8'), timeout=15).addCallback(
+            getPage(url.encode('utf-8'), timeout=15, headers={b'User-Agent': b'curl/7.68.0'}).addCallback(
                 self._on_data).addErrback(self._on_error)
         except Exception as e:
             self._on_error(e)
@@ -15144,6 +16306,8 @@ class TeamRostersScreen(Screen):
         self.image_queue = []
         try:
             data = json.loads(body.decode('utf-8', errors='ignore'))
+            if isinstance(data, dict) and 'gamepackageJSON' in data:
+                data = data.get('gamepackageJSON') or data
             h_p, h_s, a_p, a_s = self._parse_lineups(data)
         except Exception:
             h_p, h_s, a_p, a_s = [], [], [], []
@@ -15233,6 +16397,7 @@ class TeamRostersScreen(Screen):
                             'position': a_obj.get('position',{}).get('abbreviation','')
                                         or group.get('name','').upper()[:2],
                             'starter':  ath.get('starter', True),
+                            'headshot': a_obj.get('headshot', {}).get('href', '') if isinstance(a_obj.get('headshot'), dict) else '',
                         })
                 unique_players = []
                 for p in players:
@@ -15256,17 +16421,24 @@ class TeamRostersScreen(Screen):
         # Path 2: rosters
         if not h_list and not a_list:
             try:
+                h_id_str = str(h_id)
+                a_id_str = str(a_id)
                 for team_r in data.get('rosters',[]):
+                    if not isinstance(team_r, dict): continue
                     t_id = str(team_r.get('team',{}).get('id',''))
+                    home_away = team_r.get('homeAway', '')
                     players = []
                     for entry in team_r.get('roster',[]):
+                        if not isinstance(entry, dict): continue
                         a_obj = entry.get('athlete',{})
+                        p_name = a_obj.get('displayName') or a_obj.get('shortName') or a_obj.get('fullName') or (a_obj.get('firstName', '') + ' ' + a_obj.get('lastName', '')).strip()
                         players.append({
                             'id':       str(a_obj.get('id', '')),
-                            'name':     a_obj.get('displayName') or a_obj.get('shortName',''),
+                            'name':     p_name,
                             'jersey':   str(entry.get('jersey','')),
                             'position': entry.get('position',{}).get('abbreviation',''),
                             'starter':  entry.get('starter', False),
+                            'headshot': a_obj.get('headshot', {}).get('href', '') if isinstance(a_obj.get('headshot'), dict) else '',
                         })
                     unique_players = []
                     for p in players:
@@ -15279,10 +16451,10 @@ class TeamRostersScreen(Screen):
                             unique_players.append(p)
                     starters = [p for p in unique_players if p['starter']][:11] or unique_players[:11]
                     subs = [p for p in unique_players if p not in starters]
-                    if t_id == h_id or (not h_id and not h_list):
+                    if home_away == 'home' or (h_id_str and t_id == h_id_str) or (not h_id_str and not h_list):
                         h_list = starters
                         h_subs = subs
-                    elif not a_list:
+                    elif home_away == 'away' or (a_id_str and t_id == a_id_str) or (not a_list):
                         a_list = starters
                         a_subs = subs
             except Exception: pass
@@ -15347,6 +16519,25 @@ class TeamRostersScreen(Screen):
         step = avail // (n - 1)
         return [top + i * step for i in range(n)]
 
+    def _load_online_headshot(self, widget_key, player, w, h):
+        """Online fallback for a player with no local roster image match.
+        Prefers the exact headshot URL ESPN already supplies in the roster
+        payload; falls back to ESPN's public headshot-combiner CDN using the
+        athlete ID otherwise. Never scrapes third-party sites (e.g. futbin.com
+        disallows automated access per its robots.txt) - ESPN's own CDN is
+        already the source used elsewhere in this plugin (PlayerProfileScreen)."""
+        try:
+            url = player.get('headshot', '')
+            player_id = player.get('id', '')
+            if not url and player_id and self.sport:
+                url = "https://a.espncdn.com/combiner/i?img=/i/headshots/{}/players/full/{}.png".format(self.sport, player_id)
+            if not url:
+                return
+            img_id = "hs_{}_{}".format(self.sport or 'x', player_id or hashlib.md5(url.encode('utf-8')).hexdigest()[:10])
+            load_player_headshot(self, widget_key, url, img_id, w, h)
+        except Exception:
+            pass
+
     def _place(self, side, slot, player, x, y):
         prefix  = "h" if side == "home" else "a"
         country = self.h_name if side == "home" else self.a_name
@@ -15374,6 +16565,8 @@ class TeamRostersScreen(Screen):
 
         if img_path and img_path != placeholder_path and os.path.exists(img_path):
             self.image_queue.append((prefix, slot, img_path))
+        else:
+            self._load_online_headshot("{}_img_{}".format(prefix, slot), player, self.img_w, self.img_h)
 
         player_id = player.get('id', '')
         has_rc = player_id and player_id in self.red_card_ids
@@ -15505,6 +16698,8 @@ class TeamRostersScreen(Screen):
             img_path = find_player_image(country, player.get('name', ''), player.get('jersey', ''))
             if img_path and img_path != placeholder_path and os.path.exists(img_path):
                 self.image_queue.append(("{}_sub".format(prefix), j, img_path))
+            else:
+                self._load_online_headshot("{}_sub_img_{}".format(prefix, j), player, sub_img_w, sub_img_h)
                 
             lbl_x = img_x + sub_img_w + 5
             lbl_w = self.col_w - sub_img_w - 10
@@ -15600,8 +16795,7 @@ class SimpleSportsMiniBar2(Screen):
             try: os.makedirs(self.logo_path)
             except: pass
 
-        d_size = getDesktop(0).size()
-        width = d_size.width(); height = d_size.height()
+        width = 1920; height = 1080
 
         if width > 1280:
             bar_h = 65; y_sc = 39; bar_y = height - bar_h + 11; font_lg = "Regular;25"; font_nm = "Regular;34"; font_sm = "Regular;22"; font_sc = "Regular;18"; logo_s = 38  # +10% from 35
@@ -15619,7 +16813,7 @@ class SimpleSportsMiniBar2(Screen):
             x_h_rc = 263; x_h_rctxt = 283; x_a_rc = 905; x_a_rctxt = 925
 
         if global_sports_monitor.theme_mode == "ucl":
-            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="#c0181818" zPosition="0" /><eLabel position="0,0" size="{w},1" backgroundColor="#c9a020" zPosition="2" /><eLabel position="0,1" size="6,{h}" backgroundColor="#8b2fc9" zPosition="2" /><eLabel position="{rend},1" size="6,{h}" backgroundColor="#7dc900" zPosition="2" /><widget name="l_logo" position="{xll},{yll}" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_league" position="{xl},-5" size="{wl},{h}" font="{fl}" foregroundColor="#c9a020" backgroundColor="#c0181818" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},44" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c0181818" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xhsc},{ysc}" size="{whsc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c0181818" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_sc_rc" position="{xhrc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="h_sc_rctxt" position="{xhtxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="#c0181818" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><eLabel position="{xs},-5" size="{ws},{h}" backgroundColor="#c9a020" zPosition="1" /><widget name="lbl_score" position="{xs},-5" size="{ws},{h}" font="{fl}" foregroundColor="#071020" backgroundColor="#c9a020" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},44" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c0181818" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xasc},{ysc}" size="{wasc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c0181818" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="a_sc_rc" position="{xarc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="a_sc_rctxt" position="{xatxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="#c0181818" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="lbl_status" position="{xst},-5" size="{wst},{h}" font="{fs}" foregroundColor="#ffffff" backgroundColor="#c0181818" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},-5" size="{wt},{h}" font="{fs}" foregroundColor="#7dc900" backgroundColor="#c0181818" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y, w=width, h=bar_h, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xll=x_l_logo, yll=y_l_logo, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time, ysc=y_sc-2, xhsc=x_h_sc, whsc=w_h_sc, xasc=x_a_sc, wasc=w_a_sc, xhrc=x_h_rc, xhtxt=x_h_rctxt, xarc=x_a_rc, xatxt=x_a_rctxt, rcs=18, rend=width-6)
+            self.skin = scale_skin_xml("""<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="#c0181818" zPosition="0" /><eLabel position="0,0" size="{w},1" backgroundColor="#c9a020" zPosition="2" /><eLabel position="0,1" size="6,{h}" backgroundColor="#8b2fc9" zPosition="2" /><eLabel position="{rend},1" size="6,{h}" backgroundColor="#7dc900" zPosition="2" /><widget name="l_logo" position="{xll},{yll}" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_league" position="{xl},-5" size="{wl},{h}" font="{fl}" foregroundColor="#c9a020" backgroundColor="#c0181818" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},44" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c0181818" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xhsc},{ysc}" size="{whsc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c0181818" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_sc_rc" position="{xhrc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="h_sc_rctxt" position="{xhtxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="#c0181818" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><eLabel position="{xs},-5" size="{ws},{h}" backgroundColor="#c9a020" zPosition="1" /><widget name="lbl_score" position="{xs},-5" size="{ws},{h}" font="{fl}" foregroundColor="#071020" backgroundColor="#c9a020" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},44" font="{fn}" foregroundColor="#ffffff" backgroundColor="#c0181818" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xasc},{ysc}" size="{wasc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="#c0181818" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="a_sc_rc" position="{xarc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="a_sc_rctxt" position="{xatxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="#c0181818" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="lbl_status" position="{xst},-5" size="{wst},{h}" font="{fs}" foregroundColor="#ffffff" backgroundColor="#c0181818" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},-5" size="{wt},{h}" font="{fs}" foregroundColor="#7dc900" backgroundColor="#c0181818" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y, w=width, h=bar_h, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xll=x_l_logo, yll=y_l_logo, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time, ysc=y_sc-2, xhsc=x_h_sc, whsc=w_h_sc, xasc=x_a_sc, wasc=w_a_sc, xhrc=x_h_rc, xhtxt=x_h_rctxt, xarc=x_a_rc, xatxt=x_a_rctxt, rcs=18, rend=width-6))
         else:
             # DEFINE COLORS BASED ON SELECTED MODE
             mode = global_sports_monitor.minibar_color_mode
@@ -15667,7 +16861,7 @@ class SimpleSportsMiniBar2(Screen):
                 c_text_lg = "#dbf000"   # Lime
                 c_text_tm = "#ffffff"   # White
 
-            self.skin = """<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="{bg}" zPosition="0" /><eLabel position="0,0" size="5,{h}" backgroundColor="{sl}" zPosition="1" /><eLabel position="{rend},{h}" size="5,{h}" backgroundColor="{sr}" zPosition="1" /><widget name="l_logo" position="{xll},{yll}" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_league" position="{xl},-5" size="{wl},{h}" font="{fl}" foregroundColor="{tlg}" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},38" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xhsc},{ysc}" size="{whsc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="{bg}" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_sc_rc" position="{xhrc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="h_sc_rctxt" position="{xhtxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><eLabel position="{xs},-5" size="{ws},{h}" backgroundColor="{sbg}" zPosition="1" /><widget name="lbl_score" position="{xs},-5" size="{ws},{h}" font="{fl}" foregroundColor="{sfg}" backgroundColor="{sbg}" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},38" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xasc},{ysc}" size="{wasc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="{bg}" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="a_sc_rc" position="{xarc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="a_sc_rctxt" position="{xatxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="lbl_status" position="{xst},-5" size="{wst},{h}" font="{fs}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},-5" size="{wt},{h}" font="{fs}" foregroundColor="{ttm}" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y-6, w=width, h=bar_h, rend=width-5, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xll=x_l_logo, yll=y_l_logo, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time, ysc=y_sc, bg=c_bg_main, sl=c_strip_l, sr=c_strip_r, sbg=c_score_bg, sfg=c_score_fg, tlg=c_text_lg, ttm=c_text_tm, xhsc=x_h_sc, whsc=w_h_sc, xasc=x_a_sc, wasc=w_a_sc, xhrc=x_h_rc, xhtxt=x_h_rctxt, xarc=x_a_rc, xatxt=x_a_rctxt, rcs=18)
+            self.skin = scale_skin_xml("""<screen position="0,{y}" size="{w},{h}" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder"><eLabel position="0,0" size="{w},{h}" backgroundColor="{bg}" zPosition="0" /><eLabel position="0,0" size="5,{h}" backgroundColor="{sl}" zPosition="1" /><eLabel position="{rend},{h}" size="5,{h}" backgroundColor="{sr}" zPosition="1" /><widget name="l_logo" position="{xll},{yll}" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_league" position="{xl},-5" size="{wl},{h}" font="{fl}" foregroundColor="{tlg}" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_home" position="{xh},0" size="{wh},38" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_home_sc" position="{xhsc},{ysc}" size="{whsc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="{bg}" transparent="1" halign="right" valign="top" zPosition="2" /><widget name="h_sc_rc" position="{xhrc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="h_sc_rctxt" position="{xhtxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="h_logo" position="{xhl},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><eLabel position="{xs},-5" size="{ws},{h}" backgroundColor="{sbg}" zPosition="1" /><widget name="lbl_score" position="{xs},-5" size="{ws},{h}" font="{fl}" foregroundColor="{sfg}" backgroundColor="{sbg}" transparent="1" halign="center" valign="center" zPosition="3" /><widget name="a_logo" position="{xal},4" size="{ls},{ls}" alphatest="blend" scale="1" zPosition="2" /><widget name="lbl_away" position="{xa},0" size="{wa},38" font="{fn}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="2" /><widget name="lbl_away_sc" position="{xasc},{ysc}" size="{wasc},24" font="{fsc}" foregroundColor="#cccccc" backgroundColor="{bg}" transparent="1" halign="left" valign="top" zPosition="2" /><widget name="a_sc_rc" position="{xarc},39" size="{rcs},{rcs}" alphatest="blend" scale="1" zPosition="3" /><widget name="a_sc_rctxt" position="{xatxt},36" size="130,24" font="{fsc}" foregroundColor="#ff3333" backgroundColor="{bg}" transparent="1" halign="left" valign="center" zPosition="3" /><widget name="lbl_status" position="{xst},-5" size="{wst},{h}" font="{fs}" foregroundColor="#FFFFFF" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /><widget name="lbl_time" position="{xt},-5" size="{wt},{h}" font="{fs}" foregroundColor="{ttm}" backgroundColor="{bg}" transparent="1" halign="right" valign="center" zPosition="2" /></screen>""".format(y=bar_y-6, w=width, h=bar_h, rend=width-5, fl=font_lg, fn=font_nm, fs=font_sm, fsc=font_sc, ls=logo_s, xll=x_l_logo, yll=y_l_logo, xl=x_league, wl=w_league, xh=x_home_name, wh=w_home_name, xhl=x_h_logo, xs=x_score, ws=w_score, xst=x_status, wst=w_status, xal=x_a_logo, xa=x_away_name, wa=w_away_name, xt=x_time, wt=w_time, ysc=y_sc, bg=c_bg_main, sl=c_strip_l, sr=c_strip_r, sbg=c_score_bg, sfg=c_score_fg, tlg=c_text_lg, ttm=c_text_tm, xhsc=x_h_sc, whsc=w_h_sc, xasc=x_a_sc, wasc=w_a_sc, xhrc=x_h_rc, xhtxt=x_h_rctxt, xarc=x_a_rc, xatxt=x_a_rctxt, rcs=18))
 
         self["lbl_league"] = Label(""); self["lbl_home"] = Label(""); self["lbl_score"] = Label("")
         self["lbl_away"] = Label(""); self["lbl_status"] = Label(""); self["lbl_time"] = Label("")
@@ -15836,7 +17030,7 @@ class SimpleSportsMiniBar2(Screen):
         new_matches = []
         if not events:
             # If we already have matches and an update is in progress, keep old matches to avoid flicker
-            if self.matches and "Loading" in global_sports_monitor.status_message:
+            if self.matches and is_loading_status(global_sports_monitor.status_message):
                 return
             msg = global_sports_monitor.status_message or "Loading..."
             self.matches = [{'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': "", 'score': "", 'status': "", 'time': "", 'h_url': "", 'a_url': "", 'l_url': "", 'h_id': "", 'a_id': "", 'l_id': ""}]
@@ -15916,7 +17110,7 @@ class SimpleSportsMiniBar2(Screen):
         # Handle Filter Empty
         if not new_matches:
             # If we are currently updating, don't show "No Matches Found" yet if we have old data
-            if self.matches and ("Loading" in global_sports_monitor.status_message or "Processing" in global_sports_monitor.status_message):
+            if self.matches and is_loading_status(global_sports_monitor.status_message):
                 return
 
             is_stale = (time.time() - global_sports_monitor.last_update) > 300
@@ -16107,7 +17301,7 @@ class AthleteProfileScreen(Screen):
             <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
         """.replace("{accent}", accent)
 
-        self.skin = f"""<screen position="center,center" size="1600,900" title="Player Profile" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{common_widgets}</screen>"""
+        self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="Player Profile" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{common_widgets}</screen>""")
 
         self["match_title"] = Label(_t("PLAYER PROFILE"))
         self["a_name"] = Label(athlete_name)
@@ -16117,9 +17311,9 @@ class AthleteProfileScreen(Screen):
         self["loading"] = Label(_t("Loading profile..."))
 
         self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
-        self["info_list"].l.setFont(0, gFont("Regular", 24))
-        self["info_list"].l.setFont(1, gFont("Regular", 20))
-        self["info_list"].l.setItemHeight(50)
+        self["info_list"].l.setFont(0, gFont("Regular", sf(24)))
+        self["info_list"].l.setFont(1, gFont("Regular", sf(20)))
+        self["info_list"].l.setItemHeight(sy(50))
 
         self["actions"] = ActionMap(["SetupActions", "ColorActions"], {
             "cancel": self.close, "green": self.close, "ok": self.close, "back": self.close,
@@ -16133,7 +17327,7 @@ class AthleteProfileScreen(Screen):
         headshot_url = "https://a.espncdn.com/combiner/i?img=/i/headshots/{}/players/full/{}.png".format(self.sport, self.athlete_id)
         load_logo_to_widget(self, "headshot", headshot_url, "p_" + self.athlete_id)
 
-        getPage(self.api_url.encode('utf-8')).addCallback(self.parse_data).addErrback(self.error_data)
+        getPage(self.api_url.encode('utf-8'), headers={b'User-Agent': b'curl/7.68.0'}).addCallback(self.parse_data).addErrback(self.error_data)
 
     def error_data(self, error):
         self["loading"].setText(_t("Error loading profile."))
@@ -16277,13 +17471,13 @@ class SimpleSportsMiniBar(Screen):
             # Layout:  [RED|  FLAG ● FRA  [0]  |WC_LOGO|  [0]  SEN ● FLAG  |PURPLE]  [  90:00  ]
             #           ← main black bar (700×60) →                                          ← white box →
             # Enigma2 reversed alpha: #00=opaque, #FF=transparent
-            self.skin = (
+            self.skin = scale_skin_xml((
                 u'<screen position="750,10" size="780,74" title="Sports Ticker" flags="wfNoBorder" backgroundColor="#FF000000">'
                 # ── ATTACHED TIME BOX BACKGROUND (drawn underneath at z=1, left edge hidden under purple stripe) ──
                 u'<eLabel position="633,13" size="140,52" backgroundColor="#00FFFFFF" cornerRadius="14" zPosition="1" />'
 
                 # ── Accent stripe backgrounds (underneath main bar at z=2) ─────────────
-                # Home side: Peach (left half, rounded outer corners)
+                # Home side: Peach (left half, rounded outer corners))
                 u'<eLabel position="0,13" size="108,52" backgroundColor="#00FF9F80" cornerRadius="14" zPosition="2" />'
                 # Home side: Dark Red (right half, square corners)
                 u'<eLabel position="108,13" size="107,52" backgroundColor="#008B0000" zPosition="2" />'
@@ -16343,7 +17537,7 @@ class SimpleSportsMiniBar(Screen):
                 # ── ATTACHED TIME BOX TEXT (drawn on top at z=4) ──────────────
                 u'<widget name="lbl_time" position="648,13" size="125,52" font="Regular;30" foregroundColor="#00000000" backgroundColor="#00FFFFFF" transparent="1" valign="center" halign="center" zPosition="4" />'
                 u'</screen>'
-            )
+            ))
             self["lbl_home"] = Label("")
             self["lbl_away"] = Label("")
             self["lbl_h_score"] = Label("")
@@ -16364,7 +17558,7 @@ class SimpleSportsMiniBar(Screen):
             self["h_dot"] = Label("")
             self["a_dot"] = Label("")
         else:
-            self.skin = (
+            self.skin = scale_skin_xml((
                 u'<screen position="center,10" size="950,120" title="Sports Ticker" flags="wfNoBorder" backgroundColor="#FF000000">'
                 u'<widget name="l_logo" position="460,5" size="30,30" alphatest="blend" scale="1" zPosition="3" />'
                 u'<widget name="lbl_league" position="500,5" size="400,30" font="Regular;19" '
@@ -16391,7 +17585,7 @@ class SimpleSportsMiniBar(Screen):
                 u'<widget name="a_rc_txt" position="550,50" size="30,22" font="Regular;16" '
                 u'foregroundColor="#00FF3333" backgroundColor="#FF000000" transparent="1" valign="center" halign="center" zPosition="5" />'
                 u'</screen>'
-            )
+            ))
             self["lbl_league"] = Label("")
             self["lbl_home"] = Label("")
             self["lbl_score"] = Label("")
@@ -16580,7 +17774,7 @@ class SimpleSportsMiniBar(Screen):
         # If Monitor is empty/loading
         if not events:
             # If we already have matches and an update is in progress, keep old matches to avoid flicker
-            if self.matches and "Loading" in global_sports_monitor.status_message:
+            if self.matches and is_loading_status(global_sports_monitor.status_message):
                 return
             msg = global_sports_monitor.status_message or "Loading..."
             self.matches = [{'league': "SimplySports", 'color': 0xffffff, 'home': msg, 'away': "", 'score': "", 'status': "", 'h_url': "", 'a_url': "", 'l_url': "", 'h_id': "", 'a_id': "", 'l_id': ""}]
@@ -16655,7 +17849,7 @@ class SimpleSportsMiniBar(Screen):
         # Handle Filter Empty
         if not new_matches:
             # If we are currently updating, don't show "No Matches Found" yet if we have old data
-            if self.matches and ("Loading" in global_sports_monitor.status_message or "Processing" in global_sports_monitor.status_message):
+            if self.matches and is_loading_status(global_sports_monitor.status_message):
                 return
 
             is_stale = (time.time() - global_sports_monitor.last_update) > 300
@@ -17811,7 +19005,7 @@ class LiveScoreCZScreen(Screen):
             fg_title = "#00FF85"; bg_title = "#1A0024"; fg_list_s = "#00FF85"
             clock_x = 1710; clock_w = 180; clock_a = "center"
 
-        self.skin = """
+        self.skin = scale_skin_xml("""
         <screen position="0,0" size="1920,1080" title="SimplySports Arena" flags="wfNoBorder" backgroundColor="#00000000">
             {bg}
             {top}
@@ -17833,7 +19027,7 @@ class LiveScoreCZScreen(Screen):
             <widget name="key_blue" position="1120,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#0084FF" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
             <widget name="animation_pixmap" position="0,0" size="1920,1080" zPosition="100" transparent="0" scale="1" />
         </screen>
-        """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_top=c_top)
+        """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_top=c_top))
 
         self["top_bar"] = Label("")
         self["header_bg"] = Label("")
@@ -17864,11 +19058,11 @@ class LiveScoreCZScreen(Screen):
         self.current_sport = LAST_LIVESCORE_CZ_SPORT
 
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("SimplySportFont", 26))
-        self["list"].l.setFont(1, gFont("SimplySportFont", 28))
-        self["list"].l.setFont(2, gFont("SimplySportFont", 38))
-        self["list"].l.setFont(3, gFont("SimplySportFont", 20))
-        self["list"].l.setItemHeight(60)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(26)))
+        self["list"].l.setFont(1, gFont("SimplySportFont", sf(28)))
+        self["list"].l.setFont(2, gFont("SimplySportFont", sf(38)))
+        self["list"].l.setFont(3, gFont("SimplySportFont", sf(20)))
+        self["list"].l.setItemHeight(sy(60))
 
         self.clock_timer = eTimer()
         safe_connect(self.clock_timer, self.update_clock)
@@ -18713,21 +19907,22 @@ def LineupListEntry(home_num, home_name, away_num, away_name, theme_mode, payloa
     else:
         col_num, col_text, col_bg, col_sel = 0x00FF85, 0xFFFFFF, 0x1A0024, 0x2A0040
 
+    row_h = sy(50)
     res = [payload]
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 48, 1600, 1, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(1600), row_h, 0, RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, row_h - 2, sx(1600), 1, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
 
     if home_num:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 100, 0, 60, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(home_num), col_num, col_num, col_bg, col_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(100), 0, sx(60), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(home_num), col_num, col_num, col_bg, col_sel))
     if home_name:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 180, 0, 520, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(home_name), col_text, col_text, col_bg, col_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(180), 0, sx(520), row_h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(home_name), col_text, col_text, col_bg, col_sel))
 
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 799, 0, 2, 50, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(799), 0, sx(2), row_h, 0, RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
 
     if away_num:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 900, 0, 60, 50, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(away_num), col_num, col_num, col_bg, col_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(900), 0, sx(60), row_h, 0, RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(away_num), col_num, col_num, col_bg, col_sel))
     if away_name:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 980, 0, 520, 50, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_name), col_text, col_text, col_bg, col_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(980), 0, sx(520), row_h, 0, RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_name), col_text, col_text, col_bg, col_sel))
 
     return res
 def StatListEntry(stat_name, home_val, away_val, theme_mode):
@@ -18745,22 +19940,23 @@ def StatListEntry(stat_name, home_val, away_val, theme_mode):
         col_bar_h= 0x00AA55; col_bar_a= 0xff4c4c
         col_bg   = 0x1A0024; col_sel = 0x2A0040
 
+    row_h = sy(50)
     res = [None]
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(1600), row_h, 0,
                 RT_HALIGN_CENTER, "", col_bg, col_bg, col_bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 49, 1600, 1, 0,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, row_h - 1, sx(1600), 1, 0,
                 RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
 
     # Centre column: stat label
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 580, 0, 440, 50, 0,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(580), 0, sx(440), row_h, 0,
                 RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(stat_name),
                 col_lbl, col_lbl, col_bg, col_sel))
     # Left column: home value (right-aligned, pushing towards centre)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 60, 0, 500, 50, 1,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(60), 0, sx(500), row_h, 1,
                 RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home_val),
                 col_val, col_val, col_bg, col_sel))
     # Right column: away value (left-aligned, pushing away from centre)
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 1040, 0, 500, 50, 1,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1040), 0, sx(500), row_h, 1,
                 RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away_val),
                 col_val, col_val, col_bg, col_sel))
 
@@ -18772,20 +19968,20 @@ def StatListEntry(stat_name, home_val, away_val, theme_mode):
         a_num = float(_re.sub(r'[^0-9.]', '', a_str)) if a_str else 0.0
         total = h_num + a_num
         if total > 0:
-            BAR_W = 480   # total bar width in pixels
-            BAR_Y = 43    # y-offset from top of row
-            BAR_H = 5     # bar height in pixels
+            BAR_W = sx(480)   # total bar width in pixels
+            BAR_Y = sy(43)    # y-offset from top of row
+            BAR_H = sy(5)     # bar height in pixels
             h_w = max(0, int(BAR_W * h_num / total))
             a_w = BAR_W - h_w
             # Home bar: right side of home zone, flush against centre
             if h_w > 0:
                 res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                             580 - h_w, BAR_Y, h_w, BAR_H, 0,
+                             sx(580) - h_w, BAR_Y, h_w, BAR_H, 0,
                              RT_HALIGN_CENTER, "", col_bar_h, col_bar_h))
             # Away bar: left side of away zone, flush against centre
             if a_w > 0:
                 res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                             1020, BAR_Y, a_w, BAR_H, 0,
+                             sx(1020), BAR_Y, a_w, BAR_H, 0,
                              RT_HALIGN_CENTER, "", col_bar_a, col_bar_a))
     except Exception:
         pass
@@ -18811,34 +20007,35 @@ def H2HListEntry(date_str, home, score, away, theme_mode,
         col_hdr_bg= 0x0f0018; col_sel   = 0x2A0040
 
     bg = col_hdr_bg if is_header else col_bg
+    row_h = sy(50)
     res = [None]
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, 1600, 50, 0,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(1600), row_h, 0,
                 RT_HALIGN_CENTER, "", bg, bg, bg, col_sel))
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 49, 1600, 1, 0,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, row_h - 1, sx(1600), 1, 0,
                 RT_HALIGN_CENTER, "", 0x2C1040, 0x2C1040))
 
     if is_header:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 40, 0, 1520, 50, 0,
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(40), 0, sx(1520), row_h, 0,
                     RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(home),
                     col_hdr, col_hdr, bg, col_sel))
         return res
 
     # Date — narrow left column
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 30, 0, 190, 50, 3,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(30), 0, sx(190), row_h, 3,
                 RT_HALIGN_LEFT|RT_VALIGN_CENTER, date_str,
                 col_date, col_date, bg, col_sel))
     # Home team — right-aligned into centre
     c_home = col_hl if highlight_home else col_team
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 230, 0, 530, 50, 1,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(230), 0, sx(530), row_h, 1,
                 RT_HALIGN_RIGHT|RT_VALIGN_CENTER, str(home),
                 c_home, c_home, bg, col_sel))
     # Score — centre
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 760, 0, 80, 50, 2,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(760), 0, sx(80), row_h, 2,
                 RT_HALIGN_CENTER|RT_VALIGN_CENTER, str(score),
                 col_score, col_score, bg, col_sel))
     # Away team — left-aligned from centre
     c_away = col_hl if highlight_away else col_team
-    res.append((eListboxPythonMultiContent.TYPE_TEXT, 840, 0, 530, 50, 1,
+    res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(840), 0, sx(530), row_h, 1,
                 RT_HALIGN_LEFT|RT_VALIGN_CENTER, str(away),
                 c_away, c_away, bg, col_sel))
 
@@ -18881,11 +20078,11 @@ class LiveScoreCZGameInfoScreen(Screen):
         if self.theme == "ucl":
             bg_color = "#00000000"; top_bar = "#091442"; accent = "#c9a020"
             skin_widgets = common_widgets.replace("{accent}", accent)
-            self.skin = """<screen position="center,center" size="1600,900" title="Match Details" flags="wfNoBorder" backgroundColor="%s"><eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />%s</screen>""" % (bg_color, top_bar, accent, skin_widgets)
+            self.skin = scale_skin_xml("""<screen position="center,center" size="1600,900" title="Match Details" flags="wfNoBorder" backgroundColor="%s"><eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />%s</screen>""" % (bg_color, top_bar, accent, skin_widgets))
         else:
             bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
             skin_widgets = common_widgets.replace("{accent}", accent)
-            self.skin = """<screen position="center,center" size="1600,900" title="Match Details" flags="wfNoBorder" backgroundColor="%s"><eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />%s</screen>""" % (bg_color, top_bar, accent, skin_widgets)
+            self.skin = scale_skin_xml("""<screen position="center,center" size="1600,900" title="Match Details" flags="wfNoBorder" backgroundColor="%s"><eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />%s</screen>""" % (bg_color, top_bar, accent, skin_widgets))
 
         s = self.match_entry.get("score", "")
         h_s, a_s = "", ""
@@ -18912,11 +20109,11 @@ class LiveScoreCZGameInfoScreen(Screen):
         self["page_info"]  = Label("")
 
         self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
-        self["info_list"].l.setFont(0, gFont("Regular", 24))
-        self["info_list"].l.setFont(1, gFont("Regular", 20))
-        self["info_list"].l.setFont(2, gFont("Regular", 22))
-        self["info_list"].l.setFont(3, gFont("Regular", 18))
-        self["info_list"].l.setItemHeight(50)
+        self["info_list"].l.setFont(0, gFont("Regular", sf(24)))
+        self["info_list"].l.setFont(1, gFont("Regular", sf(20)))
+        self["info_list"].l.setFont(2, gFont("Regular", sf(22)))
+        self["info_list"].l.setFont(3, gFont("Regular", sf(18)))
+        self["info_list"].l.setItemHeight(sy(50))
 
         # Colour buttons get their own, higher-priority map so that on STBs
         # where the red key can also generate a "cancel" event the close
@@ -19419,7 +20616,7 @@ class LiveScoreCZTeamStandingScreen(Screen):
 
         if self.theme == "ucl":
             bg_color = "#00000000"; top_bar = "#091442"; accent = "#c9a020"
-            self.skin = """<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="%s">
+            self.skin = scale_skin_xml("""<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="%s">
                 <eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" />
                 <eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />
                 <widget name="title" position="0,50" size="1600,40" font="Regular;32" foregroundColor="%s" backgroundColor="%s" transparent="1" halign="center" valign="center" zPosition="5" />
@@ -19427,10 +20624,10 @@ class LiveScoreCZTeamStandingScreen(Screen):
                 <widget name="standings_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
                 <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="%s" transparent="1" halign="center" zPosition="10" />
                 <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
-            </screen>""" % (bg_color, top_bar, accent, accent, top_bar, top_bar, accent)
+            </screen>""" % (bg_color, top_bar, accent, accent, top_bar, top_bar, accent))
         else:
             bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
-            self.skin = """<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="%s">
+            self.skin = scale_skin_xml("""<screen position="center,center" size="1600,900" title="League Standings" flags="wfNoBorder" backgroundColor="%s">
                 <eLabel position="0,0" size="1600,150" backgroundColor="%s" zPosition="0" />
                 <eLabel position="0,150" size="1600,4" backgroundColor="%s" zPosition="1" />
                 <widget name="title" position="0,50" size="1600,40" font="Regular;32" foregroundColor="%s" backgroundColor="%s" transparent="1" halign="center" valign="center" zPosition="5" />
@@ -19438,7 +20635,7 @@ class LiveScoreCZTeamStandingScreen(Screen):
                 <widget name="standings_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
                 <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="%s" transparent="1" halign="center" zPosition="10" />
                 <widget name="hint" position="0,860" size="1600,30" font="Regular;20" foregroundColor="#888888" transparent="1" halign="center" zPosition="5" />
-            </screen>""" % (bg_color, top_bar, accent, accent, top_bar, top_bar, accent)
+            </screen>""" % (bg_color, top_bar, accent, accent, top_bar, top_bar, accent))
 
         self["title"] = Label(self.league_name.upper() if self.league_name else _t("LEAGUE STANDINGS"))
         self["subtitle"] = Label(_t("STANDINGS"))
@@ -19446,8 +20643,8 @@ class LiveScoreCZTeamStandingScreen(Screen):
         self["hint"] = Label(_t("Press OK to return to Main Screen"))
 
         self["standings_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
-        self["standings_list"].l.setFont(0, gFont("Regular", 24))
-        self["standings_list"].l.setItemHeight(50)
+        self["standings_list"].l.setFont(0, gFont("Regular", sf(24)))
+        self["standings_list"].l.setItemHeight(sy(50))
 
         self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions"], {
             "cancel": self.close, "ok": self.close, "back": self.close,
@@ -19544,8 +20741,7 @@ class LiveScoreCZMiniBar3(Screen):
         self.current_match_idx = 0
         self.matches = []
 
-        d_size = getDesktop(0).size()
-        width = d_size.width(); height = d_size.height()
+        width = 1920; height = 1080
 
         if width > 1280:
             bar_h = 65; bar_y = height - bar_h + 11; font_lg = "Regular;25"; font_nm = "Regular;34"; font_sm = "Regular;22"
@@ -19563,7 +20759,7 @@ class LiveScoreCZMiniBar3(Screen):
         else:
             c_bg = "#c028002C"; c_accent = "#00FF85"; c_score_fg = "#000000"
 
-        self.skin = """<screen position="0,%d" size="%d,%d" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder">
+        self.skin = scale_skin_xml("""<screen position="0,%d" size="%d,%d" title="Sports Ticker Bottom" backgroundColor="#40000000" flags="wfNoBorder">
             <eLabel position="0,0" size="%d,%d" backgroundColor="%s" zPosition="0" />
             <eLabel position="0,0" size="%d,1" backgroundColor="%s" zPosition="2" />
             <widget name="lbl_league" position="%d,-5" size="%d,%d" font="%s" foregroundColor="%s" backgroundColor="%s" transparent="1" halign="left" valign="center" zPosition="2" />
@@ -19582,7 +20778,7 @@ class LiveScoreCZMiniBar3(Screen):
             x_away_name, w_away_name, bar_h, font_nm, c_bg,
             x_status, w_status, bar_h, font_sm, c_bg,
             x_time, w_time, bar_h, font_sm, c_accent, c_bg
-        )
+        ))
 
         self["lbl_league"] = Label()
         self["lbl_home"] = Label()
@@ -19796,7 +20992,7 @@ class LiveScoreFollowToast(Screen):
         self.home_team = home_team
         self.away_team = away_team
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             u'<screen position="center,50" size="950,120" title="Match Follow Alert" flags="wfNoBorder" backgroundColor="{bg}">'
             u'<eLabel position="0,0" size="950,120" backgroundColor="{bg}" zPosition="0" />'
             u'<widget name="scorer" position="200,5" size="550,30" font="Regular;21" '
@@ -19818,7 +21014,7 @@ class LiveScoreFollowToast(Screen):
         ).format(
             bg=bg, bhi=band_hi, bmid=band_mid, blo=band_lo, bc=border_color,
             ctr=center, sc=score_color, hc=h_color, ac=a_color
-        )
+        ))
 
         Screen.__init__(self, session)
         self["league"] = Label(self.league_name.upper())
@@ -19869,7 +21065,7 @@ class SimpleSportsScreen(Screen):
             # Background is now a named Pixmap widget so we can swap it at runtime
             # when the user toggles filter modes. The actual image is loaded in
             # _update_wc_background() which is called from refresh_ui.
-            bg_widget = '<widget name="main_bg" position="0,0" size="1920,1080" zPosition="-1" alphatest="blend" scale="1" />'
+            bg_widget = '<eLabel position="0,0" size="1920,1080" backgroundColor="{c_bg}" zPosition="-2" /><widget name="main_bg" position="0,0" size="1920,1080" zPosition="-1" alphatest="blend" scale="1" />'.format(c_bg=c_bg)
             top_widget = '<widget name="top_bar" position="0,0" size="1920,100" backgroundColor="{c_top}" zPosition="0" />'.format(c_top=c_top)
             # Single clean gold separator at the bottom edge of the top bar
             top_widget += '<eLabel position="0,104" size="1920,2" backgroundColor="#c9a020" zPosition="3" />'
@@ -19879,7 +21075,7 @@ class SimpleSportsScreen(Screen):
             fg_title = "#c9a020"; bg_title = "#071020"; fg_list_h = "#ffffff"; fg_list_s = "#c9a020"
             clock_x = 1710; clock_w = 180; clock_a = "center"
 
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="0,0" size="1920,1080" title="SimplySports" flags="wfNoBorder" backgroundColor="#00000000">
                 {bg}
                 {top}
@@ -19907,7 +21103,7 @@ class SimpleSportsScreen(Screen):
                 <widget name="key_blue" position="1120,1005" size="340,60" font="SimplySportFont;30" foregroundColor="#00AAFF" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
                 <widget name="key_epg" position="1480,1005" size="400,60" font="SimplySportFont;30" foregroundColor="#BB77EE" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
             </screen>
-            """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_bar=c_bar, c_top=c_top)
+            """.format(bg=bg_widget, top=top_widget, bar=bar_widget, header=header_widget, bottom=bottom_widget, fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s, cx=clock_x, cw=clock_w, ca=clock_a, c_bar=c_bar, c_top=c_top))
 
         else:
             # ==================================================================
@@ -19963,7 +21159,7 @@ class SimpleSportsScreen(Screen):
             fg_title = "#00AFFF"; bg_title = c_bg_navy; fg_list_h = "#FFFFFF"; fg_list_s = "#00D9FF"
             clock_x = 1726; clock_w = 170; clock_a = "center"
 
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="0,0" size="1920,1080" title="SimplySports" flags="wfNoBorder" backgroundColor="#00000000">
                 {bg}
                 {top}
@@ -20014,7 +21210,7 @@ class SimpleSportsScreen(Screen):
                 badge_ai_icon=_pixmap_tag("badge_ai_icon", 1534, 26, 20, 20, z=3),
                 badge_updated_bg=_pixmap_tag("badge_updated_bg", 1320, 64, 380, 28, z=2),
                 badge_refresh_icon=_pixmap_tag("badge_refresh_icon", 1330, 69, 18, 18, z=3),
-            )
+            ))
 
         self["top_bar"] = Label(""); self["header_bg"] = Label(""); self["bottom_bar"] = Label(""); self["main_bg"] = Pixmap(); self["bar_bg"] = Label("")
         self["top_title"] = Label(_t("SIMPLY SPORTS")); self["top_status"] = Label(""); self["league_title"] = Label(_t("LOADING...")); self["list_title"] = Label("")
@@ -20038,11 +21234,11 @@ class SimpleSportsScreen(Screen):
         self["head_status"] = Label(_t("STATUS")); self["head_home"] = Label(_t("HOME")); self["head_league"] = Label(_t("LEAGUE")); self["head_score"] = Label(""); self["head_away"] = Label(_t("AWAY")); self["head_time"] = Label(_t("TIME"))
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         # Use Custom font "SimplySportFont" which is guaranteed to map to a valid system font
-        self["list"].l.setFont(0, gFont("SimplySportFont", 26))
-        self["list"].l.setFont(1, gFont("SimplySportFont", 28))
-        self["list"].l.setFont(2, gFont("SimplySportFont", 38))
-        self["list"].l.setFont(3, gFont("SimplySportFont", 20))
-        self["list"].l.setItemHeight(136 if self.is_vnext_theme else 90)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(26)))
+        self["list"].l.setFont(1, gFont("SimplySportFont", sf(28)))
+        self["list"].l.setFont(2, gFont("SimplySportFont", sf(38)))
+        self["list"].l.setFont(3, gFont("SimplySportFont", sf(17)))
+        self["list"].l.setItemHeight(sy(136 if self.is_vnext_theme else 90))
         self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Livescore.cz")); self["key_blue"] = Label(_t("Watch Party"))
         self["key_epg"] = Label(_t("Info/EPG: Channels"))
         self["key_ch"] = Label(_t("< > / << >> Browse Days"))
@@ -20148,6 +21344,12 @@ class SimpleSportsScreen(Screen):
         if not hasattr(self, '_stagger_timer'):
             self._stagger_timer = eTimer()
             safe_connect(self._stagger_timer, self._stagger_tick)
+        else:
+            try:
+                self._stagger_timer.stop()
+            except Exception:
+                pass
+
         if self._stagger_index < total:
             self._stagger_timer.start(35, True)
         else:
@@ -20417,6 +21619,7 @@ class SimpleSportsScreen(Screen):
                 try:
                     if os.path.exists(path) and wname in self and self[wname].instance:
                         self[wname].instance.setPixmapFromFile(path)
+                        self[wname].instance.setScale(1)
                 except Exception:
                     pass
 
@@ -20473,6 +21676,11 @@ class SimpleSportsScreen(Screen):
 
             self["key_menu"].setText(_t("MENU: Settings  |  1-8: Leagues  |  9: Custom  |  0: Lineups"))
             self.update_top_status()
+            if now.second % 3 == 0:
+                try:
+                    self["list"].invalidate()
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -20487,6 +21695,10 @@ class SimpleSportsScreen(Screen):
         self["list_title"].setText("Loading...")
         self.update_top_status()
         self.update_header(); self.update_filter_button(); self._update_ch_hint(); self.fetch_data()
+        try:
+            self.check_for_updates(silent=True)
+        except Exception:
+            pass
 
         # Remote Config fetch
         try:
@@ -20526,6 +21738,11 @@ class SimpleSportsScreen(Screen):
                 self.session.open(MessageBox, curr_msg, MessageBox.TYPE_INFO)
 
     def cleanup(self):
+        if hasattr(self, '_stagger_timer') and self._stagger_timer:
+            try:
+                self._stagger_timer.stop()
+            except Exception:
+                pass
         self.clock_timer.stop()
         self.logo_refresh_timer.stop()
         self.ai_ticker_timer.stop()
@@ -20714,29 +21931,26 @@ class SimpleSportsScreen(Screen):
             # Create a short hash of the URL to use as ID
             team_id = hashlib.md5(url.encode('utf-8')).hexdigest()[:10]
 
-        # Fast Success Bypass
-        if team_id in self.monitor.logo_path_cache: return self.monitor.logo_path_cache[team_id]
-
-        # CRITICAL FIX: Negative Cache bypass. If OS lacks graphic, skip the system call entirely!
-        if team_id in self.monitor.missing_logo_cache: return None
-
         target_path = self.logo_path + str(team_id) + ".png"
 
-        # Fast Set Bypass
+        # Fast Set / Memory Cache Bypass
         if target_path in GLOBAL_VALID_LOGO_PATHS:
             self.monitor.logo_path_cache[team_id] = target_path
+            self.monitor.missing_logo_cache.discard(team_id)
             return target_path
 
-        # The ultimate heavy fallback. Only executes precisely ONE time per missing image!
-        if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
+        # Check disk first - if downloaded by prefetch or detail screen, clear missing_logo_cache!
+        if os.path.exists(target_path) and os.path.getsize(target_path) > 100:
             GLOBAL_VALID_LOGO_PATHS.add(target_path)
             self.monitor.logo_path_cache[team_id] = target_path
+            self.monitor.missing_logo_cache.discard(team_id)
             return target_path
 
-        # It's officially missing - track it so we never stall checking the disk for it again
-        self.monitor.missing_logo_cache.add(team_id)
+        # Negative Cache bypass for missing files
+        if team_id in self.monitor.missing_logo_cache: return None
 
         # Queue download if not cached
+        self.monitor.missing_logo_cache.add(team_id)
         self.queue_download(url, target_path, team_id)
         return None
 
@@ -20760,12 +21974,21 @@ class SimpleSportsScreen(Screen):
             return
         self.active_downloads.add(filename)
         from twisted.web.client import downloadPage
-        downloadPage(url.encode('utf-8'), target_path).addCallback(self.download_finished, filename, target_path).addErrback(self.download_failed, filename)
+        headers = {b'User-Agent': b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        downloadPage(url.encode('utf-8'), target_path, headers=headers, timeout=10).addCallback(self.download_finished, filename, target_path).addErrback(self.download_failed, filename)
 
     def download_finished(self, data, filename, target_path):
         self.active_downloads.discard(filename)
         self.monitor.missing_logo_cache.discard(filename)
-        if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
+        if os.path.exists(target_path) and os.path.getsize(target_path) > 100:
+            try:
+                with open(target_path, 'rb') as _f:
+                    _magic = _f.read(4)
+                if _magic != b'\x89PNG':
+                    os.remove(target_path)
+                    self._process_pending_downloads()
+                    return
+            except: pass
             GLOBAL_VALID_LOGO_PATHS.add(target_path)
             self.monitor.logo_path_cache[filename] = target_path
             # Batch UI updates - wait for more downloads before refreshing
@@ -20791,7 +22014,8 @@ class SimpleSportsScreen(Screen):
             if filename not in self.active_downloads and filename not in self.monitor.logo_path_cache:
                 self.active_downloads.add(filename)
                 from twisted.web.client import downloadPage
-                downloadPage(url.encode('utf-8'), target_path).addCallback(self.download_finished, filename, target_path).addErrback(self.download_failed, filename)
+                headers = {b'User-Agent': b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                downloadPage(url.encode('utf-8'), target_path, headers=headers, timeout=10).addCallback(self.download_finished, filename, target_path).addErrback(self.download_failed, filename)
 
     def check_epg_availability(self, home, away):
         epg = eEPGCache.getInstance()
@@ -21132,12 +22356,15 @@ class SimpleSportsScreen(Screen):
             if not os.path.exists(img_path):
                 return
 
-            if LoadPixmap:
-                ptr = LoadPixmap(path=img_path)
-                if ptr:
-                    self["main_bg"].instance.setPixmap(ptr)
-                    self["main_bg"].instance.setScale(1)
-                    self["main_bg"].show()
+            if "main_bg" in self and self["main_bg"].instance:
+                if hasattr(self["main_bg"].instance, "setPixmapFromFile"):
+                    self["main_bg"].instance.setPixmapFromFile(img_path)
+                elif LoadPixmap:
+                    self._wc_bg_ptr = LoadPixmap(cached=True, path=img_path)
+                    if self._wc_bg_ptr:
+                        self["main_bg"].instance.setPixmap(self._wc_bg_ptr)
+                self["main_bg"].instance.setScale(1)
+                self["main_bg"].show()
         except Exception as e:
             print("[SimplySports] _update_wc_background error:", e)
 
@@ -21145,10 +22372,11 @@ class SimpleSportsScreen(Screen):
     def refresh_ui(self, success, force_refresh=False):
         log_diag("REFRESH_UI: success={} force={} filter_mode={} is_custom={} cached_events={} status='{}'".format(
             success, force_refresh, self.monitor.filter_mode, self.monitor.is_custom_mode, len(self.monitor.cached_events), self.monitor.status_message))
-        # Guard: Don't refresh UI during loading states UNLESS forced
+        # Guard: Don't refresh UI during loading states UNLESS forced or displaying a Loading status
         if not success and not force_refresh:
-            log_diag("REFRESH_UI: SKIPPED (not success, not forced)")
-            return
+            if not is_loading_status(self.monitor.status_message):
+                log_diag("REFRESH_UI: SKIPPED (not success, not forced)")
+                return
 
         # Swap WC background image to match current filter mode
         self._update_wc_background()
@@ -21166,7 +22394,7 @@ class SimpleSportsScreen(Screen):
 
         if not events:
             # If we already have matches and loading is in progress, keep old list to avoid flicker
-            if self.current_match_ids and ("Loading" in self.monitor.status_message or "Fetching" in self.monitor.status_message):
+            if self.current_match_ids and is_loading_status(self.monitor.status_message):
                 log_diag("REFRESH_UI: SKIPPED (loading in progress, keeping old data)")
                 return
             log_diag("REFRESH_UI: No events - showing '{}'".format(self.monitor.status_message or 'No Matches Found'))
@@ -21321,23 +22549,29 @@ class SimpleSportsScreen(Screen):
                         c_score_bg = (r << 16) | (g << 8) | b
 
                 # --- ESPN game-prediction lookup (scheduled matches only) ---
-                # Uses the same summary endpoint / predictor field as the GameInfo
-                # screen, but only pre-game win% (cheap to parse) and only for a
-                # few matches per refresh so we don't burst-fetch the whole day's
-                # schedule at once.
                 h_pred_pct = 0.0; a_pred_pct = 0.0; pred_is_estimate = 0
                 if status_short not in ("LIVE", "FIN", "PPD", "SUS", "CAN"):
-                    cached = self.monitor.predictor_cache.get(match_id)
-                    if cached:
-                        h_pred_pct = cached.get('h_pct', 0.0)
-                        a_pred_pct = cached.get('a_pct', 0.0)
-                        pred_is_estimate = 1 if cached.get('source') == 'spread_estimate' else 0
-                    elif (match_id not in self.monitor.predictor_inflight
-                          and predictor_fetches_started < 3):
-                        predictor_fetches_started += 1
-                        self.monitor.fetch_predictor_async(match_id, snap.get('league_url', ''), snap.get('event_id', match_id))
+                    # 1. Extract directly from event object (instant & complete)
+                    h_pred_pct, a_pred_pct = extract_win_prediction_from_event(event)
 
-                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0), snap.get('h_pct_stats', []), snap.get('a_pct_stats', []), snap.get('h_shots', 0), snap.get('a_shots', 0), snap.get('h_on_target', 0), snap.get('a_on_target', 0), snap.get('h_form', ''), snap.get('a_form', ''), h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side, pulse_alpha)
+                    # 2. Fallback to cached async predictor if event odds unpopulated
+                    if h_pred_pct <= 0 and a_pred_pct <= 0:
+                        cached = self.monitor.predictor_cache.get(match_id)
+                        if cached:
+                            h_pred_pct = cached.get('h_pct', 0.0)
+                            a_pred_pct = cached.get('a_pct', 0.0)
+                            pred_is_estimate = 1 if cached.get('source') == 'spread_estimate' else 0
+                        elif (match_id not in self.monitor.predictor_inflight
+                              and predictor_fetches_started < 3):
+                            predictor_fetches_started += 1
+                            self.monitor.fetch_predictor_async(match_id, snap.get('league_url', ''), snap.get('event_id', match_id))
+
+                # Only extract key moments / match news for Today's matches (ch_day_offset == 0)
+                if getattr(self.monitor, 'ch_day_offset', 0) == 0:
+                    km_text = extract_key_moments_summary(event)
+                else:
+                    km_text = []
+                entry_data = (status_short, get_league_abbr(snap['league_name']), str(left_text), str(score_text), str(right_text), str(display_time), goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, snap.get('h_red_cards', 0), snap.get('a_red_cards', 0), snap.get('h_poss', 0.0), snap.get('a_poss', 0.0), snap.get('h_pct_stats', []), snap.get('a_pct_stats', []), snap.get('h_shots', 0), snap.get('a_shots', 0), snap.get('h_on_target', 0), snap.get('a_on_target', 0), snap.get('h_form', ''), snap.get('a_form', ''), h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side, pulse_alpha, km_text)
 
                 # Store raw data for sorting (include event for excitement calculation)
                 raw_entries.append((entry_data, match_id, is_live, event))
@@ -21442,8 +22676,8 @@ class SimpleSportsScreen(Screen):
                             # Get team logo path (cached via get_logo_path mechanism)
                             d_team_logo = None
                             team_obj = drv.get('team', {})
-                            team_logo_url = team_obj.get('logo', '')
                             team_id = team_obj.get('id', '')
+                            team_logo_url = extract_team_logo(team_obj, 'racing', team_id)
                             if team_logo_url and team_id:
                                 sport_prefix = get_sport_id_prefix(ev_url)
                                 d_team_logo = self.get_logo_path(team_logo_url, sport_prefix + str(team_id))
@@ -21516,18 +22750,22 @@ class SimpleSportsScreen(Screen):
                     self["list"].list[i] = list_content[i]
                 self["list"].l.setList(self["list"].list)
             else:
-                if getattr(self, 'is_vnext_theme', False):
-                    self._start_stagger_reveal(list_content, new_match_ids, selected_id)
-                else:
-                    self["list"].setList(list_content)
-                    self.current_match_ids = new_match_ids
+                if hasattr(self, '_stagger_timer') and self._stagger_timer:
+                    try:
+                        self._stagger_timer.stop()
+                    except Exception:
+                        pass
 
-                    # --- CURSOR RESTORE ---
-                    if selected_id:
-                        try:
-                            new_index = new_match_ids.index(selected_id)
-                            self["list"].moveToIndex(new_index)
-                        except ValueError: pass
+                # Direct single setList update (bypasses stagger-reveal to prevent native listbox C++ crashes)
+                self["list"].setList(list_content)
+                self.current_match_ids = new_match_ids
+
+                # --- CURSOR RESTORE ---
+                if selected_id:
+                    try:
+                        new_index = new_match_ids.index(selected_id)
+                        self["list"].moveToIndex(new_index)
+                    except ValueError: pass
 
             # Stamp the exact moment this render completed
             self._last_refreshed = datetime.datetime.now()
@@ -22409,6 +23647,7 @@ class SimpleSportsScreen(Screen):
         self.last_key_time = time.time()
         log_dbg("SimpleSportsScreen: ch_next_day moving day by +1. Current offset was: {}".format(self.monitor.ch_day_offset))
         self.monitor.navigate_day(+1)
+        self._update_wc_background()
         self.update_header()
         self.update_filter_button()
         self._update_ch_hint()
@@ -22421,6 +23660,7 @@ class SimpleSportsScreen(Screen):
         self.last_key_time = time.time()
         log_dbg("SimpleSportsScreen: ch_prev_day moving day by -1. Current offset was: {}".format(self.monitor.ch_day_offset))
         self.monitor.navigate_day(-1)
+        self._update_wc_background()
         self.update_header()
         self.update_filter_button()
         self._update_ch_hint()
@@ -22452,27 +23692,36 @@ class SimpleSportsScreen(Screen):
                 )
         except Exception:
             pass
-    def check_for_updates(self):
-        self["league_title"].setText(_t("CHECKING FOR UPDATES..."))
+    def check_for_updates(self, silent=False):
+        self._update_silent = silent
+        if not silent:
+            self["league_title"].setText(_t("CHECKING FOR UPDATES..."))
         url = GITHUB_BASE_URL + "version.txt"
-        getPage(url.encode('utf-8')).addCallback(self.got_version).addErrback(self.update_fail)
+        headers_dict = {b'User-Agent': b'curl/7.68.0'}
+        getPage(url.encode('utf-8'), headers=headers_dict).addCallback(self.got_version).addErrback(self.update_fail)
 
     def got_version(self, data):
         try:
             remote = data.decode('utf-8').strip()
-            if remote > CURRENT_VERSION:
-                msg = _t("Update available: ") + remote + "\n" + _t("Update now?")
+
+            def parse_ver(v_str):
+                return [int(x) for x in re.sub(r'[^0-9.]', '', str(v_str)).split('.') if x.isdigit()]
+
+            if parse_ver(remote) > parse_ver(CURRENT_VERSION):
+                msg = _t("New update is available") + " (v" + remote + ")\n\n" + _t("Do you want to update now?")
                 self.session.openWithCallback(self.start_update, MessageBox, msg, MessageBox.TYPE_YESNO)
             else:
-                msg = _t("Latest version installed!")
-                self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
+                if not getattr(self, '_update_silent', False):
+                    msg = _t("Latest version installed!")
+                    self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
                 self.update_header()
-        except:
+        except Exception:
             self.update_fail(None)
 
     def update_fail(self, error):
-        msg = _t("Update check failed.")
-        self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR, timeout=3)
+        if not getattr(self, '_update_silent', False):
+            msg = _t("Update check failed.")
+            self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR, timeout=3)
         self.update_header()
 
     def start_update(self, answer):
@@ -22838,7 +24087,7 @@ class BroadcastingChannelsScreen(Screen):
 
         # --- SKIN ---
         if self.theme == "ucl":
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,860" title="Match Broadcasts" backgroundColor="#00000000" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,860" backgroundColor="#0d1b2e" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#c9a020" zPosition="1" />
@@ -22855,9 +24104,9 @@ class BroadcastingChannelsScreen(Screen):
                 <widget name="key_blue" position="705,730" size="210,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#0055CC" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="hint" position="30,795" size="890,45" font="SimplySportFont;22" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
         else:
-            self.skin = """
+            self.skin = scale_skin_xml("""
             <screen position="center,center" size="950,860" title="Match Broadcasts" backgroundColor="#38003C" flags="wfNoBorder">
                 <eLabel position="0,0" size="950,860" backgroundColor="#38003C" zPosition="-1" />
                 <eLabel position="0,0" size="950,4" backgroundColor="#00FF85" zPosition="1" />
@@ -22874,7 +24123,7 @@ class BroadcastingChannelsScreen(Screen):
                 <widget name="key_blue" position="705,730" size="210,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#0055CC" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="hint" position="30,795" size="890,45" font="SimplySportFont;22" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
             </screen>
-            """
+            """)
 
         match_title_str = _t("Broadcasting channels")
         self._match_home = u""
@@ -22902,9 +24151,9 @@ class BroadcastingChannelsScreen(Screen):
         self["key_blue"] = Label(_t("Find in Bouquets"))
 
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
-        self["list"].l.setFont(0, gFont("SimplySportFont", 28))
-        self["list"].l.setFont(1, gFont("SimplySportFont", 22))
-        self["list"].l.setItemHeight(60)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(28)))
+        self["list"].l.setFont(1, gFont("SimplySportFont", sf(22)))
+        self["list"].l.setItemHeight(sy(60))
 
         self._online_search_active = False
         self._sports_channels_cache = None  # Cache for iptv-org channels
@@ -23001,7 +24250,7 @@ class BroadcastingChannelsScreen(Screen):
                     break
 
             from twisted.web.client import getPage
-            getPage(url.encode('utf-8'), timeout=10).addCallback(self._parse_extended_broadcasters).addErrback(self._broadcasters_err)
+            getPage(url.encode('utf-8'), timeout=10, headers={b'User-Agent': b'curl/7.68.0'}).addCallback(self._parse_extended_broadcasters).addErrback(self._broadcasters_err)
 
     def _parse_extended_broadcasters(self, data):
         import json
@@ -24043,79 +25292,97 @@ class BroadcastingChannelsScreen(Screen):
         log_step("[LSTV] Search terms: '{}' vs '{}'".format(home_clean, away_clean))
 
         def _get(url, is_json=False):
-            # Try curl first
+            url_str = url.encode('utf-8') if is_py2 and isinstance(url, unicode) else str(url)
+            
+            # 1. Try curl
             try:
                 import subprocess
                 cmd = ["curl", "-k", "-sL", "--connect-timeout", "10", "-m", "15"]
                 for k, v in HEADERS.items():
-                    h_val = u"{}: {}".format(_to_unicode(k), _to_unicode(v))
-                    cmd.extend(["-H", h_val])
+                    h_k = k.encode('utf-8') if is_py2 and isinstance(k, unicode) else str(k)
+                    h_v = v.encode('utf-8') if is_py2 and isinstance(v, unicode) else str(v)
+                    cmd.extend(["-H", "{}: {}".format(h_k, h_v)])
                 if is_json:
-                    cmd.extend(["-H", u"Accept: application/json, text/javascript, */*; q=0.01"])
-                cmd.append(_to_unicode(url))
-                
-                # In Py2, ensure all elements in cmd list are byte strings
-                if is_py2:
-                    cmd = [arg.encode('utf-8') if isinstance(arg, unicode) else str(arg) for arg in cmd]
-                
+                    cmd.extend(["-H", "Accept: application/json, text/javascript, */*; q=0.01"])
+                cmd.append(url_str)
+
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 out, err = p.communicate()
                 if p.returncode == 0 and out:
-                    log_step("[_get] curl Success for " + url)
+                    log_step("[_get] curl Success for " + _to_unicode(url))
                     return _to_unicode(out)
                 else:
                     log_step("[_get] curl Code: {}, Error: {}".format(p.returncode, _to_unicode(err)))
             except Exception as e:
                 log_step("[_get] curl Subprocess failed: " + str(e))
 
-            # Try wget second
+            # 2. Try wget
             try:
                 import subprocess
                 cmd = ["wget", "-qO-", "--no-check-certificate", "--timeout=15"]
                 for k, v in HEADERS.items():
-                    h_val = u"--header={}: {}".format(_to_unicode(k), _to_unicode(v))
-                    cmd.append(h_val)
+                    h_k = k.encode('utf-8') if is_py2 and isinstance(k, unicode) else str(k)
+                    h_v = v.encode('utf-8') if is_py2 and isinstance(v, unicode) else str(v)
+                    cmd.append("--header={}: {}".format(h_k, h_v))
                 if is_json:
-                    cmd.append(u"--header=Accept: application/json, text/javascript, */*; q=0.01")
-                cmd.append(_to_unicode(url))
-                
-                # In Py2, ensure all elements in cmd list are byte strings
-                if is_py2:
-                    cmd = [arg.encode('utf-8') if isinstance(arg, unicode) else str(arg) for arg in cmd]
-                
+                    cmd.append("--header=Accept: application/json, text/javascript, */*; q=0.01")
+                cmd.append(url_str)
+
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 out, err = p.communicate()
                 if p.returncode == 0 and out:
-                    log_step("[_get] wget Success for " + url)
+                    log_step("[_get] wget Success for " + _to_unicode(url))
                     return _to_unicode(out)
                 else:
                     log_step("[_get] wget Code: {}, Error: {}".format(p.returncode, _to_unicode(err)))
             except Exception as e:
                 log_step("[_get] wget Subprocess failed: " + str(e))
 
-            # Fallback to urllib
-            req = _ur.Request(url, headers=HEADERS)
-            if is_json:
-                req.add_header('Accept', 'application/json, text/javascript, */*; q=0.01')
-            
+            # 3. urllib fallback (Py2 & Py3 SSL/urlopen compatible)
             try:
-                import ssl
-                ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-            except:
-                ctx = None
+                py2_headers = {}
+                for k, v in HEADERS.items():
+                    h_k = k.encode('utf-8') if is_py2 and isinstance(k, unicode) else str(k)
+                    h_v = v.encode('utf-8') if is_py2 and isinstance(v, unicode) else str(v)
+                    py2_headers[h_k] = h_v
+                if is_json:
+                    acc_k = b'Accept' if is_py2 else 'Accept'
+                    acc_v = b'application/json, text/javascript, */*; q=0.01' if is_py2 else 'application/json, text/javascript, */*; q=0.01'
+                    py2_headers[acc_k] = acc_v
 
-            try:
+                req = _ur.Request(url_str, headers=py2_headers)
+
+                ctx = None
+                try:
+                    import ssl
+                    if hasattr(ssl, '_create_unverified_context'):
+                        ctx = ssl._create_unverified_context()
+                    elif hasattr(ssl, 'create_default_context'):
+                        ctx = ssl.create_default_context()
+                        ctx.check_hostname = False
+                        ctx.verify_mode = ssl.CERT_NONE
+                except Exception:
+                    ctx = None
+
+                res_data = None
                 if ctx:
-                    res = _ur.urlopen(req, context=ctx, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
+                    try:
+                        res_data = _ur.urlopen(req, context=ctx, timeout=10).read()
+                    except (TypeError, AttributeError):
+                        res_data = _ur.urlopen(req, timeout=10).read()
                 else:
-                    res = _ur.urlopen(req, timeout=SAT_FEED_TIMEOUT).read().decode('utf-8', errors='replace')
-                log_step("[_get] urllib Success for " + url)
-                return res
+                    try:
+                        res_data = _ur.urlopen(req, timeout=10).read()
+                    except TypeError:
+                        res_data = _ur.urlopen(req).read()
+
+                if res_data:
+                    log_step("[_get] urllib Success for " + _to_unicode(url))
+                    return _to_unicode(res_data)
             except Exception as e:
-                log_step("[_get] urllib Error: " + str(e))
-                raise e
+                log_step("[_get] urllib Error for {}: {}".format(_to_unicode(url), str(e)))
+
+            return u""
 
         def _validate(link):
             lnk_lower = _to_unicode(link).lower()
@@ -24146,50 +25413,32 @@ class BroadcastingChannelsScreen(Screen):
         # ---- Step 1: Resolve the match page URL using a hybrid strategy ----
         valid_match_url = None
 
-        # Try 1: Autocomplete API with "Home vs Away"
-        q1 = u"{} vs {}".format(home_clean, away_clean)
-        url_ac1 = u"https://cdnapi.livesoccertv.com/autocomplete.php?q=" + _safe_quote(q1) + u"&iso=iq"
-        log_step("Try 1: Autocomplete VS (" + url_ac1 + ")")
-        try:
-            import json
-            res = _get(url_ac1, is_json=True)
-            data = json.loads(res)
-            html = data.get("html", "")
-            raw_links = re.findall(r'href=["\']([^"\']+)["\']', html)
-            log_step("AC1 links found: {}".format(len(raw_links)))
-            for lnk in raw_links:
-                m = re.search(r'[?&]url=([^&]+)', lnk)
-                if m:
-                    lnk_val = m.group(1)
-                    if not is_py2:
-                        decoded = _up.unquote(lnk_val)
-                    else:
-                        if isinstance(lnk_val, unicode):
-                            lnk_val = lnk_val.encode('utf-8')
-                        unquoted = _up.unquote(lnk_val)
-                        decoded = unquoted.decode('utf-8', errors='replace')
-                else:
-                    decoded = lnk
-                clean_lnk = decoded.split('#')[0]
-                if clean_lnk.startswith(u"/match") and _validate(clean_lnk):
-                    valid_match_url = u"https://www.livesoccertv.com" + clean_lnk
-                    log_step("AC1 validated match URL: " + valid_match_url)
-                    break
-        except Exception as e:
-            log_step("AC1 Exception: " + str(e))
+        # Build search query candidates for Autocomplete API
+        # LiveSoccerTV autocomplete database indexes team names individually.
+        # Combined queries like "TeamA vs TeamB" often return empty html in autocomplete API.
+        search_queries = []
+        if home_clean:
+            search_queries.append(home_clean)
+        if away_clean:
+            search_queries.append(away_clean)
+        if home_clean and away_clean:
+            search_queries.append(u"{} vs {}".format(home_clean, away_clean))
+            search_queries.append(u"{} {}".format(home_clean, away_clean))
 
-        # Try 2: Autocomplete API with "Home Away"
-        if not valid_match_url:
-            q2 = u"{} {}".format(home_clean, away_clean)
-            url_ac2 = u"https://cdnapi.livesoccertv.com/autocomplete.php?q=" + _safe_quote(q2) + u"&iso=iq"
-            log_step("Try 2: Autocomplete Space (" + url_ac2 + ")")
+        for idx, q_text in enumerate(search_queries, 1):
+            if valid_match_url:
+                break
+            url_ac = u"https://cdnapi.livesoccertv.com/autocomplete.php?q=" + _safe_quote(q_text) + u"&iso=iq"
+            log_step("Try {}: Autocomplete ('{}' -> {})".format(idx, q_text, url_ac))
             try:
                 import json
-                res = _get(url_ac2, is_json=True)
+                res = _get(url_ac, is_json=True)
+                if not res:
+                    continue
                 data = json.loads(res)
                 html = data.get("html", "")
                 raw_links = re.findall(r'href=["\']([^"\']+)["\']', html)
-                log_step("AC2 links found: {}".format(len(raw_links)))
+                log_step("AC{} links found: {}".format(idx, len(raw_links)))
                 for lnk in raw_links:
                     m = re.search(r'[?&]url=([^&]+)', lnk)
                     if m:
@@ -24206,26 +25455,27 @@ class BroadcastingChannelsScreen(Screen):
                     clean_lnk = decoded.split('#')[0]
                     if clean_lnk.startswith(u"/match") and _validate(clean_lnk):
                         valid_match_url = u"https://www.livesoccertv.com" + clean_lnk
-                        log_step("AC2 validated match URL: " + valid_match_url)
+                        log_step("AC{} validated match URL: {}".format(idx, valid_match_url))
                         break
             except Exception as e:
-                log_step("AC2 Exception: " + str(e))
+                log_step("AC{} Exception: {}".format(idx, str(e)))
 
-        # Try 3: Search page GET fallback
+        # Fallback: Search page GET fallback if autocomplete yielded no match URL
         if not valid_match_url:
-            q3 = u"{} {}".format(home_clean, away_clean).strip()
-            search_url = u"https://www.livesoccertv.com/search/?q=" + _safe_quote(q3, plus=True)
-            log_step("Try 3: Search GET fallback (" + search_url + ")")
+            q_fallback = u"{} {}".format(home_clean, away_clean).strip()
+            search_url = u"https://www.livesoccertv.com/search/?q=" + _safe_quote(q_fallback, plus=True)
+            log_step("Fallback: Search GET (" + search_url + ")")
             try:
                 search_html = _get(search_url)
-                match_links = re.findall(r'href=["\'](?:https://www\.livesoccertv\.com)?(/match(?:es)?/[^"\'#\s>]+)', search_html, re.IGNORECASE)
-                log_step("Search links found: {}".format(len(match_links)))
-                for lnk in match_links:
-                    clean_lnk = lnk.split('#')[0]
-                    if _validate(clean_lnk):
-                        valid_match_url = u"https://www.livesoccertv.com" + clean_lnk
-                        log_step("Search validated match URL: " + valid_match_url)
-                        break
+                if search_html:
+                    match_links = re.findall(r'href=["\'](?:https://www\.livesoccertv\.com)?(/match(?:es)?/[^"\'#\s>]+)', search_html, re.IGNORECASE)
+                    log_step("Search links found: {}".format(len(match_links)))
+                    for lnk in match_links:
+                        clean_lnk = lnk.split('#')[0]
+                        if _validate(clean_lnk):
+                            valid_match_url = u"https://www.livesoccertv.com" + clean_lnk
+                            log_step("Search validated match URL: " + valid_match_url)
+                            break
             except Exception as e:
                 log_step("Search GET Exception: " + str(e))
 
@@ -24242,15 +25492,50 @@ class BroadcastingChannelsScreen(Screen):
             log_step("No match page HTML fetched.")
             return ([], debug_log)
 
-        # ---- Step 3: extract channels from TV listings table ----
+        # ---- Step 3: extract channels from match page ----
         results = []
         seen_pairs = set()
 
-        # Try to find tables containing 'ichannels' or located inside 'dynamic-international-tv'
-        tables = re.findall(r'<table[^>]+class=["\'][^"\']*ichannels[^"\']*["\'][^>]*>(.*?)</table>', parse_html, re.DOTALL | re.IGNORECASE)
-        log_step("Found ichannels tables count: {}".format(len(tables)))
+        # Method A: JSON-LD structured data
+        try:
+            import json as _json
+            ld_blocks = re.findall(
+                r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+                parse_html, re.DOTALL | re.IGNORECASE
+            )
+            log_step("JSON-LD blocks found: {}".format(len(ld_blocks)))
+            for ld_raw in ld_blocks:
+                try:
+                    ld_data = _json.loads(ld_raw)
+                except Exception:
+                    continue
+                items = []
+                if isinstance(ld_data, list):
+                    items = ld_data
+                elif isinstance(ld_data, dict):
+                    if '@graph' in ld_data:
+                        items = ld_data['@graph']
+                    else:
+                        items = [ld_data]
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    if item.get('@type') != 'BroadcastEvent':
+                        continue
+                    pub = item.get('publishedOn', {})
+                    ch_name = _to_unicode(pub.get('name', u'')).strip()
+                    area = pub.get('areaServed', {})
+                    country = _to_unicode(area.get('name', u'')).strip() if isinstance(area, dict) else u''
+                    if ch_name and (ch_name, country) not in seen_pairs:
+                        seen_pairs.add((ch_name, country))
+                        results.append((ch_name, country))
+        except Exception as e:
+            log_step("JSON-LD extraction error: " + str(e))
 
-        if tables:
+        # Method B: ichannels HTML table
+        try:
+            tables = re.findall(r'<table[^>]+class=["\'][^"\']*ichannels[^"\']*["\'][^>]*>(.*?)</table>', parse_html, re.DOTALL | re.IGNORECASE)
+            log_step("Found ichannels tables count: {}".format(len(tables)))
             for table_html in tables:
                 for tr_html in re.findall(r'<tr[^>]*>(.*?)</tr>', table_html, re.DOTALL | re.IGNORECASE):
                     tds = re.findall(r'<td[^>]*>(.*?)</td>', tr_html, re.DOTALL | re.IGNORECASE)
@@ -24262,9 +25547,12 @@ class BroadcastingChannelsScreen(Screen):
                             if clean_ch and (clean_ch, country) not in seen_pairs:
                                 seen_pairs.add((clean_ch, country))
                                 results.append((clean_ch, country))
-        else:
-            log_step("No ichannels tables, trying links fallback scan")
-            # Fallback if no table found (e.g. search page fallback)
+        except Exception as e:
+            log_step("ichannels extraction error: " + str(e))
+
+        # Fallback Method C: If no channels found yet, do generic channel link scan
+        if not results:
+            log_step("Trying generic channel links fallback scan")
             clean_html = re.sub(r'<div[^>]+class=["\'][^"\']*(?:bottom-menu|footer|header)[^"\']*["\'].*?</div>', u'', parse_html, flags=re.DOTALL|re.IGNORECASE)
             channel_pat = re.compile(
                 r'<a[^>]+href=["\'](?:https://www\.livesoccertv\.com)?/channels/[^"\'\s>]+["\'][^>]*>(.*?)</a>',
@@ -24569,7 +25857,7 @@ def LeaderboardListEntry(rank, name, badge, score, accuracy, total_bets, theme_m
 
         badge_color = get_badge_color(badge)
 
-        h = 74
+        h = sy(74)
         # rank symbol
         rank_txt = u"#{:d}".format(rank) if rank > 3 else [u"1st", u"2nd", u"3rd"][rank - 1]
 
@@ -24578,20 +25866,20 @@ def LeaderboardListEntry(rank, name, badge, score, accuracy, total_bets, theme_m
 
         # ── Rank ──
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    0, 0, 70, h, 1,
+                    0, 0, sx(70), h, 1,
                     RT_HALIGN_CENTER | RT_VALIGN_CENTER,
                     rank_txt, rank_color, c_sel))
 
         # ── Thin accent bar (left edge of name column) ──
         bar_color = rank_color if rank <= 3 else c_accent
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    71, 8, 4, h - 16, 0,
+                    sx(71), sy(8), sx(4), h - sy(16), 0,
                     RT_HALIGN_CENTER,
                     u"", bar_color, bar_color))
 
         # ── Player name ──
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    84, 0, 470, h, 1,
+                    sx(84), 0, sx(470), h, 1,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     name, c_text, c_sel))
 
@@ -24600,54 +25888,54 @@ def LeaderboardListEntry(rank, name, badge, score, accuracy, total_bets, theme_m
             stage_short, multiplier = wc_stage
             # Badge in top half
             res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                        570, 0, 210, 38, 0,
+                        sx(570), 0, sx(210), sy(38), 0,
                         RT_HALIGN_CENTER | RT_VALIGN_CENTER,
                         u"[{}]".format(badge), badge_color, c_sel))
             # Stage multiplier in bottom half — gold, smaller font
             res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                        570, 38, 210, 36, 0,
+                        sx(570), sy(38), sx(210), sy(36), 0,
                         RT_HALIGN_CENTER | RT_VALIGN_CENTER,
                         u"\xd7{} {}".format(multiplier, stage_short), 0xc9a020, c_sel))
         else:
             res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                        570, 0, 210, h, 0,
+                        sx(570), 0, sx(210), h, 0,
                         RT_HALIGN_CENTER | RT_VALIGN_CENTER,
                         u"[{}]".format(badge), badge_color, c_sel))
 
         # ── Score ──
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    800, 0, 60, h, 0,
+                    sx(800), 0, sx(60), h, 0,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     u"Pts", c_dim, c_sel))
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    845, 0, 120, h, 1,
+                    sx(845), 0, sx(120), h, 1,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     str(score), c_won if score > 0 else c_dim, c_sel))
 
         # ── Accuracy ──
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    990, 0, 60, h, 0,
+                    sx(990), 0, sx(60), h, 0,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     u"Acc", c_dim, c_sel))
         acc_color = c_won if accuracy >= 60 else c_lost if accuracy > 0 else c_dim
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    1038, 0, 160, h, 1,
+                    sx(1038), 0, sx(160), h, 1,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     u"{:.1f}%".format(accuracy), acc_color, c_sel))
 
         # ── Total bets ──
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    1215, 0, 70, h, 0,
+                    sx(1215), 0, sx(70), h, 0,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     u"Bets", c_dim, c_sel))
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    1265, 0, 120, h, 1,
+                    sx(1265), 0, sx(120), h, 1,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     str(total_bets), c_text, c_sel))
 
         # ── Bottom separator ──
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    0, h - 2, 1590, 2, 0,
+                    0, h - sy(2), sx(1600), sy(2), 0,
                     RT_HALIGN_CENTER,
                     u"", 0x222230, 0x222230))
 
@@ -24692,60 +25980,60 @@ def ProfileListEntry(outcome, h_name, a_name, picked, score_str, date_str, theme
 
         match_txt = u"{} vs {}".format(h_name, a_name)
 
-        h = 74
+        h = sy(74)
         entry_data = ("PF", outcome, h_name, a_name, picked, score_str, date_str, theme_mode)
         res = [entry_data]
 
         # Accent bar
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    0, 8, 4, h - 16, 0,
+                    0, sy(8), sx(4), h - sy(16), 0,
                     RT_HALIGN_CENTER,
                     u"", bar_color, bar_color))
 
         # Outcome tag
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    12, 0, 130, h, 1,
+                    sx(12), 0, sx(130), h, 1,
                     RT_HALIGN_CENTER | RT_VALIGN_CENTER,
                     tag_txt, tag_color, c_sel))
 
         # Match name
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    155, 0, 530, h, 1,
+                    sx(155), 0, sx(530), h, 1,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     match_txt, c_text, c_sel))
 
         # "Picked:" label
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    700, 0, 80, h, 0,
+                    sx(700), 0, sx(80), h, 0,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     u"Picked:", c_dim, c_sel))
 
         # Picked team
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    792, 0, 280, h, 1,
+                    sx(792), 0, sx(280), h, 1,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     picked, c_text, c_sel))
 
         # FT + score (resolved only)
         if outcome != "PENDING":
             res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                        1085, 0, 50, h, 0,
+                        sx(1085), 0, sx(50), h, 0,
                         RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                         u"FT:", c_dim, c_sel))
             res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                        1140, 0, 180, h, 1,
+                        sx(1140), 0, sx(180), h, 1,
                         RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                         score_str, c_text, c_sel))
 
         # Date
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    1390, 0, 190, h, 0,
+                    sx(1390), 0, sx(190), h, 0,
                     RT_HALIGN_RIGHT | RT_VALIGN_CENTER,
                     date_str, c_dim, c_sel))
 
         # Bottom separator
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    12, h - 2, 1570, 2, 0,
+                    sx(12), h - sy(2), sx(1570), sy(2), 0,
                     RT_HALIGN_CENTER,
                     u"", 0x222230, 0x222230))
 
@@ -24762,21 +26050,22 @@ def ProfileSectionHeader(title, theme_mode="default"):
             c_bg = 0x091442; c_accent = 0xc9a020; c_dim = 0x7799cc
         else:
             c_bg = 0x0d0d15; c_accent = 0x00FF85; c_dim = 0x556677
-        h = 40
+        h = sy(40)
         entry_data = ("PH", title, theme_mode)
         res = [entry_data]
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    0, 0, 1590, h - 2, 0,
+                    0, 0, sx(1600), h - sy(2), 0,
                     RT_HALIGN_CENTER,
                     u"", c_bg, c_bg))
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    20, 0, 1560, h, 0,
+                    sx(20), 0, sx(1560), h, 0,
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     title, c_dim, c_accent))
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                    0, h - 2, 1590, 2, 0,
+                    0, h - sy(2), sx(1600), sy(2), 0,
                     RT_HALIGN_CENTER,
                     u"", 0x222230, 0x222230))
+        return res
         return res
     except Exception as e:
         print("[Profile Header] Error:", e)
@@ -24798,7 +26087,7 @@ class LeaderboardScreen(Screen):
             bg       = "#00111118";  top_bar  = "#0d0d20"
             accent   = "#00FF85";    dim      = "#556677"
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             u'<screen name="LeaderboardScreen" position="center,center" '
             u'size="1600,900" flags="wfNoBorder" backgroundColor="{bg}">'
             # ── Top bar ──
@@ -24834,7 +26123,7 @@ class LeaderboardScreen(Screen):
             u'<widget name="key_blue"   position="905,843" size="260,35" font="Regular;22" foregroundColor="#44AAFF" halign="left" valign="center" transparent="1" zPosition="5"/>'
             u'<widget name="hint"       position="1200,848" size="380,35" font="Regular;18" foregroundColor="{dim}" halign="right" valign="center" transparent="1" zPosition="5"/>'
             u'</screen>'
-        ).format(bg=bg, top=top_bar, acc=accent, dim=dim)
+        ).format(bg=bg, top=top_bar, acc=accent, dim=dim))
 
         # ── Widgets ──
         self["title_lbl"]  = Label(_t("GLOBAL LEADERBOARD"))
@@ -24877,9 +26166,9 @@ class LeaderboardScreen(Screen):
         self.fetch_leaderboard()
 
     def _setup_list(self):
-        self["list"].l.setFont(0, gFont("Regular", 22))
-        self["list"].l.setFont(1, gFont("Regular", 24))
-        self["list"].l.setItemHeight(74)
+        self["list"].l.setFont(0, gFont("Regular", sf(22)))
+        self["list"].l.setFont(1, gFont("Regular", sf(24)))
+        self["list"].l.setItemHeight(sy(74))
 
     def cursor_up(self):
         self["list"].up()
@@ -25091,13 +26380,13 @@ class PersonalProfileScreen(Screen):
             bg      = "#00111118"; top_bar = "#0d0d20"
             accent  = "#00FF85";   dim     = "#556677"
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             u'<screen name="PersonalProfileScreen" position="center,center" '
             u'size="1600,900" flags="wfNoBorder" backgroundColor="{bg}">'
             # Top bar
             u'<eLabel position="0,0"    size="1600,90"  backgroundColor="{top}" zPosition="0"/>'
             u'<eLabel position="0,90"   size="1600,3"   backgroundColor="{acc}" zPosition="1"/>'
-            # Name + badge (large, centred)
+            # Name + badge (large, centred))
             u'<widget name="header_name"  position="0,12" size="1600,46" font="Regular;32" '
             u'foregroundColor="{acc}" halign="center" valign="center" transparent="1" zPosition="5"/>'
             # Stats strip
@@ -25120,7 +26409,7 @@ class PersonalProfileScreen(Screen):
             u'<widget name="key_red"    position="75,763"  size="200,35" font="Regular;22" foregroundColor="#FF4455" halign="left" valign="center" transparent="1" zPosition="5"/>'
             u'<widget name="hint"       position="1200,763" size="380,35" font="Regular;18" foregroundColor="{dim}" halign="right" valign="center" transparent="1" zPosition="5"/>'
             u'</screen>'
-        ).format(bg=bg, top=top_bar, acc=accent, dim=dim)
+        ).format(bg=bg, top=top_bar, acc=accent, dim=dim))
 
         self["header_name"]  = Label("")
         self["header_stats"] = Label("")
@@ -25148,8 +26437,8 @@ class PersonalProfileScreen(Screen):
         self.onLayoutFinish.append(self._setup_and_populate)
 
     def _setup_and_populate(self):
-        self["list"].l.setFont(0, gFont("Regular", 20))
-        self["list"].l.setFont(1, gFont("Regular", 22))
+        self["list"].l.setFont(0, gFont("Regular", sf(20)))
+        self["list"].l.setFont(1, gFont("Regular", sf(22)))
         self._populate()
 
     # ------------------------------------------------------------------
@@ -25264,7 +26553,7 @@ class PersonalProfileScreen(Screen):
                     rows.append(row)
 
         self["list"].setList(rows)
-        self["list"].l.setItemHeight(74)
+        self["list"].l.setItemHeight(sy(74))
 
 
 # ==============================================================================
@@ -25450,7 +26739,7 @@ class WatchPartyScreen(Screen):
         # ── Sound toggle state ────────────────────────────────────────────
         self._sound_enabled = True
 
-        self.skin = (
+        self.skin = scale_skin_xml((
             u'<screen position="0,930" size="1920,150" title="Watch Party"'
             u' flags="wfNoBorder" backgroundColor="#CC000000">'
 
@@ -25461,7 +26750,7 @@ class WatchPartyScreen(Screen):
             u'<eLabel position="0,0" size="1920,2" backgroundColor="#0066CCFF" zPosition="5" />'
 
             # ═══════════════════════════════════════════════════════════════
-            # REACTION ZONES  (y=0 … y=80)
+            # REACTION ZONES  (y=0 … y=80))
             # ═══════════════════════════════════════════════════════════════
 
             # ── Vertical zone dividers ────────────────────────────────────
@@ -25648,7 +26937,7 @@ class WatchPartyScreen(Screen):
             u' halign="center" valign="center" zPosition="9" />'
 
             u'</screen>'
-        ).format()
+        ))
 
         # ── Enigma2 widgets — Match Info ──────────────────────────────────
         self["h_logo"]     = Pixmap()
@@ -26967,14 +28256,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
+            description="Live Sports Scores, Universal Skins (720p-4K), Key Moments, Cup Aggregate, Audio Alerts, AI, and EPG v6.6 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
+            description="Live Sports Scores, Universal Skins (720p-4K), Key Moments, Cup Aggregate, Audio Alerts, AI, and EPG v6.6 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -26989,7 +28278,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Alerts, Predictions, AI, and EPG by reali22",
+            description="Live Sports Scores, Universal Skins (720p-4K), Key Moments, Cup Aggregate, Audio Alerts, AI, and EPG v6.6 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
