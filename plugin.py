@@ -14260,9 +14260,9 @@ class FavTeamToast(Screen):
         self._h_id  = h_logo_id
         self._a_id  = a_logo_id
 
-        team_name    = _s(team_name)
-        home_name    = _s(home_name)
-        away_name    = _s(away_name)
+        team_name    = _team_name(_s(team_name))
+        home_name    = _team_name(_s(home_name))
+        away_name    = _team_name(_s(away_name))
         league_name  = _s(league_name)
         channel_name = _s(channel_name)
 
@@ -25938,9 +25938,11 @@ class LiveScoreCZMiniBar3(Screen):
 
         match = self.matches[self.current_match_idx % len(self.matches)]
         league_name = self.get_league_name_for_match(match)
-        self["lbl_league"].setText(league_name.upper())
-        self["lbl_home"].setText(match.get("home", "").upper())
-        self["lbl_away"].setText(match.get("away", "").upper())
+        self["lbl_league"].setText(_t(league_name) if PLUGIN_LANGUAGE == "ar" else league_name.upper())
+        h_txt = _team_name(match.get("home", ""))
+        a_txt = _team_name(match.get("away", ""))
+        self["lbl_home"].setText(h_txt if PLUGIN_LANGUAGE == "ar" else h_txt.upper())
+        self["lbl_away"].setText(a_txt if PLUGIN_LANGUAGE == "ar" else a_txt.upper())
         self["lbl_score"].setText(match.get("score", "-:-"))
         
         st = match.get("status", "")
@@ -26049,6 +26051,9 @@ class LiveScoreFollowToast(Screen):
         self.league_name = league_name
         self.theme = global_sports_monitor.theme_mode
 
+        home_team = _team_name(home_team)
+        away_team = _team_name(away_team)
+
         band_hi  = "#00887050"   # gold highlight
         band_mid = "#00604c2c"   # bronze body
         band_lo  = "#00302016"   # dark shadow
@@ -26107,8 +26112,8 @@ class LiveScoreFollowToast(Screen):
 
         Screen.__init__(self, session)
         self["league"] = Label(self.league_name.upper())
-        self["home"] = Label(self.home_team.upper())
-        self["away"] = Label(self.away_team.upper())
+        self["home"] = Label(self.home_team if PLUGIN_LANGUAGE == "ar" else self.home_team.upper())
+        self["away"] = Label(self.away_team if PLUGIN_LANGUAGE == "ar" else self.away_team.upper())
         self["score"] = Label(self.score)
         self["scorer"] = Label(self.notification_text)
 
