@@ -114,7 +114,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.6"
+VERSION = "6.7"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -305,6 +305,7 @@ TRANSLATIONS = {
     "Show Plugin in Main Menu: ": {"ar": u"\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c \u0641\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629: "},
     "Set Voter Name: ":           {"ar": u"\u062a\u0639\u064a\u064a\u0646 \u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0648\u0651\u062a: "},
     "AI Mode: ":                  {"ar": u"\u0648\u0636\u0639 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a: "},
+    "Toast Animation: ":          {"ar": u"\u062d\u0631\u0643\u0629 \u0627\u0644\u0625\u0634\u0639\u0627\u0631: "},
     "Notifications Test":         {"ar": u"\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a"},
     "Yes":                        {"ar": u"\u0646\u0639\u0645"},
     "No":                         {"ar": u"\u0644\u0627"},
@@ -317,6 +318,11 @@ TRANSLATIONS = {
     "Favorite Leagues":           {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     "Mark Favorites":             {"ar": u"\u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     "RED: Heart  GREEN: Save Favs": {"ar": u"\u0623\u062d\u0645\u0631: \u0642\u0644\u0628  \u0623\u062e\u0636\u0631: \u062d\u0641\u0638 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "RED: Fav  |  8: Key 8  |  OK: Select": {"ar": u"\u0623\u062d\u0645\u0631: \u0627\u0644\u0645\u0641\u0636\u0644\u0629  |  8: \u062a\u0639\u064a\u064a\u0646 \u0644\u0644\u0632\u0631 8  |  OK: \u0627\u062e\u062a\u064a\u0627\u0631"},
+    "OK: Toggle  |  8: Key 8  |  GREEN: Save": {"ar": u"OK: \u062a\u062d\u062f\u064a\u062f  |  8: \u062a\u0639\u064a\u064a\u0646 \u0644\u0644\u0632\u0631 8  |  \u0623\u062e\u0636\u0631: \u062d\u0641\u0638"},
+    "OK: Toggle  |  8: Key 8  |  GREEN: Apply": {"ar": u"OK: \u062a\u062d\u062f\u064a\u062f  |  8: \u062a\u0639\u064a\u064a\u0646 \u0644\u0644\u0632\u0631 8  |  \u0623\u062e\u0636\u0631: \u062a\u0637\u0628\u064a\u0642"},
+    "League assigned to Key 8: ":   {"ar": u"\u062a\u0645 \u062a\u0639\u064a\u064a\u0646 \u0627\u0644\u0628\u0637\u0648\u0644\u0629 \u0644\u0644\u0632\u0631 8: "},
+    "No league assigned to Key 8 yet.\nPress 8 on any league in Select League to assign it.": {"ar": u"\u0644\u0645 \u064a\u062a\u0645 \u062a\u0639\u064a\u064a\u0646 \u0628\u0637\u0648\u0644\u0629 \u0644\u0644\u0632\u0631 8 \u0628\u0639\u062f.\n\u0627\u0636\u063a\u0637 8 \u0639\u0644\u0649 \u0623\u064a \u0628\u0637\u0648\u0644\u0629 \u0641\u064a \u0634\u0627\u0634\u0629 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0644\u062a\u0639\u064a\u064a\u0646\u0647\u0627."},
     "Favorites saved!":           {"ar": u"\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u0645\u0641\u0636\u0644\u0629!"},
     "Update Leagues":                   {"ar": u"\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0628\u0637\u0648\u0644\u0627\u062a"},
     "Checking...":                      {"ar": u"\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0642\u0642..."},
@@ -386,7 +392,8 @@ TRANSLATIONS = {
     "Score Rank":                 {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0646\u0642\u0627\u0637"},
     "Accuracy Rank":              {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062f\u0642\u0629"},
     "My Profile":                 {"ar": u"\u0645\u0644\u0641\u064a \u0627\u0644\u0634\u062e\u0635\u064a"},
-    u"\u25c4 \u25ba  Change Sport": {"ar": u"\u25c4 \u25ba  \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0631\u064a\u0627\u0636\u0629"},
+    u"\u25c4 \u25ba  Change League / Sport": {"ar": u"\u25c4 \u25ba  \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u062f\u0648\u0631\u064a / \u0627\u0644\u0631\u064a\u0627\u0636\u0629"},
+    u"\u25c4 \u25ba  Change Sport": {"ar": u"\u25c4 \u25ba  \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u062f\u0648\u0631\u064a / \u0627\u0644\u0631\u064a\u0627\u0636\u0629"},
     "Player":                     {"ar": u"\u0627\u0644\u0644\u0627\u0639\u0628"},
     "Badge":                      {"ar": u"\u0627\u0644\u0634\u0627\u0631\u0629"},
     "Pts":                        {"ar": u"\u0646\u0642\u0627\u0637"},
@@ -395,6 +402,22 @@ TRANSLATIONS = {
     "No scores recorded yet.":    {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u062a\u0627\u0626\u062c \u0645\u0633\u062c\u0644\u0629 \u0628\u0639\u062f."},
     "Global Ranking":             {"ar": u"\u0627\u0644\u062a\u0635\u0646\u064a\u0641 \u0627\u0644\u0639\u0627\u0644\u0645\u064a"},
     "Only":                       {"ar": u"\u0641\u0642\u0637"},
+    # ── League Leaderboard Categories ─────────────────────────────────────────
+    "Premier League":             {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632"},
+    "La Liga":                    {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a (La Liga)"},
+    "Serie A":                    {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u064a\u0637\u0627\u0644\u064a (Serie A)"},
+    "Bundesliga":                 {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a (Bundesliga)"},
+    "Ligue 1":                    {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0631\u0646\u0633\u064a (Ligue 1)"},
+    "Champions League":           {"ar": u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0623\u0648\u0631\u0648\u0628\u0627"},
+    "World Cup":                  {"ar": u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645"},
+    "Score:":                     {"ar": u"\u0627\u0644\u0646\u0642\u0627\u0637:"},
+    "Accuracy:":                  {"ar": u"\u0627\u0644\u062f\u0642\u0629:"},
+    "Total Bets:":                {"ar": u"\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0631\u0647\u0627\u0646\u0627\u062a:"},
+    "Correct:":                   {"ar": u"\u0627\u0644\u0635\u062d\u064a\u062d\u0629:"},
+    "No resolved bets yet":       {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0631\u0647\u0627\u0646\u0627\u062a \u0645\u062d\u0633\u0648\u0645\u0629 \u0628\u0639\u062f"},
+    "vote on a match to start!":  {"ar": u"\u0635\u0648\u062a \u0639\u0644\u0649 \u0645\u0628\u0627\u0631\u0627\u0629 \u0644\u0644\u0628\u062f\u0621!"},
+    "Awaiting results":           {"ar": u"\u0628\u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0646\u062a\u0627\u0626\u062c"},
+    "pending":                    {"ar": u"\u0645\u0639\u0644\u0642"},
     # ── Broadcasting channels screen ──────────────────────────────────────────
     "MATCH BROADCASTS":           {"ar": u"\u0628\u062b \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Select Channel to Zap":      {"ar": u"\u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631 \u0644\u0644\u062a\u0628\u062f\u064a\u0644"},
@@ -1422,7 +1445,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.6"
+CURRENT_VERSION = "6.7"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -1514,7 +1537,7 @@ def scale_skin_xml(xml_string, base_w=1920, base_h=1080):
     return res
 
 # Global EnigmaScreen hook removed - resolution scaling is safely localized to SimplySport screens.
-  # Update version to 6.6 - Universal skin resolution support (720p, 1080p, 1440p, 2160p 4K), Key Moments column with event graphics, multi-row text wrapping, team tags, dedicated match end audio (end.mp3), cup tie aggregate scores, and LiveSoccerTV channel extraction.
+  # Update version to 6.7 - Configurable Key 8 custom league jump, Enable/Disable Animated Goal Notifications toggle in Settings, ultra-fast instant LeagueSelector opening, expanded 122+ league remote catalog with full multi-sport support, and Full Arabic team names translation support.
 GITHUB_BASE_URL = "https://raw.githubusercontent.com/Ahmed-Mohammed-Abbas/SimplySports/main/"
 CONFIG_FILE = "/etc/enigma2/simply_sports.json"
 LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
@@ -2002,6 +2025,39 @@ def get_soccer_league_slug(url):
     except Exception:
         pass
     return None
+
+
+def get_leaderboard_league_category(league, league_url="", sport="soccer"):
+    """
+    Map league slug or league URL to its independent Leaderboard category name:
+    - Premier League (eng.1)
+    - La Liga (esp.1)
+    - Serie A (ita.1)
+    - Bundesliga (ger.1)
+    - Ligue 1 (fra.1)
+    - Champions League (uefa.champions)
+    - World Cup (fifa.world)
+    """
+    try:
+        l_str = (str(league or "") + " " + str(league_url or "")).lower()
+        if "fifa.world" in l_str or "world cup" in l_str or "world.cup" in l_str:
+            return "World Cup"
+        if "eng.1" in l_str or "premier" in l_str or "epl" in l_str:
+            return "Premier League"
+        if "esp.1" in l_str or "la liga" in l_str or "laliga" in l_str or "primera division" in l_str:
+            return "La Liga"
+        if "ita.1" in l_str or "serie a" in l_str or "serie.a" in l_str or "calcio" in l_str:
+            return "Serie A"
+        if "ger.1" in l_str or "bundesliga" in l_str:
+            return "Bundesliga"
+        if "fra.1" in l_str or "ligue 1" in l_str or "ligue.1" in l_str:
+            return "Ligue 1"
+        if "uefa.champions" in l_str or "champions league" in l_str or "ucl" in l_str:
+            return "Champions League"
+    except Exception:
+        pass
+    return None
+
 
 
 def get_sport_type(league_url):
@@ -2497,6 +2553,8 @@ def build_match_snapshot(event):
         # Teams
         'h_name':        h_name,
         'a_name':        a_name,
+        'h_name_disp':   _team_name(h_name),
+        'a_name_disp':   _team_name(a_name),
         'h_name_short':  h_name_short,
         'a_name_short':  a_name_short,
         'h_team_id':     h_team_id,
@@ -2687,53 +2745,6 @@ def load_logo_to_widget(screen, widget_name, url, img_id=None, on_loaded=None, k
         try:
             downloadPage(url.encode('utf-8'), file_path).addCallback(_on_done).addErrback(lambda e: None)
         except: pass
-
-
-HEADSHOT_CACHE_DIR = "/tmp/simplysports/headshots"
-
-
-def load_player_headshot(screen, widget_key, url, img_id, width, height):
-    """Async-download (and disk-cache) a player headshot from ESPN's own CDN,
-    then scale it to the exact thumbnail size and apply it to a Pixmap widget
-    once ready. Used as an online fallback when no local roster image is
-    matched (see find_player_image) - avoids scraping third-party sites and
-    reuses the athlete IDs ESPN already gives us in the roster payload."""
-    if not url or not widget_key:
-        return
-    try:
-        if not os.path.exists(HEADSHOT_CACHE_DIR):
-            os.makedirs(HEADSHOT_CACHE_DIR)
-    except Exception:
-        pass
-    file_path = "{}/{}.png".format(HEADSHOT_CACHE_DIR, img_id)
-
-    def _apply():
-        try:
-            ptr = get_scaled_pixmap(file_path, width, height)
-            if not ptr and LoadPixmap:
-                ptr = LoadPixmap(cached=True, path=file_path)
-            if ptr and screen[widget_key].instance:
-                screen[widget_key].instance.setPixmap(ptr)
-                screen[widget_key].instance.setScale(1)
-        except Exception:
-            pass
-
-    if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
-        _apply()
-        return
-
-    def _on_done(data):
-        try:
-            if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
-                _apply()
-        except Exception:
-            pass
-
-    try:
-        headers = {b'User-Agent': b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        downloadPage(url.encode('utf-8'), file_path, headers=headers, timeout=8).addCallback(_on_done).addErrback(lambda e: None)
-    except Exception:
-        pass
 
 
 # ==============================================================================
@@ -3040,7 +3051,7 @@ def safe_connect(timer_obj, func):
 
 
 GLOBAL_PIXMAP_CACHE = collections.OrderedDict()
-GLOBAL_PIXMAP_CACHE_LIMIT = 200
+GLOBAL_PIXMAP_CACHE_LIMIT = 500
 GLOBAL_VALID_LOGO_PATHS = set()
 
 
@@ -5008,20 +5019,27 @@ def SelectionListEntry(name, is_selected, logo_path=None, mode="multi", heart=No
     # Add logo if available
     text_x = base_x
     if logo_path:
-        is_valid = logo_path in GLOBAL_VALID_LOGO_PATHS
-        if not is_valid and os.path.exists(logo_path) and os.path.getsize(logo_path) > 0:
-            GLOBAL_VALID_LOGO_PATHS.add(logo_path)
-            is_valid = True
+        cache_key = "{}_{}x{}".format(logo_path, 35, 35)
+        if cache_key in GLOBAL_PIXMAP_CACHE:
+            pixmap = GLOBAL_PIXMAP_CACHE[cache_key][0]
+            if pixmap:
+                res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, base_x, 7, 35, 35, pixmap))
+                text_x = base_x + 45
+        else:
+            is_valid = logo_path in GLOBAL_VALID_LOGO_PATHS
+            if not is_valid and os.path.exists(logo_path) and os.path.getsize(logo_path) > 0:
+                GLOBAL_VALID_LOGO_PATHS.add(logo_path)
+                is_valid = True
 
-        if is_valid:
-            try:
-                # Resize image to fit 35x35
-                pixmap = get_scaled_pixmap(logo_path, 35, 35)
-                if pixmap:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, base_x, 7, 35, 35, pixmap))
-                    text_x = base_x + 45  # Shift text after logo
-            except:
-                pass
+            if is_valid:
+                try:
+                    # Resize image to fit 35x35
+                    pixmap = get_scaled_pixmap(logo_path, 35, 35)
+                    if pixmap:
+                        res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, base_x, 7, 35, 35, pixmap))
+                        text_x = base_x + 45  # Shift text after logo
+                except:
+                    pass
 
     # Name text — leave space on the right for the heart if needed
     name_width = 700 - (text_x - 70)
@@ -5727,6 +5745,18 @@ class SportsMonitor:
                     # Goal sound preference
                     self.goal_sound_file = data.get("goal_sound_file", "pop.mp3")
 
+                    # Notification Toast Animation
+                    self.toast_animation = bool(data.get("toast_animation", True))
+
+                    # User-Selected League for Key 8
+                    _k8_slug = data.get("key8_league_slug")
+                    if _k8_slug and _k8_slug in SLUG_TO_IDX:
+                        self.key8_league_index = SLUG_TO_IDX[_k8_slug]
+                    elif "key8_league_index" in data:
+                        self.key8_league_index = int(data.get("key8_league_index", -1))
+                    else:
+                        self.key8_league_index = -1
+
                     # FIX: Ensure timer state is set correctly (handles active and reminders)
                     try:
                         self.ensure_timer_state()
@@ -5751,6 +5781,8 @@ class SportsMonitor:
         self.favorite_teams = []
         self.fav_notified = set()
         self.goal_sound_file = "pop.mp3"
+        self.toast_animation = True
+        self.key8_league_index = -1
         self.saved_custom_league_indices = []
         self.favorite_league_indices = []
         self.is_favorite_mode = False
@@ -5813,6 +5845,9 @@ class SportsMonitor:
             },
             "favorite_teams": self.favorite_teams[:10],  # enforce max 10
             "goal_sound_file": self.goal_sound_file,
+            "toast_animation": getattr(self, "toast_animation", True),
+            "key8_league_index": getattr(self, "key8_league_index", 165),
+            "key8_league_slug": IDX_TO_SLUG.get(getattr(self, "key8_league_index", 165), ""),
         }
         try:
             with open(CONFIG_FILE, "w") as f: json.dump(data, f)
@@ -5890,13 +5925,14 @@ class SportsMonitor:
                 json.dump(self.ledger, f)
         except Exception as e:
             print("[SimplySports] Failed to save ledger:", e)
-    def add_pending_bet(self, event_id, prediction, sport, league, h_name="Home", a_name="Away"):
+    def add_pending_bet(self, event_id, prediction, sport, league, h_name="Home", a_name="Away", league_url=""):
         eid = str(event_id)
         if eid not in self.ledger["pending_bets"] and eid not in self.ledger["resolved_bets"]:
             self.ledger["pending_bets"][eid] = {
                 "prediction": prediction, # 'home', 'away', or 'draw'
                 "sport": sport,
                 "league": league,
+                "league_url": league_url,
                 # Store team names at bet time so the Personal Profile screen can
                 # show a meaningful "Arsenal vs Chelsea" label even after the match
                 # has dropped out of the live event_map cache.
@@ -6079,8 +6115,15 @@ class SportsMonitor:
                 if sport not in self.ledger["sport_stats"]:
                     self.ledger["sport_stats"][sport] = {"score": 0, "total": 0, "correct": 0}
 
+                # --- Independent League Leaderboard Tracking (PL, La Liga, Serie A, Bundesliga, Ligue 1, World Cup, etc.) ---
+                league_cat = get_leaderboard_league_category(league, bet.get("league_url", ""), sport)
+                if league_cat:
+                    if league_cat not in self.ledger["sport_stats"]:
+                        self.ledger["sport_stats"][league_cat] = {"score": 0, "total": 0, "correct": 0}
+                    self.ledger["sport_stats"][league_cat]["total"] += 1
+
                 # --- World Cup Progressive Scoring Logic ---
-                is_world_cup = (league == "fifa.world")
+                is_world_cup = (league_cat == "World Cup" or league == "fifa.world")
                 points_to_award = 1  # Default points for standard matches
 
                 if is_world_cup:
@@ -6101,10 +6144,6 @@ class SportsMonitor:
                         points_to_award = 8   # Final and Third-Place Playoff
                     else:
                         points_to_award = 2   # Fallback
-
-                    if "World Cup" not in self.ledger["sport_stats"]:
-                        self.ledger["sport_stats"]["World Cup"] = {"score": 0, "total": 0, "correct": 0}
-                    self.ledger["sport_stats"]["World Cup"]["total"] += 1
                 # ------------------------------------------
 
                 self.ledger["sport_stats"][sport]["total"] += 1
@@ -6116,9 +6155,9 @@ class SportsMonitor:
                     self.ledger["sport_stats"][sport]["score"] += points_to_award
                     self.ledger["sport_stats"][sport]["correct"] += 1
 
-                    if is_world_cup:
-                        self.ledger["sport_stats"]["World Cup"]["score"] += points_to_award
-                        self.ledger["sport_stats"]["World Cup"]["correct"] += 1
+                    if league_cat:
+                        self.ledger["sport_stats"][league_cat]["score"] += points_to_award
+                        self.ledger["sport_stats"][league_cat]["correct"] += 1
 
                     log_diag("REFREE: Match {} result ({}) matched prediction! Score: {}".format(eid, actual_winner, current_score))
                 else:
@@ -6126,8 +6165,8 @@ class SportsMonitor:
                     current_score -= 1
                     self.ledger["sport_stats"][sport]["score"] -= 1
 
-                    if is_world_cup:
-                        self.ledger["sport_stats"]["World Cup"]["score"] -= 1
+                    if league_cat:
+                        self.ledger["sport_stats"][league_cat]["score"] -= 1
 
                     log_diag("REFREE: Match {} result ({}) MISMATCHED prediction ({}). Score: {}".format(eid, actual_winner, prediction, current_score))
 
@@ -10851,12 +10890,13 @@ class GameInfoScreen(Screen):
                     # 2. Add to Local Gamification Ledger
                     sport = getattr(self, 'sport', 'soccer')
                     league = getattr(self, 'league', 'eng.1')
+                    l_url = getattr(self, 'league_url', '')
                     # Pass team names so the bet history can show "Arsenal vs Chelsea"
                     # even after the match leaves the live event_map cache.
                     h_nm = getattr(self, 'h_team_name', 'Home')
                     a_nm = getattr(self, 'a_team_name', 'Away')
                     if global_sports_monitor:
-                        global_sports_monitor.add_pending_bet(self.event_id, team_type, sport, league, h_nm, a_nm)
+                        global_sports_monitor.add_pending_bet(self.event_id, team_type, sport, league, h_nm, a_nm, l_url)
                         global_sports_monitor.fetch_all_community_votes()
 
                     # 3. --- REBUILD VOTE ROWS IN MEMORY FOR INSTANT REFRESH ---
@@ -11132,16 +11172,15 @@ class GameInfoScreen(Screen):
             is_live = snap.get('state', '') == 'in'
 
         headers_dict = {b'User-Agent': b'curl/7.68.0'}
-        if self.cdn_url:
-            # High-speed & rich CDN core endpoint for all matches (pre, in, post)
-            getPage(self.cdn_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_cdn)
-            if self.summary_url:
-                getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.enrich_with_summary).addErrback(lambda e: None)
-        elif self.summary_url:
+        if self.summary_url:
             if getattr(self, '_is_euroleague', False):
                 getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_euroleague_stats).addErrback(self.error_details)
             else:
-                getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_details)
+                # Primary summary endpoint (fast max-age=5s, full real-time live data)
+                getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_summary_fallback)
+        elif self.cdn_url:
+            # Fallback: CDN boxscore endpoint
+            getPage(self.cdn_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_details)
         else:
             self.error_details(None)
 
@@ -11215,6 +11254,15 @@ class GameInfoScreen(Screen):
             self.do_lazy_load()
         except Exception as e:
             print("[SimplySport] Summary enrichment error:", e)
+
+    def error_summary_fallback(self, error):
+        """Fallback to CDN boxscore API if the primary summary request fails"""
+        if self.cdn_url:
+            print("[SimplySport] Primary summary failed. Falling back to CDN boxscore endpoint.")
+            headers_dict = {b'User-Agent': b'curl/7.68.0'}
+            getPage(self.cdn_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_details)
+        else:
+            self.error_details(error)
 
     def error_cdn(self, error):
         """Fallback to standard summary API if the CDN Live Boxscore request fails"""
@@ -11773,8 +11821,15 @@ class GameInfoScreen(Screen):
                 self.a_team_name = _team_name(get_name(away_team))
             else:
                 def get_name(t): return t.get('team', {}).get('shortDisplayName') or t.get('team', {}).get('displayName') or "Team"
-            self["h_score"].setText(str(home_team.get('score', '0')))
-            self["a_score"].setText(str(away_team.get('score', '0')))
+
+            # Live Match Score: prefer verified live scoreboard snapshot for near real-time live updates
+            live_snap = global_sports_monitor.match_snapshots.get(str(self.event_id))
+            if live_snap and live_snap.get('state') == 'in' and (live_snap.get('h_score_str') or live_snap.get('a_score_str')):
+                self["h_score"].setText(str(live_snap.get('h_score_str', '0')))
+                self["a_score"].setText(str(live_snap.get('a_score_str', '0')))
+            else:
+                self["h_score"].setText(str(home_team.get('score', '0')))
+                self["a_score"].setText(str(away_team.get('score', '0')))
 
             # SCHEDULED GAME HANDLING: Show Countdown + Date/Time instead of 0-0
             if game_status == 'pre':
@@ -11918,7 +11973,10 @@ class GameInfoScreen(Screen):
             from twisted.internet import reactor
             reactor.callLater(0.01, self.do_lazy_load)
         except StopIteration:
-            pass
+            try:
+                self.update_display()
+            except Exception:
+                pass
         except Exception as e:
             print("[SimplySport] Lazy Load Error: ", e)
             try:
@@ -12255,7 +12313,7 @@ class GameInfoScreen(Screen):
             except Exception as e:
                 print("[SimplySport] Stats section error:", e)
 
-            # 5. Match Officials
+            # 3. Match Officials
             try:
                 game_info = data.get('gameInfo', {})
                 officials = game_info.get('officials', []) or data.get('officials', [])
@@ -12271,7 +12329,7 @@ class GameInfoScreen(Screen):
                             self.full_rows.append(TextListEntry(off_txt, self.theme, align="left"))
             except: pass
 
-            # 6. Key Moments (Comprehensive ESPN Schema Search)
+            # 4. Key Moments (Comprehensive ESPN Schema Search)
             try:
                 key_events = data.get('keyEvents', []) or data.get('competitions', [{}])[0].get('keyEvents', []) or data.get('header', {}).get('competitions', [{}])[0].get('keyEvents', [])
                 if key_events and isinstance(key_events, list):
@@ -12310,7 +12368,7 @@ class GameInfoScreen(Screen):
             except Exception as e:
                 print("[SimplySport] Key moments error:", e)
 
-            # 7. Head-to-Head / Previous Meetings & Recent Form
+            # 5. Head-to-Head / Previous Meetings & Recent Form
             try:
                 h2h = data.get('headToHead', []) or data.get('headtohead', []) or data.get('competitions', [{}])[0].get('headToHead', [])
                 if h2h and isinstance(h2h, list):
@@ -12346,7 +12404,7 @@ class GameInfoScreen(Screen):
                                 self.full_rows.append(TextListEntry(form_txt, self.theme, align="left"))
             except: pass
 
-            # 8. News / Articles (for live/post match)
+            # 6. News / Articles (for live/post match)
             try:
                 news_items = data.get('news', {}).get('articles', []) or data.get('articles', []) or data.get('news', []) or data.get('headlines', [])
                 if news_items and isinstance(news_items, list):
@@ -12364,12 +12422,8 @@ class GameInfoScreen(Screen):
                             count += 1
             except: pass
 
-        # --- COMMON: ROSTERS, FORMATIONS, INJURIES & LEADERS ---
-        # These are pulled unconditionally (pre-game AND live/post) because ESPN
-        # populates projected/starting lineups, formations, and injury reports
-        # well before tip-off - restricting them to the live/post branch meant
-        # they never appeared for scheduled games (the exact moment fans most
-        # want to check rosters/injuries/leaders for basketball).
+        # --- COMMON: FORMATIONS, LINEUPS, INJURIES, LEADERS ---
+        # 1. Formations
         try:
             h_formation = home_team.get('formation', '') or home_team.get('team', {}).get('formation', '')
             a_formation = away_team.get('formation', '') or away_team.get('team', {}).get('formation', '')
@@ -12394,6 +12448,7 @@ class GameInfoScreen(Screen):
         except Exception as e:
             print("[SimplySport] Formations section error:", e)
 
+        # 2. Lineups / Rosters (Comprehensive ESPN Schema Search)
         try:
             boxscore = data.get('boxscore', {})
             players_data = boxscore.get('players', [])
@@ -12414,15 +12469,17 @@ class GameInfoScreen(Screen):
                         for ath in group.get('athletes', []):
                             if not isinstance(ath, dict): continue
                             name = ath.get('athlete', {}).get('displayName') or ath.get('athlete', {}).get('shortName')
-                            jersey = ath.get('jersey', '')
+                            jersey = ath.get('jersey') or ath.get('athlete', {}).get('jersey', '')
                             position = ath.get('athlete', {}).get('position', {}).get('abbreviation', '')
                             stats = ath.get('stats', [])
                             stats_str = " [" + ", ".join(str(s) for s in stats[:3]) + "]" if stats else ""
                             if name:
                                 p_str = "#{} {} ({}){}".format(jersey, name, position, stats_str) if jersey and position else ("#{} {}{}".format(jersey, name, stats_str) if jersey else "{}{}".format(name, stats_str))
                                 team_list.append(p_str)
-                    if team_p.get('homeAway') == 'home' or t_id == str(home_team.get('id')): h_roster = team_list
-                    elif team_p.get('homeAway') == 'away' or t_id == str(away_team.get('id')): a_roster = team_list
+                    is_h = team_p.get('homeAway') == 'home' or (t_id and t_id == str(home_team.get('id') or home_team.get('team', {}).get('id', '')))
+                    is_a = team_p.get('homeAway') == 'away' or (t_id and t_id == str(away_team.get('id') or away_team.get('team', {}).get('id', '')))
+                    if is_h: h_roster = team_list
+                    elif is_a: a_roster = team_list
 
             # Fallback: check rosters list
             if not h_roster and not a_roster and rosters and isinstance(rosters, list):
@@ -12484,12 +12541,9 @@ class GameInfoScreen(Screen):
         except Exception as e:
             print("[SimplySport] Lineups section error:", e)
 
+        # 3. Injury Report (Widened Lookup)
         try:
-            # "leaders" (and "injuries") commonly live at the top level, but ESPN
-            # also nests them under header.competitions[0] for several sports
-            # (basketball included) - check both locations.
-            comp0 = data.get('header', {}).get('competitions', [{}])[0]
-            injuries_data = data.get('injuries', []) or comp0.get('injuries', [])
+            injuries_data = data.get('injuries', []) or data.get('header', {}).get('competitions', [{}])[0].get('injuries', []) or data.get('competitions', [{}])[0].get('injuries', [])
             if injuries_data and isinstance(injuries_data, list):
                 inj_lines = []
                 for team_inj in injuries_data:
@@ -12513,9 +12567,9 @@ class GameInfoScreen(Screen):
         except Exception as e:
             print("[SimplySport] Injury report error:", e)
 
+        # 4. Game Leaders (Widened Lookup)
         try:
-            comp0 = data.get('header', {}).get('competitions', [{}])[0]
-            leaders_data = data.get('leaders', []) or comp0.get('leaders', [])
+            leaders_data = data.get('leaders', []) or data.get('header', {}).get('competitions', [{}])[0].get('leaders', []) or data.get('competitions', [{}])[0].get('leaders', [])
             if leaders_data and isinstance(leaders_data, list):
                 leader_lines = []
                 for team_l in leaders_data:
@@ -13499,8 +13553,8 @@ class GoalToast(Screen):
         try: self.anim_timer.callback.append(self.animate_entry)
         except AttributeError: self.anim_timer.timeout.get().append(self.animate_entry)
 
-        # Start position (Off-screen Top)
-        self.current_y = -120
+        # Start position (Off-screen Top or direct Target)
+        use_anim = getattr(global_sports_monitor, "toast_animation", True)
         self.target_y = 50
         self.toast_width = 950
 
@@ -13519,7 +13573,7 @@ class GoalToast(Screen):
         self.toast_width = int(round(950 * scale_x))
         scaled_toast_h   = int(round(120 * scale_y))
         self.target_y    = int(round(50 * scale_y))
-        self.current_y   = -scaled_toast_h
+        self.current_y   = -scaled_toast_h if use_anim else self.target_y
         self.center_x    = (dw - self.toast_width) // 2
 
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
@@ -13543,7 +13597,14 @@ class GoalToast(Screen):
 
     def start_animation(self):
         self.force_top()
-        self.anim_timer.start(10, False) # Shorter interval for smoothness
+        use_anim = getattr(global_sports_monitor, "toast_animation", True)
+        if use_anim:
+            self.anim_timer.start(10, False) # Shorter interval for smoothness
+        else:
+            try: self.instance.move(ePoint(self.center_x, self.target_y))
+            except: pass
+            if not self.timer.isActive():
+                self.timer.start(self.duration_ms, True)
 
     def animate_entry(self):
         # FIX: Preserve horizontal centering while animating Y
@@ -13614,7 +13675,8 @@ class GoalToast(Screen):
         # Animations are stored in numbered subfolders: goalicone/1/, goalicone/2/, etc.
         # A random subfolder is chosen each time so consecutive goals show different animations.
         # Each subfolder may contain a different number of PNG frames (e.g. 0-7 or 00-18).
-        if hasattr(self, "event_type") and self.event_type == 'goal' and getattr(self, 'is_soccer', False):
+        use_anim = getattr(global_sports_monitor, "toast_animation", True)
+        if use_anim and hasattr(self, "event_type") and self.event_type == 'goal' and getattr(self, 'is_soccer', False):
             try:
                 import glob
                 goal_icon_base = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/goalicone")
@@ -14296,9 +14358,10 @@ class FavTeamToast(Screen):
         try:    self._timer.callback.append(self.close)
         except: self._timer.timeout.get().append(self.close)
 
+        use_anim = getattr(global_sports_monitor, "toast_animation", True)
         self._anim_timer = eTimer()
-        self._current_y  = -220
         self._target_y   = 30
+        self._current_y  = -220 if use_anim else self._target_y
         try:    self._anim_timer.callback.append(self._anim_step)
         except: self._anim_timer.timeout.get().append(self._anim_step)
 
@@ -14318,7 +14381,14 @@ class FavTeamToast(Screen):
         if not self._has_channel:
             try: self["channel"].hide()
             except: pass
-        self._anim_timer.start(10, False)
+        use_anim = getattr(global_sports_monitor, "toast_animation", True)
+        if use_anim:
+            self._anim_timer.start(10, False)
+        else:
+            try: self.instance.move(ePoint(self._cx, self._target_y))
+            except: pass
+            if not self._timer.isActive():
+                self._timer.start(self.DURATION_MS, True)
         self._load_logos()
 
     def _anim_step(self):
@@ -14378,7 +14448,7 @@ class LeagueSelector(Screen):
                 <eLabel position="30,720" size="890,2" backgroundColor="#1a3a6b" />
                 <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
+                <widget name="info" position="240,740" size="470,50" font="SimplySportFont;22" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
             </screen>
             """)
         else:
@@ -14395,7 +14465,7 @@ class LeagueSelector(Screen):
                 <eLabel position="30,720" size="890,2" backgroundColor="#505050" />
                 <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
+                <widget name="info" position="240,740" size="470,50" font="SimplySportFont;22" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
             </screen>
             """)
 
@@ -14405,38 +14475,49 @@ class LeagueSelector(Screen):
         self["list"].l.setItemHeight(sy(50))
 
         self["key_red"] = Label(_t("Update Leagues") if mode == "multi" else (_t("Mark Favorites") if mode == "single" else _t("Cancel")))
-        self["key_green"] = Label(_t("Save") if mode == "multi" else _t("Save") if mode == "favorite" else "")
-        self["info"] = Label(_t("Press OK to Toggle") if mode == "multi" else (_t("RED: Heart  GREEN: Save Favs") if mode == "single" else _t("Press OK to Select")))
-
-        # In single mode: RED toggles heart, GREEN saves hearts, OK selects league
-        # In multi  mode: RED updates leagues, GREEN saves selection
-        # In favorite mode: RED cancels,      GREEN applies active selection
+        self["key_green"] = Label(_t("Save"))
         if mode == "single":
-            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+            info_txt = _t("RED: Fav  |  8: Key 8  |  OK: Select")
+        elif mode == "multi":
+            info_txt = _t("OK: Toggle  |  8: Key 8  |  GREEN: Save")
+        elif mode == "favorite":
+            info_txt = _t("OK: Toggle  |  8: Key 8  |  GREEN: Apply")
+        else:
+            info_txt = _t("Press OK to Select")
+        self["info"] = Label(info_txt)
+
+        # In single mode: RED toggles heart, GREEN saves hearts, OK selects league, 8 assigns to Key 8
+        # In multi  mode: RED updates leagues, GREEN saves selection, 8 assigns to Key 8
+        # In favorite mode: RED cancels,      GREEN applies active selection, 8 assigns to Key 8
+        if mode == "single":
+            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "NumberActions"], {
                 "cancel": self.cancel,
                 "red": self.toggle_heart,
                 "green": self.save_favorites,
                 "ok": self.toggle,
                 "up": self["list"].up,
                 "down": self["list"].down,
+                "8": self.assign_key_8,
             }, -1)
         elif mode == "multi":
-            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "NumberActions"], {
                 "cancel": self.cancel,
                 "red": self.check_for_updates,
                 "green": self.save,
                 "ok": self.toggle,
                 "up": self["list"].up,
                 "down": self["list"].down,
+                "8": self.assign_key_8,
             }, -1)
         else:
-            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+            self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "NumberActions"], {
                 "cancel": self.cancel,
                 "red": self.cancel,
                 "green": self.apply_favorites if mode == "favorite" else self.dummy,
                 "ok": self.toggle,
                 "up": self["list"].up,
                 "down": self["list"].down,
+                "8": self.assign_key_8,
             }, -1)
 
         self.selections = []
@@ -14452,11 +14533,32 @@ class LeagueSelector(Screen):
             except: pass
         self.onLayoutFinish.append(self.load_list)
 
-    def dummy(self):
-        pass
-
     def cancel(self):
         self.close(None)
+
+    def assign_key_8(self):
+        idx = self["list"].getSelectedIndex()
+        if idx is None or idx < 0:
+            return
+        if hasattr(self, '_list_to_sorted') and self._list_to_sorted:
+            if idx >= len(self._list_to_sorted): return
+            sorted_idx = self._list_to_sorted[idx]
+            if sorted_idx < 0 or sorted_idx >= len(self.sorted_indices): return
+            original_idx = self.sorted_indices[sorted_idx]
+        elif hasattr(self, 'sorted_indices') and self.sorted_indices:
+            if idx >= len(self.sorted_indices): return
+            original_idx = self.sorted_indices[idx]
+        else:
+            return
+
+        if original_idx < 0 or original_idx >= len(DATA_SOURCES):
+            return
+
+        league_name = DATA_SOURCES[original_idx][0]
+        global_sports_monitor.key8_league_index = original_idx
+        global_sports_monitor.save_config()
+        msg = (_t("League assigned to Key 8: ") + _league_name(league_name))
+        self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
     def get_league_priority(self, league_name):
         """Return priority value for sorting (lower = higher priority)"""
@@ -14557,21 +14659,28 @@ class LeagueSelector(Screen):
             league_name = DATA_SOURCES[orig_idx][0]
             self.heart_selections.append(league_name in saved_fav_names)
 
-        self.download_league_logos()
+        # Instant initial render (< 50ms)
         self.refresh_list()
 
+        # Defer background logo check and downloads until screen is visible
+        self._logo_bg_timer = eTimer()
+        safe_connect(self._logo_bg_timer, self.download_league_logos)
+        self._logo_bg_timer.start(100, True)
+
     def download_league_logos(self):
-        """Download league logos from ESPN API for each league"""
+        """Asynchronously load and download league logos in background without blocking screen opening"""
         from twisted.web.client import downloadPage
+        needs_refresh = False
         for sorted_idx, original_idx in enumerate(self.sorted_indices):
             url = DATA_SOURCES[original_idx][1]
             logo_id = "league_{}".format(original_idx)
             logo_file = self.logo_path + logo_id + ".png"
 
             if os.path.exists(logo_file) and os.path.getsize(logo_file) > 0:
-                self.league_logos[sorted_idx] = logo_file
+                if self.league_logos.get(sorted_idx) != logo_file:
+                    self.league_logos[sorted_idx] = logo_file
+                    needs_refresh = True
             else:
-                # Extract sport info from URL to build logo URL
                 try:
                     logo_url = self.get_league_logo_url(url, original_idx)
                     if logo_url:
@@ -14579,6 +14688,9 @@ class LeagueSelector(Screen):
                         downloadPage(logo_url.encode('utf-8'), logo_file, headers=headers, timeout=10).addCallback(
                             self.logo_downloaded, sorted_idx, logo_file).addErrback(self.logo_error)
                 except: pass
+
+        if needs_refresh:
+            self.refresh_list()
 
     def get_league_logo_url(self, api_url, idx):
         """Generate ESPN logo URL from API endpoint"""
@@ -14744,7 +14856,11 @@ class LeagueSelector(Screen):
 
     def logo_downloaded(self, result, idx, logo_file):
         self.league_logos[idx] = logo_file
-        self.refresh_list()
+        # Debounce refresh so we don't rebuild the entire list for each individual image
+        if not hasattr(self, '_batch_logo_timer'):
+            self._batch_logo_timer = eTimer()
+            safe_connect(self._batch_logo_timer, self.refresh_list)
+        self._batch_logo_timer.start(350, True)
 
     def logo_error(self, error):
         pass
@@ -15049,7 +15165,7 @@ class FavoriteLeagueSelector(Screen):
                 <eLabel position="30,720" size="890,2" backgroundColor="#1a3a6b" />
                 <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
+                <widget name="info" position="240,740" size="470,50" font="SimplySportFont;22" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" valign="center" />
             </screen>
             """)
         else:
@@ -15066,7 +15182,7 @@ class FavoriteLeagueSelector(Screen):
                 <eLabel position="30,720" size="890,2" backgroundColor="#505050" />
                 <widget name="key_red" position="30,740" size="200,50" font="SimplySportFont;28" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
                 <widget name="key_green" position="720,740" size="200,50" font="SimplySportFont;28" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
-                <widget name="info" position="295,740" size="360,50" font="SimplySportFont;24" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
+                <widget name="info" position="240,740" size="470,50" font="SimplySportFont;22" foregroundColor="#9E9E9E" backgroundColor="#38003C" transparent="1" halign="center" valign="center" />
             </screen>
             """)
 
@@ -15076,15 +15192,16 @@ class FavoriteLeagueSelector(Screen):
         self["list"].l.setItemHeight(sy(50))
         self["key_red"] = Label(_t("Cancel"))
         self["key_green"] = Label(_t("Save"))
-        self["info"] = Label(_t("Press OK to Toggle"))
+        self["info"] = Label(_t("OK: Toggle  |  8: Key 8  |  GREEN: Apply"))
 
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "NumberActions"], {
             "cancel": self.close,
             "red": self.close,
             "green": self.apply_and_close,
             "ok": self.toggle_item,
             "up": self["list"].up,
             "down": self["list"].down,
+            "8": self.assign_key_8,
         }, -1)
 
         # Internal data: list of dicts from JSON + parallel selection state
@@ -15228,6 +15345,19 @@ class FavoriteLeagueSelector(Screen):
             # Bug 6: use set_favorite_leagues, not set_custom_leagues
             global_sports_monitor.set_favorite_leagues(new_indices)
             self.close(True)
+
+    def assign_key_8(self):
+        idx = self["list"].getSelectedIndex()
+        if idx is None or idx < 0 or idx >= len(self._indices):
+            return
+        original_idx = self._indices[idx]
+        if original_idx < 0 or original_idx >= len(DATA_SOURCES):
+            return
+        league_name = DATA_SOURCES[original_idx][0]
+        global_sports_monitor.key8_league_index = original_idx
+        global_sports_monitor.save_config()
+        msg = (_t("League assigned to Key 8: ") + _league_name(league_name))
+        self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
 
 class RacingMiniBar(Screen):
@@ -15472,46 +15602,8 @@ def _ascii_fold(s):
     return s
 
 
-def smart_match_team(name1, name2):
-    if not name1 or not name2:
-        return False
-    try:
-        if isinstance(name1, dict):
-            name1 = name1.get('displayName') or name1.get('name') or str(name1)
-        elif not isinstance(name1, (str, type(u""))):
-            name1 = str(name1)
-        if isinstance(name2, dict):
-            name2 = name2.get('displayName') or name2.get('name') or str(name2)
-        elif not isinstance(name2, (str, type(u""))):
-            name2 = str(name2)
-
-        n1 = name1.strip().lower()
-        n2 = name2.strip().lower()
-    except Exception:
-        return False
-
-    try:
-        if isinstance(n1, bytes):
-            n1 = n1.decode('utf-8', 'ignore')
-    except:
-        pass
-    try:
-        if isinstance(n2, bytes):
-            n2 = n2.decode('utf-8', 'ignore')
-    except:
-        pass
-
-    # Strip ALL diacritics universally — replaces the old manual char map.
-    # This also fixes the synonym-key ordering bug (e.g. "turkiye" -> "turkiye"
-    # before the dict lookup, so the key must be the folded form).
-    n1 = _ascii_fold(n1)
-    n2 = _ascii_fold(n2)
-
-    if n1 == n2:
-        return True
-
-    # Synonyms — keys must be ASCII-folded (post _ascii_fold) forms
-    synonyms = {
+# Synonyms — keys must be ASCII-folded (post _ascii_fold) forms
+_TEAM_SYNONYMS = {
         "cote d ivoire":          "ivory coast",
         "cabo verde":             "cape verde",
         "turkiye":                "turkey",
@@ -15560,16 +15652,1613 @@ def smart_match_team(name1, name2):
         "syr":                    "syria",
         "yem":                    "yemen",
         "bah":                    "bahrain",
-    }
-    n1 = synonyms.get(n1, n1)
-    n2 = synonyms.get(n2, n2)
+        # Premier League clubs
+        "man city":               "manchester city",
+        "mancity":                "manchester city",
+        "mci":                    "manchester city",
+        "man utd":                "manchester united",
+        "man united":             "manchester united",
+        "manutd":                 "manchester united",
+        "mun":                    "manchester united",
+        "spurs":                  "tottenham",
+        "tot":                    "tottenham",
+        "wolves":                 "wolverhampton",
+        "wol":                    "wolverhampton",
+        "nottm forest":           "nottingham forest",
+        "nfo":                    "nottingham forest",
+        "brighton & hove albion": "brighton",
+        "brighton and hove albion": "brighton",
+        "bha":                    "brighton",
+        "afc bournemouth":        "bournemouth",
+        "bou":                    "bournemouth",
+        "ars":                    "arsenal",
+        "avl":                    "aston villa",
+        "bre":                    "brentford",
+        "che":                    "chelsea",
+        "cry":                    "crystal palace",
+        "eve":                    "everton",
+        "ful":                    "fulham",
+        "ips":                    "ipswich",
+        "lei":                    "leicester",
+        "liv":                    "liverpool",
+        "new":                    "newcastle",
+        "sou":                    "southampton",
+        "whu":                    "west ham",
+        # Spanish La Liga clubs
+        "real madrid":            "real madrid",
+        "rma":                    "real madrid",
+        "barcelona":              "barcelona",
+        "fc barcelona":           "barcelona",
+        "barca":                  "barcelona",
+        "bar":                    "barcelona",
+        "atletico madrid":        "atletico madrid",
+        "atletico de madrid":     "atletico madrid",
+        "atm":                    "atletico madrid",
+        "atl":                    "atletico madrid",
+        "athletic club":          "athletic bilbao",
+        "athletic bilbao":        "athletic bilbao",
+        "ath":                    "athletic bilbao",
+        "real sociedad":          "real sociedad",
+        "rso":                    "real sociedad",
+        "real betis":             "real betis",
+        "bet":                    "real betis",
+        "villarreal":             "villarreal",
+        "vil":                    "villarreal",
+        "sevilla":                "sevilla",
+        "sev":                    "sevilla",
+        "valencia":               "valencia",
+        "val":                    "valencia",
+        "girona":                 "girona",
+        "gir":                    "girona",
+        "osasuna":                "osasuna",
+        "ca osasuna":             "osasuna",
+        "osa":                    "osasuna",
+        "celta vigo":             "celta vigo",
+        "celta de vigo":          "celta vigo",
+        "rc celta":               "celta vigo",
+        "cel":                    "celta vigo",
+        "rayo vallecano":         "rayo vallecano",
+        "rayo":                   "rayo vallecano",
+        "ray":                    "rayo vallecano",
+        "mallorca":               "mallorca",
+        "rcd mallorca":           "mallorca",
+        "mal":                    "mallorca",
+        "deportivo alaves":       "alaves",
+        "alaves":                 "alaves",
+        "ala":                    "alaves",
+        "las palmas":             "las palmas",
+        "ud las palmas":          "las palmas",
+        "lpa":                    "las palmas",
+        "getafe":                 "getafe",
+        "get":                    "getafe",
+        "espanyol":               "espanyol",
+        "rcd espanyol":           "espanyol",
+        "esp":                    "espanyol",
+        "real valladolid":        "real valladolid",
+        "valladolid":             "real valladolid",
+        "vld":                    "real valladolid",
+        "leganes":                "leganes",
+        "cd leganes":             "leganes",
+        "leg":                    "leganes",
+        # Italian Serie A clubs
+        "inter milan":            "inter",
+        "internazionale":         "inter",
+        "fc internazionale":      "inter",
+        "int":                    "inter",
+        "ac milan":               "milan",
+        "acm":                    "milan",
+        "juventus":               "juventus",
+        "juv":                    "juventus",
+        "napoli":                 "napoli",
+        "ssc napoli":             "napoli",
+        "nap":                    "napoli",
+        "atalanta":               "atalanta",
+        "ata":                    "atalanta",
+        "as roma":                "roma",
+        "rom":                    "roma",
+        "lazio":                  "lazio",
+        "ss lazio":               "lazio",
+        "laz":                    "lazio",
+        "fiorentina":             "fiorentina",
+        "acf fiorentina":         "fiorentina",
+        "fio":                    "fiorentina",
+        "bologna":                "bologna",
+        "bol":                    "bologna",
+        "torino":                 "torino",
+        "tor":                    "torino",
+        "genoa":                  "genoa",
+        "gen":                    "genoa",
+        "monza":                  "monza",
+        "ac monza":               "monza",
+        "mon":                    "monza",
+        "udinese":                "udinese",
+        "udi":                    "udinese",
+        "cagliari":               "cagliari",
+        "cag":                    "cagliari",
+        "empoli":                 "empoli",
+        "emp":                    "empoli",
+        "parma":                  "parma",
+        "par":                    "parma",
+        "como":                   "como",
+        "com":                    "como",
+        "venezia":                "venezia",
+        "ven":                    "venezia",
+        "hellas verona":          "verona",
+        "verona":                 "verona",
+        "ver":                    "verona",
+        "lecce":                  "lecce",
+        "lec":                    "lecce",
+        # German Bundesliga clubs
+        "bayern munich":          "bayern munich",
+        "fc bayern munchen":      "bayern munich",
+        "fc bayern münchen":      "bayern munich",
+        "bayern":                 "bayern munich",
+        "bay":                    "bayern munich",
+        "borussia dortmund":      "dortmund",
+        "dortmund":               "dortmund",
+        "bvb":                    "dortmund",
+        "dor":                    "dortmund",
+        "bayer leverkusen":       "leverkusen",
+        "leverkusen":             "leverkusen",
+        "b04":                    "leverkusen",
+        "lev":                    "leverkusen",
+        "rb leipzig":             "leipzig",
+        "leipzig":                "leipzig",
+        "rbl":                    "leipzig",
+        "eintracht frankfurt":    "frankfurt",
+        "frankfurt":              "frankfurt",
+        "sge":                    "frankfurt",
+        "fra":                    "frankfurt",
+        "vfb stuttgart":          "stuttgart",
+        "stuttgart":              "stuttgart",
+        "vfb":                    "stuttgart",
+        "stu":                    "stuttgart",
+        "borussia mönchengladbach": "monchengladbach",
+        "borussia monchengladbach": "monchengladbach",
+        "monchengladbach":        "monchengladbach",
+        "mönchengladbach":        "monchengladbach",
+        "gladbach":               "monchengladbach",
+        "bmg":                    "monchengladbach",
+        "sc freiburg":            "freiburg",
+        "freiburg":               "freiburg",
+        "scf":                    "freiburg",
+        "fre":                    "freiburg",
+        "tsg hoffenheim":         "hoffenheim",
+        "hoffenheim":             "hoffenheim",
+        "tsg":                    "hoffenheim",
+        "hof":                    "hoffenheim",
+        "vfl wolfsburg":          "wolfsburg",
+        "wolfsburg":              "wolfsburg",
+        "wob":                    "wolfsburg",
+        "fc augsburg":            "augsburg",
+        "augsburg":               "augsburg",
+        "fca":                    "augsburg",
+        "aug":                    "augsburg",
+        "1. fc heidenheim":       "heidenheim",
+        "fc heidenheim":          "heidenheim",
+        "heidenheim":             "heidenheim",
+        "fch":                    "heidenheim",
+        "hei":                    "heidenheim",
+        "werder bremen":          "werder bremen",
+        "bremen":                 "werder bremen",
+        "svw":                    "werder bremen",
+        "1. fc union berlin":     "union berlin",
+        "fc union berlin":        "union berlin",
+        "union berlin":           "union berlin",
+        "fcu":                    "union berlin",
+        "unb":                    "union berlin",
+        "1. fsv mainz 05":        "mainz",
+        "fsv mainz 05":           "mainz",
+        "mainz 05":               "mainz",
+        "mainz":                  "mainz",
+        "m05":                    "mainz",
+        "mai":                    "mainz",
+        "fc st. pauli":           "st pauli",
+        "fc st pauli":            "st pauli",
+        "st. pauli":              "st pauli",
+        "st pauli":               "st pauli",
+        "stp":                    "st pauli",
+        "holstein kiel":          "holstein kiel",
+        "kiel":                   "holstein kiel",
+        "ksv":                    "holstein kiel",
+        "kie":                    "holstein kiel",
+        "vfl bochum":             "bochum",
+        "bochum":                 "bochum",
+        "boc":                    "bochum",
+        # French Ligue 1 clubs
+        "paris saint germain":    "paris saint germain",
+        "paris saint-germain":    "paris saint germain",
+        "psg":                    "paris saint germain",
+        "par":                    "paris saint germain",
+        "olympique marseille":    "marseille",
+        "olympique de marseille": "marseille",
+        "marseille":              "marseille",
+        "om":                     "marseille",
+        "mar":                    "marseille",
+        "as monaco":              "monaco",
+        "monaco":                 "monaco",
+        "asm":                    "monaco",
+        "olympique lyonnais":     "lyon",
+        "olympique lyon":         "lyon",
+        "lyon":                   "lyon",
+        "ol":                     "lyon",
+        "lyo":                    "lyon",
+        "lille":                  "lille",
+        "losc lille":             "lille",
+        "losc":                   "lille",
+        "lil":                    "lille",
+        "rc lens":                "lens",
+        "lens":                   "lens",
+        "rcl":                    "lens",
+        "stade rennais":          "rennes",
+        "stade rennais fc":       "rennes",
+        "rennes":                 "rennes",
+        "ren":                    "rennes",
+        "ogc nice":               "nice",
+        "nice":                   "nice",
+        "nic":                    "nice",
+        "rc strasbourg":          "strasbourg",
+        "rc strasbourg alsace":   "strasbourg",
+        "strasbourg":             "strasbourg",
+        "str":                    "strasbourg",
+        "stade de reims":         "reims",
+        "stade reims":            "reims",
+        "reims":                  "reims",
+        "rei":                    "reims",
+        "stade brestois":         "brest",
+        "stade brestois 29":      "brest",
+        "brest":                  "brest",
+        "toulouse":               "toulouse",
+        "toulouse fc":            "toulouse",
+        "tou":                    "toulouse",
+        "montpellier":            "montpellier",
+        "montpellier hsc":        "montpellier",
+        "mpl":                    "montpellier",
+        "fc nantes":              "nantes",
+        "nantes":                 "nantes",
+        "nan":                    "nantes",
+        "aj auxerre":             "auxerre",
+        "auxerre":                "auxerre",
+        "aux":                    "auxerre",
+        "angers sco":             "angers",
+        "angers":                 "angers",
+        "ang":                    "angers",
+        "as saint-etienne":       "saint etienne",
+        "as saint-étienne":       "saint etienne",
+        "saint-etienne":          "saint etienne",
+        "saint-étienne":          "saint etienne",
+        "st etienne":             "saint etienne",
+        "asse":                   "saint etienne",
+        "ste":                    "saint etienne",
+        "le havre ac":            "le havre",
+        "le havre":               "le havre",
+        "hac":                    "le havre",
+        "hav":                    "le havre",
+        # Saudi Pro League clubs
+        "al hilal":               "al hilal",
+        "al-hilal":               "al hilal",
+        "al hilal sfc":           "al hilal",
+        "hil":                    "al hilal",
+        "al nassr":               "al nassr",
+        "al-nassr":               "al nassr",
+        "al nassr fc":            "al nassr",
+        "nas":                    "al nassr",
+        "al ittihad":             "al ittihad",
+        "al-ittihad":             "al ittihad",
+        "al ittihad club":        "al ittihad",
+        "itt":                    "al ittihad",
+        "al ahli":                "al ahli",
+        "al-ahli":                "al ahli",
+        "al ahli saudi fc":       "al ahli",
+        "ahl":                    "al ahli",
+        "al shabab":              "al shabab",
+        "al-shabab":              "al shabab",
+        "al shabab fc":           "al shabab",
+        "shb":                    "al shabab",
+        "al taawoun":             "al taawoun",
+        "al-taawoun":             "al taawoun",
+        "al taawon":              "al taawoun",
+        "taa":                    "al taawoun",
+        "al ettifaq":             "al ettifaq",
+        "al-ettifaq":             "al ettifaq",
+        "al ittifaq":             "al ettifaq",
+        "ett":                    "al ettifaq",
+        "al fateh":               "al fateh",
+        "al-fateh":               "al fateh",
+        "al fateh fc":            "al fateh",
+        "fat":                    "al fateh",
+        "al fayha":               "al fayha",
+        "al-fayha":               "al fayha",
+        "al feiha":               "al fayha",
+        "fay":                    "al fayha",
+        "al wehda":               "al wehda",
+        "al-wehda":               "al wehda",
+        "al wahda":               "al wehda",
+        "weh":                    "al wehda",
+        "al khaleej":             "al khaleej",
+        "al-khaleej":             "al khaleej",
+        "al khaleej club":        "al khaleej",
+        "kha":                    "al khaleej",
+        "al raed":                "al raed",
+        "al-raed":                "al raed",
+        "al raed fc":             "al raed",
+        "rae":                    "al raed",
+        "damac":                  "damac",
+        "damac fc":               "damac",
+        "damak":                  "damac",
+        "dam":                    "damac",
+        "al riyadh":              "al riyadh",
+        "al-riyadh":              "al riyadh",
+        "al riyadh sc":           "al riyadh",
+        "riy":                    "al riyadh",
+        "al okhdood":             "al okhdood",
+        "al-okhdood":             "al okhdood",
+        "al akhdoud":             "al okhdood",
+        "okh":                    "al okhdood",
+        "al qadsiah":             "al qadsiah",
+        "al-qadsiah":             "al qadsiah",
+        "al qadisiya":            "al qadsiah",
+        "qad":                    "al qadsiah",
+        "al kholood":             "al kholood",
+        "al-kholood":             "al kholood",
+        "al kholoud":             "al kholood",
+        "kho":                    "al kholood",
+        "al orobah":              "al orobah",
+        "al-orobah":              "al orobah",
+        "al orubah":              "al orobah",
+        "oro":                    "al orobah",
+        # Portuguese Primeira Liga clubs
+        "benfica":                "benfica",
+        "sl benfica":             "benfica",
+        "ben":                    "benfica",
+        "slb":                    "benfica",
+        "sporting cp":            "sporting lisbon",
+        "sporting lisbon":        "sporting lisbon",
+        "sporting":               "sporting lisbon",
+        "scp":                    "sporting lisbon",
+        "porto":                  "porto",
+        "fc porto":               "porto",
+        "por":                    "porto",
+        "fcp":                    "porto",
+        "braga":                  "braga",
+        "sc braga":               "braga",
+        "sporting braga":         "braga",
+        "bra":                    "braga",
+        "vitoria de guimaraes":   "vitoria guimaraes",
+        "vitória de guimarães":   "vitoria guimaraes",
+        "vitoria sc":             "vitoria guimaraes",
+        "vitória sc":             "vitoria guimaraes",
+        "guimaraes":              "vitoria guimaraes",
+        "guimarães":              "vitoria guimaraes",
+        "vit":                    "vitoria guimaraes",
+        "famaicao":               "famalicao",
+        "famalicao":              "famalicao",
+        "famalicão":              "famalicao",
+        "fc famalicao":           "famalicao",
+        "fc famalicão":           "famalicao",
+        "fam":                    "famalicao",
+        "santa clara":            "santa clara",
+        "cd santa clara":         "santa clara",
+        "sta":                    "santa clara",
+        "moreirense":             "moreirense",
+        "moreirense fc":          "moreirense",
+        "mor":                    "moreirense",
+        "rio ave":                "rio ave",
+        "rio ave fc":             "rio ave",
+        "rio":                    "rio ave",
+        "arouca":                 "arouca",
+        "fc arouca":              "arouca",
+        "aro":                    "arouca",
+        "estoril":                "estoril",
+        "estoril praia":          "estoril",
+        "gd estoril praia":       "estoril",
+        "est":                    "estoril",
+        "boavista":               "boavista",
+        "boavista fc":            "boavista",
+        "boa":                    "boavista",
+        "gil vicente":            "gil vicente",
+        "gil vicente fc":         "gil vicente",
+        "gil":                    "gil vicente",
+        "casa pia":               "casa pia",
+        "casa pia ac":            "casa pia",
+        "cas":                    "casa pia",
+        "estrela amadora":        "estrela da amadora",
+        "estrela da amadora":     "estrela da amadora",
+        "estrela":                "estrela da amadora",
+        "cf estrela da amadora":  "estrela da amadora",
+        "esa":                    "estrela da amadora",
+        "nacional":               "nacional",
+        "cd nacional":            "nacional",
+        "nacional da madeira":    "nacional",
+        "nac":                    "nacional",
+        "avs":                    "avs",
+        "avs futebol sad":        "avs",
+        "avs fs":                 "avs",
+        "farense":                "farense",
+        "sc farense":             "farense",
+        "far":                    "farense",
+        # Dutch Eredivisie clubs
+        "ajax":                   "ajax",
+        "afc ajax":               "ajax",
+        "aja":                    "ajax",
+        "psv":                    "psv eindhoven",
+        "psv eindhoven":          "psv eindhoven",
+        "feyenoord":              "feyenoord",
+        "feyenoord rotterdam":    "feyenoord",
+        "fey":                    "feyenoord",
+        "az":                     "az alkmaar",
+        "az alkmaar":             "az alkmaar",
+        "alkmaar":                "az alkmaar",
+        "fc twente":              "twente",
+        "twente":                 "twente",
+        "twe":                    "twente",
+        "fc utrecht":             "utrecht",
+        "utrecht":                "utrecht",
+        "utr":                    "utrecht",
+        "go ahead eagles":        "go ahead eagles",
+        "ga eagles":              "go ahead eagles",
+        "gae":                    "go ahead eagles",
+        "nec nijmegen":           "nec nijmegen",
+        "nec":                    "nec nijmegen",
+        "sc heerenveen":          "heerenveen",
+        "heerenveen":             "heerenveen",
+        "hee":                    "heerenveen",
+        "sparta rotterdam":       "sparta rotterdam",
+        "sparta":                 "sparta rotterdam",
+        "spa":                    "sparta rotterdam",
+        "fortuna sittard":        "fortuna sittard",
+        "fortuna":                "fortuna sittard",
+        "fsi":                    "fortuna sittard",
+        "pec zwolle":             "pec zwolle",
+        "zwolle":                 "pec zwolle",
+        "zwo":                    "pec zwolle",
+        "heracles almelo":        "heracles",
+        "heracles":               "heracles",
+        "her":                    "heracles",
+        "almere city":            "almere city",
+        "almere city fc":         "almere city",
+        "almere":                 "almere city",
+        "alm":                    "almere city",
+        "rkc waalwijk":           "rkc waalwijk",
+        "waalwijk":               "rkc waalwijk",
+        "rkc":                    "rkc waalwijk",
+        "willem ii":              "willem ii",
+        "willem ii tilburg":      "willem ii",
+        "wil":                    "willem ii",
+        "fc groningen":           "groningen",
+        "groningen":              "groningen",
+        "gro":                    "groningen",
+        "nac breda":              "nac breda",
+        "nac":                    "nac breda",
+        # Brazilian Série A clubs
+        "flamengo":               "flamengo",
+        "cr flamengo":            "flamengo",
+        "fla":                    "flamengo",
+        "palmeiras":              "palmeiras",
+        "se palmeiras":           "palmeiras",
+        "pal":                    "palmeiras",
+        "botafogo":               "botafogo",
+        "botafogo fr":            "botafogo",
+        "bot":                    "botafogo",
+        "atletico mineiro":       "atletico mineiro",
+        "atlético mineiro":       "atletico mineiro",
+        "atletico-mg":            "atletico mineiro",
+        "atlético-mg":            "atletico mineiro",
+        "cam":                    "atletico mineiro",
+        "sao paulo":              "sao paulo",
+        "são paulo":              "sao paulo",
+        "sao paulo fc":           "sao paulo",
+        "são paulo fc":           "sao paulo",
+        "sao":                    "sao paulo",
+        "fluminense":             "fluminense",
+        "fluminense fc":          "fluminense",
+        "flu":                    "fluminense",
+        "gremio":                 "gremio",
+        "grêmio":                 "gremio",
+        "gremio fbpa":            "gremio",
+        "grêmio fbpa":            "gremio",
+        "gre":                    "gremio",
+        "internacional":          "internacional",
+        "sc internacional":       "internacional",
+        "corinthians":            "corinthians",
+        "sc corinthians":         "corinthians",
+        "cor":                    "corinthians",
+        "cruzeiro":               "cruzeiro",
+        "cruzeiro ec":            "cruzeiro",
+        "cru":                    "cruzeiro",
+        "vasco da gama":          "vasco da gama",
+        "vasco":                  "vasco da gama",
+        "cr vasco da gama":       "vasco da gama",
+        "vas":                    "vasco da gama",
+        "athletico paranaense":   "athletico paranaense",
+        "atletico paranaense":    "athletico paranaense",
+        "atlético paranaense":    "athletico paranaense",
+        "athletico-pr":           "athletico paranaense",
+        "cap":                    "athletico paranaense",
+        "bahia":                  "bahia",
+        "ec bahia":               "bahia",
+        "bah":                    "bahia",
+        "fortaleza":              "fortaleza",
+        "fortaleza ec":           "fortaleza",
+        "for":                    "fortaleza",
+        "red bull bragantino":    "bragantino",
+        "rb bragantino":          "bragantino",
+        "bragantino":             "bragantino",
+        "rbb":                    "bragantino",
+        "vitoria":                "vitoria bahia",
+        "vitória":                "vitoria bahia",
+        "ec vitoria":             "vitoria bahia",
+        "ec vitória":             "vitoria bahia",
+        "juventude":              "juventude",
+        "ec juventude":           "juventude",
+        "juv":                    "juventude",
+        "criciuma":               "criciuma",
+        "criciúma":               "criciuma",
+        "criciuma ec":            "criciuma",
+        "criciúma ec":            "criciuma",
+        "cri":                    "criciuma",
+        "atletico goianiense":    "atletico goianiense",
+        "atlético goianiense":    "atletico goianiense",
+        "atletico-go":            "atletico goianiense",
+        "atlético-go":            "atletico goianiense",
+        "acg":                    "atletico goianiense",
+        "cuiaba":                 "cuiaba",
+        "cuiabá":                 "cuiaba",
+        "cuiaba ec":              "cuiaba",
+        "cuiabá ec":              "cuiaba",
+        "cui":                    "cuiaba",
+        "santos":                 "santos",
+        "santos fc":              "santos",
+        "san":                    "santos",
+        # Argentine Primera División clubs
+        "river plate":            "river plate",
+        "ca river plate":         "river plate",
+        "river":                  "river plate",
+        "riv":                    "river plate",
+        "boca juniors":           "boca juniors",
+        "ca boca juniors":        "boca juniors",
+        "boca":                   "boca juniors",
+        "boc":                    "boca juniors",
+        "racing club":            "racing club",
+        "racing club de avellaneda": "racing club",
+        "racing":                 "racing club",
+        "rac":                    "racing club",
+        "independiente":          "independiente",
+        "ca independiente":       "independiente",
+        "ind":                    "independiente",
+        "san lorenzo":            "san lorenzo",
+        "ca san lorenzo":         "san lorenzo",
+        "slo":                    "san lorenzo",
+        "velez sarsfield":        "velez sarsfield",
+        "vélez sarsfield":        "velez sarsfield",
+        "velez":                  "velez sarsfield",
+        "vélez":                  "velez sarsfield",
+        "vel":                    "velez sarsfield",
+        "estudiantes":            "estudiantes",
+        "estudiantes de la plata": "estudiantes",
+        "edlp":                   "estudiantes",
+        "gimnasia la plata":      "gimnasia la plata",
+        "gimnasia y esgrima la plata": "gimnasia la plata",
+        "gelp":                   "gimnasia la plata",
+        "rosario central":        "rosario central",
+        "ca rosario central":     "rosario central",
+        "ros":                    "rosario central",
+        "newells old boys":       "newells old boys",
+        "newell's old boys":      "newells old boys",
+        "newells":                "newells old boys",
+        "newell's":               "newells old boys",
+        "nob":                    "newells old boys",
+        "talleres":               "talleres",
+        "talleres de cordoba":    "talleres",
+        "talleres de córdoba":    "talleres",
+        "tal":                    "talleres",
+        "belgrano":               "belgrano",
+        "ca belgrano":            "belgrano",
+        "bel":                    "belgrano",
+        "instituto":              "instituto",
+        "instituto ac cordoba":   "instituto",
+        "instituto ac córdoba":   "instituto",
+        "ins":                    "instituto",
+        "argentinos juniors":     "argentinos juniors",
+        "aa argentinos juniors":  "argentinos juniors",
+        "argentinos":             "argentinos juniors",
+        "huracan":                "huracan",
+        "huracán":                "huracan",
+        "ca huracan":             "huracan",
+        "ca huracán":             "huracan",
+        "hur":                    "huracan",
+        "lanus":                  "lanus",
+        "lanús":                  "lanus",
+        "ca lanus":               "lanus",
+        "ca lanús":               "lanus",
+        "lan":                    "lanus",
+        "banfield":               "banfield",
+        "ca banfield":            "banfield",
+        "ban":                    "banfield",
+        "defensa y justicia":     "defensa y justicia",
+        "dyj":                    "defensa y justicia",
+        "godoy cruz":             "godoy cruz",
+        "cd godoy cruz":          "godoy cruz",
+        "god":                    "godoy cruz",
+        "union de santa fe":      "union de santa fe",
+        "unión de santa fe":      "union de santa fe",
+        "platense":               "platense",
+        "ca platense":            "platense",
+        "pla":                    "platense",
+        "tigre":                  "tigre",
+        "ca tigre":               "tigre",
+        "tig":                    "tigre",
+        "barracas central":       "barracas central",
+        "bar":                    "barracas central",
+        "central cordoba":        "central cordoba",
+        "central córdoba":        "central cordoba",
+        "cco":                    "central cordoba",
+        "atletico tucuman":       "atletico tucuman",
+        "atlético tucumán":       "atletico tucuman",
+        "atu":                    "atletico tucuman",
+        "sarmiento":              "sarmiento",
+        "ca sarmiento":           "sarmiento",
+        "sar":                    "sarmiento",
+        "deportivo riestra":      "deportivo riestra",
+        "riestra":                "deportivo riestra",
+        "rie":                    "deportivo riestra",
+        "independiente rivadavia": "independiente rivadavia",
+        "inr":                    "independiente rivadavia",
+        # Asian AFC Champions League & domestic clubs
+        "al ain":                 "al ain",
+        "al ain fc":              "al ain",
+        "shabab al ahli":         "shabab al ahli",
+        "shabab al-ahli":         "shabab al ahli",
+        "shabab al ahli dubai":   "shabab al ahli",
+        "al wasl":                "al wasl",
+        "al-wasl":                "al wasl",
+        "al wasl fc":             "al wasl",
+        "al jazira":              "al jazira",
+        "al-jazira":              "al jazira",
+        "al jazira club":         "al jazira",
+        "sharjah":                "sharjah",
+        "sharjah fc":             "sharjah",
+        "al sadd":                "al sadd",
+        "al-sadd":                "al sadd",
+        "al sadd sc":             "al sadd",
+        "al duhail":              "al duhail",
+        "al-duhail":              "al duhail",
+        "al duhail sc":           "al duhail",
+        "al gharafa":             "al gharafa",
+        "al-gharafa":             "al gharafa",
+        "al gharafa sc":          "al gharafa",
+        "al rayyan":              "al rayyan",
+        "al-rayyan":              "al rayyan",
+        "al rayyan sc":           "al rayyan",
+        "al wakrah":              "al wakrah",
+        "al-wakrah":              "al wakrah",
+        "al wakrah sc":           "al wakrah",
+        "persepolis":             "persepolis",
+        "persepolis fc":          "persepolis",
+        "esteghlal":              "esteghlal",
+        "esteghlal fc":           "esteghlal",
+        "esteghlal tehran":       "esteghlal",
+        "sepahan":                "sepahan",
+        "sepahan sc":             "sepahan",
+        "sepahan isfahan":        "sepahan",
+        "tractor":                "tractor",
+        "tractor sc":             "tractor",
+        "tractor sazi":           "tractor",
+        "al shorta":              "al shorta",
+        "al-shorta":              "al shorta",
+        "al shorta sc":           "al shorta",
+        "al quwa al jawiya":      "al quwa al jawiya",
+        "al-quwa al-jawiya":      "al quwa al jawiya",
+        "air force club":         "al quwa al jawiya",
+        "al zawraa":              "al zawraa",
+        "al-zawraa":              "al zawraa",
+        "al zawra'a sc":          "al zawraa",
+        "kuwait sc":              "kuwait sc",
+        "al kuwait":              "kuwait sc",
+        "al qadsia":              "al qadsia",
+        "qadsia sc":              "al qadsia",
+        "al muharraq":            "al muharraq",
+        "muharraq club":          "al muharraq",
+        "al riffa":               "al riffa",
+        "riffa sc":               "al riffa",
+        "al seeb":                "al seeb",
+        "al-seeb club":           "al seeb",
+        "al wehdat":              "al wehdat",
+        "al-wehdat":              "al wehdat",
+        "al ahed":                "al ahed",
+        "al-ahed sc":             "al ahed",
+        "pakhtakor":              "pakhtakor",
+        "pakhtakor tashkent":     "pakhtakor",
+        "pakhtakor fc":           "pakhtakor",
+        "navbahor":               "navbahor",
+        "navbahor namangan":      "navbahor",
+        "nasaf":                  "nasaf",
+        "nasaf qarshi":           "nasaf",
+        "fc nasaf":               "nasaf",
+        "vissel kobe":            "vissel kobe",
+        "yokohama f marinos":     "yokohama f marinos",
+        "yokohama f. marinos":    "yokohama f marinos",
+        "kawasaki frontale":      "kawasaki frontale",
+        "urawa reds":             "urawa reds",
+        "urawa red diamonds":     "urawa reds",
+        "sanfrecce hiroshima":    "sanfrecce hiroshima",
+        "kashima antlers":        "kashima antlers",
+        "nagoya grampus":         "nagoya grampus",
+        "cerezo osaka":           "cerezo osaka",
+        "gamba osaka":            "gamba osaka",
+        "ulsan hd":               "ulsan hd",
+        "ulsan hyundai":          "ulsan hd",
+        "ulsan hd fc":            "ulsan hd",
+        "jeonbuk motors":         "jeonbuk motors",
+        "jeonbuk hyundai motors": "jeonbuk motors",
+        "jeonbuk":                "jeonbuk motors",
+        "pohang steelers":        "pohang steelers",
+        "gwangju fc":             "gwangju",
+        "fc seoul":               "fc seoul",
+        "shanghai port":          "shanghai port",
+        "shanghai sipg":          "shanghai port",
+        "shanghai shenhua":       "shanghai shenhua",
+        "shandong taishan":       "shandong taishan",
+        "shandong luneng":        "shandong taishan",
+        "beijing guoan":          "beijing guoan",
+        "central coast mariners": "central coast mariners",
+        "melbourne city":         "melbourne city",
+        "melbourne victory":      "melbourne victory",
+        "sydney fc":              "sydney fc",
+        "buriram united":         "buriram united",
+        "buriram":                "buriram united",
+        "bangkok united":         "bangkok united",
+        "bg pathum united":       "bg pathum united",
+        "johor darul ta'zim":     "johor darul tazim",
+        "johor dt":               "johor darul tazim",
+        "jdt":                    "johor darul tazim",
+        # African CAF Champions League & domestic clubs
+        "al ahly":                "al ahly",
+        "al-ahly":                "al ahly",
+        "al ahly sc":             "al ahly",
+        "zamalek":                "zamalek",
+        "zamalek sc":             "zamalek",
+        "pyramids":               "pyramids",
+        "pyramids fc":            "pyramids",
+        "modern future":          "modern sport",
+        "modern sport":           "modern sport",
+        "future fc":              "modern sport",
+        "al masry":               "al masry",
+        "al-masry":               "al masry",
+        "al masry sc":            "al masry",
+        "al ittihad alexandria":  "al ittihad alexandria",
+        "al ittihad al sakandary": "al ittihad alexandria",
+        "ismaily":                "ismaily",
+        "ismaily sc":             "ismaily",
+        "enppi":                  "enppi",
+        "ceramica cleopatra":     "ceramica cleopatra",
+        "smouha":                 "smouha",
+        "zed fc":                 "zed fc",
+        "tala'ea el gaish":       "talaea el gaish",
+        "talaea el gaish":        "talaea el gaish",
+        "el gaish":               "talaea el gaish",
+        "national bank of egypt": "national bank of egypt",
+        "pharco":                 "pharco",
+        "ghazl el mahalla":       "ghazl el mahalla",
+        "haras el hodoud":        "haras el hodoud",
+        "petrojet":               "petrojet",
+        "el gouna":               "el gouna",
+        "gouna":                  "el gouna",
+        "arab contractors":       "arab contractors",
+        "al mokawloon al arab":   "arab contractors",
+        "wydad":                  "wydad",
+        "wydad ac":               "wydad",
+        "wydad casablanca":       "wydad",
+        "raja":                   "raja",
+        "raja ca":                "raja",
+        "raja casablanca":        "raja",
+        "as far":                 "as far",
+        "far rabat":              "as far",
+        "asfar":                  "as far",
+        "rs berkane":             "rs berkane",
+        "renaissance berkane":    "rs berkane",
+        "fus rabat":              "fus rabat",
+        "fath union sport":       "fus rabat",
+        "maghreb de fes":         "maghreb fes",
+        "mas fes":                "maghreb fes",
+        "hassania agadir":        "hassania agadir",
+        "ittihad tanger":         "ittihad tanger",
+        "ir tanger":              "ittihad tanger",
+        "moghreb tetouan":        "moghreb tetouan",
+        "mat tetouan":            "moghreb tetouan",
+        "olympic safi":           "olympic safi",
+        "union touarga":          "union touarga",
+        "esperance":              "esperance tunis",
+        "esperance de tunis":     "esperance tunis",
+        "esperance tunis":        "esperance tunis",
+        "club africain":          "club africain",
+        "etoile du sahel":        "etoile du sahel",
+        "cs sfaxien":             "cs sfaxien",
+        "us monastir":            "us monastir",
+        "stade tunisien":         "stade tunisien",
+        "mc alger":               "mc alger",
+        "mouloudia alger":        "mc alger",
+        "cr belouizdad":          "cr belouizdad",
+        "crb":                    "cr belouizdad",
+        "usm alger":              "usm alger",
+        "usma":                   "usm alger",
+        "js kabylie":             "js kabylie",
+        "jsk":                    "js kabylie",
+        "es setif":               "es setif",
+        "cs constantine":         "cs constantine",
+        "js saoura":              "js saoura",
+        "mc oran":                "mc oran",
+        "paradou ac":             "paradou ac",
+        "mamelodi sundowns":      "mamelodi sundowns",
+        "sundowns":               "mamelodi sundowns",
+        "orlando pirates":        "orlando pirates",
+        "kaizer chiefs":          "kaizer chiefs",
+        "supersport united":      "supersport united",
+        "tp mazembe":             "tp mazembe",
+        "as vita club":           "as vita club",
+        "vita club":              "as vita club",
+        "al hilal omdurman":      "al hilal omdurman",
+        "al hilal sudan":         "al hilal omdurman",
+        "al merrikh":             "al merrikh",
+        "al-merrikh":             "al merrikh",
+        "al merreikh":            "al merrikh",
+        "al ahli tripoli":        "al ahli tripoli",
+        "al ittihad tripoli":     "al ittihad tripoli",
+        "al nasr benghazi":       "al nasr benghazi",
+        "al ahly benghazi":       "al ahly benghazi",
+        "simba":                  "simba",
+        "simba sc":               "simba",
+        "young africans":         "young africans",
+        "yanga":                  "young africans",
+        "petro de luanda":        "petro de luanda",
+        "petro atletico":         "petro de luanda",
+        "primeiro de agosto":     "primeiro de agosto",
+        "asec mimosas":           "asec mimosas",
+        "hearts of oak":          "hearts of oak",
+        "asante kotoko":          "asante kotoko",
+        "horoya":                 "horoya",
+        "horoya ac":              "horoya",
+        "enyimba":                "enyimba",
+        "rivers united":          "rivers united",
+        "coton sport":            "coton sport",
+        # Other South American (CONMEBOL) clubs
+        # Uruguay
+        "penarol":                "penarol",
+        "peñarol":                "penarol",
+        "ca penarol":             "penarol",
+        "ca peñarol":             "penarol",
+        "nacional montevideo":    "nacional montevideo",
+        "cndef":                  "nacional montevideo",
+        "defensor sporting":      "defensor sporting",
+        "danubio":                "danubio",
+        "danubio fc":             "danubio",
+        "boston river":           "boston river",
+        "montevideo wanderers":   "montevideo wanderers",
+        "liverpool montevideo":   "liverpool montevideo",
+        # Colombia
+        "atletico nacional":      "atletico nacional",
+        "atlético nacional":      "atletico nacional",
+        "millonarios":            "millonarios",
+        "millonarios fc":         "millonarios",
+        "america de cali":        "america de cali",
+        "américa de cali":        "america de cali",
+        "santa fe":               "independiente santa fe",
+        "independiente santa fe": "independiente santa fe",
+        "junior":                 "junior barranquilla",
+        "junior barranquilla":    "junior barranquilla",
+        "cd junior":              "junior barranquilla",
+        "deportivo cali":         "deportivo cali",
+        "independiente medellin": "independiente medellin",
+        "independiente medellín": "independiente medellin",
+        "deportes tolima":        "deportes tolima",
+        "once caldas":            "once caldas",
+        "deportivo pereira":      "deportivo pereira",
+        "la equidad":             "la equidad",
+        "atletico bucaramanga":   "bucaramanga",
+        "atlético bucaramanga":   "bucaramanga",
+        "bucaramanga":            "bucaramanga",
+        "aguilas doradas":        "aguilas doradas",
+        "águilas doradas":        "aguilas doradas",
+        # Chile
+        "colo-colo":              "colo colo",
+        "colo colo":              "colo colo",
+        "universidad de chile":   "universidad de chile",
+        "u de chile":             "universidad de chile",
+        "universidad catolica":   "universidad catolica",
+        "universidad católica":   "universidad catolica",
+        "u catolica":             "universidad catolica",
+        "cobreloa":               "cobreloa",
+        "union espanola":         "union espanola",
+        "unión española":         "union espanola",
+        "palestino":              "palestino",
+        "cd palestino":           "palestino",
+        "everton de vina del mar": "everton chile",
+        "everton de viña del mar": "everton chile",
+        "huachipato":             "huachipato",
+        "audax italiano":         "audax italiano",
+        "coquimbo unido":         "coquimbo unido",
+        "o'higgins":              "ohiggins",
+        "ohiggins":               "ohiggins",
+        "cobresal":               "cobresal",
+        # Ecuador
+        "ldu quito":              "ldu quito",
+        "liga de quito":          "ldu quito",
+        "barcelona sc":           "barcelona ecuador",
+        "barcelona de guayaquil": "barcelona ecuador",
+        "emelec":                 "emelec",
+        "cs emelec":              "emelec",
+        "independiente del valle": "independiente del valle",
+        "aucas":                  "aucas",
+        "sd aucas":               "aucas",
+        "el nacional quito":      "el nacional ecuador",
+        "delfin":                 "delfin",
+        "delfín":                 "delfin",
+        "macara":                 "macara",
+        "macará":                 "macara",
+        "deportivo cuenca":       "deportivo cuenca",
+        # Paraguay
+        "olimpia asuncion":       "olimpia asuncion",
+        "olimpia asunción":       "olimpia asuncion",
+        "club olimpia":           "olimpia asuncion",
+        "cerro porteno":          "cerro porteno",
+        "cerro porteño":          "cerro porteno",
+        "club libertad":          "libertad asuncion",
+        "libertad asuncion":      "libertad asuncion",
+        "club guarani":           "guarani paraguay",
+        "guarani paraguay":       "guarani paraguay",
+        "guaraní paraguay":       "guarani paraguay",
+        "nacional asuncion":      "nacional asuncion",
+        "sportivo luqueno":       "sportivo luqueno",
+        "sportivo luqueño":       "sportivo luqueno",
+        "sol de america":         "sol de america",
+        "sol de américa":         "sol de america",
+        # Peru
+        "universitario de deportes": "universitario de deportes",
+        "universitario":          "universitario de deportes",
+        "alianza lima":           "alianza lima",
+        "sporting cristal":       "sporting cristal",
+        "fbc melgar":             "melgar",
+        "melgar":                 "melgar",
+        "cienciano":              "cienciano",
+        "cusco fc":               "cusco fc",
+        "sport boys":             "sport boys",
+        "cesar vallejo":          "cesar vallejo",
+        "césar vallejo":          "cesar vallejo",
+        # Bolivia
+        "bolivar":                "bolivar",
+        "bolívar":                "bolivar",
+        "club bolivar":           "bolivar",
+        "club bolívar":           "bolivar",
+        "the strongest":          "the strongest",
+        "jorge wilstermann":      "jorge wilstermann",
+        "wilstermann":            "jorge wilstermann",
+        "always ready":           "always ready",
+        "oriente petrolero":      "oriente petrolero",
+        "blooming":               "blooming",
+        "club blooming":          "blooming",
+        "nacional potosi":        "nacional potosi",
+        "nacional potosí":        "nacional potosi",
+        # Venezuela
+        "caracas fc":             "caracas fc",
+        "caracas":                "caracas fc",
+        "deportivo tachira":      "deportivo tachira",
+        "deportivo táchira":      "deportivo tachira",
+        "zamora fc":              "zamora venezuela",
+        "deportivo la guaira":    "deportivo la guaira",
+        "metropolitanos":         "metropolitanos",
+        "monagas":                "monagas",
+        "carabobo":               "carabobo",
+        "carabobo fc":            "carabobo",
+        "puerto cabello":         "puerto cabello",
+        "academia puerto cabello": "puerto cabello",
+        # North American (CONCACAF / MLS / Liga MX) clubs
+        # MLS
+        "inter miami":            "inter miami",
+        "inter miami cf":         "inter miami",
+        "la galaxy":              "la galaxy",
+        "los angeles galaxy":     "la galaxy",
+        "lafc":                   "lafc",
+        "los angeles fc":         "lafc",
+        "columbus crew":          "columbus crew",
+        "fc cincinnati":          "fc cincinnati",
+        "cincinnati":             "fc cincinnati",
+        "new york red bulls":     "new york red bulls",
+        "ny red bulls":           "new york red bulls",
+        "rbny":                   "new york red bulls",
+        "new york city fc":       "new york city fc",
+        "nycfc":                  "new york city fc",
+        "new york city":          "new york city fc",
+        "seattle sounders":       "seattle sounders",
+        "seattle sounders fc":    "seattle sounders",
+        "philadelphia union":     "philadelphia union",
+        "atlanta united":         "atlanta united",
+        "atlanta united fc":      "atlanta united",
+        "nashville sc":           "nashville sc",
+        "houston dynamo":         "houston dynamo",
+        "houston dynamo fc":      "houston dynamo",
+        "orlando city":           "orlando city",
+        "orlando city sc":        "orlando city",
+        "real salt lake":         "real salt lake",
+        "portland timbers":       "portland timbers",
+        "sporting kansas city":   "sporting kansas city",
+        "sporting kc":            "sporting kansas city",
+        "austin fc":              "austin fc",
+        "minnesota united":       "minnesota united",
+        "minnesota united fc":    "minnesota united",
+        "st louis city":          "st louis city",
+        "st. louis city sc":      "st louis city",
+        "vancouver whitecaps":    "vancouver whitecaps",
+        "vancouver whitecaps fc": "vancouver whitecaps",
+        "toronto fc":             "toronto fc",
+        "cf montreal":            "cf montreal",
+        "cf montréal":            "cf montreal",
+        "montreal impact":        "cf montreal",
+        "chicago fire":           "chicago fire",
+        "chicago fire fc":        "chicago fire",
+        "fc dallas":              "fc dallas",
+        "colorado rapids":        "colorado rapids",
+        "new england revolution": "new england revolution",
+        "dc united":              "dc united",
+        "d.c. united":            "dc united",
+        "san jose earthquakes":   "san jose earthquakes",
+        "sj earthquakes":         "san jose earthquakes",
+        "charlotte fc":           "charlotte fc",
+        "san diego fc":           "san diego fc",
+        # Liga MX
+        "club america":           "club america",
+        "club américa":           "club america",
+        "chivas":                 "chivas",
+        "chivas guadalajara":     "chivas",
+        "guadalajara":            "chivas",
+        "cruz azul":              "cruz azul",
+        "tigres":                 "tigres uanl",
+        "tigres uanl":            "tigres uanl",
+        "monterrey":              "monterrey",
+        "cf monterrey":           "monterrey",
+        "rayados":                "monterrey",
+        "pumas":                  "pumas unam",
+        "pumas unam":             "pumas unam",
+        "toluca":                 "toluca",
+        "deportivo toluca":       "toluca",
+        "pachuca":                "pachuca",
+        "cf pachuca":             "pachuca",
+        "club leon":              "club leon",
+        "club león":              "club leon",
+        "santos laguna":          "santos laguna",
+        "atlas":                  "atlas",
+        "atlas fc":               "atlas",
+        "club tijuana":           "tijuana",
+        "tijuana":                "tijuana",
+        "xolos":                  "tijuana",
+        "club necaxa":            "necaxa",
+        "necaxa":                 "necaxa",
+        "queretaro":              "queretaro",
+        "querétaro":              "queretaro",
+        "queretaro fc":           "queretaro",
+        "puebla":                 "puebla",
+        "club puebla":            "puebla",
+        "mazatlan":               "mazatlan",
+        "mazatlán":               "mazatlan",
+        "mazatlan fc":            "mazatlan",
+        "atletico san luis":      "atletico san luis",
+        "atlético san luis":      "atletico san luis",
+        "fc juarez":              "fc juarez",
+        "fc juárez":              "fc juarez",
+        # Central America & Caribbean
+        "saprissa":               "saprissa",
+        "deportivo saprissa":     "saprissa",
+        "alajuelense":            "alajuelense",
+        "ld alajuelense":         "alajuelense",
+        "herediano":              "herediano",
+        "cs herediano":           "herediano",
+        "comunicaciones":         "comunicaciones",
+        "comunicaciones fc":      "comunicaciones",
+        "municipal":              "csd municipal",
+        "csd municipal":          "csd municipal",
+        "motagua":                "motagua",
+        "fc motagua":             "motagua",
+        "real espana":            "real espana",
+        "real españa":            "real espana",
+        "marathon":               "marathon",
+        "cd marathon":            "marathon",
+        "real esteli":            "real esteli",
+        "real estelí":            "real esteli",
+        "forge fc":               "forge fc",
+        "cavalry fc":             "cavalry fc",
+        # Other European (UEFA Champions, Europa & Conference League) clubs
+        # Austria
+        "red bull salzburg":      "salzburg",
+        "rb salzburg":            "salzburg",
+        "salzburg":               "salzburg",
+        "sturm graz":             "sturm graz",
+        "sk sturm graz":          "sturm graz",
+        "rapid wien":             "rapid wien",
+        "rapid vienna":           "rapid wien",
+        "sk rapid wien":          "rapid wien",
+        "austria wien":           "austria wien",
+        "austria vienna":         "austria wien",
+        "lask":                   "lask",
+        "lask linz":              "lask",
+        "wolfsberger ac":         "wolfsberger",
+        "wolfsberger":            "wolfsberger",
+        # Switzerland
+        "young boys":             "young boys",
+        "bsc young boys":         "young boys",
+        "basel":                  "basel",
+        "fc basel":               "basel",
+        "fc zurich":              "fc zurich",
+        "fc zürich":              "fc zurich",
+        "zurich":                 "fc zurich",
+        "zürich":                 "fc zurich",
+        "servette":               "servette",
+        "servette fc":            "servette",
+        "lugano":                 "lugano",
+        "fc lugano":              "lugano",
+        "st gallen":              "st gallen",
+        "fc st. gallen":          "st gallen",
+        "fc st gallen":           "st gallen",
+        "fc luzern":              "luzern",
+        "luzern":                 "luzern",
+        "grasshoppers":           "grasshoppers",
+        "grasshopper":            "grasshoppers",
+        # Greece
+        "olympiacos":             "olympiacos",
+        "olympiakos":             "olympiacos",
+        "olympiacos fc":          "olympiacos",
+        "paok":                   "paok",
+        "paok fc":                "paok",
+        "paok thessaloniki":      "paok",
+        "panathinaikos":          "panathinaikos",
+        "panathinaikos fc":       "panathinaikos",
+        "aek athens":             "aek athens",
+        "aek athens fc":          "aek athens",
+        "aris thessaloniki":      "aris thessaloniki",
+        "aris fc":                "aris thessaloniki",
+        # Ukraine
+        "shakhtar donetsk":       "shakhtar donetsk",
+        "shakhtar":               "shakhtar donetsk",
+        "dynamo kyiv":            "dynamo kyiv",
+        "dynamo kiev":            "dynamo kyiv",
+        "zorya luhansk":          "zorya luhansk",
+        "zorya":                  "zorya luhansk",
+        "dnipro-1":               "dnipro-1",
+        "sc dnipro-1":            "dnipro-1",
+        "kryvbas":                "kryvbas",
+        "polissya zhytomyr":      "polissya",
+        # Czech Republic
+        "sparta prague":          "sparta prague",
+        "sparta praha":           "sparta prague",
+        "ac sparta praha":        "sparta prague",
+        "slavia prague":          "slavia prague",
+        "slavia praha":           "slavia prague",
+        "sk slavia praha":        "slavia prague",
+        "viktoria plzen":         "viktoria plzen",
+        "viktoria plzeň":         "viktoria plzen",
+        "fc viktoria plzen":      "viktoria plzen",
+        "banik ostrava":          "banik ostrava",
+        "baník ostrava":          "banik ostrava",
+        "mlada boleslav":         "mlada boleslav",
+        "mladá boleslav":         "mlada boleslav",
+        # Croatia, Serbia & Balkans
+        "dinamo zagreb":          "dinamo zagreb",
+        "gnk dinamo zagreb":      "dinamo zagreb",
+        "hajduk split":           "hajduk split",
+        "hnk hajduk split":       "hajduk split",
+        "hnk rijeka":             "rijeka",
+        "rijeka":                 "rijeka",
+        "nk osijek":              "osijek",
+        "red star belgrade":      "red star belgrade",
+        "crvena zvezda":          "red star belgrade",
+        "partizan":               "partizan",
+        "partizan belgrade":      "partizan",
+        "fk partizan":            "partizan",
+        "tsc backa topola":       "tsc backa topola",
+        "tsc bačka topola":       "tsc backa topola",
+        "cukaricki":              "cukaricki",
+        "čukarički":              "cukaricki",
+        "zrinjski mostar":        "zrinjski mostar",
+        "borac banja luka":       "borac banja luka",
+        "maribor":                "maribor",
+        "nk maribor":             "maribor",
+        "olimpija ljubljana":     "olimpija ljubljana",
+        "nk celje":               "celje",
+        # Poland, Hungary, Romania, Bulgaria, Slovakia
+        "legia warsaw":           "legia warsaw",
+        "legia warszawa":         "legia warsaw",
+        "lech poznan":            "lech poznan",
+        "lech poznań":            "lech poznan",
+        "jagiellonia bialystok":  "jagiellonia",
+        "jagiellonia białystok":  "jagiellonia",
+        "jagiellonia":            "jagiellonia",
+        "rakow czestochowa":      "rakow",
+        "raków częstochowa":      "rakow",
+        "rakow":                  "rakow",
+        "ferencvaros":            "ferencvaros",
+        "ferencváros":            "ferencvaros",
+        "puskas akademia":        "puskas akademia",
+        "puskás akadémia":        "puskas akademia",
+        "fcsb":                   "fcsb",
+        "steaua bucharest":       "fcsb",
+        "steaua bucuresti":       "fcsb",
+        "cfr cluj":               "cfr cluj",
+        "universitatea craiova":  "universitatea craiova",
+        "rapid bucuresti":        "rapid bucuresti",
+        "rapid bucharest":        "rapid bucuresti",
+        "ludogorets":             "ludogorets",
+        "ludogorets razgrad":     "ludogorets",
+        "cska sofia":             "cska sofia",
+        "levski sofia":           "levski sofia",
+        "slovan bratislava":      "slovan bratislava",
+        "spartak trnava":         "spartak trnava",
+        # Nordic & Baltic
+        "copenhagen":             "fc copenhagen",
+        "fc copenhagen":          "fc copenhagen",
+        "fc kobenhavn":           "fc copenhagen",
+        "fc københavn":           "fc copenhagen",
+        "fck":                    "fc copenhagen",
+        "midtjylland":            "fc midtjylland",
+        "fc midtjylland":         "fc midtjylland",
+        "brondby":                "brondby",
+        "brøndby":                "brondby",
+        "brondby if":             "brondby",
+        "nordsjaelland":          "nordsjaelland",
+        "fc nordsjaelland":       "nordsjaelland",
+        "malmo ff":               "malmo ff",
+        "malmö ff":               "malmo ff",
+        "malmo":                  "malmo ff",
+        "malmö":                  "malmo ff",
+        "djurgarden":             "djurgarden",
+        "djurgården":             "djurgarden",
+        "djurgardens if":         "djurgarden",
+        "aik":                    "aik",
+        "aik stockholm":          "aik",
+        "hacken":                 "hacken",
+        "bk hacken":              "hacken",
+        "bk häcken":              "hacken",
+        "elfsborg":               "elfsborg",
+        "if elfsborg":            "elfsborg",
+        "bodo glimt":             "bodo glimt",
+        "bodø glimt":             "bodo glimt",
+        "bodo/glimt":             "bodo glimt",
+        "bodø/glimt":             "bodo glimt",
+        "fk bodo/glimt":          "bodo glimt",
+        "molde":                  "molde",
+        "molde fk":               "molde",
+        "rosenborg":              "rosenborg",
+        "rosenborg bk":           "rosenborg",
+        "brann":                  "sk brann",
+        "sk brann":               "sk brann",
+        "viking":                 "viking fk",
+        "viking fk":              "viking fk",
+        "hjk helsinki":           "hjk helsinki",
+        "hjk":                    "hjk helsinki",
+        "zalgiris":               "zalgiris",
+        "zalgiris vilnius":       "zalgiris",
+        "rfs":                    "rfs",
+        "fk rfs":                 "rfs",
+        "ki klaksvik":            "ki klaksvik",
+        "kí klaksvík":            "ki klaksvik",
+        "vikingur reykjavik":     "vikingur reykjavik",
+        # Cyprus, Azerbaijan, Kazakhstan, Armenia, Moldova & others
+        "apoel":                  "apoel",
+        "apoel fc":               "apoel",
+        "apoel nicosia":          "apoel",
+        "omonia":                 "omonia",
+        "omonia nicosia":         "omonia",
+        "apollon limassol":       "apollon limassol",
+        "aris limassol":          "aris limassol",
+        "aek larnaca":            "aek larnaca",
+        "pafos fc":               "pafos fc",
+        "pafos":                  "pafos fc",
+        "maccabi haifa":          "maccabi haifa",
+        "maccabi tel aviv":       "maccabi tel aviv",
+        "qarabag":                "qarabag",
+        "qarabağ":                "qarabag",
+        "qarabag fk":             "qarabag",
+        "neftchi baku":           "neftchi baku",
+        "astana":                 "fc astana",
+        "fc astana":              "fc astana",
+        "kairat":                 "kairat",
+        "kairat almaty":          "kairat",
+        "sheriff tiraspol":       "sheriff tiraspol",
+        "sheriff":                "sheriff tiraspol",
+        "petrocub":               "petrocub",
+        "petrocub hincesti":      "petrocub",
+        "dinamo batumi":          "dinamo batumi",
+        "dinamo tbilisi":         "dinamo tbilisi",
+        "pyunik":                 "pyunik",
+        "pyunik yerevan":         "pyunik",
+        "fc noah":                "noah",
+        "noah":                   "noah",
+        "bate borisov":           "bate borisov",
+        "bate":                   "bate borisov",
+        "dinamo minsk":           "dinamo minsk",
+        "lincoln red imps":       "lincoln red imps",
+        "the new saints":         "the new saints",
+        "tns":                    "the new saints",
+        "shamrock rovers":        "shamrock rovers",
+        "larne":                  "larne",
+        "larne fc":               "larne",
+        # Russian Premier League
+        "zenit":                  "zenit",
+        "zenit st petersburg":    "zenit",
+        "zenit st. petersburg":   "zenit",
+        "zenit saint petersburg": "zenit",
+        "spartak moscow":         "spartak moscow",
+        "spartak":                "spartak moscow",
+        "cska moscow":            "cska moscow",
+        "cska":                   "cska moscow",
+        "lokomotiv moscow":       "lokomotiv moscow",
+        "lokomotiv":              "lokomotiv moscow",
+        "dynamo moscow":          "dynamo moscow",
+        "krasnodar":              "krasnodar",
+        "fc krasnodar":           "krasnodar",
+        "rubin kazan":            "rubin kazan",
+        "rubin":                  "rubin kazan",
+        "rostov":                 "fc rostov",
+        "fc rostov":              "fc rostov",
+        "akhmat grozny":          "akhmat grozny",
+        "akhmat":                 "akhmat grozny",
+        "krylia sovetov":         "krylia sovetov",
+        "sochi":                  "fc sochi",
+        "fc sochi":               "fc sochi",
+        # English League One & League Two
+        "wrexham":                "wrexham",
+        "wrexham afc":            "wrexham",
+        "birmingham city":        "birmingham city",
+        "birmingham":             "birmingham city",
+        "charlton athletic":      "charlton athletic",
+        "charlton":               "charlton athletic",
+        "huddersfield town":      "huddersfield town",
+        "huddersfield":           "huddersfield town",
+        "bolton wanderers":       "bolton wanderers",
+        "bolton":                 "bolton wanderers",
+        "reading":                "reading",
+        "reading fc":             "reading",
+        "blackpool":              "blackpool",
+        "blackpool fc":           "blackpool",
+        "wigan athletic":         "wigan athletic",
+        "wigan":                  "wigan athletic",
+        "barnsley":               "barnsley",
+        "barnsley fc":            "barnsley",
+        "peterborough united":    "peterborough united",
+        "peterborough":           "peterborough united",
+        "stockport county":       "stockport county",
+        "stockport":              "stockport county",
+        "mansfield town":         "mansfield town",
+        "mansfield":              "mansfield town",
+        "lincoln city":           "lincoln city",
+        "leyton orient":          "leyton orient",
+        "bristol rovers":         "bristol rovers",
+        "wycombe wanderers":      "wycombe wanderers",
+        "wycombe":                "wycombe wanderers",
+        "rotherham united":       "rotherham united",
+        "rotherham":              "rotherham united",
+        "notts county":           "notts county",
+        "bradford city":          "bradford city",
+        "chesterfield":           "chesterfield",
+        "mk dons":                "mk dons",
+        "milton keynes dons":     "mk dons",
+        "afc wimbledon":          "afc wimbledon",
+        "doncaster rovers":       "doncaster rovers",
+        "doncaster":              "doncaster rovers",
+        "gillingham":             "gillingham",
+        "salford city":           "salford city",
+        "salford":                "salford city",
+        "tranmere rovers":        "tranmere rovers",
+        "tranmere":               "tranmere rovers",
+        # Oceania & FIFA Club World Cup
+        "auckland city":          "auckland city",
+        "auckland city fc":       "auckland city",
+        "hienghene sport":        "hienghene sport",
+        "hienghène sport":        "hienghene sport",
+        "as pirae":               "as pirae",
+        "as magenta":             "as magenta",
+        "team wellington":        "team wellington",
+        "waitakere united":       "waitakere united",
+        # Women's Teams
+        "barcelona femeni":       "barcelona femeni",
+        "barcelona f麼eni":       "barcelona femeni",
+        "barcelona women":        "barcelona femeni",
+        "lyon feminin":           "lyon feminin",
+        "lyon women":             "lyon feminin",
+        "chelsea women":          "chelsea women",
+        "chelsea fc women":       "chelsea women",
+        "arsenal women":          "arsenal women",
+        "arsenal wfc":            "arsenal women",
+        "manchester city women":  "manchester city women",
+        "man city women":         "manchester city women",
+        "real madrid femenino":   "real madrid femenino",
+        "real madrid women":      "real madrid femenino",
+        "wolfsburg women":        "wolfsburg women",
+        "bayern munich women":    "bayern munich women",
+        "psg feminine":           "psg feminine",
+        "psg women":              "psg feminine",
+        "juventus women":         "juventus women",
+        "roma women":             "roma women",
+        # Remaining National Teams & Aliases
+        "dr congo":               "dr congo",
+        "congo dr":               "dr congo",
+        "democratic republic of the congo": "dr congo",
+        "republic of ireland":    "republic of ireland",
+        "ireland":                "republic of ireland",
+        "north korea":            "north korea",
+        "korea dpr":              "north korea",
+        "south korea":            "south korea",
+        "korea republic":         "south korea",
+        "cape verde":             "cape verde",
+        "cabo verde":             "cape verde",
+        "central african republic": "central african republic",
+        "bosnia and herzegovina": "bosnia and herzegovina",
+        "bosnia":                 "bosnia and herzegovina",
+        "north macedonia":        "north macedonia",
+        "trinidad and tobago":    "trinidad and tobago",
+        "saint kitts and nevis":  "saint kitts and nevis",
+        # Belgian Pro League & Challenger Pro League
+        "club brugge":            "club brugge",
+        "club brugge kv":         "club brugge",
+        "brugge":                 "club brugge",
+        "anderlecht":             "anderlecht",
+        "rsc anderlecht":         "anderlecht",
+        "genk":                   "genk",
+        "krc genk":               "genk",
+        "rc genk":                "genk",
+        "gent":                   "gent",
+        "kaa gent":               "gent",
+        "aa gent":                "gent",
+        "union saint-gilloise":   "union sg",
+        "union saint gilloise":   "union sg",
+        "union sg":               "union sg",
+        "rusg":                   "union sg",
+        "standard liege":         "standard liege",
+        "standard liège":         "standard liege",
+        "standard de liege":      "standard liege",
+        "antwerp":                "royal antwerp",
+        "royal antwerp":          "royal antwerp",
+        "royal antwerp fc":       "royal antwerp",
+        "cercle brugge":          "cercle brugge",
+        "cercle brugge ksv":      "cercle brugge",
+        "mechelen":               "kv mechelen",
+        "kv mechelen":            "kv mechelen",
+        "sint-truiden":           "sint-truiden",
+        "sint truiden":           "sint-truiden",
+        "stvv":                   "sint-truiden",
+        "westerlo":               "westerlo",
+        "kvc westerlo":           "westerlo",
+        "charleroi":              "sporting charleroi",
+        "sporting charleroi":     "sporting charleroi",
+        "kortrijk":               "kv kortrijk",
+        "kv kortrijk":            "kv kortrijk",
+        "oh leuven":              "oh leuven",
+        "oud-heverlee leuven":    "oh leuven",
+        "ohl":                    "oh leuven",
+        "dender":                 "fcv dender",
+        "fcv dender eh":          "fcv dender",
+        "beerschot":              "beerschot",
+        "k beerschot va":         "beerschot",
+        "eupen":                  "kas eupen",
+        "kas eupen":              "kas eupen",
+        "rwdm":                   "rwd molenbeek",
+        "rwd molenbeek":          "rwd molenbeek",
+        "zulte waregem":          "zulte waregem",
+        "sv zulte waregem":       "zulte waregem",
+        "beveren":                "sk beveren",
+        "sk beveren":             "sk beveren",
+        "waasland-beveren":       "sk beveren",
+        "lierse":                 "lierse",
+        "lierse kempenzonen":     "lierse",
+        "lommel":                 "lommel sk",
+        "lommel sk":              "lommel sk",
+        "lokeren":                "lokeren",
+        "ksc lokeren-temse":      "lokeren",
+        "rfc liege":              "rfc liege",
+        "rfc liège":              "rfc liege",
+        "deinze":                 "deinze",
+        "patro eisden":           "patro eisden",
+        "seraing":                "rfc seraing",
+        "rfc seraing":            "rfc seraing",
+        "oostende":               "kv oostende",
+        "kv oostende":            "kv oostende",
+        "mouscron":               "mouscron",
+        # Scottish Premiership & Championship / SPFL
+        "celtic":                 "celtic",
+        "celtic fc":              "celtic",
+        "rangers":                "rangers",
+        "rangers fc":             "rangers",
+        "glasgow rangers":        "rangers",
+        "aberdeen":               "aberdeen",
+        "aberdeen fc":            "aberdeen",
+        "hearts":                 "heart of midlothian",
+        "heart of midlothian":    "heart of midlothian",
+        "heart of midlothian fc": "heart of midlothian",
+        "hibernian":              "hibernian",
+        "hibs":                   "hibernian",
+        "hibernian fc":           "hibernian",
+        "dundee united":          "dundee united",
+        "dundee utd":             "dundee united",
+        "dundee":                 "dundee fc",
+        "dundee fc":              "dundee fc",
+        "kilmarnock":             "kilmarnock",
+        "kilmarnock fc":          "kilmarnock",
+        "motherwell":             "motherwell",
+        "motherwell fc":          "motherwell",
+        "st mirren":              "st mirren",
+        "st. mirren":             "st mirren",
+        "saint mirren":           "st mirren",
+        "ross county":            "ross county",
+        "ross county fc":         "ross county",
+        "st johnstone":           "st johnstone",
+        "st. johnstone":          "st johnstone",
+        "saint johnstone":        "st johnstone",
+        "livingston":             "livingston",
+        "livingston fc":          "livingston",
+        "partick thistle":        "partick thistle",
+        "partick thistle fc":     "partick thistle",
+        "raith rovers":           "raith rovers",
+        "raith rovers fc":        "raith rovers",
+        "dunfermline athletic":   "dunfermline",
+        "dunfermline":            "dunfermline",
+        "inverness ct":           "inverness",
+        "inverness caledonian thistle": "inverness",
+        "inverness":              "inverness",
+        "falkirk":                "falkirk",
+        "falkirk fc":             "falkirk",
+        "ayr united":             "ayr united",
+        "ayr united fc":          "ayr united",
+        "greenock morton":        "greenock morton",
+        "morton":                 "greenock morton",
+        "queen's park":           "queens park",
+        "queens park":            "queens park",
+        "queen of the south":     "queen of the south",
+        "airdrieonians":          "airdrieonians",
+        "airdrie":                "airdrieonians",
+        "hamilton academical":    "hamilton academical",
+        "hamilton":               "hamilton academical",
+        "arbroath":               "arbroath",
+        "alloa athletic":         "alloa athletic",
+        "cove rangers":           "cove rangers",
+        "montrose":               "montrose",
+}
+
+
+def smart_match_team(name1, name2):
+    if not name1 or not name2:
+        return False
+    try:
+        if isinstance(name1, dict):
+            name1 = name1.get('displayName') or name1.get('name') or str(name1)
+        elif not isinstance(name1, (str, type(u""))):
+            name1 = str(name1)
+        if isinstance(name2, dict):
+            name2 = name2.get('displayName') or name2.get('name') or str(name2)
+        elif not isinstance(name2, (str, type(u""))):
+            name2 = str(name2)
+
+        n1 = name1.strip().lower()
+        n2 = name2.strip().lower()
+    except Exception:
+        return False
+
+    try:
+        if isinstance(n1, bytes):
+            n1 = n1.decode('utf-8', 'ignore')
+    except:
+        pass
+    try:
+        if isinstance(n2, bytes):
+            n2 = n2.decode('utf-8', 'ignore')
+    except:
+        pass
+
+    n1 = _ascii_fold(n1)
+    n2 = _ascii_fold(n2)
+
     if n1 == n2:
         return True
 
-    # 3-letter abbreviation prefix match (e.g. "arg" vs "argentina", "bra" vs "brazil")
-    if len(n1) == 3 and n2.startswith(n1):
-        return True
-    if len(n2) == 3 and n1.startswith(n2):
+    n1 = _TEAM_SYNONYMS.get(n1, n1)
+    n2 = _TEAM_SYNONYMS.get(n2, n2)
+    if n1 == n2:
         return True
 
     for char in ["-", "'", ".", ",", "(", ")"]:
@@ -15579,43 +17268,37 @@ def smart_match_team(name1, name2):
     tokens2 = [w for w in n2.split() if w]
     if not tokens1 or not tokens2:
         return False
-    def get_initials(tokens):
-        stops = {"of", "and", "the", "for"}
-        return "".join([w[0] for w in tokens if w not in stops])
-    if len(tokens1) == 1 and len(tokens1[0]) >= 3:
-        if tokens1[0] == get_initials(tokens2):
-            return True
-    if len(tokens2) == 1 and len(tokens2[0]) >= 3:
-        if tokens2[0] == get_initials(tokens1):
-            return True
-    stop_words = {
-        "and", "of", "the", "republic", "islamic", "democratic", "union", "state", "states", "islands", "de", "la",
-        "united", "utd", "city", "town", "county", "club", "fc", "afc", "sc", "ac", "cf", "c.f.", "deportivo", "sporting",
-        "athletic", "ath", "real", "rovers", "wanderers", "albion", "association", "football", "soccer", "clube", "futbol",
-        "futebol", "sports", "sport", "racing", "boys", "junior", "juniors", "youth", "university", "u23", "u21", "u20", "u19", "u17",
-        "saint", "st"
-    }
-    t1_filtered = set([w for w in tokens1 if w not in stop_words])
-    t2_filtered = set([w for w in tokens2 if w not in stop_words])
-    if t1_filtered and t2_filtered:
-        intersection = t1_filtered.intersection(t2_filtered)
-        if intersection:
-            # Require the intersection to completely cover at least one of the token sets.
-            # This prevents false positives like "South Korea" matching "South Sudan" (intersection is just {"south"}).
-            if intersection == t1_filtered or intersection == t2_filtered:
-                for word in intersection:
-                    if len(word) >= 4:
-                        return True
 
-            for w1 in t1_filtered:
-                for w2 in t2_filtered:
-                    if len(w1) >= 5 and len(w2) >= 5:
-                        if w1.startswith(w2[:5]) or w2.startswith(w1[:5]):
-                            # Also apply the containment check for prefix matches to avoid matching e.g. "North..." and "South..."
-                            other_t1 = t1_filtered - {w1}
-                            other_t2 = t2_filtered - {w2}
-                            if not other_t1 or not other_t2:
-                                return True
+    s_tok1 = set(tokens1)
+    s_tok2 = set(tokens2)
+
+    # Check special modifiers (women, youth, B-teams)
+    special_modifiers = {"women", "w", "femeni", "femenino", "ladies", "frauen", "b", "ii", "2", "u19", "u21", "u23", "jong", "nxt", "futures", "castilla", "youth", "reserves"}
+    m1 = s_tok1.intersection(special_modifiers)
+    m2 = s_tok2.intersection(special_modifiers)
+    if m1 != m2:
+        return False
+
+    # Check derby / distinct club specifier conflicts
+    derby_specifiers = {"city", "united", "utd", "rovers", "wednesday", "victory", "town", "county", "albion", "wanderers", "hotspur", "forest", "villa", "crystal", "athletic", "ath", "real", "atletico", "sporting", "racing", "inter", "sparta", "spartak", "slavia", "dinamo", "dynamo", "lokomotiv", "olympic", "olympique"}
+    d1 = s_tok1.intersection(derby_specifiers)
+    d2 = s_tok2.intersection(derby_specifiers)
+    if d1 and d2 and d1 != d2:
+        return False
+
+    safe_stop_words = {
+        "and", "of", "the", "for", "de", "la", "le", "el", "al", "del", "los", "las", "da", "do", "dos", "das", "di", "du",
+        "fc", "cf", "sc", "ac", "cd", "sk", "fk", "afc", "c.f.", "f.c.", "club", "clube", "association", "football", "soccer", "futbol", "futebol"
+    }
+
+    f1 = [w for w in tokens1 if w not in safe_stop_words]
+    f2 = [w for w in tokens2 if w not in safe_stop_words]
+    if not f1 or not f2:
+        return False
+
+    if f1 == f2 or set(f1) == set(f2):
+        return True
+
     return False
 
 
@@ -15974,12 +17657,3338 @@ TEAM_TRANSLATIONS_AR = {
     "Yemen": u"اليمن",
     "Zambia": u"زامبيا",
     "Zimbabwe": u"زيمبابوي",
+    # ── English Premier League Clubs (Current Season) ────────────────────────
+    "Arsenal": u"آرسنال",
+    "Aston Villa": u"أستون فيلا",
+    "Bournemouth": u"بورنموث",
+    "AFC Bournemouth": u"بورنموث",
+    "Brentford": u"برينتفورد",
+    "Brighton & Hove Albion": u"برايتون",
+    "Brighton and Hove Albion": u"برايتون",
+    "Brighton": u"برايتون",
+    "Chelsea": u"تشيلسي",
+    "Crystal Palace": u"كريستال بالاس",
+    "Everton": u"إيفرتون",
+    "Fulham": u"فولهام",
+    "Ipswich Town": u"إيبسويتش تاون",
+    "Ipswich": u"إيبسويتش تاون",
+    "Leicester City": u"ليستر سيتي",
+    "Leicester": u"ليستر سيتي",
+    "Liverpool": u"ليفربول",
+    "Manchester City": u"مانشستر سيتي",
+    "Man City": u"مانشستر سيتي",
+    "Manchester United": u"مانشستر يونايتد",
+    "Man United": u"مانشستر يونايتد",
+    "Man Utd": u"مانشستر يونايتد",
+    "Newcastle United": u"نيوكاسل يونايتد",
+    "Newcastle": u"نيوكاسل يونايتد",
+    "Nottingham Forest": u"نوتنغهام فورست",
+    "Nottm Forest": u"نوتنغهام فورست",
+    "Southampton": u"ساوثهامبتون",
+    "Tottenham Hotspur": u"توتنهام هوتسبير",
+    "Tottenham": u"توتنهام هوتسبير",
+    "Spurs": u"توتنهام هوتسبير",
+    "West Ham United": u"وست هام يونايتد",
+    "West Ham": u"وست هام يونايتد",
+    "Wolverhampton Wanderers": u"ولفرهامبتون",
+    "Wolverhampton": u"ولفرهامبتون",
+    "Wolves": u"ولفرهامبتون",
+    # ── Additional Major English Clubs ───────────────────────────────────────
+    "Leeds United": u"ليدز يونايتد",
+    "Leeds": u"ليدز يونايتد",
+    "Burnley": u"بيرنلي",
+    "Sheffield United": u"شيفيلد يونايتد",
+    "Luton Town": u"لوتون تاون",
+    "Luton": u"لوتون تاون",
+    "Sunderland": u"سندرلاند",
+    "Norwich City": u"نورويتش سيتي",
+    "Norwich": u"نورويتش سيتي",
+    "West Bromwich Albion": u"وست بروميتش ألبيون",
+    "West Brom": u"وست بروميتش ألبيون",
+    "Watford": u"واتفورد",
+    "Middlesbrough": u"ميدلزبره",
+    "Blackburn Rovers": u"بلاكبيرن روفرز",
+    "Blackburn": u"بلاكبيرن روفرز",
+    "Stoke City": u"ستوك سيتي",
+    "Coventry City": u"كوفنتري سيتي",
+    "Hull City": u"هال سيتي",
+    "Derby County": u"ديربي كاونتي",
+    "Queens Park Rangers": u"كوينز بارك رينجرز",
+    "QPR": u"كوينز بارك رينجرز",
+    "Millwall": u"ميلوول",
+    "Preston North End": u"بريستون نورث إيند",
+    "Bristol City": u"بريستول سيتي",
+    "Swansea City": u"سوانزي سيتي",
+    "Cardiff City": u"كارديف سيتي",
+    "Plymouth Argyle": u"بليموث أرجايل",
+    "Sheffield Wednesday": u"شيفيلد وينزداي",
+    "Portsmouth": u"بورتسموث",
+    "Oxford United": u"أكسفورد يونايتد",
+    # ── Spanish La Liga Clubs (Current Season) ───────────────────────────────
+    "Real Madrid": u"ريال مدريد",
+    "Barcelona": u"برشلونة",
+    "FC Barcelona": u"برشلونة",
+    "Barca": u"برشلونة",
+    "Atlético Madrid": u"أتلتيكو مدريد",
+    "Atletico Madrid": u"أتلتيكو مدريد",
+    "Atlético de Madrid": u"أتلتيكو مدريد",
+    "Atletico de Madrid": u"أتلتيكو مدريد",
+    "Athletic Club": u"أتلتيك بيلباو",
+    "Athletic Bilbao": u"أتلتيك بيلباو",
+    "Real Sociedad": u"ريال سوسيداد",
+    "Real Betis": u"ريال بيتيس",
+    "Villarreal": u"فياريال",
+    "Sevilla": u"إشبيلية",
+    "Valencia": u"فالنسيا",
+    "Girona": u"جيرونا",
+    "Osasuna": u"أوساسونا",
+    "CA Osasuna": u"أوساسونا",
+    "Celta Vigo": u"سيلتا فيغو",
+    "Celta de Vigo": u"سيلتا فيغو",
+    "RC Celta": u"سيلتا فيغو",
+    "Rayo Vallecano": u"رايو فاليكانو",
+    "Rayo": u"رايو فاليكانو",
+    "Mallorca": u"مايوركا",
+    "RCD Mallorca": u"مايوركا",
+    "Deportivo Alavés": u"ديبورتيفو ألافيس",
+    "Deportivo Alaves": u"ديبورتيفو ألافيس",
+    "Alavés": u"ديبورتيفو ألافيس",
+    "Alaves": u"ديبورتيفو ألافيس",
+    "Las Palmas": u"لاس بالماس",
+    "UD Las Palmas": u"لاس بالماس",
+    "Getafe": u"خيتافي",
+    "Espanyol": u"إسبانيول",
+    "RCD Espanyol": u"إسبانيول",
+    "Real Valladolid": u"ريال بلد الوليد",
+    "Valladolid": u"ريال بلد الوليد",
+    "Leganés": u"ليغانيس",
+    "Leganes": u"ليغانيس",
+    "CD Leganés": u"ليغانيس",
+    "CD Leganes": u"ليغانيس",
+    # ── Additional Major Spanish Clubs ───────────────────────────────────────
+    "Cádiz": u"قادش",
+    "Cadiz": u"قادش",
+    "Cádiz CF": u"قادش",
+    "Cadiz CF": u"قادش",
+    "Granada": u"غرناطة",
+    "Granada CF": u"غرناطة",
+    "Almería": u"ألميريا",
+    "Almeria": u"ألميريا",
+    "UD Almería": u"ألميريا",
+    "UD Almeria": u"ألميريا",
+    "Levante": u"ليفانتي",
+    "Levante UD": u"ليفانتي",
+    "Elche": u"إلتشي",
+    "Elche CF": u"إلتشي",
+    "Deportivo La Coruña": u"ديبورتيفو لاكورونيا",
+    "Deportivo La Coruna": u"ديبورتيفو لاكورونيا",
+    "Deportivo": u"ديبورتيفو لاكورونيا",
+    "Real Zaragoza": u"ريال سرقسطة",
+    "Zaragoza": u"ريال سرقسطة",
+    "Sporting Gijón": u"سبورتينغ خيخون",
+    "Sporting Gijon": u"سبورتينغ خيخون",
+    "Real Oviedo": u"ريال أوفييدو",
+    "Oviedo": u"ريال أوفييدو",
+    "Racing Santander": u"راسينغ سانتاندير",
+    "Eibar": u"إيبار",
+    "SD Eibar": u"إيبار",
+    "Tenerife": u"تينيريفي",
+    "CD Tenerife": u"تينيريفي",
+    "Albacete": u"ألباسيتي",
+    "Huesca": u"هويسكا",
+    "SD Huesca": u"هويسكا",
+    "Málaga": u"مالقا",
+    "Malaga": u"مالقا",
+    "Córdoba": u"قرطبة",
+    "Cordoba": u"قرطبة",
+    "Castellón": u"كاستييون",
+    "Castellon": u"كاستييون",
+    "Burgos": u"بورغوس",
+    "Cartagena": u"كارتاخينا",
+    "Mirandés": u"ميرانديس",
+    "Mirandes": u"ميرانديس",
+    "Racing Ferrol": u"راسينغ فيرول",
+    "Eldense": u"إلدنسي",
+    # ── Italian Serie A Clubs (Current Season) ───────────────────────────────
+    "Inter Milan": u"إنتر ميلان",
+    "Inter": u"إنتر ميلان",
+    "Internazionale": u"إنتر ميلان",
+    "FC Internazionale": u"إنتر ميلان",
+    "FC Internazionale Milano": u"إنتر ميلان",
+    "AC Milan": u"ميلان",
+    "Milan": u"ميلان",
+    "Juventus": u"يوفنتوس",
+    "Napoli": u"نابولي",
+    "SSC Napoli": u"نابولي",
+    "Atalanta": u"أتالانتا",
+    "AS Roma": u"روما",
+    "Roma": u"روما",
+    "Lazio": u"لاتسيو",
+    "SS Lazio": u"لاتسيو",
+    "Fiorentina": u"فيورنتينا",
+    "ACF Fiorentina": u"فيورنتينا",
+    "Bologna": u"بولونيا",
+    "Bologna FC": u"بولونيا",
+    "Torino": u"تورينو",
+    "Torino FC": u"تورينو",
+    "Genoa": u"جنوى",
+    "Genoa CFC": u"جنوى",
+    "Monza": u"مونزا",
+    "AC Monza": u"مونزا",
+    "Udinese": u"أودينيزي",
+    "Udinese Calcio": u"أودينيزي",
+    "Cagliari": u"كالياري",
+    "Cagliari Calcio": u"كالياري",
+    "Empoli": u"إمبولي",
+    "Empoli FC": u"إمبولي",
+    "Parma": u"بارما",
+    "Parma Calcio": u"بارما",
+    "Parma Calcio 1913": u"بارما",
+    "Como": u"كومو",
+    "Como 1907": u"كومو",
+    "Venezia": u"فينيزيا",
+    "Venezia FC": u"فينيزيا",
+    "Hellas Verona": u"هيلاس فيرونا",
+    "Verona": u"هيلاس فيرونا",
+    "Lecce": u"ليتشي",
+    "US Lecce": u"ليتشي",
+    # ── Additional Major Italian Clubs ───────────────────────────────────────
+    "Sassuolo": u"ساسولو",
+    "US Sassuolo": u"ساسولو",
+    "Salernitana": u"ساليرنيتانا",
+    "US Salernitana": u"ساليرنيتانا",
+    "Frosinone": u"فروزينوني",
+    "Frosinone Calcio": u"فروزينوني",
+    "Sampdoria": u"سامبدوريا",
+    "UC Sampdoria": u"سامبدوريا",
+    "Palermo": u"باليرمو",
+    "Palermo FC": u"باليرمو",
+    "Bari": u"باري",
+    "SSC Bari": u"باري",
+    "Brescia": u"بريشيا",
+    "Brescia Calcio": u"بريشيا",
+    "Cremonese": u"كريمونيسي",
+    "US Cremonese": u"كريمونيسي",
+    "Spezia": u"سبيزيا",
+    "Spezia Calcio": u"سبيزيا",
+    "Pisa": u"بيزا",
+    "Pisa SC": u"بيزا",
+    "Catanzaro": u"كاتانزارو",
+    "Cesena": u"تشيزينا",
+    "Cesena FC": u"تشيزينا",
+    "Modena": u"مودينا",
+    "Modena FC": u"مودينا",
+    "Reggiana": u"ريجيانا",
+    "Cosenza": u"كوزنسا",
+    "Mantova": u"مانتوفا",
+    "Juve Stabia": u"يوفي ستابيا",
+    "Sudtirol": u"سودتيرول",
+    "Südtirol": u"سودتيرول",
+    "Carrarese": u"كاراريسي",
+    "Cittadella": u"سيتاديلا",
+    "Benevento": u"بينيفينتو",
+    "SPAL": u"سبال",
+    "Crotone": u"كروتوني",
+    "Chievo": u"كييفو فيرونا",
+    "Chievo Verona": u"كييفو فيرونا",
+    "Pescara": u"بيسكارا",
+    "Catania": u"كاتانيا",
+    "Livorno": u"ليفورنو",
+    "Siena": u"سيينا",
+    "Perugia": u"بيروجيا",
+    "Vicenza": u"فيتشنزا",
+    "Ascoli": u"أسكولي",
+    "Ternana": u"تيرنانا",
+    # ── German Bundesliga Clubs (Current Season) ─────────────────────────────
+    "Bayern Munich": u"بايرن ميونخ",
+    "FC Bayern München": u"بايرن ميونخ",
+    "FC Bayern Munchen": u"بايرن ميونخ",
+    "Bayern München": u"بايرن ميونخ",
+    "Bayern Munchen": u"بايرن ميونخ",
+    "Bayern": u"بايرن ميونخ",
+    "Borussia Dortmund": u"بوروسيا دورتموند",
+    "Dortmund": u"بوروسيا دورتموند",
+    "BVB": u"بوروسيا دورتموند",
+    "Bayer Leverkusen": u"باير ليفركوزن",
+    "Leverkusen": u"باير ليفركوزن",
+    "Bayer 04 Leverkusen": u"باير ليفركوزن",
+    "RB Leipzig": u"لايبزيغ",
+    "Leipzig": u"لايبزيغ",
+    "Eintracht Frankfurt": u"آينتراخت فرانكفورت",
+    "Frankfurt": u"آينتراخت فرانكفورت",
+    "VfB Stuttgart": u"شتوتغارت",
+    "Stuttgart": u"شتوتغارت",
+    "Borussia Mönchengladbach": u"بوروسيا مونشنغلادباخ",
+    "Borussia Monchengladbach": u"بوروسيا مونشنغلادباخ",
+    "Mönchengladbach": u"بوروسيا مونشنغلادباخ",
+    "Monchengladbach": u"بوروسيا مونشنغلادباخ",
+    "Gladbach": u"بوروسيا مونشنغلادباخ",
+    "SC Freiburg": u"فرايبورغ",
+    "Freiburg": u"فرايبورغ",
+    "TSG Hoffenheim": u"هوفنهايم",
+    "Hoffenheim": u"هوفنهايم",
+    "TSG 1899 Hoffenheim": u"هوفنهايم",
+    "VfL Wolfsburg": u"فولفسبورغ",
+    "Wolfsburg": u"فولفسبورغ",
+    "FC Augsburg": u"أوغسبورغ",
+    "Augsburg": u"أوغسبورغ",
+    "1. FC Heidenheim": u"هايدنهايم",
+    "1. FC Heidenheim 1846": u"هايدنهايم",
+    "FC Heidenheim": u"هايدنهايم",
+    "Heidenheim": u"هايدنهايم",
+    "Werder Bremen": u"فيردر بريمن",
+    "Bremen": u"فيردر بريمن",
+    "SV Werder Bremen": u"فيردر بريمن",
+    "1. FC Union Berlin": u"يونيون برلين",
+    "Union Berlin": u"يونيون برلين",
+    "1. FSV Mainz 05": u"ماينز",
+    "FSV Mainz 05": u"ماينز",
+    "Mainz 05": u"ماينز",
+    "Mainz": u"ماينز",
+    "FC St. Pauli": u"سانت باولي",
+    "FC St Pauli": u"سانت باولي",
+    "St. Pauli": u"سانت باولي",
+    "St Pauli": u"سانت باولي",
+    "Holstein Kiel": u"هولشتاين كيل",
+    "Kiel": u"هولشتاين كيل",
+    "VfL Bochum": u"بوخوم",
+    "Bochum": u"بوخوم",
+    # ── Additional Major German Clubs ────────────────────────────────────────
+    "FC Schalke 04": u"شالكه",
+    "Schalke 04": u"شالكه",
+    "Schalke": u"شالكه",
+    "Hamburger SV": u"هامبورغ",
+    "Hamburg": u"هامبورغ",
+    "1. FC Köln": u"كولن",
+    "1. FC Koln": u"كولن",
+    "FC Köln": u"كولن",
+    "FC Koln": u"كولن",
+    "Köln": u"كولن",
+    "Koln": u"كولن",
+    "Hertha BSC": u"هيرتا برلين",
+    "Hertha Berlin": u"هيرتا برلين",
+    "Hertha": u"هيرتا برلين",
+    "Fortuna Düsseldorf": u"فورتونا دوسلدورف",
+    "Fortuna Dusseldorf": u"فورتونا دوسلدورف",
+    "Düsseldorf": u"فورتونا دوسلدورف",
+    "Dusseldorf": u"فورتونا دوسلدورف",
+    "Hannover 96": u"هانوفر 96",
+    "Hannover": u"هانوفر 96",
+    "1. FC Kaiserslautern": u"كايزرسلاوترن",
+    "Kaiserslautern": u"كايزرسلاوترن",
+    "1. FC Nürnberg": u"نورنبرغ",
+    "1. FC Nurnberg": u"نورنبرغ",
+    "Nürnberg": u"نورنبرغ",
+    "Nurnberg": u"نورنبرغ",
+    "Karlsruher SC": u"كارلسروه",
+    "Karlsruhe": u"كارلسروه",
+    "SV Darmstadt 98": u"دارمشتات",
+    "Darmstadt 98": u"دارمشتات",
+    "Darmstadt": u"دارمشتات",
+    "SpVgg Greuther Fürth": u"غرويتر فورث",
+    "Greuther Fürth": u"غرويتر فورث",
+    "Greuther Furth": u"غرويتر فورث",
+    "Eintracht Braunschweig": u"آينتراخت براونشفايغ",
+    "Braunschweig": u"آينتراخت براونشفايغ",
+    "1. FC Magdeburg": u"ماغديبورغ",
+    "Magdeburg": u"ماغديبورغ",
+    "SC Paderborn 07": u"بادربورن",
+    "Paderborn": u"بادربورن",
+    "SSV Jahn Regensburg": u"ريغنسبورغ",
+    "Jahn Regensburg": u"ريغنسبورغ",
+    "Regensburg": u"ريغنسبورغ",
+    "SSV Ulm 1846": u"أولم",
+    "Ulm": u"أولم",
+    "SV Elversberg": u"إلفيرسبيرغ",
+    "Elversberg": u"إلفيرسبيرغ",
+    "Preußen Münster": u"برويسن مونستر",
+    "Preussen Munster": u"برويسن مونستر",
+    "SV Wehen Wiesbaden": u"فيهين فيسبادن",
+    "Wehen Wiesbaden": u"فيهين فيسبادن",
+    "VfL Osnabrück": u"أوسنابروك",
+    "VfL Osnabruck": u"أوسنابروك",
+    "Hansa Rostock": u"هانزا روستوك",
+    "Rostock": u"هانزا روستوك",
+    "Dynamo Dresden": u"دينامو دريسدن",
+    "Dresden": u"دينامو دريسدن",
+    "Rot-Weiss Essen": u"روت فايس إيسن",
+    "RW Essen": u"روت فايس إيسن",
+    "1860 Munich": u"تي إس في 1860 ميونخ",
+    "1860 München": u"تي إس في 1860 ميونخ",
+    "1860 Munchen": u"تي إس في 1860 ميونخ",
+    "TSV 1860 Munich": u"تي إس في 1860 ميونخ",
+    "MSV Duisburg": u"دويسبورغ",
+    "Duisburg": u"دويسبورغ",
+    "Arminia Bielefeld": u"أرمينيا بيليفيلد",
+    "Bielefeld": u"أرمينيا بيليفيلد",
+    "Energie Cottbus": u"إنيرجي كوتبوس",
+    "Cottbus": u"إنيرجي كوتبوس",
+    "Alemannia Aachen": u"أليمانيا آخن",
+    "Aachen": u"أليمانيا آخن",
+    "FC Saarbrücken": u"ساربروكن",
+    "FC Saarbrucken": u"ساربروكن",
+    "Saarbrücken": u"ساربروكن",
+    "Saarbrucken": u"ساربروكن",
+    "SV Sandhausen": u"ساندهاوزن",
+    "FC Ingolstadt 04": u"إنغولشتات",
+    "Ingolstadt": u"إنغولشتات",
+    # ── French Ligue 1 Clubs (Current Season) ────────────────────────────────
+    "Paris Saint-Germain": u"باريس سان جيرمان",
+    "Paris Saint Germain": u"باريس سان جيرمان",
+    "PSG": u"باريس سان جيرمان",
+    "Marseille": u"مارسيليا",
+    "Olympique de Marseille": u"مارسيليا",
+    "Olympique Marseille": u"مارسيليا",
+    "Monaco": u"موناكو",
+    "AS Monaco": u"موناكو",
+    "Lyon": u"ليون",
+    "Olympique Lyonnais": u"ليون",
+    "Olympique Lyon": u"ليون",
+    "Lille": u"ليل",
+    "LOSC Lille": u"ليل",
+    "LOSC": u"ليل",
+    "Lens": u"لانس",
+    "RC Lens": u"لانس",
+    "Rennes": u"رين",
+    "Stade Rennais": u"رين",
+    "Stade Rennais FC": u"رين",
+    "Nice": u"نيس",
+    "OGC Nice": u"نيس",
+    "Strasbourg": u"ستراسبورغ",
+    "RC Strasbourg": u"ستراسبورغ",
+    "RC Strasbourg Alsace": u"ستراسبورغ",
+    "Reims": u"ريمس",
+    "Stade de Reims": u"ريمس",
+    "Stade Reims": u"ريمس",
+    "Brest": u"بريست",
+    "Stade Brestois 29": u"بريست",
+    "Stade Brestois": u"بريست",
+    "Toulouse": u"تولوز",
+    "Toulouse FC": u"تولوز",
+    "Montpellier": u"مونبلييه",
+    "Montpellier HSC": u"مونبلييه",
+    "Nantes": u"نانت",
+    "FC Nantes": u"نانت",
+    "Auxerre": u"أوكسير",
+    "AJ Auxerre": u"أوكسير",
+    "Angers": u"أنجيه",
+    "Angers SCO": u"أنجيه",
+    "Saint-Étienne": u"سانت إيتيان",
+    "Saint-Etienne": u"سانت إيتيان",
+    "AS Saint-Étienne": u"سانت إيتيان",
+    "AS Saint-Etienne": u"سانت إيتيان",
+    "St Etienne": u"سانت إيتيان",
+    "Le Havre": u"لوهافر",
+    "Le Havre AC": u"لوهافر",
+    # ── Additional Major French Clubs ────────────────────────────────────────
+    "Bordeaux": u"بوردو",
+    "Girondins de Bordeaux": u"بوردو",
+    "FC Girondins de Bordeaux": u"بوردو",
+    "Metz": u"ميتز",
+    "FC Metz": u"ميتز",
+    "Lorient": u"لوريان",
+    "FC Lorient": u"لوريان",
+    "Clermont Foot": u"كليرمون",
+    "Clermont": u"كليرمون",
+    "Ajaccio": u"أجاكسيو",
+    "AC Ajaccio": u"أجاكسيو",
+    "Troyes": u"تروا",
+    "ESTAC Troyes": u"تروا",
+    "Caen": u"كاين",
+    "SM Caen": u"كاين",
+    "Guingamp": u"غانغان",
+    "EA Guingamp": u"غانغان",
+    "Bastia": u"باستيا",
+    "SC Bastia": u"باستيا",
+    "Paris FC": u"باريس إف سي",
+    "Grenoble": u"غرونوبل",
+    "Grenoble Foot 38": u"غرونوبل",
+    "Sochaux": u"سوشو",
+    "FC Sochaux": u"سوشو",
+    "Valenciennes": u"فالنسيان",
+    "Valenciennes FC": u"فالنسيان",
+    "Rodez": u"روديز",
+    "Rodez AF": u"روديز",
+    "Pau": u"باو",
+    "Pau FC": u"باو",
+    "Laval": u"لافال",
+    "Stade Lavallois": u"لافال",
+    "Dunkerque": u"دونكيرك",
+    "USL Dunkerque": u"دونكيرك",
+    "Amiens": u"أميان",
+    "Amiens SC": u"أميان",
+    "Red Star": u"رد ستار",
+    "Red Star FC": u"رد ستار",
+    "Martigues": u"مارتيغ",
+    "FC Martigues": u"مارتيغ",
+    "Annecy": u"آنسي",
+    "FC Annecy": u"آنسي",
+    "Nancy": u"نانسي",
+    "AS Nancy Lorraine": u"نانسي",
+    "Sedan": u"سيدان",
+    "CS Sedan": u"سيدان",
+    "Nîmes": u"نيم",
+    "Nimes": u"نيم",
+    "Nîmes Olympique": u"نيم",
+    "Le Mans": u"لومان",
+    "Le Mans FC": u"لومان",
+    # ── Saudi Pro League Clubs (Current Season) ──────────────────────────────
+    "Al Hilal": u"الهلال",
+    "Al-Hilal": u"الهلال",
+    "Al Hilal SFC": u"الهلال",
+    "Al Nassr": u"النصر",
+    "Al-Nassr": u"النصر",
+    "Al Nassr FC": u"النصر",
+    "Al Ittihad": u"الاتحاد",
+    "Al-Ittihad": u"الاتحاد",
+    "Al Ittihad Club": u"الاتحاد",
+    "Al Ahli": u"الأهلي",
+    "Al-Ahli": u"الأهلي",
+    "Al Ahli Saudi FC": u"الأهلي",
+    "Al Shabab": u"الشباب",
+    "Al-Shabab": u"الشباب",
+    "Al Shabab FC": u"الشباب",
+    "Al Taawoun": u"التعاون",
+    "Al-Taawoun": u"التعاون",
+    "Al Taawon": u"التعاون",
+    "Al Ettifaq": u"الاتفاق",
+    "Al-Ettifaq": u"الاتفاق",
+    "Al Ittifaq": u"الاتفاق",
+    "Al Fateh": u"الفتح",
+    "Al-Fateh": u"الفتح",
+    "Al Fateh FC": u"الفتح",
+    "Al Fayha": u"الفيحاء",
+    "Al-Fayha": u"الفيحاء",
+    "Al Feiha": u"الفيحاء",
+    "Al Wehda": u"الوحدة",
+    "Al-Wehda": u"الوحدة",
+    "Al Wahda": u"الوحدة",
+    "Al Khaleej": u"الخليج",
+    "Al-Khaleej": u"الخليج",
+    "Al Khaleej Club": u"الخليج",
+    "Al Raed": u"الرائد",
+    "Al-Raed": u"الرائد",
+    "Al Raed FC": u"الرائد",
+    "Damac": u"ضمك",
+    "Damac FC": u"ضمك",
+    "Damak": u"ضمك",
+    "Al Riyadh": u"الرياض",
+    "Al-Riyadh": u"الرياض",
+    "Al Riyadh SC": u"الرياض",
+    "Al Okhdood": u"الأخدود",
+    "Al-Okhdood": u"الأخدود",
+    "Al Akhdoud": u"الأخدود",
+    "Al Qadsiah": u"القادسية",
+    "Al-Qadsiah": u"القادسية",
+    "Al Qadisiya": u"القادسية",
+    "Al Kholood": u"الخلود",
+    "Al-Kholood": u"الخلود",
+    "Al Kholoud": u"الخلود",
+    "Al Orobah": u"العروبة",
+    "Al-Orobah": u"العروبة",
+    "Al Orubah": u"العروبة",
+    # ── Additional Major Saudi Clubs (Yelo League / King's Cup / Division 2) ──
+    "Neom": u"نيوم",
+    "Neom SC": u"نيوم",
+    "NEOM": u"نيوم",
+    "Neom FC": u"نيوم",
+    "Neom Club": u"نيوم",
+    "Aldiriyah": u"الدرعية",
+    "Al Diriyah": u"الدرعية",
+    "Al-Diriyah": u"الدرعية",
+    "Diriyah": u"الدرعية",
+    "Diriyah Club": u"الدرعية",
+    "Diriyah SC": u"الدرعية",
+    "Diriyah FC": u"الدرعية",
+    "Aldiriyah FC": u"الدرعية",
+    "Al-Ula": u"العلا",
+    "Al Ula": u"العلا",
+    "AlUla": u"العلا",
+    "Al Ula FC": u"العلا",
+    "Al Ula Club": u"العلا",
+    "Al-Jubail": u"الجبيل",
+    "Al Jubail": u"الجبيل",
+    "Aljubail": u"الجبيل",
+    "Jubail": u"الجبيل",
+    "Jubail Club": u"الجبيل",
+    "Al-Arabi Saudi": u"العربي السعودي",
+    "Al Arabi Saudi": u"العربي السعودي",
+    "Al Arabi KSA": u"العربي السعودي",
+    "Al-Arabi SC": u"العربي السعودي",
+    "Jeddah": u"جدة",
+    "Jeddah Club": u"جدة",
+    "Jeddah SC": u"جدة",
+    "Al-Ain Saudi": u"العين السعودي",
+    "Al Ain Saudi": u"العين السعودي",
+    "Al-Rawdhah": u"الروضة",
+    "Al Rawdhah": u"الروضة",
+    "Alrawdhah": u"الروضة",
+    "Al-Washm": u"الوشم",
+    "Al Washm": u"الوشم",
+    "Alwashm": u"الوشم",
+    "Al-Nojoom": u"النجوم",
+    "Al Nojoom": u"النجوم",
+    "Alnojoom": u"النجوم",
+    "Al-Saqer": u"الصقر",
+    "Al Saqer": u"الصقر",
+    "Al-Kawkab": u"الكوكب",
+    "Al Kawkab": u"الكوكب",
+    "Al-Entesar": u"الانتصار",
+    "Al Entesar": u"الانتصار",
+    "Al-Qous": u"القوس",
+    "Al Qous": u"القوس",
+    "Mudhar": u"مضر",
+    "Mudhar Club": u"مضر",
+    "Al-Sadd Saudi": u"السد السعودي",
+    "Al Sadd Saudi": u"السد السعودي",
+    "Tuwaiq": u"طويق",
+    "Tuwaiq Club": u"طويق",
+    "Al-Sharq": u"الشرق",
+    "Al Sharq": u"الشرق",
+    "Al-Nairyah": u"النعيرية",
+    "Al Nairyah": u"النعيرية",
+    "Bisha": u"بيشة",
+    "Bisha FC": u"بيشة",
+    "Al-Lewaa": u"اللواء",
+    "Al Lewaa": u"اللواء",
+    "Qilwah": u"قلوة",
+    "Jerash": u"جرش",
+    "Afif": u"عفيف",
+    "Afif Club": u"عفيف",
+    "Al-Taqadom": u"التقدم",
+    "Al Taqadom": u"التقدم",
+    "Al-Houra": u"الحوراء",
+    "Al Houra": u"الحوراء",
+    "Al-Ghottah": u"الغوطة",
+    "Al Ghottah": u"الغوطة",
+    "Al-Rayyan Saudi": u"الريان السعودي",
+    "Al Rayyan Saudi": u"الريان السعودي",
+    "Al-Salam": u"السلام",
+    "Al Salam": u"السلام",
+    "Al-Amjad": u"الأمجاد",
+    "Al Amjad": u"الأمجاد",
+    "Al-Ghazwa": u"الغزوة",
+    "Al Ghazwa": u"الغزوة",
+    "Al-Hedaya": u"الهداية",
+    "Al Hedaya": u"الهداية",
+    "Munief": u"منيف",
+    "Radwa": u"رضوى",
+    "Al Tai": u"الطائي",
+    "Al-Tai": u"الطائي",
+    "Al Taee": u"الطائي",
+    "Abha": u"أبها",
+    "Abha Club": u"أبها",
+    "Al Hazem": u"الحزم",
+    "Al-Hazem": u"الحزم",
+    "Al Hazm": u"الحزم",
+    "Al Batin": u"الباطن",
+    "Al-Batin": u"الباطن",
+    "Al Faisaly": u"الفيصلي",
+    "Al-Faisaly": u"الفيصلي",
+    "Al Adalah": u"العدالة",
+    "Al-Adalah": u"العدالة",
+    "Al Adalh": u"العدالة",
+    "Al Najma": u"النجمة",
+    "Al-Najma": u"النجمة",
+    "Al Bukiryah": u"البكيرية",
+    "Al-Bukiryah": u"البكيرية",
+    "Al Jabalain": u"الجبلين",
+    "Al-Jabalain": u"الجبلين",
+    "Al Safa": u"الصفا",
+    "Al-Safa": u"الصفا",
+    "Al Taraji": u"الترجي السعودي",
+    "Al-Taraji": u"الترجي السعودي",
+    "Al Jandal": u"الجندل",
+    "Al-Jandal": u"الجندل",
+    "Ohod": u"أحد",
+    "Ohod Club": u"أحد",
+    "Hajer": u"هجر",
+    "Hajer Club": u"هجر",
+    "Al Shoalah": u"الشعلة",
+    "Al-Shoalah": u"الشعلة",
+    "Al Nahda": u"النهضة",
+    "Al-Nahda": u"النهضة",
+    "Al Jeel": u"الجيل",
+    "Al-Jeel": u"الجيل",
+    "Al Arabi": u"العربي",
+    "Al-Arabi": u"العربي",
+    "Al Zulfi": u"الزلفي",
+    "Al-Zulfi": u"الزلفي",
+    # ── Portuguese Primeira Liga Clubs (Current Season) ──────────────────────
+    "Benfica": u"بنفيكا",
+    "SL Benfica": u"بنفيكا",
+    "Sporting CP": u"سبورتينغ لشبونة",
+    "Sporting Lisbon": u"سبورتينغ لشبونة",
+    "Sporting": u"سبورتينغ لشبونة",
+    "Porto": u"بورتو",
+    "FC Porto": u"بورتو",
+    "Braga": u"سبورتينغ براغا",
+    "SC Braga": u"سبورتينغ براغا",
+    "Sporting Braga": u"سبورتينغ براغا",
+    "Vitória de Guimarães": u"فيتوريا غيمارايش",
+    "Vitoria de Guimaraes": u"فيتوريا غيمارايش",
+    "Vitória SC": u"فيتوريا غيمارايش",
+    "Vitoria SC": u"فيتوريا غيمارايش",
+    "Guimarães": u"فيتوريا غيمارايش",
+    "Guimaraes": u"فيتوريا غيمارايش",
+    "Famalicão": u"فاماليكاو",
+    "Famalicao": u"فاماليكاو",
+    "FC Famalicão": u"فاماليكاو",
+    "FC Famalicao": u"فاماليكاو",
+    "Santa Clara": u"سانتا كلارا",
+    "CD Santa Clara": u"سانتا كلارا",
+    "Moreirense": u"موريرينسي",
+    "Moreirense FC": u"موريرينسي",
+    "Rio Ave": u"ريو أفي",
+    "Rio Ave FC": u"ريو أفي",
+    "Arouca": u"أروكا",
+    "FC Arouca": u"أروكا",
+    "Estoril Praia": u"إستوريل برايا",
+    "Estoril": u"إستوريل برايا",
+    "GD Estoril Praia": u"إستوريل برايا",
+    "Boavista": u"بوافيستا",
+    "Boavista FC": u"بوافيستا",
+    "Gil Vicente": u"جيل فيسنتي",
+    "Gil Vicente FC": u"جيل فيسنتي",
+    "Casa Pia": u"كاسا بيا",
+    "Casa Pia AC": u"كاسا بيا",
+    "Estrela da Amadora": u"إستريلا أمادورا",
+    "Estrela Amadora": u"إستريلا أمادورا",
+    "CF Estrela da Amadora": u"إستريلا أمادورا",
+    "Estrela": u"إستريلا أمادورا",
+    "Nacional": u"ناسيونال ماديرا",
+    "CD Nacional": u"ناسيونال ماديرا",
+    "Nacional da Madeira": u"ناسيونال ماديرا",
+    "AVS Futebol SAD": u"إيه في إس",
+    "AVS": u"إيه في إس",
+    "AVS FS": u"إيه في إس",
+    "Farense": u"فارنسي",
+    "SC Farense": u"فارنسي",
+    # ── Additional Major Portuguese Clubs (Liga 2 / Taça de Portugal) ────────
+    "Marítimo": u"ماريتيمو",
+    "Maritimo": u"ماريتيمو",
+    "CS Marítimo": u"ماريتيمو",
+    "Portimonense": u"بورتيمونينسي",
+    "Portimonense SC": u"بورتيمونينسي",
+    "Vizela": u"فيزيلا",
+    "FC Vizela": u"فيزيلا",
+    "Chaves": u"تشافيس",
+    "GD Chaves": u"تشافيس",
+    "Paços de Ferreira": u"باسوش دي فيريرا",
+    "Pacos de Ferreira": u"باسوش دي فيريرا",
+    "FC Paços de Ferreira": u"باسوش دي فيريرا",
+    "Belenenses": u"بيلينينسيس",
+    "CF Os Belenenses": u"بيلينينسيس",
+    "Académica de Coimbra": u"أكاديميكا كويمبرا",
+    "Academica de Coimbra": u"أكاديميكا كويمبرا",
+    "Académica": u"أكاديميكا كويمبرا",
+    "Leixões": u"ليكسويس",
+    "Leixoes": u"ليكسويس",
+    "Leixões SC": u"ليكسويس",
+    "Feirense": u"فيرينسي",
+    "CD Feirense": u"فيرينسي",
+    "Penafiel": u"بينافيل",
+    "FC Penafiel": u"بينافيل",
+    "Tondela": u"تونديلا",
+    "CD Tondela": u"تونديلا",
+    "Mafra": u"مافرا",
+    "CD Mafra": u"مافرا",
+    "União de Leiria": u"أونياو ليريا",
+    "Uniao de Leiria": u"أونياو ليريا",
+    "UD Leiria": u"أونياو ليريا",
+    "Torreense": u"تورينسي",
+    "SC Torreense": u"تورينسي",
+    "Oliveirense": u"أوليفيرينسي",
+    "UD Oliveirense": u"أوليفيرينسي",
+    "Alverca": u"ألفيركا",
+    "FC Alverca": u"ألفيركا",
+    "Felgueiras": u"فيلغيراس",
+    "FC Felgueiras": u"فيلغيراس",
+    "Varzim": u"فارزيم",
+    "Varzim SC": u"فارزيم",
+    "Beira-Mar": u"بيرا مار",
+    "SC Beira-Mar": u"بيرا مار",
+    "Olhanense": u"أولهانينسي",
+    "SC Olhanense": u"أولهانينسي",
+    # ── Dutch Eredivisie Clubs (Current Season) ──────────────────────────────
+    "Ajax": u"أياكس",
+    "AFC Ajax": u"أياكس",
+    "PSV Eindhoven": u"بي إس في آيندهوفن",
+    "PSV": u"بي إس في آيندهوفن",
+    "Feyenoord": u"فينورد",
+    "Feyenoord Rotterdam": u"فينورد",
+    "AZ Alkmaar": u"إي زد ألكمار",
+    "AZ": u"إي زد ألكمار",
+    "FC Twente": u"تفينتي",
+    "Twente": u"تفينتي",
+    "FC Utrecht": u"أوتريخت",
+    "Utrecht": u"أوتريخت",
+    "Go Ahead Eagles": u"غو أهيد إيغلز",
+    "GA Eagles": u"غو أهيد إيغلز",
+    "NEC Nijmegen": u"إن إي سي نيميخن",
+    "NEC": u"إن إي سي نيميخن",
+    "sc Heerenveen": u"هيرينفين",
+    "Heerenveen": u"هيرينفين",
+    "Sparta Rotterdam": u"سبارتا روتردام",
+    "Sparta": u"سبارتا روتردام",
+    "Fortuna Sittard": u"فورتونا سيتارد",
+    "Fortuna": u"فورتونا سيتارد",
+    "PEC Zwolle": u"بي إي سي زفوله",
+    "Zwolle": u"بي إي سي زفوله",
+    "Heracles Almelo": u"هيراكليس ألميلو",
+    "Heracles": u"هيراكليس ألميلو",
+    "Almere City": u"ألمير سيتي",
+    "Almere City FC": u"ألمير سيتي",
+    "Almere": u"ألمير سيتي",
+    "RKC Waalwijk": u"آر كيه سي فالفيك",
+    "Waalwijk": u"آر كيه سي فالفيك",
+    "RKC": u"آر كيه سي فالفيك",
+    "Willem II": u"فيليم تو",
+    "Willem II Tilburg": u"فيليم تو",
+    "FC Groningen": u"غرونينغن",
+    "Groningen": u"غرونينغن",
+    "NAC Breda": u"ناك بريدا",
+    "NAC": u"ناك بريدا",
+    # ── Additional Major Dutch Clubs (Eerste Divisie / KNVB Cup) ─────────────
+    "Vitesse": u"فيتيسه",
+    "Vitesse Arnhem": u"فيتيسه",
+    "SBV Vitesse": u"فيتيسه",
+    "Excelsior": u"إكسلسيور",
+    "Excelsior Rotterdam": u"إكسلسيور",
+    "SBV Excelsior": u"إكسلسيور",
+    "FC Volendam": u"فولندام",
+    "Volendam": u"فولندام",
+    "SC Cambuur": u"كامبور",
+    "Cambuur": u"كامبور",
+    "Cambuur Leeuwarden": u"كامبور",
+    "FC Emmen": u"إمين",
+    "Emmen": u"إمين",
+    "De Graafschap": u"دي غرافشاب",
+    "ADO Den Haag": u"أدو دين هاغ",
+    "Den Haag": u"أدو دين هاغ",
+    "Roda JC": u"رودا كيركراده",
+    "Roda JC Kerkrade": u"رودا كيركراده",
+    "Roda": u"رودا كيركراده",
+    "MVV Maastricht": u"إم في في ماستريخت",
+    "MVV": u"إم في في ماستريخت",
+    "FC Den Bosch": u"دين بوش",
+    "Den Bosch": u"دين بوش",
+    "VVV-Venlo": u"في في في فينلو",
+    "VVV Venlo": u"في في في فينلو",
+    "Venlo": u"في في في فينلو",
+    "FC Dordrecht": u"دوردريخت",
+    "Dordrecht": u"دوردريخت",
+    "FC Eindhoven": u"إف سي آيندهوفن",
+    "Telstar": u"تيلستار",
+    "SC Telstar": u"تيلستار",
+    "Helmond Sport": u"هيلموند سبورت",
+    "TOP Oss": u"توب أوس",
+    "Jong Ajax": u"شباب أياكس",
+    "Jong PSV": u"شباب آيندهوفن",
+    "Jong AZ": u"شباب ألكمار",
+    "Jong FC Utrecht": u"شباب أوتريخت",
+    # ── Brazilian Série A Clubs (Current Season) ─────────────────────────────
+    "Flamengo": u"فلامينغو",
+    "CR Flamengo": u"فلامينغو",
+    "Palmeiras": u"بالميراس",
+    "SE Palmeiras": u"بالميراس",
+    "Botafogo": u"بوتافوغو",
+    "Botafogo FR": u"بوتافوغو",
+    "Atlético Mineiro": u"أتلتيكو مينيرو",
+    "Atletico Mineiro": u"أتلتيكو مينيرو",
+    "Atlético-MG": u"أتلتيكو مينيرو",
+    "Atletico-MG": u"أتلتيكو مينيرو",
+    "São Paulo": u"ساو باولو",
+    "Sao Paulo": u"ساو باولو",
+    "São Paulo FC": u"ساو باولو",
+    "Sao Paulo FC": u"ساو باولو",
+    "Fluminense": u"فلومينينسي",
+    "Fluminense FC": u"فلومينينسي",
+    "Grêmio": u"غريميو",
+    "Gremio": u"غريميو",
+    "Grêmio FBPA": u"غريميو",
+    "Gremio FBPA": u"غريميو",
+    "Internacional": u"إنترناسيونال",
+    "SC Internacional": u"إنترناسيونال",
+    "Corinthians": u"كورينثيانز",
+    "SC Corinthians": u"كورينثيانز",
+    "Cruzeiro": u"كروزيرو",
+    "Cruzeiro EC": u"كروزيرو",
+    "Vasco da Gama": u"فاسكو دا غاما",
+    "Vasco": u"فاسكو دا غاما",
+    "CR Vasco da Gama": u"فاسكو دا غاما",
+    "Athletico Paranaense": u"أتلتيكو باراناينسي",
+    "Atletico Paranaense": u"أتلتيكو باراناينسي",
+    "Atlético Paranaense": u"أتلتيكو باراناينسي",
+    "Athletico-PR": u"أتلتيكو باراناينسي",
+    "Bahia": u"باهيا",
+    "EC Bahia": u"باهيا",
+    "Fortaleza": u"فورتاليزا",
+    "Fortaleza EC": u"فورتاليزا",
+    "Red Bull Bragantino": u"ريد بول براغانتينو",
+    "RB Bragantino": u"ريد بول براغانتينو",
+    "Bragantino": u"ريد بول براغانتينو",
+    "Vitória": u"فيتوريا باهيا",
+    "Vitoria": u"فيتوريا باهيا",
+    "EC Vitória": u"فيتوريا باهيا",
+    "EC Vitoria": u"فيتوريا باهيا",
+    "Juventude": u"يوفنتودي",
+    "EC Juventude": u"يوفنتودي",
+    "Criciúma": u"كريسيوما",
+    "Criciuma": u"كريسيوما",
+    "Criciúma EC": u"كريسيوما",
+    "Criciuma EC": u"كريسيوما",
+    "Atlético Goianiense": u"أتلتيكو غويانيينسي",
+    "Atletico Goianiense": u"أتلتيكو غويانيينسي",
+    "Atlético-GO": u"أتلتيكو غويانيينسي",
+    "Atletico-GO": u"أتلتيكو غويانيينسي",
+    "Cuiabá": u"كويابا",
+    "Cuiaba": u"كويابا",
+    "Cuiabá EC": u"كويابا",
+    "Cuiaba EC": u"كويابا",
+    # ── Additional Major Brazilian Clubs (Série B / Copa do Brasil) ──────────
+    "Santos": u"سانتوس",
+    "Santos FC": u"سانتوس",
+    "Coritiba": u"كوريتيبا",
+    "Coritiba FBC": u"كوريتيبا",
+    "Goiás": u"غوياس",
+    "Goias": u"غوياس",
+    "Goiás EC": u"غوياس",
+    "Sport Recife": u"سبورت ريسيفي",
+    "Sport": u"سبورت ريسيفي",
+    "Ceará": u"سيارا",
+    "Ceara": u"سيارا",
+    "Ceará SC": u"سيارا",
+    "América Mineiro": u"أمريكا مينيرو",
+    "America Mineiro": u"أمريكا مينيرو",
+    "América-MG": u"أمريكا مينيرو",
+    "America-MG": u"أمريكا مينيرو",
+    "Avaí": u"أفاي",
+    "Avai": u"أفاي",
+    "Avaí FC": u"أفاي",
+    "Chapecoense": u"شابيكوينسي",
+    "Ponte Preta": u"بونتي بريتا",
+    "AA Ponte Preta": u"بونتي بريتا",
+    "Guarani": u"غواراني",
+    "Guarani FC": u"غواراني",
+    "Vila Nova": u"فيلا نوفا",
+    "Vila Nova FC": u"فيلا نوفا",
+    "Novorizontino": u"نوفوريزونتينو",
+    "Grêmio Novorizontino": u"نوفوريزونتينو",
+    "Mirassol": u"ميراسول",
+    "Mirassol FC": u"ميراسول",
+    "Operário": u"أوبيراريو",
+    "Operario": u"أوبيراريو",
+    "Paysandu": u"بايساندو",
+    "Paysandu SC": u"بايساندو",
+    "CRB": u"سي آر بي",
+    "Brusque": u"بروسكي",
+    "Ituano": u"إيتوانو",
+    "Amazonas": u"أمازوناس",
+    "Amazonas FC": u"أمازوناس",
+    "Botafogo-SP": u"بوتافوغو دي ريبيراو بريتو",
+    "Botafogo SP": u"بوتافوغو دي ريبيراو بريتو",
+    "Sampaio Corrêa": u"سامبايو كوريا",
+    "Sampaio Correa": u"سامبايو كوريا",
+    "Londrina": u"لوندرينا",
+    "Náutico": u"ناوتيكو",
+    "Nautico": u"ناوتيكو",
+    "Santa Cruz": u"سانتا كروز",
+    "Paraná": u"بارانا",
+    "Parana": u"بارانا",
+    "Figueirense": u"فيغورينسي",
+    "CSA": u"سي إس إيه",
+    "Remo": u"ريمو",
+    # ── Argentine Primera División Clubs (Current Season) ────────────────────
+    "River Plate": u"ريفر بليت",
+    "CA River Plate": u"ريفر بليت",
+    "Boca Juniors": u"بوكا جونيورز",
+    "CA Boca Juniors": u"بوكا جونيورز",
+    "Racing Club": u"راسينغ كلوب",
+    "Racing Club de Avellaneda": u"راسينغ كلوب",
+    "Independiente": u"إنديبندينتي",
+    "CA Independiente": u"إنديبندينتي",
+    "San Lorenzo": u"سان لورينزو",
+    "CA San Lorenzo de Almagro": u"سان لورينزو",
+    "CA San Lorenzo": u"سان لورينزو",
+    "Vélez Sarsfield": u"فيليز سارسفيلد",
+    "Velez Sarsfield": u"فيليز سارسفيلد",
+    "CA Vélez Sarsfield": u"فيليز سارسفيلد",
+    "CA Velez Sarsfield": u"فيليز سارسفيلد",
+    "Estudiantes": u"إستوديانتيس لابلاتا",
+    "Estudiantes de La Plata": u"إستوديانتيس لابلاتا",
+    "Gimnasia y Esgrima La Plata": u"خيمناسيا لابلاتا",
+    "Gimnasia La Plata": u"خيمناسيا لابلاتا",
+    "Rosario Central": u"روزاريو سنترال",
+    "CA Rosario Central": u"روزاريو سنترال",
+    "Newell's Old Boys": u"نيولز أولد بويز",
+    "Newells Old Boys": u"نيولز أولد بويز",
+    "Talleres de Córdoba": u"تاليريس كوردوبا",
+    "Talleres de Cordoba": u"تاليريس كوردوبا",
+    "Talleres": u"تاليريس كوردوبا",
+    "Belgrano": u"بيلغرانو",
+    "CA Belgrano": u"بيلغرانو",
+    "Instituto": u"إنسيتوتو",
+    "Instituto AC Córdoba": u"إنسيتوتو",
+    "Instituto AC Cordoba": u"إنسيتوتو",
+    "Argentinos Juniors": u"أرجنتينوس جونيورز",
+    "AA Argentinos Juniors": u"أرجنتينوس جونيورز",
+    "Huracán": u"هوراكان",
+    "Huracan": u"هوراكان",
+    "CA Huracán": u"هوراكان",
+    "CA Huracan": u"هوراكان",
+    "Lanús": u"لانوس",
+    "Lanus": u"لانوس",
+    "CA Lanús": u"لانوس",
+    "CA Lanus": u"لانوس",
+    "Banfield": u"بانفيلد",
+    "CA Banfield": u"بانفيلد",
+    "Defensa y Justicia": u"ديفنسا إي خوستيسيا",
+    "Godoy Cruz": u"غودوي كروز",
+    "CD Godoy Cruz": u"غودوي كروز",
+    "Unión de Santa Fe": u"يونيون دي سانتا في",
+    "Union de Santa Fe": u"يونيون دي سانتا في",
+    "Platense": u"بلاتينسي",
+    "CA Platense": u"بلاتينسي",
+    "Tigre": u"تيغري",
+    "CA Tigre": u"تيغري",
+    "Barracas Central": u"باراكاس سنترال",
+    "CA Barracas Central": u"باراكاس سنترال",
+    "Central Córdoba": u"سنترال كوردوبا",
+    "Central Cordoba": u"سنترال كوردوبا",
+    "Atlético Tucumán": u"أتلتيكو توكومان",
+    "Atletico Tucuman": u"أتلتيكو توكومان",
+    "Sarmiento": u"سارمينتو",
+    "CA Sarmiento": u"سارمينتو",
+    "Deportivo Riestra": u"ديبورتيفو ريسترا",
+    "Riestra": u"ديبورتيفو ريسترا",
+    "Independiente Rivadavia": u"إنديبندينتي ريفادافيا",
+    "CS Independiente Rivadavia": u"إنديبندينتي ريفادافيا",
+    # ── Additional Major Argentine Clubs (Primera Nacional / Copa Argentina) ─
+    "Colón": u"كولون دي سانتا في",
+    "Colon": u"كولون دي سانتا في",
+    "CA Colón": u"كولون دي سانتا في",
+    "CA Colon": u"كولون دي سانتا في",
+    "Arsenal de Sarandí": u"أرسنال ساراندي",
+    "Arsenal Sarandi": u"أرسنال ساراندي",
+    "Arsenal de Sarandi": u"أرسنال ساراندي",
+    "Quilmes": u"كيلمس",
+    "Quilmes AC": u"كيلمس",
+    "Ferro Carril Oeste": u"فيرو كاريل أويستي",
+    "Ferro": u"فيرو كاريل أويستي",
+    "Chacarita Juniors": u"تشاكاريتا جونيورز",
+    "Chacarita": u"تشاكاريتا جونيورز",
+    "Nueva Chicago": u"نويفا شيكاغو",
+    "San Martín de San Juan": u"سان مارتين دي سان خوان",
+    "San Martin San Juan": u"سان مارتين دي سان خوان",
+    "San Martín de Tucumán": u"سان مارتين دي توكومان",
+    "San Martin Tucuman": u"سان مارتين دي توكومان",
+    "Patronato": u"باتروناتو",
+    "CA Patronato": u"باتروناتو",
+    "Aldosivi": u"ألدوسيفي",
+    "CA Aldosivi": u"ألدوسيفي",
+    "All Boys": u"أول بويز",
+    "CA All Boys": u"أول بويز",
+    "Atlanta": u"أتلانتا الأرجنتيني",
+    "CA Atlanta": u"أتلانتا الأرجنتيني",
+    "Temperley": u"تيمبيرلي",
+    "CA Temperley": u"تيمبيرلي",
+    "Almirante Brown": u"ألميرانتي براون",
+    "Deportivo Morón": u"ديبورتيفو مورون",
+    "Deportivo Moron": u"ديبورتيفو مورون",
+    "Gimnasia y Esgrima de Jujuy": u"خيمناسيا خوخوي",
+    "Gimnasia Jujuy": u"خيمناسيا خوخوي",
+    "Olimpo": u"أوليمبو",
+    "Club Olimpo": u"أوليمبو",
+    # ── Asian AFC Elite / ACL / Gulf & Arab League Clubs ─────────────────────
+    # UAE Pro League
+    "Al Ain": u"العين",
+    "Al Ain FC": u"العين",
+    "Shabab Al Ahli": u"شباب الأهلي",
+    "Shabab Al-Ahli": u"شباب الأهلي",
+    "Shabab Al Ahli Dubai": u"شباب الأهلي دبي",
+    "Al Wasl": u"الوصل",
+    "Al-Wasl": u"الوصل",
+    "Al Wasl FC": u"الوصل",
+    "Al Jazira": u"الجزيرة",
+    "Al-Jazira": u"الجزيرة",
+    "Al Jazira Club": u"الجزيرة",
+    "Sharjah": u"الشارقة",
+    "Sharjah FC": u"الشارقة",
+    "Al Wahda UAE": u"الوحدة الإماراتي",
+    "Al Wahda Abu Dhabi": u"الوحدة الإماراتي",
+    "Al Wahda FC": u"الوحدة الإماراتي",
+    "Al Nasr UAE": u"النصر الإماراتي",
+    "Al Nasr Dubai": u"النصر الإماراتي",
+    "Al Nasr SC": u"النصر الإماراتي",
+    "Baniyas": u"بني ياس",
+    "Baniyas Club": u"بني ياس",
+    "Ajman": u"عجمان",
+    "Ajman Club": u"عجمان",
+    "Khorfakkan": u"خورفكان",
+    "Khor Fakkan": u"خورفكان",
+    "Ittihad Kalba": u"اتحاد كلباء",
+    "Kalba": u"اتحاد كلباء",
+    "Al Bataeh": u"البطائح",
+    "Al Orooba": u"العروبة الإماراتي",
+    "Al Urooba": u"العروبة الإماراتي",
+    "Al Urooba UAE": u"العروبة الإماراتي",
+    "Dibba Al Hisn": u"دبا الحصن",
+    "Dibba Al-Hisn": u"دبا الحصن",
+    "Dibba Al Fujairah": u"دبا الفجيرة",
+    "Emirates Club": u"نادي الإمارات",
+    "Hatta": u"حتا",
+    "Hatta Club": u"حتا",
+    "Al Dhafra": u"الظفرة",
+    # Qatar Stars League
+    "Al Sadd": u"السد",
+    "Al-Sadd": u"السد",
+    "Al Sadd SC": u"السد",
+    "Al Duhail": u"الدحيل",
+    "Al-Duhail": u"الدحيل",
+    "Al Duhail SC": u"الدحيل",
+    "Al Gharafa": u"الغرافة",
+    "Al-Gharafa": u"الغرافة",
+    "Al Gharafa SC": u"الغرافة",
+    "Al Rayyan": u"الريان",
+    "Al-Rayyan": u"الريان",
+    "Al Rayyan SC": u"الريان",
+    "Al Arabi Qatar": u"العربي القطري",
+    "Al Arabi Doha": u"العربي القطري",
+    "Al Arabi SC": u"العربي القطري",
+    "Al Ahli Qatar": u"الأهلي القطري",
+    "Al Ahli Doha": u"الأهلي القطري",
+    "Al Wakrah": u"الوكرة",
+    "Al-Wakrah": u"الوكرة",
+    "Al Wakrah SC": u"الوكرة",
+    "Qatar SC": u"نادي قطر",
+    "Qatar Club": u"نادي قطر",
+    "Al Ahli SC": u"الأهلي القطري",
+    "Umm Salal": u"أم صلال",
+    "Umm Salal SC": u"أم صلال",
+    "Al Shamal": u"الشمال",
+    "Al Shamal SC": u"الشمال",
+    "Al Khor": u"الخور",
+    "Al Khor SC": u"الخور",
+    "Al Shahaniya": u"الشحانية",
+    "Al Shahania": u"الشحانية",
+    "Al Sailiya": u"السيلية",
+    "Al-Sailiya": u"السيلية",
+    "Al Markhiya": u"المرخية",
+    "Muaither": u"معيذر",
+    # Iran Pro League
+    "Persepolis": u"برسبوليس",
+    "Persepolis FC": u"برسبوليس",
+    "Esteghlal": u"استقلال طهران",
+    "Esteghlal FC": u"استقلال طهران",
+    "Esteghlal Tehran": u"استقلال طهران",
+    "Sepahan": u"سباهان أصفهان",
+    "Sepahan SC": u"سباهان أصفهان",
+    "Sepahan Isfahan": u"سباهان أصفهان",
+    "Tractor": u"تراكتور سازي",
+    "Tractor SC": u"تراكتور سازي",
+    "Tractor Sazi": u"تراكتور سازي",
+    "Foolad": u"فولاد خوزستان",
+    "Foolad Khuzestan": u"فولاد خوزستان",
+    "Gol Gohar": u"غول غوهر",
+    "Gol Gohar Sirjan": u"غول غوهر",
+    "Zob Ahan": u"ذوب آهن",
+    "Zob Ahan Isfahan": u"ذوب آهن",
+    "Nassaji Mazandaran": u"نساجي مازندران",
+    "Malavan": u"ملوان",
+    "Aluminium Arak": u"ألومينيوم أراك",
+    "Paykan": u"بيكان",
+    "Esteghlal Khuzestan": u"استقلال خوزستان",
+    "Sanat Naft": u"صنعت نفط عبادان",
+    # Iraq Stars League
+    "Al Shorta": u"الشرطة العراقي",
+    "Al-Shorta": u"الشرطة العراقي",
+    "Al Shorta SC": u"الشرطة العراقي",
+    "Al Quwa Al Jawiya": u"القوة الجوية",
+    "Al-Quwa Al-Jawiya": u"القوة الجوية",
+    "Air Force Club": u"القوة الجوية",
+    "Al Zawraa": u"الزوراء",
+    "Al-Zawraa": u"الزوراء",
+    "Al Zawra'a SC": u"الزوراء",
+    "Al Talaba": u"الطلبة",
+    "Al-Talaba": u"الطلبة",
+    "Erbil": u"أربيل",
+    "Erbil SC": u"أربيل",
+    "Duhok": u"دهوك",
+    "Duhok SC": u"دهوك",
+    "Zakho": u"زاخو",
+    "Zakho SC": u"زاخو",
+    "Al Minaa": u"الميناء",
+    "Al-Minaa": u"الميناء",
+    "Al Naft": u"النفط",
+    "Al Najaf": u"النجف",
+    "Al Karkh": u"الكرخ",
+    "Karbala": u"كربلاء",
+    "Al Hudood": u"الحدود",
+    "Al Qasim": u"القاسم",
+    "Naft Al-Basra": u"نفط البصرة",
+    "Naft Maysan": u"نفط ميسان",
+    "Naft Al-Wasat": u"نفط الوسط",
+    "Al Kahrabaa": u"الكهرباء العراقي",
+    "Al-Kahrabaa": u"الكهرباء العراقي",
+    # Kuwait, Bahrain, Oman, Jordan, Lebanon, Syria
+    "Kuwait SC": u"نادي الكويت",
+    "Al Kuwait": u"نادي الكويت",
+    "Al Qadsia": u"القادسية الكويتي",
+    "Qadsia SC": u"القادسية الكويتي",
+    "Al Arabi Kuwait": u"العربي الكويتي",
+    "Kazma": u"كاظمة",
+    "Kazma SC": u"كاظمة",
+    "Al Salmiya": u"السالمية",
+    "Al Muharraq": u"المحرق البحريني",
+    "Muharraq Club": u"المحرق البحريني",
+    "Al Riffa": u"الرفاع البحريني",
+    "Riffa SC": u"الرفاع البحريني",
+    "Al Khaldiya": u"الخالدية البحريني",
+    "Manama Club": u"المنامة",
+    "Al Seeb": u"السيب العماني",
+    "Al-Seeb Club": u"السيب العماني",
+    "Al Nahda Oman": u"النهضة العماني",
+    "Dhofar": u"ظفار",
+    "Al Wehdat": u"الوحدات الأردني",
+    "Al-Wehdat": u"الوحدات الأردني",
+    "Al Faisaly Amman": u"الفيصلي الأردني",
+    "Al Hussein Irbid": u"الحسين إربد",
+    "Al Hussein SC": u"الحسين إربد",
+    "Al Ramtha": u"الرمثا",
+    "Al Ahed": u"العهد اللبناني",
+    "Al-Ahed": u"العهد اللبناني",
+    "Al-Ahed SC": u"العهد اللبناني",
+    "Al Ansar": u"الأنصار اللبناني",
+    "Nejmeh": u"النجمة اللبناني",
+    "Nejmeh SC": u"النجمة اللبناني",
+    "Al Ittihad Ahli Aleppo": u"أهلي حلب",
+    "Al Jaish": u"الجيش السوري",
+    "Al Wahda Syria": u"الوحدة السوري",
+    "Al Karamah": u"الكرامة السوري",
+    "Al Futowa": u"الفتوة السوري",
+    "Jabal El Mokaber": u"جبل المكبر",
+    "Hilal Al-Quds": u"هلال القدس",
+    # Uzbekistan, Tajikistan, Turkmenistan
+    "Pakhtakor": u"باختاكور طشقند",
+    "Pakhtakor Tashkent": u"باختاكور طشقند",
+    "Pakhtakor FC": u"باختاكور طشقند",
+    "Navbahor": u"نافباخور نامانغان",
+    "Navbahor Namangan": u"نافباخور نامانغان",
+    "Nasaf": u"ناساف كارشي",
+    "Nasaf Qarshi": u"ناساف كارشي",
+    "FC Nasaf": u"ناساف كارشي",
+    "AGMK": u"أولماليك",
+    "FC AGMK": u"أولماليك",
+    "Bunyodkor": u"بونيودكور",
+    "FC Bunyodkor": u"بونيودكور",
+    "Sogdiana": u"سوغديانا جيزك",
+    "Neftchi Fergana": u"نيفتشي فرغانة",
+    "Istiklol": u"استقلال دوشنبه",
+    "FC Istiklol": u"استقلال دوشنبه",
+    "Istiklol Dushanbe": u"استقلال دوشنبه",
+    "Ravshan Kulob": u"روشان كولوب",
+    "Ahal": u"أهال",
+    "Ahal FC": u"أهال",
+    "Altyn Asyr": u"ألتين أسير",
+    "Arkadag": u"أركاداغ",
+    # Japan J1 League
+    "Vissel Kobe": u"فيسيل كوبه",
+    "Yokohama F. Marinos": u"يوكوهاما إف مارينوس",
+    "Yokohama F Marinos": u"يوكوهاما إف مارينوس",
+    "Yokohama Marinos": u"يوكوهاما إف مارينوس",
+    "Kawasaki Frontale": u"كاواساكي فرونتال",
+    "Urawa Red Diamonds": u"أوراوا ريد دياموندز",
+    "Urawa Reds": u"أوراوا ريد دياموندز",
+    "Sanfrecce Hiroshima": u"سانفريس هيروشيما",
+    "Kashima Antlers": u"كاشيما أنتلرز",
+    "Nagoya Grampus": u"ناغويا غرامبوس",
+    "Cerezo Osaka": u"سيريزو أوساكا",
+    "Gamba Osaka": u"غامبا أوساكا",
+    "FC Tokyo": u"إف سي طوكيو",
+    "Machida Zelvia": u"ماتشيدا زيلفيا",
+    "Tokyo Verdy": u"طوكيو فيردي",
+    "Avispa Fukuoka": u"أفيسبا فوكوكا",
+    "Kashiwa Reysol": u"كاشيوا ريسول",
+    "Albirex Niigata": u"ألبيريكس نيغاتا",
+    "Kyoto Sanga": u"كيوتو سانغا",
+    "Shonan Bellmare": u"شونان بلمار",
+    "Júbilo Iwata": u"جوبيلو إيواتا",
+    "Jubilo Iwata": u"جوبيلو إيواتا",
+    "Sagan Tosu": u"ساغان توسو",
+    "Consadole Sapporo": u"كونسادول سابورو",
+    "Shimizu S-Pulse": u"شيميزو إس بولس",
+    "Yokohama FC": u"يوكوهاما إف سي",
+    "Ventforet Kofu": u"فينتفورت كوفو",
+    # South Korea K League 1
+    "Ulsan HD": u"أولسان هيونداي",
+    "Ulsan Hyundai": u"أولسان هيونداي",
+    "Ulsan HD FC": u"أولسان هيونداي",
+    "Jeonbuk Hyundai Motors": u"جيونبوك هيونداي موتورز",
+    "Jeonbuk Motors": u"جيونبوك هيونداي موتورز",
+    "Jeonbuk": u"جيونبوك هيونداي موتورز",
+    "Pohang Steelers": u"بوهانغ ستيلرز",
+    "Gwangju FC": u"غوانغجو",
+    "Gwangju": u"غوانغجو",
+    "FC Seoul": u"إف سي سيئول",
+    "Seoul": u"إف سي سيئول",
+    "Incheon United": u"إنتشون يونايتد",
+    "Gangwon FC": u"غانغوون",
+    "Gangwon": u"غانغوون",
+    "Suwon FC": u"سوون إف سي",
+    "Suwon Samsung Bluewings": u"سوون سامسونغ بلووينغز",
+    "Suwon Bluewings": u"سوون سامسونغ بلووينغز",
+    "Jeju United": u"جيجو يونايتد",
+    "Daejeon Hana Citizen": u"دايجون هانا سيتيزن",
+    "Daegu FC": u"دايجو",
+    "Daegu": u"دايجو",
+    "Gimcheon Sangmu": u"غيمتشون سانغمو",
+    "Seongnam FC": u"سيونغنام",
+    "Busan IPark": u"بوسان آي بارك",
+    # China Super League
+    "Shanghai Port": u"شنغهاي بورت",
+    "Shanghai SIPG": u"شنغهاي بورت",
+    "Shanghai Shenhua": u"شنغهاي شينهوا",
+    "Shandong Taishan": u"شاندونغ تايشان",
+    "Shandong Luneng": u"شاندونغ تايشان",
+    "Beijing Guoan": u"بكين غوان",
+    "Chengdu Rongcheng": u"تشنغدو رونغتشنغ",
+    "Zhejiang FC": u"تشجيانغ",
+    "Zhejiang Professional": u"تشجيانغ",
+    "Wuhan Three Towns": u"ووهان ثري تاونز",
+    "Guangzhou FC": u"غوانغجو إيفرغراند",
+    "Guangzhou Evergrande": u"غوانغجو إيفرغراند",
+    "Tianjin Jinmen Tiger": u"تيانجين جينمن تايجر",
+    "Henan FC": u"هينان",
+    "Changchun Yatai": u"تشانغتشون ياتاي",
+    "Shenzhen Peng City": u"شينزين",
+    "Cangzhou Mighty Lions": u"تشانغتشو مايتي لايونز",
+    "Qingdao Hainiu": u"تشينغداو هاينيو",
+    # Australia A-League
+    "Central Coast Mariners": u"سنترال كوست مارينرز",
+    "Melbourne City": u"ملبورن سيتي",
+    "Melbourne City FC": u"ملبورن سيتي",
+    "Melbourne Victory": u"ملبورن فيكتوري",
+    "Sydney FC": u"سيدني إف سي",
+    "Western Sydney Wanderers": u"ويسترن سيدني واندررز",
+    "Macarthur FC": u"ماك آرثر",
+    "Wellington Phoenix": u"ويلينغتون فينيكس",
+    "Adelaide United": u"أديلايد يونايتد",
+    "Brisbane Roar": u"بريزبان رور",
+    "Perth Glory": u"بيرث غلوري",
+    "Newcastle Jets": u"نيوكاسل جيتس",
+    "Western United": u"ويسترن يونايتد",
+    "Auckland FC": u"أوكلاند إف سي",
+    # Thailand, Malaysia, Indonesia, Vietnam, India
+    "Buriram United": u"بوريرام يونايتد",
+    "Buriram": u"بوريرام يونايتد",
+    "Bangkok United": u"بانكوك يونايتد",
+    "BG Pathum United": u"بي جي باثوم يونايتد",
+    "Muangthong United": u"موانغتونغ يونايتد",
+    "Port FC": u"بورت إف سي",
+    "Johor Darul Ta'zim": u"جوهور دار التعظيم",
+    "Johor DT": u"جوهور دار التعظيم",
+    "JDT": u"جوهور دار التعظيم",
+    "Selangor FC": u"سيلانغور",
+    "Terengganu FC": u"تيرينغانو",
+    "Kuala Lumpur City": u"كوالالمبور سيتي",
+    "Persib Bandung": u"بيرسيب باندونغ",
+    "Persija Jakarta": u"بيرسيجا جاكرتا",
+    "Bali United": u"بالي يونايتد",
+    "PSM Makassar": u"بي إس إم ماكاسار",
+    "Madura United": u"مادورا يونايتد",
+    "Hanoi FC": u"هانوي إف سي",
+    "Cong An Ha Noi": u"شرطة هانوي",
+    "Viettel FC": u"فيتيل",
+    "Hai Phong FC": u"هاي فونغ",
+    "Nam Dinh FC": u"نام دينه",
+    "Mumbai City": u"مومباي سيتي",
+    "Mumbai City FC": u"مومباي سيتي",
+    "Mohun Bagan Super Giant": u"موهون باغان",
+    "Mohun Bagan": u"موهون باغان",
+    "East Bengal FC": u"إيست بنغال",
+    "Kerala Blasters": u"كيرلا بلاسترز",
+    "FC Goa": u"إف سي غوا",
+    "Bengaluru FC": u"بنغالورو",
+    "Odisha FC": u"أوديشا",
+    # ── African CAF Champions League / AFL & Domestic Clubs ──────────────────
+    # Egyptian Premier League
+    "Al Ahly": u"الأهلي المصري",
+    "Al-Ahly": u"الأهلي المصري",
+    "Al Ahly SC": u"الأهلي المصري",
+    "Zamalek": u"الزمالك",
+    "Zamalek SC": u"الزمالك",
+    "Pyramids": u"بيراميدز",
+    "Pyramids FC": u"بيراميدز",
+    "Modern Sport": u"مودرن سبورت",
+    "Modern Future": u"مودرن فيوتشر",
+    "Future FC": u"مودرن فيوتشر",
+    "Al Masry": u"المصري البورسعيدي",
+    "Al-Masry": u"المصري البورسعيدي",
+    "Al Masry SC": u"المصري البورسعيدي",
+    "Al Ittihad Alexandria": u"الاتحاد السكندري",
+    "Al Ittihad Al Sakandary": u"الاتحاد السكندري",
+    "Ismaily": u"الإسماعيلي",
+    "Ismaily SC": u"الإسماعيلي",
+    "ENPPI": u"إنبي",
+    "ENPPI SC": u"إنبي",
+    "Ceramica Cleopatra": u"سيراميكا كليوباترا",
+    "Ceramica Cleopatra FC": u"سيراميكا كليوباترا",
+    "Smouha": u"سموحة",
+    "Smouha SC": u"سموحة",
+    "ZED FC": u"زد إف سي",
+    "ZED": u"زد إف سي",
+    "Tala'ea El Gaish": u"طلائع الجيش",
+    "Talaea El Gaish": u"طلائع الجيش",
+    "El Gaish": u"طلائع الجيش",
+    "National Bank of Egypt": u"البنك الأهلي",
+    "NBE SC": u"البنك الأهلي",
+    "Pharco": u"فاركو",
+    "Pharco FC": u"فاركو",
+    "Ghazl El Mahalla": u"غزل المحلة",
+    "Haras El Hodoud": u"حرس الحدود",
+    "Petrojet": u"بتروجيت",
+    "El Gouna": u"الجونة",
+    "Gouna": u"الجونة",
+    "Al Mokawloon Al Arab": u"المقاولون العرب",
+    "Arab Contractors": u"المقاولون العرب",
+    "Aswan": u"أسوان",
+    # Moroccan Botola Pro
+    "Wydad AC": u"الوداد الرياضي",
+    "Wydad Casablanca": u"الوداد الرياضي",
+    "Wydad": u"الوداد الرياضي",
+    "Raja CA": u"الرجاء الرياضي",
+    "Raja Casablanca": u"الرجاء الرياضي",
+    "Raja": u"الرجاء الرياضي",
+    "AS FAR": u"الجيش الملكي",
+    "FAR Rabat": u"الجيش الملكي",
+    "ASFAR": u"الجيش الملكي",
+    "RS Berkane": u"نهضة بركان",
+    "Renaissance Berkane": u"نهضة بركان",
+    "FUS Rabat": u"الفتح الرباطي",
+    "Fath Union Sport": u"الفتح الرباطي",
+    "Maghreb de Fès": u"المغرب الفاسي",
+    "Maghreb de Fes": u"المغرب الفاسي",
+    "MAS Fès": u"المغرب الفاسي",
+    "MAS Fez": u"المغرب الفاسي",
+    "Hassania Agadir": u"حسنية أكادير",
+    "HUSA": u"حسنية أكادير",
+    "Ittihad Tanger": u"اتحاد طنجة",
+    "IR Tanger": u"اتحاد طنجة",
+    "Moghreb Tétouan": u"المغرب التطواني",
+    "Moghreb Tetouan": u"المغرب التطواني",
+    "MAT Tetouan": u"المغرب التطواني",
+    "Olympic Safi": u"أولمبيك آسفي",
+    "OCS Safi": u"أولمبيك آسفي",
+    "Union Touarga": u"اتحاد تواركة",
+    "UTS Touarga": u"اتحاد تواركة",
+    "Chabab Mohammédia": u"شباب المحمدية",
+    "SCCM": u"شباب المحمدية",
+    "Renaissance Zemamra": u"نهضة الزمامرة",
+    "Mouloudia Oujda": u"مولودية وجدة",
+    "Kawkab Marrakech": u"الكوكب المراكشي",
+    "Kénitra AC": u"النادي القنيطري",
+    "Difaa El Jadidi": u"الدفاع الحسني الجديدي",
+    "COD Meknès": u"النادي المكناسي",
+    # Tunisian Ligue 1
+    "Espérance de Tunis": u"الترجي التونسي",
+    "Esperance de Tunis": u"الترجي التونسي",
+    "Esperance Tunis": u"الترجي التونسي",
+    "Club Africain": u"النادي الإفريقي",
+    "Étoile du Sahel": u"النجم الساحلي",
+    "Etoile du Sahel": u"النجم الساحلي",
+    "CS Sfaxien": u"النادي الصفاقسي",
+    "Club Sportif Sfaxien": u"النادي الصفاقسي",
+    "US Monastir": u"الاتحاد المنستيري",
+    "US Monastirienne": u"الاتحاد المنستيري",
+    "Stade Tunisien": u"الملعب التونسي",
+    "CA Bizertin": u"النادي البنزرتي",
+    "Club Athlétique Bizertin": u"النادي البنزرتي",
+    "JS Kairouanaise": u"شبيبة القيروان",
+    "US Ben Guerdane": u"اتحاد بن قردان",
+    "ES Métlaoui": u"نجم المتلوي",
+    "Olympique Béja": u"الأولمبي الباجي",
+    "EGS Gafsa": u"قوافل قفصة",
+    # Algerian Ligue 1
+    "MC Alger": u"مولودية الجزائر",
+    "Mouloudia Club d'Alger": u"مولودية الجزائر",
+    "CR Belouizdad": u"شباب بلوزداد",
+    "USM Alger": u"اتحاد الجزائر",
+    "JS Kabylie": u"شبيبة القبائل",
+    "ES Sétif": u"وفاق سطيف",
+    "ES Setif": u"وفاق سطيف",
+    "CS Constantine": u"شباب قسنطينة",
+    "JS Saoura": u"شبيبة الساورة",
+    "MC Oran": u"مولودية وهران",
+    "Paradou AC": u"نادي بارادو",
+    "ASO Chlef": u"أولمبي الشلف",
+    "USM Khenchela": u"اتحاد خنشلة",
+    "NC Magra": u"نجم مقرة",
+    "MC El Bayadh": u"مولودية البيض",
+    "US Biskra": u"اتحاد بسكرة",
+    "ES Mostaganem": u"ترجي مستغانم",
+    "Olympique Akbou": u"أولمبي أقبو",
+    "NA Hussein Dey": u"نصر حسين داي",
+    # South Africa & Other African Heavyweights
+    "Mamelodi Sundowns": u"ماميلودي صنداونز",
+    "Sundowns": u"ماميلودي صنداونز",
+    "Orlando Pirates": u"أورلاندو بايرتس",
+    "Kaizer Chiefs": u"كايزر تشيفز",
+    "SuperSport United": u"سوبر سبورت يونايتد",
+    "Stellenbosch FC": u"ستيلينبوش",
+    "Cape Town City FC": u"كيب تاون سيتي",
+    "TP Mazembe": u"تي بي مازيمبي",
+    "Tout Puissant Mazembe": u"تي بي مازيمبي",
+    "AS Vita Club": u"فيتا كلوب",
+    "Vita Club": u"فيتا كلوب",
+    "Al Hilal Omdurman": u"الهلال السوداني",
+    "Al Hilal Sudan": u"الهلال السوداني",
+    "Al Merrikh": u"المريخ السوداني",
+    "Al-Merrikh": u"المريخ السوداني",
+    "Al Merreikh": u"المريخ السوداني",
+    "Al Ahli Tripoli": u"الأهلي طرابلس",
+    "Al-Ahli Tripoli": u"الأهلي طرابلس",
+    "Al Ittihad Tripoli": u"الاتحاد الليبي",
+    "Al-Ittihad Tripoli": u"الاتحاد الليبي",
+    "Al Nasr Benghazi": u"النصر الليبي",
+    "Al Ahly Benghazi": u"الأهلي بنغازي",
+    "Al Hilal Benghazi": u"الهلال الليبي",
+    "Al Akhdar": u"الأخضر الليبي",
+    "Simba SC": u"سيمبا التنزاني",
+    "Simba": u"سيمبا التنزاني",
+    "Young Africans": u"يانغ أفريكانز",
+    "Yanga": u"يانغ أفريكانز",
+    "Petro de Luanda": u"بيترو أتليتيكو",
+    "Petro Atletico": u"بيترو أتليتيكو",
+    "Primeiro de Agosto": u"بريميرو دي أغوستو",
+    "Sagrada Esperança": u"ساغرادا إسبيرانسا",
+    "ASEC Mimosas": u"أسيك ميموزا",
+    "Africa Sports": u"أفريكا سبورتس",
+    "Hearts of Oak": u"هارتس أوف أوك",
+    "Asante Kotoko": u"أشانتي كوتوكو",
+    "Horoya AC": u"حوريا كوناكري",
+    "Horoya": u"حوريا كوناكري",
+    "Hafia FC": u"هافيا كوناكري",
+    "Djoliba AC": u"دجوليبا المالي",
+    "Stade Malien": u"الملعب المالي",
+    "Coton Sport": u"القطن الكاميروني",
+    "Canon Yaoundé": u"كانون ياوندي",
+    "Union Douala": u"يونيون دوالا",
+    "Enyimba": u"إنييمبا النيجيري",
+    "Enyimba FC": u"إنييمبا النيجيري",
+    "Rivers United": u"ريفرز يونايتد",
+    "Shooting Stars": u"شوتينغ ستارز",
+    "Rangers International": u"إينوغو رينجرز",
+    "Gor Mahia": u"غور مايا الكيني",
+    "Saint George": u"سان جورج الإثيوبي",
+    "FC Nouadhibou": u"إف سي نواذيبو",
+    # ── Other South American Clubs (CONMEBOL / Copa Libertadores) ────────────
+    # Uruguay
+    "Peñarol": u"بينارول",
+    "Penarol": u"بينارول",
+    "CA Peñarol": u"بينارول",
+    "CA Penarol": u"بينارول",
+    "Nacional Montevideo": u"ناسيونال مونتيفيديو",
+    "Defensor Sporting": u"ديفينسور سبورتينغ",
+    "Danubio": u"دانوبيو",
+    "Danubio FC": u"دانوبيو",
+    "Boston River": u"بوسطن ريفر",
+    "Montevideo Wanderers": u"مونتيفيديو واندررز",
+    "Liverpool Montevideo": u"ليفربول مونتيفيديو",
+    "River Plate Montevideo": u"ريفر بليت مونتيفيديو",
+    "Cerro Largo": u"سيرو لارغو",
+    "Fénix Montevideo": u"فينيكس الأوروغواياني",
+    "Plaza Colonia": u"بلازا كولونيا",
+    "Progreso": u"بروغريسو",
+    "Racing Montevideo": u"راسينغ مونتيفيديو",
+    # Colombia
+    "Atlético Nacional": u"أتلتيكو ناسيونال",
+    "Atletico Nacional": u"أتلتيكو ناسيونال",
+    "Millonarios": u"ميلوناريوس",
+    "Millonarios FC": u"ميلوناريوس",
+    "América de Cali": u"أمريكا دي كالي",
+    "America de Cali": u"أمريكا دي كالي",
+    "Santa Fe": u"إنديبندينتي سانتا في",
+    "Independiente Santa Fe": u"إنديبندينتي سانتا في",
+    "Junior Barranquilla": u"جونيور بارانكيا",
+    "Junior": u"جونيور بارانكيا",
+    "CD Junior": u"جونيور بارانكيا",
+    "Deportivo Cali": u"ديبورتيفو كالي",
+    "Independiente Medellín": u"إنديبندينتي ميديلين",
+    "Independiente Medellin": u"إنديبندينتي ميديلين",
+    "Deportes Tolima": u"ديبورتيس توليما",
+    "Once Caldas": u"أونسي كالداس",
+    "Deportivo Pereira": u"ديبورتيفو بيريرا",
+    "La Equidad": u"لا إيكيداد",
+    "Atlético Bucaramanga": u"أتلتيكو بوكارامانغا",
+    "Atletico Bucaramanga": u"أتلتيكو بوكارامانغا",
+    "Bucaramanga": u"أتلتيكو بوكارامانغا",
+    "Águilas Doradas": u"أغويلاس دوراداس",
+    "Aguilas Doradas": u"أغويلاس دوراداس",
+    "Deportivo Pasto": u"ديبورتيفو باستو",
+    "Envigado": u"إنفيغادو",
+    "Patriotas Boyacá": u"باتريوتاس بوياكا",
+    "Fortaleza CEIF": u"فورتاليزا الكولومبي",
+    # Chile
+    "Colo-Colo": u"كولو كولو",
+    "Colo Colo": u"كولو كولو",
+    "Universidad de Chile": u"يونيفرسيداد دي تشيلي",
+    "Universidad Católica": u"يونيفرسيداد كاتوليكا",
+    "Universidad Catolica": u"يونيفرسيداد كاتوليكا",
+    "Cobreloa": u"كوبريلوا",
+    "Unión Española": u"يونيون إسبانيولا",
+    "Union Espanola": u"يونيون إسبانيولا",
+    "Palestino": u"بالستينو",
+    "CD Palestino": u"بالستينو",
+    "Everton de Viña del Mar": u"إيفرتون التشيلي",
+    "Everton de Vina del Mar": u"إيفرتون التشيلي",
+    "Huachipato": u"هواتشيباتو",
+    "Audax Italiano": u"أوداكس إيتاليانو",
+    "Coquimbo Unido": u"كوكيمبو أونيدو",
+    "O'Higgins": u"أوهيغينز",
+    "OHiggins": u"أوهيغينز",
+    "Cobresal": u"كوبريسال",
+    "Deportes Iquique": u"ديبورتيس إيكيكي",
+    "Ñublense": u"نوبلينسي",
+    "Nublense": u"نوبلينسي",
+    "Unión La Calera": u"يونيون لا كاليرا",
+    # Ecuador
+    "LDU Quito": u"ليغا دي كيتو",
+    "Liga de Quito": u"ليغا دي كيتو",
+    "Barcelona SC": u"برشلونة الإكوادوري",
+    "Barcelona de Guayaquil": u"برشلونة الإكوادوري",
+    "Emelec": u"إيميلك",
+    "CS Emelec": u"إيميلك",
+    "Independiente del Valle": u"إنديبندينتي ديل فال",
+    "Aucas": u"أوكاس",
+    "SD Aucas": u"أوكاس",
+    "El Nacional": u"إل ناسيونال الإكوادوري",
+    "Universidad Católica del Ecuador": u"كاتوليكا الإكوادوري",
+    "Delfín": u"ديلفين",
+    "Delfin": u"ديلفين",
+    "Macará": u"ماكارا",
+    "Macara": u"ماكارا",
+    "Deportivo Cuenca": u"ديبورتيفو كوينكا",
+    "Orense": u"أورينسي",
+    "Mushuc Runa": u"موشوك رونا",
+    "Técnico Universitario": u"تيكنيكو يونيفرسيتاريو",
+    # Paraguay
+    "Olimpia Asunción": u"أوليمبيا أسونسيون",
+    "Olimpia Asuncion": u"أوليمبيا أسونسيون",
+    "Club Olimpia": u"أوليمبيا أسونسيون",
+    "Cerro Porteño": u"سيرو بورتينيو",
+    "Cerro Porteno": u"سيرو بورتينيو",
+    "Libertad Asunción": u"ليبرتاد الباراغواياني",
+    "Club Libertad": u"ليبرتاد الباراغواياني",
+    "Guaraní Paraguay": u"غواراني الباراغواياني",
+    "Club Guaraní": u"غواراني الباراغواياني",
+    "Nacional Asunción": u"ناسيونال أسونسيون",
+    "Sportivo Luqueño": u"سبورتيفو لوكينيو",
+    "Sportivo Luqueno": u"سبورتيفو لوكينيو",
+    "Sol de América": u"سول دي أمريكا",
+    "Sol de America": u"سول دي أمريكا",
+    "Tacuary": u"تاكواري",
+    "Sportivo Ameliano": u"سبورتيفو أميليانو",
+    "2 de Mayo": u"دو دي مايو",
+    "Sportivo Trinidense": u"سبورتيفو ترينيدينسي",
+    # Peru
+    "Universitario de Deportes": u"يونيفرسيتاريو",
+    "Universitario": u"يونيفرسيتاريو",
+    "Alianza Lima": u"أليانزا ليما",
+    "Sporting Cristal": u"سبورتينغ كريستال",
+    "Melgar": u"ميلغار",
+    "FBC Melgar": u"ميلغار",
+    "Cienciano": u"سينسيانو",
+    "Cusco FC": u"كوسكو",
+    "Sport Boys": u"سبورت بويز",
+    "César Vallejo": u"سيزار فاليخو",
+    "Cesar Vallejo": u"سيزار فاليخو",
+    "ADT Tarma": u"إيه دي تي تارما",
+    "UTC Cajamarca": u"يو تي سي كاخاماركا",
+    "Deportivo Garcilaso": u"ديبورتيفو غارسيلاسو",
+    "Atlético Grau": u"أتلتيكو غراو",
+    # Bolivia
+    "Bolívar": u"بوليفار",
+    "Bolivar": u"بوليفار",
+    "Club Bolívar": u"بوليفار",
+    "Club Bolivar": u"بوليفار",
+    "The Strongest": u"ذا سترونغيست",
+    "Jorge Wilstermann": u"خورخي ويلسترمان",
+    "Always Ready": u"أولويز ريدي",
+    "Oriente Petrolero": u"أورينتي بيتروليرو",
+    "Blooming": u"بلومينغ",
+    "Club Blooming": u"بلومينغ",
+    "Nacional Potosí": u"ناسيونال بوتوسي",
+    "Nacional Potosi": u"ناسيونال بوتوسي",
+    "Real Santa Cruz": u"ريال سانتا كروز",
+    "Aurora": u"أورورا",
+    "Guabirá": u"غوابيرا",
+    "San José Oruro": u"سان خوسيه أورورو",
+    # Venezuela
+    "Caracas FC": u"كاراكاس",
+    "Caracas": u"كاراكاس",
+    "Deportivo Táchira": u"ديبورتيفو تاتشيرا",
+    "Deportivo Tachira": u"ديبورتيفو تاتشيرا",
+    "Zamora FC": u"زامورا الفنزويلي",
+    "Deportivo La Guaira": u"ديبورتيفو لا غوايرا",
+    "Metropolitanos": u"ميتروبوليتانوس",
+    "Monagas": u"موناغاس",
+    "Carabobo": u"كارابوبو",
+    "Carabobo FC": u"كارابوبو",
+    "Academia Puerto Cabello": u"بويرتو كابيلو",
+    "Puerto Cabello": u"بويرتو كابيلو",
+    "Portuguesa FC": u"بورتوغيزا الفنزويلي",
+    "Estudiantes de Mérida": u"إستوديانتيس ميريدا",
+    "Mineros de Guayana": u"مينيروس دي غوايانا",
+    # ── North American Clubs (CONCACAF Champions Cup / MLS / Liga MX) ────────
+    # MLS
+    "Inter Miami": u"إنتر ميامي",
+    "Inter Miami CF": u"إنتر ميامي",
+    "LA Galaxy": u"لوس أنجلوس غالاكسي",
+    "Los Angeles Galaxy": u"لوس أنجلوس غالاكسي",
+    "LAFC": u"لوس أنجلوس إف سي",
+    "Los Angeles FC": u"لوس أنجلوس إف سي",
+    "Columbus Crew": u"كولومبوس كرو",
+    "FC Cincinnati": u"إف سي سينسيناتي",
+    "Cincinnati": u"إف سي سينسيناتي",
+    "New York Red Bulls": u"نيويورك ريد بولز",
+    "NY Red Bulls": u"نيويورك ريد بولز",
+    "New York City FC": u"نيويورك سيتي",
+    "New York City": u"نيويورك سيتي",
+    "Seattle Sounders": u"سياتل ساوندرز",
+    "Seattle Sounders FC": u"سياتل ساوندرز",
+    "Philadelphia Union": u"فيلادلفيا يونيون",
+    "Atlanta United": u"أتلانتا يونايتد",
+    "Atlanta United FC": u"أتلانتا يونايتد",
+    "Nashville SC": u"ناشفيل",
+    "Houston Dynamo": u"هيوستن دينامو",
+    "Houston Dynamo FC": u"هيوستن دينامو",
+    "Orlando City": u"أورلاندو سيتي",
+    "Orlando City SC": u"أورلاندو سيتي",
+    "Real Salt Lake": u"ريال سولت ليك",
+    "Portland Timbers": u"بورتلاند تمبرز",
+    "Sporting Kansas City": u"سبورتينغ كانساس سيتي",
+    "Sporting KC": u"سبورتينغ كانساس سيتي",
+    "Austin FC": u"أوستن إف سي",
+    "Minnesota United": u"مينيسوتا يونايتد",
+    "Minnesota United FC": u"مينيسوتا يونايتد",
+    "St. Louis City SC": u"سانت لويس سيتي",
+    "St Louis City": u"سانت لويس سيتي",
+    "Vancouver Whitecaps": u"فانكوفر وايتكابس",
+    "Vancouver Whitecaps FC": u"فانكوفر وايتكابس",
+    "Toronto FC": u"تورونتو إف سي",
+    "CF Montréal": u"مونتريال",
+    "CF Montreal": u"مونتريال",
+    "Montreal Impact": u"مونتريال",
+    "Chicago Fire": u"شيكاغو فاير",
+    "Chicago Fire FC": u"شيكاغو فاير",
+    "FC Dallas": u"إف سي دالاس",
+    "Colorado Rapids": u"كولورادو رابيدز",
+    "New England Revolution": u"نيو إنغلاند ريفولوشن",
+    "D.C. United": u"دي سي يونايتد",
+    "DC United": u"دي سي يونايتد",
+    "San Jose Earthquakes": u"سان خوسيه إيرثكويكس",
+    "SJ Earthquakes": u"سان خوسيه إيرثكويكس",
+    "Charlotte FC": u"شارلوت إف سي",
+    "San Diego FC": u"سان دييغو إف سي",
+    # Liga MX
+    "Club América": u"كلوب أمريكا",
+    "Club America": u"كلوب أمريكا",
+    "Chivas": u"شيفاس غوادالاخارا",
+    "Chivas Guadalajara": u"شيفاس غوادالاخارا",
+    "Guadalajara": u"شيفاس غوادالاخارا",
+    "Cruz Azul": u"كروز أزول",
+    "Tigres UANL": u"تيغريس أونال",
+    "Tigres": u"تيغريس أونال",
+    "CF Monterrey": u"مونتيري",
+    "Monterrey": u"مونتيري",
+    "Rayados": u"مونتيري",
+    "Pumas UNAM": u"بوماس أونام",
+    "Pumas": u"بوماس أونام",
+    "Deportivo Toluca": u"تولوكا",
+    "Toluca": u"تولوكا",
+    "CF Pachuca": u"باتشوكا",
+    "Pachuca": u"باتشوكا",
+    "Club León": u"كلوب ليون",
+    "Club Leon": u"كلوب ليون",
+    "Santos Laguna": u"سانتوس لاغونا",
+    "Santos Laguna FC": u"سانتوس لاغونا",
+    "Atlas FC": u"أطلس المكسيكي",
+    "Atlas": u"أطلس المكسيكي",
+    "Club Tijuana": u"تيخوانا",
+    "Tijuana": u"تيخوانا",
+    "Xolos": u"تيخوانا",
+    "Club Necaxa": u"نيكاكسا",
+    "Necaxa": u"نيكاكسا",
+    "Querétaro FC": u"كيريتارو",
+    "Queretaro FC": u"كيريتارو",
+    "Querétaro": u"كيريتارو",
+    "Queretaro": u"كيريتارو",
+    "Puebla FC": u"بويبلا",
+    "Club Puebla": u"بويبلا",
+    "Puebla": u"بويبلا",
+    "Mazatlán FC": u"مازاتلان",
+    "Mazatlan FC": u"مازاتلان",
+    "Mazatlán": u"مازاتلان",
+    "Mazatlan": u"مازاتلان",
+    "Atlético San Luis": u"أتلتيكو سان لويس",
+    "Atletico San Luis": u"أتلتيكو سان لويس",
+    "FC Juárez": u"خواريز",
+    "FC Juarez": u"خواريز",
+    "Juárez": u"خواريز",
+    "Juarez": u"خواريز",
+    # Central America, Caribbean & Canada
+    "Deportivo Saprissa": u"سابريسا",
+    "Saprissa": u"سابريسا",
+    "LD Alajuelense": u"ألاخويلينسي",
+    "Alajuelense": u"ألاخويلينسي",
+    "CS Herediano": u"هيريديانو",
+    "Herediano": u"هيريديانو",
+    "Club Sport Cartaginés": u"كارتاخينيس",
+    "Cartaginés": u"كارتاخينيس",
+    "CD Olimpia": u"أوليمبيا الهندوراسي",
+    "Motagua": u"موتاغوا",
+    "FC Motagua": u"موتاغوا",
+    "Real España": u"ريال إسبانيا",
+    "Real Espana": u"ريال إسبانيا",
+    "Marathón": u"ماراثون",
+    "CD Marathón": u"ماراثون",
+    "Comunicaciones FC": u"كومونيكاسيونس",
+    "Comunicaciones": u"كومونيكاسيونس",
+    "CSD Municipal": u"مونيسيبال الغواتيمالي",
+    "Municipal": u"مونيسيبال الغواتيمالي",
+    "Antigua GFC": u"أنتيغوا غواتيمالا",
+    "Cobán Imperial": u"كوبان إمبريال",
+    "Alianza FC El Salvador": u"أليانزا السلفادوري",
+    "CD FAS": u"سي دي فاس",
+    "CD Águila": u"أغيلا",
+    "Águila": u"أغيلا",
+    "Real Estelí": u"ريال إستيلي",
+    "Real Esteli": u"ريال إستيلي",
+    "Diriangén FC": u"ديريانتشين",
+    "CA Independiente de La Chorrera": u"إنديبندينتي دي لا تشوريرا",
+    "Tauro FC": u"تاورو البنمي",
+    "Plaza Amador": u"بلازا أمادور",
+    "Forge FC": u"فورج الكندي",
+    "Cavalry FC": u"كافالري الكندي",
+    "Pacific FC": u"باسيفيك الكندي",
+    "Atlético Ottawa": u"أتلتيكو أوتاوا",
+    "Atletico Ottawa": u"أتلتيكو أوتاوا",
+    "Cavalier FC": u"كافاليير الجامايكي",
+    "Mount Pleasant FA": u"ماونت بليزانت",
+    "Robinhood": u"روبنهود السورينامي",
+    "Cibao FC": u"سيباو الدومينيكاني",
+    # ── Other European Clubs (UEFA Champions, Europa & Conference League) ────
+    # Austria
+    "Red Bull Salzburg": u"ريد بول سالزبورغ",
+    "RB Salzburg": u"ريد بول سالزبورغ",
+    "Salzburg": u"ريد بول سالزبورغ",
+    "Sturm Graz": u"شتورم غراتس",
+    "SK Sturm Graz": u"شتورم غراتس",
+    "Rapid Wien": u"رابيد فيينا",
+    "Rapid Vienna": u"رابيد فيينا",
+    "SK Rapid Wien": u"رابيد فيينا",
+    "Austria Wien": u"أوستريا فيينا",
+    "Austria Vienna": u"أوستريا فيينا",
+    "LASK": u"لاسك لينتس",
+    "LASK Linz": u"لاسك لينتس",
+    "Wolfsberger AC": u"فولفسبيرغر",
+    "TSV Hartberg": u"هارتبرغ",
+    "Austria Klagenfurt": u"أوستريا كلاغنفورت",
+    # Switzerland
+    "BSC Young Boys": u"يونغ بويز",
+    "Young Boys": u"يونغ بويز",
+    "FC Basel": u"بازل",
+    "Basel": u"بازل",
+    "FC Zürich": u"زيورخ",
+    "FC Zurich": u"زيورخ",
+    "Zurich": u"زيورخ",
+    "Servette FC": u"سيرفيت",
+    "Servette": u"سيرفيت",
+    "FC Lugano": u"لوغانو",
+    "Lugano": u"لوغانو",
+    "FC St. Gallen": u"سانت غالن",
+    "St. Gallen": u"سانت غالن",
+    "FC Luzern": u"لوتسيرن",
+    "Luzern": u"لوتسيرن",
+    "Grasshopper Club Zürich": u"غراسهوبرز",
+    "Grasshoppers": u"غراسهوبرز",
+    "FC Sion": u"سيون",
+    "Sion": u"سيون",
+    "FC Lausanne-Sport": u"لوزان سبورت",
+    "Winterthur": u"فينترتور",
+    # Greece
+    "Olympiacos": u"أولمبياكوس",
+    "Olympiakos": u"أولمبياكوس",
+    "Olympiacos FC": u"أولمبياكوس",
+    "PAOK": u"باوك سالونيكا",
+    "PAOK FC": u"باوك سالونيكا",
+    "PAOK Thessaloniki": u"باوك سالونيكا",
+    "Panathinaikos": u"باناثينايكوس",
+    "Panathinaikos FC": u"باناثينايكوس",
+    "AEK Athens": u"أيك أثينا",
+    "AEK Athens FC": u"أيك أثينا",
+    "Aris Thessaloniki": u"أريس سالونيكا",
+    "Aris FC": u"أريس سالونيكا",
+    "OFI Crete": u"أوفي كريت",
+    "Asteras Tripolis": u"أستيراس تريبوليس",
+    "Atromitos": u"أتروميتوس",
+    "Volos NFC": u"فولوس",
+    "Panetolikos": u"بانيتوليكوس",
+    "PAS Lamia": u"لاميا",
+    # Ukraine
+    "Shakhtar Donetsk": u"شاختار دونيتسك",
+    "Shakhtar": u"شاختار دونيتسك",
+    "Dynamo Kyiv": u"دينامو كييف",
+    "Dynamo Kiev": u"دينامو كييف",
+    "Zorya Luhansk": u"زوريا لوهانسك",
+    "Zorya": u"زوريا لوهانسك",
+    "SC Dnipro-1": u"دنيبرو 1",
+    "Dnipro-1": u"دنيبرو 1",
+    "Kryvbas Kryvyi Rih": u"كريفباس",
+    "Kryvbas": u"كريفباس",
+    "Polissya Zhytomyr": u"بوليسيا جيتومير",
+    "Polissya": u"بوليسيا جيتومير",
+    "Vorskla Poltava": u"فورسكلا بولتافا",
+    "Rukh Lviv": u"روخ لفيف",
+    "Oleksandriya": u"أوليكساندريا",
+    # Czech Republic
+    "Sparta Prague": u"سبارتا براغ",
+    "Sparta Praha": u"سبارتا براغ",
+    "AC Sparta Praha": u"سبارتا براغ",
+    "Slavia Prague": u"سلافيا براغ",
+    "Slavia Praha": u"سلافيا براغ",
+    "SK Slavia Praha": u"سلافيا براغ",
+    "Viktoria Plzeň": u"فيكتوريا بلزن",
+    "Viktoria Plzen": u"فيكتوريا بلزن",
+    "FC Viktoria Plzeň": u"فيكتوريا بلزن",
+    "Baník Ostrava": u"بانيك أوسترافا",
+    "Banik Ostrava": u"بانيك أوسترافا",
+    "Mladá Boleslav": u"ملادا بوليسلاف",
+    "Mlada Boleslav": u"ملادا بوليسلاف",
+    "Slovan Liberec": u"سلوفان ليبيريتس",
+    "Sigma Olomouc": u"سيغما أولوموتس",
+    "FK Jablonec": u"يابلونيتس",
+    "Hradec Králové": u"هرادتس كرالوفه",
+    "Bohemians 1905": u"بوهيميانز 1905",
+    "Slovácko": u"سلوفاكو",
+    "Teplice": u"تيبليتسه",
+    # Croatia, Serbia & Balkans
+    "Dinamo Zagreb": u"دينامو زغرب",
+    "GNK Dinamo Zagreb": u"دينامو زغرب",
+    "Hajduk Split": u"هايدوك سبليت",
+    "HNK Hajduk Split": u"هايدوك سبليت",
+    "HNK Rijeka": u"رييكا",
+    "Rijeka": u"رييكا",
+    "NK Osijek": u"أوسيك",
+    "Red Star Belgrade": u"النجم الأحمر بلغراد",
+    "Crvena Zvezda": u"النجم الأحمر بلغراد",
+    "Partizan": u"بارتيزان بلغراد",
+    "Partizan Belgrade": u"بارتيزان بلغراد",
+    "FK Partizan": u"بارتيزان بلغراد",
+    "TSC Bačka Topola": u"تي إس سي باتشكا توبولا",
+    "TSC Backa Topola": u"تي إس سي باتشكا توبولا",
+    "FK TSC Bačka Topola": u"تي إس سي باتشكا توبولا",
+    "Čukarički": u"تشوكاريتشكي",
+    "Cukaricki": u"تشوكاريتشكي",
+    "FK Čukarički": u"تشوكاريتشكي",
+    "Vojvodina": u"فويفودينا",
+    "FK Vojvodina": u"فويفودينا",
+    "Radnički Kragujevac": u"رادنيتشكي كراغوييفاتس",
+    "Zrinjski Mostar": u"زرينيسكي موستار",
+    "HŠK Zrinjski": u"زرينيسكي موستار",
+    "FK Sarajevo": u"سراييفو",
+    "Sarajevo": u"سراييفو",
+    "Željezničar": u"جيلييزنيتشار",
+    "Borac Banja Luka": u"بوراك بانيا لوكا",
+    "Velež Mostar": u"فيليز موستار",
+    "NK Maribor": u"ماريبور",
+    "Maribor": u"ماريبور",
+    "Olimpija Ljubljana": u"أوليمبيا ليوبليانا",
+    "NK Olimpija": u"أوليمبيا ليوبليانا",
+    "NK Celje": u"تسيليي",
+    "Celje": u"تسيليي",
+    "Shkëndija": u"شكينديا",
+    "FK Shkupi": u"شكوبي",
+    # Poland, Hungary, Romania, Bulgaria, Slovakia
+    "Legia Warsaw": u"ليغيا وارسو",
+    "Legia Warszawa": u"ليغيا وارسو",
+    "Lech Poznań": u"ليخ بوزنان",
+    "Lech Poznan": u"ليخ بوزنان",
+    "Jagiellonia Białystok": u"ياغيلونيا بياويستوك",
+    "Jagiellonia Bialystok": u"ياغيلونيا بياويستوك",
+    "Jagiellonia": u"ياغيلونيا بياويستوك",
+    "Raków Częstochowa": u"راكوف تشيستوخوفا",
+    "Rakow Czestochowa": u"راكوف تشيستوخوفا",
+    "Raków": u"راكوف تشيستوخوفا",
+    "Rakow": u"راكوف تشيستوخوفا",
+    "Pogoń Szczecin": u"بوغون شتتين",
+    "Pogon Szczecin": u"بوغون شتتين",
+    "Śląsk Wrocław": u"شلوسك فروتسواف",
+    "Slask Wroclaw": u"شلوسك فروتسواف",
+    "Wisła Kraków": u"فيسوا كراكوف",
+    "Wisla Krakow": u"فيسوا كراكوف",
+    "Górnik Zabrze": u"غورنيك زابجه",
+    "Ferencváros": u"فيرينتسفاروش",
+    "Ferencvaros": u"فيرينتسفاروش",
+    "FTC": u"فيرينتسفاروش",
+    "Fehérvár FC": u"فهرفار",
+    "Puskás Akadémia": u"بوشكاش أكاديميا",
+    "Puskas Akademia": u"بوشكاش أكاديميا",
+    "Paksi FC": u"باكسي",
+    "Debreceni VSC": u"ديبريتسين",
+    "Újpest": u"أويبشت",
+    "FCSB": u"إف سي إف بي (ستيوا بوخارست)",
+    "Steaua București": u"إف سي إف بي (ستيوا بوخارست)",
+    "Steaua Bucharest": u"إف سي إف بي (ستيوا بوخارست)",
+    "CFR Cluj": u"سي إف آر كلوج",
+    "Cluj": u"سي إف آر كلوج",
+    "Universitatea Craiova": u"جامعة كرايوفا",
+    "Rapid București": u"رابيد بوخارست",
+    "Rapid Bucharest": u"رابيد بوخارست",
+    "Farul Constanța": u"فارول كونستانتسا",
+    "Dinamo București": u"دينامو بوخارست",
+    "Sepsi OSK": u"سبسي",
+    "Ludogorets": u"لودوغوريتس رازغراد",
+    "Ludogorets Razgrad": u"لودوغوريتس رازغراد",
+    "PFC Ludogorets": u"لودوغوريتس رازغراد",
+    "CSKA Sofia": u"سسكا صوفيا",
+    "PFC CSKA Sofia": u"سسكا صوفيا",
+    "Levski Sofia": u"ليفسكي صوفيا",
+    "PFC Levski Sofia": u"ليفسكي صوفيا",
+    "Cherno More": u"تشيرنو موري فارنا",
+    "Botev Plovdiv": u"بوتيف بلوفديف",
+    "Lokomotiv Plovdiv": u"لوكوموتيف بلوفديف",
+    "Slovan Bratislava": u"سلوفان براتيسلافا",
+    "ŠK Slovan Bratislava": u"سلوفان براتيسلافا",
+    "Spartak Trnava": u"سبارتاك ترنافا",
+    "FC Spartak Trnava": u"سبارتاك ترنافا",
+    "DAC Dunajská Streda": u"دونايسكا ستريدا",
+    "MŠK Žilina": u"جيلينا",
+    "MFK Ružomberok": u"روجومبيروك",
+    # Nordic & Baltic
+    "FC Copenhagen": u"كوبنهاغن",
+    "FC Københavن": u"كوبنهاغن",
+    "FCK": u"كوبنهاغن",
+    "Copenhagen": u"كوبنهاغن",
+    "FC Midtjylland": u"ميتييلاند",
+    "Midtjylland": u"ميتييلاند",
+    "Brøndby IF": u"بروندبي",
+    "Brondby IF": u"بروندبي",
+    "Brøndby": u"بروندبي",
+    "Brondby": u"بروندبي",
+    "FC Nordsjælland": u"نوردشيلاند",
+    "FC Nordsjaelland": u"نوردشيلاند",
+    "Nordsjælland": u"نوردشيلاند",
+    "Nordsjaelland": u"نوردشيلاند",
+    "AGF Aarhus": u"آرهوس",
+    "Silkeborg IF": u"سيلكيبورغ",
+    "AaB Aalborg": u"أولبورغ",
+    "Malmö FF": u"مالمو",
+    "Malmo FF": u"مالمو",
+    "Malmö": u"مالمو",
+    "Malmo": u"مالمو",
+    "Djurgårdens IF": u"يورغوردين",
+    "Djurgarden IF": u"يورغوردين",
+    "Djurgården": u"يورغوردين",
+    "Djurgarden": u"يورغوردين",
+    "AIK": u"أيك سولنا",
+    "AIK Stockholm": u"أيك سولنا",
+    "BK Häcken": u"هكن",
+    "BK Hacken": u"هكن",
+    "Häcken": u"هكن",
+    "Hacken": u"هكن",
+    "IF Elfsborg": u"إلفسبورغ",
+    "Elfsborg": u"إلفسبورغ",
+    "IFK Göteborg": u"غوتبورغ",
+    "IFK Goteborg": u"غوتبورغ",
+    "Hammarby IF": u"هاماربي",
+    "Hammarby": u"هاماربي",
+    "FK Bodø/Glimt": u"بودو/غليمت",
+    "FK Bodo/Glimt": u"بودو/غليمت",
+    "Bodø/Glimt": u"بودو/غليمت",
+    "Bodo/Glimt": u"بودو/غليمت",
+    "Bodø Glimt": u"بودو/غليمت",
+    "Bodo Glimt": u"بودو/غليمت",
+    "Molde FK": u"مولده",
+    "Molde": u"مولده",
+    "Rosenborg BK": u"روزنبورغ",
+    "Rosenborg": u"روزنبورغ",
+    "SK Brann": u"بران",
+    "Brann": u"بران",
+    "Viking FK": u"فايكنغ",
+    "Viking": u"فايكنغ",
+    "Tromsø IL": u"ترومسو",
+    "Vålerenga": u"فاليرينغا",
+    "HJK Helsinki": u"هلسنكي",
+    "HJK": u"هلسنكي",
+    "KuPS": u"كوبس كوبيو",
+    "FC Flora": u"فلورا تالين",
+    "FCI Levadia": u"ليفاديا تالين",
+    "Žalgiris": u"زالغيريس فيلنيوس",
+    "Zalgiris": u"زالغيريس فيلنيوس",
+    "FK Žalgiris Vilnius": u"زالغيريس فيلنيوس",
+    "FK Panevėžys": u"بانيفيزيس",
+    "RFS": u"آر إف إس اللاتفي",
+    "FK RFS": u"آر إف إس اللاتفي",
+    "Riga FC": u"ريغا إف سي",
+    "KÍ Klaksvík": u"كلاكسفيك",
+    "KI Klaksvik": u"كلاكسفيك",
+    "Víkingur Reykjavík": u"فايكنغور ريكيافيك",
+    "Vikingur Reykjavik": u"فايكنغور ريكيافيك",
+    "Breiðablik": u"بريدابليك",
+    "Valur": u"فالور",
+    # Cyprus, Azerbaijan, Kazakhstan, Armenia, Moldova & others
+    "APOEL FC": u"أبويل نيقوسيا",
+    "APOEL": u"أبويل نيقوسيا",
+    "APOEL Nicosia": u"أبويل نيقوسيا",
+    "Omonia Nicosia": u"أومونيا نيقوسيا",
+    "Omonia": u"أومونيا نيقوسيا",
+    "Apollon Limassol": u"أبولون ليماسول",
+    "AEL Limassol": u"أيل ليماسول",
+    "Anorthosis Famagusta": u"أنورثوسيس فاماغوستا",
+    "Aris Limassol": u"أريس ليماسول",
+    "AEK Larnaca": u"أيك لارنكا",
+    "Pafos FC": u"بافوس",
+    "Pafos": u"بافوس",
+    "Maccabi Haifa": u"مكابي حيفا",
+    "Maccabi Tel Aviv": u"مكابي تل أبيب",
+    "Hapoel Be'er Sheva": u"هابويل بئر السبع",
+    "Qarabağ FK": u"قره باغ",
+    "Qarabag FK": u"قره باغ",
+    "Qarabağ": u"قره باغ",
+    "Qarabag": u"قره باغ",
+    "Neftçi Baku": u"نيفتشي باكو",
+    "Neftchi Baku": u"نيفتشي باكو",
+    "Red Bull New York": u"نيويورك ريد بولز",
+    # ── Extended International, Friendly & Cup Teams ────────────────────────
+    # Teams from Match Scoreboards & Screenshots
+    "Omonia 29is Maiou": u"أومونيا 29 مايو",
+    "Omonia 29 Maiou": u"أومونيا 29 مايو",
+    "PAC Omonia 29M": u"أومونيا 29 مايو",
+    "IK Sirius": u"سيريوس",
+    "Sirius": u"سيريوس",
+    "Selaya FC": u"سيلايا",
+    "Selaya": u"سيلايا",
+    "Cayón": u"كايون",
+    "Cayon": u"كايون",
+    "CD Cayón": u"كايون",
+    "CD Utiel": u"أوتيل",
+    "Utiel": u"أوتيل",
+    "Vall de Uxó": u"فال دي أوخو",
+    "Vall de Uxo": u"فال دي أوخو",
+    "UD Vall de Uxó": u"فال دي أوخو",
+    "Doneztebe": u"دونيستيب",
+    "Doneztebe FT": u"دونيستيب",
+    "V-Varen Nagasaki": u"في-فارين ناغاساكي",
+    "V Varen Nagasaki": u"في-فارين ناغاساكي",
+    "JEF United Ichihara-Chiba": u"جيف يونايتد تشيبا",
+    "JEF United Chiba": u"جيف يونايتد تشيبا",
+    "JEF United": u"جيف يونايتد تشيبا",
+    "Lion City Sailors FC": u"ليون سيتي سيلورز",
+    "Lion City Sailors": u"ليون سيتي سيلورز",
+    "Power Dynamos": u"باور ديناموز",
+    "Power Dynamos FC": u"باور ديناموز",
+    "ZESCO United": u"زيسكو يونايتد",
+    "Zesco United FC": u"زيسكو يونايتد",
+    "Zesco United": u"زيسكو يونايتد",
+    "ASD Seravezza Pozzi": u"سيرافيتزا بوتسي",
+    "Seravezza Pozzi": u"سيرافيتزا بوتسي",
+    "Seravezza": u"سيرافيتزا بوتسي",
+    "ACV Scandicci": u"سكانديتشي",
+    "Scandicci": u"سكانديتشي",
+    # Japanese J1, J2, J3 & Cups
+    "Kashiwa Reysol": u"كاشيوا ريسول",
+    "FC Tokyo": u"إف سي طوكيو",
+    "Yokohama F. Marinos": u"يوكوهاما إف مارينوس",
+    "Yokohama F Marinos": u"يوكوهاما إف مارينوس",
+    "Kawasaki Frontale": u"كاواساكي فرونتال",
+    "Urawa Red Diamonds": u"أوراوا ريد دياموندز",
+    "Urawa Reds": u"أوراوا ريد دياموندز",
+    "Gamba Osaka": u"غامبا أوساكا",
+    "Cerezo Osaka": u"سيريزو أوساكا",
+    "Nagoya Grampus": u"ناغويا غرامبوس",
+    "Sanfrecce Hiroshima": u"سانفريس هيروشيما",
+    "Kashima Antlers": u"كاشيما أنتليز",
+    "Vissel Kobe": u"فيسيل كوبه",
+    "Machida Zelvia": u"ماتشيدا زيلفيا",
+    "Tokyo Verdy": u"طوكيو فيردي",
+    "Shimizu S-Pulse": u"شيميزو إس-بولس",
+    "Júbilo Iwata": u"جوبيلو إيواتا",
+    "Jubilo Iwata": u"جوبيلو إيواتا",
+    "Albirex Niigata": u"ألبيريكس نيغاتا",
+    "Kyoto Sanga": u"كيوتو سانغا",
+    "Sagan Tosu": u"ساغان توسو",
+    "Shonan Bellmare": u"شونان بيلمار",
+    "Montedio Yamagata": u"مونتيديو ياماغاتا",
+    "Ventforet Kofu": u"فينتفورت كوفو",
+    "Vegalta Sendai": u"فيغالتا سينداي",
+    "Fagiano Okayama": u"فاجيانو أوكاياما",
+    "Roasso Kumamoto": u"رواسو كوماموتو",
+    "Oita Trinita": u"أويتا ترينيتا",
+    "Tokushima Vortis": u"توكوشيما فورتيس",
+    "Mito HollyHock": u"ميتو هوليهوك",
+    "Renofa Yamaguchi": u"رينوفا ياماغوتشي",
+    "Ehime FC": u"إهيمي",
+    "Blaublitz Akita": u"بلاوبليتز أكيتا",
+    "Thespa Gunma": u"ثيسبا غونما",
+    "Tochigi SC": u"توتشيغي",
+    "Fujieda MYFC": u"فوجييدا",
+    "Kagoshima United": u"كاغوشيما يونايتد",
+    "Iwaki FC": u"إيواكي",
+    # Swedish Allsvenskan & Superettan
+    "BK Häcken": u"هاكن",
+    "Häcken": u"هاكن",
+    "Hacken": u"هاكن",
+    "Malmö FF": u"مالمو",
+    "Malmo FF": u"مالمو",
+    "AIK": u"أيك سولنا",
+    "AIK Fotboll": u"أيك سولنا",
+    "Djurgårdens IF": u"يورغوردينس",
+    "Djurgardens IF": u"يورغوردينس",
+    "Djurgarden": u"يورغوردينس",
+    "Hammarby IF": u"هاماربي",
+    "Hammarby": u"هاماربي",
+    "IF Elfsborg": u"إلفسبورغ",
+    "Elfsborg": u"إلفسبورغ",
+    "IFK Göteborg": u"غوتبورغ",
+    "IFK Goteborg": u"غوتبورغ",
+    "IFK Norrköping": u"نوركوبينغ",
+    "IFK Norrkoping": u"نوركوبينغ",
+    "Mjällby AIF": u"ميالمبي",
+    "Mjallby AIF": u"ميالمبي",
+    "GAIS": u"غايس",
+    "Halmstads BK": u"هالمستاد",
+    "Halmstad": u"هالمستاد",
+    "IFK Värnamo": u"فارنامو",
+    "IFK Varnamo": u"فارنامو",
+    "Västerås SK": u"فيستيروس",
+    "Vasteras SK": u"فيستيروس",
+    "Kalmar FF": u"كالمار",
+    "Kalmar": u"كالمار",
+    "Degerfors IF": u"ديغرفورس",
+    "Östers IF": u"أوسترس",
+    "Osters IF": u"أوسترس",
+    "Landskrona BoIS": u"لاندسكرونا",
+    "Helsingborgs IF": u"هلسينغبورغ",
+    "Örebro SK": u"أوريبرو",
+    "Orebro SK": u"أوريبرو",
+    "Gefle IF": u"غيفلي",
+    "Sandvikens IF": u"ساندفيكنس",
+    "Örgryte IS": u"أورغريته",
+    "Orgryte IS": u"أورغريته",
+    # Norwegian Eliteserien
+    "Bodø/Glimt": u"بودو/غليمت",
+    "Bodo/Glimt": u"بودو/غليمت",
+    "Brann": u"بران",
+    "SK Brann": u"بران",
+    "Molde": u"مولده",
+    "Molde FK": u"مولده",
+    "Rosenborg": u"روزنبرغ",
+    "Rosenborg BK": u"روزنبرغ",
+    "Viking": u"فايكنغ",
+    "Viking FK": u"فايكنغ",
+    "Tromsø": u"ترومسو",
+    "Tromso": u"ترومسو",
+    "Fredrikstad": u"فريدريكستاد",
+    "KFUM Oslo": u"كيه إف يو إم أوسلو",
+    "Sarpsborg 08": u"ساربسبورغ 08",
+    "HamKam": u"هامكام",
+    "Strømsgodset": u"سترومسغودست",
+    "Stromsgodset": u"سترومسغودست",
+    "Lillestrøm": u"ليلستروم",
+    "Lillestrom": u"ليلستروم",
+    "Sandefjord": u"ساندفيورد",
+    "Haugesund": u"هاوغسوند",
+    "Kristiansund BK": u"كريستيانسوند",
+    "Odd": u"أود",
+    # Danish Superliga
+    "FC Midtjylland": u"ميتييلاند",
+    "Midtjylland": u"ميتييلاند",
+    "Brøndby": u"بروندبي",
+    "Brondby": u"بروندبي",
+    "Brøndby IF": u"بروندبي",
+    "AGF": u"آرهوس",
+    "AGF Aarhus": u"آرهوس",
+    "FC Nordsjælland": u"نوردشيلاند",
+    "FC Nordsjaelland": u"نوردشيلاند",
+    "Nordsjælland": u"نوردشيلاند",
+    "Randers FC": u"راندرس",
+    "Silkeborg IF": u"سيلكيبورغ",
+    "Viborg FF": u"فيبورغ",
+    "Lyngby": u"لينغبي",
+    "Lyngby BK": u"لينغبي",
+    "Vejle": u"فايله",
+    "Vejle Boldklub": u"فايله",
+    "AaB": u"أولبورغ",
+    "Aalborg": u"أولبورغ",
+    "Sønderjyske": u"سوندرجيسكه",
+    "Sonderjyske": u"سوندرجيسكه",
+    # Swiss Super League
+    "Young Boys": u"يانغ بويز",
+    "BSC Young Boys": u"يانغ بويز",
+    "FC Basel": u"بازل",
+    "Basel": u"بازل",
+    "FC Zürich": u"زيورخ",
+    "FC Zurich": u"زيورخ",
+    "Zürich": u"زيورخ",
+    "Servette": u"سيرفيت",
+    "Servette FC": u"سيرفيت",
+    "FC Lugano": u"لوغانو",
+    "Lugano": u"لوغانو",
+    "Grasshopper": u"غراسهوبرز",
+    "Grasshopper Club Zürich": u"غراسهوبرز",
+    # Polish Ekstraklasa
+    "Jagiellonia Białystok": u"ياغيلونيا بياويستوك",
+    "Jagiellonia Bialystok": u"ياغيلونيا بياويستوك",
+    "Śląsk Wrocław": u"شلاونسك فروتسواف",
+    "Slask Wroclaw": u"شلاونسك فروتسواف",
+    "Legia Warsaw": u"ليغيا وارسو",
+    "Legia Warszawa": u"ليغيا وارسو",
+    "Lech Poznań": u"ليخ بوزنان",
+    "Lech Poznan": u"ليخ بوزنان",
+    "Raków Częstochowa": u"راكوف تشانستوخوفا",
+    "Rakow Czestochowa": u"راكوف تشانستوخوفا",
+    "Pogoń Szczecin": u"بوغون شتتين",
+    "Pogon Szczecin": u"بوغون شتتين",
+    "Górnik Zabrze": u"غورنيك زابجه",
+    "Gornik Zabrze": u"غورنيك زابجه",
+    "Cracovia": u"كراكوفيا",
+    "Widzew Łódź": u"فيدزيف لودز",
+    "Widzew Lodz": u"فيدزيف لودز",
+    "Piast Gliwice": u"بياست غليفيتسه",
+    "Radomiak Radom": u"رادومياك رادوم",
+    "Stal Mielec": u"ستال مييليتس",
+    "Zagłębie Lubin": u"زاغويمبيه لوبين",
+    "Zaglebie Lubin": u"زاغويمبيه لوبين",
+    "Korona Kielce": u"كورونا كيلسي",
+    "Puszcza Niepołomice": u"بوشتشا نيبوميتسه",
+    "Motor Lublin": u"موتور لوبلين",
+    "Lechia Gdańsk": u"ليخيا غدانسك",
+    "Lechia Gdansk": u"ليخيا غدانسك",
+    "GKS Katowice": u"جي كيه إس كاتوفيتسه",
+    # Romanian SuperLiga
+    "FCSB": u"ستيوا بوخارست (FCSB)",
+    "CFR Cluj": u"سي إف آر كلوج",
+    "Rapid București": u"رابيد بوخارست",
+    "Rapid Bucuresti": u"رابيد بوخارست",
+    "Universitatea Craiova": u"يونيفيرسيتاتيا كرايوفا",
+    "Farul Constanța": u"فارول كونستانتسا",
+    "Farul Constanta": u"فارول كونستانتسا",
+    "Sepsi OSK": u"سيبسي",
+    "Dinamo București": u"دينامو بوخارست",
+    "Dinamo Bucuresti": u"دينامو بوخارست",
+    "Oțelul Galați": u"أوتسيلول غالاتسي",
+    "Otelul Galati": u"أوتسيلول غالاتسي",
+    "Hermannstadt": u"هيرمانشتات",
+    "Petrolul Ploiești": u"بترولول بلويشتي",
+    "Petrolul Ploiesti": u"بترولول بلويشتي",
+    "Universitatea Cluj": u"يونيفيرسيتاتيا كلوج",
+    "UTA Arad": u"يو تي إيه أراد",
+    "Politehnica Iași": u"بوليتكنيكا ياش",
+    "Botoșani": u"بوتوشاني",
+    "Gloria Buzău": u"غلوريا بوزاو",
+    "Unirea Slobozia": u"يونيريا سلوبوزيا",
+    # Serbian SuperLiga & Croatian HNL
+    "Red Star Belgrade": u"النجم الأحمر بلغراد",
+    "Crvena Zvezda": u"النجم الأحمر بلغراد",
+    "Partizan": u"بارتيزان بلغراد",
+    "Partizan Belgrade": u"بارتيزان بلغراد",
+    "TSC Bačka Topola": u"تي إس سي باتشكا توبولا",
+    "Čukarički": u"تشوكاريتشكي",
+    "Vojvodina": u"فويفودينا",
+    "Dinamo Zagreb": u"دينامو زغرب",
+    "GNK Dinamo Zagreb": u"دينامو زغرب",
+    "Hajduk Split": u"هايدوك سبليت",
+    "HNK Rijeka": u"رييكا",
+    "Rijeka": u"رييكا",
+    "NK Osijek": u"أوسييك",
+    "Osijek": u"أوسييك",
+    "Lokomotiva Zagreb": u"لوكوموتيفا زغرب",
+    "NK Varaždin": u"فاراجدين",
+    "Istra 1961": u"إسترا 1961",
+    "Slaven Belupo": u"سلافين بيلوبو",
+    "HNK Gorica": u"غوريتسا",
+    "Šibenik": u"شيبينيك",
+    # Spanish Lower Leagues & Friendlies
+    "AD Alcorcón": u"ألكوركون",
+    "Alcorcón": u"ألكوركون",
+    "Amorebieta": u"أموريبايتا",
+    "SD Amorebieta": u"أموريبايتا",
+    "Barakaldo": u"باراكالدو",
+    "Barakaldo CF": u"باراكالدو",
+    "Badalona": u"بادالونا",
+    "Alcoyano": u"ألكويانو",
+    "CD Alcoyano": u"ألكويانو",
+    "Atlético Sanluqueño CF": u"أتلتيكو سانلوكينيو",
+    "Atlético Sanluqueño": u"أتلتيكو سانلوكينيو",
+    "Atlético Saguntino": u"أتلتيكو ساغونتينو",
+    "Bergantiños": u"بيرغانتينوس",
+    "Barbastro": u"بارباسترو",
+    "UD Barbastro": u"بارباسترو",
+    "Beasain": u"بياساين",
+    "Amurrio": u"أموريو",
+    "AD San Juan": u"سان خوان",
+    "Atzeneta": u"أتزينيتا",
+    "Avilés Stadium": u"أفيليس ستاديوم",
+    "Aguilas": u"أغيلاس",
+    "Águilas FC": u"أغيلاس",
+    "Atlético Coruña": u"أتلتيكو كورونيا",
+    # Italian Serie C / D & Friendlies
+    "AC Crema": u"كريما",
+    "Crema": u"كريما",
+    "ASD San Donato Tavarnelle": u"سان دوناتو تافارنيلي",
+    "ASD Torres": u"توريس",
+    "Torres": u"توريس",
+    "AS Cannes": u"كان",
+    "Cannes": u"كان",
+    "AC Libertas": u"ليبرتاس",
+    "AF Elbasani": u"إلباساني",
+    # African & Asian Additional Clubs
+    "Bibiani Gold Stars": u"بيبياني غولد ستارز",
+    "Binh Duong": u"بينه دونغ",
+    "Ayutthaya United": u"أيوثايا يونايتد",
+    "Arema Indonesia": u"أريما إندونيسيا",
+    "Arema FC": u"أريما",
+    "ADO '20": u"أدو 20",
+    "Belisia Bilzen": u"بيليسيا بيلزن",
+    "Athletic Club Boise": u"أتلتيك بويسي",
+    "Sabah FC": u"صباح الأذربيجاني",
+    "Zira FK": u"زيرا",
+    "FC Astana": u"أستانا",
+    "Astana": u"أستانا",
+    "Kairat Almaty": u"كايرات ألماتي",
+    "Kairat": u"كايرات ألماتي",
+    "Ordabasy": u"أورداباسي",
+    "Tobol Kostanay": u"توبول كوستناي",
+    "Aktobe": u"أكتوبي",
+    "Sheriff Tiraspol": u"شريف تيراسبول",
+    "Sheriff": u"شريف تيراسبول",
+    "FC Sheriff": u"شريف تيراسبول",
+    "Petrocub Hîncești": u"بيتروكوب هينسشتي",
+    "Petrocub": u"بيتروكوب هينسشتي",
+    "Dinamo Batumi": u"دينامو باتومي",
+    "Dinamo Tbilisi": u"دينامو تبيليسي",
+    "Torpedo Kutaisi": u"توربيدو كوتايسي",
+    "Iberia 1999": u"إيبيريا 1999",
+    "Pyunik Yerevan": u"بيونيك يريفان",
+    "Pyunik": u"بيونيك يريفان",
+    "FC Urartu": u"أورارتو",
+    "FC Noah": u"نوح الأرميني",
+    "Noah": u"نوح الأرميني",
+    "Alashkert": u"ألاشكيرت",
+    "BATE Borisov": u"باتي بوريسوف",
+    "BATE": u"باتي بوريسوف",
+    "Dinamo Minsk": u"دينامو مينسك",
+    "Neman Grodno": u"نيمان غرودنو",
+    "Lincoln Red Imps": u"لينكولن ريد إمبس",
+    "The New Saints": u"ذا نيو سينتس",
+    "TNS": u"ذا نيو سينتس",
+    "Shamrock Rovers": u"شامروك روفرز",
+    "Derry City": u"ديري سيتي",
+    "St Patrick's Athletic": u"سانت باتريك أثلتيك",
+    "Larne FC": u"لارن الأيرلندي الشمالي",
+    "Larne": u"لارن الأيرلندي الشمالي",
+    "Linfield": u"لينفيلد",
+    "Dundalk": u"دوندالك",
+    "FC Vaduz": u"فادوز",
+    "Vaduz": u"فادوز",
+    "FC Santa Coloma": u"سانتا كولوما",
+    "Tre Penne": u"تري بيني",
+    "La Fiorita": u"لا فيوريتا",
+    "Ħamrun Spartans": u"هامرون سبارتانز",
+    "Hamrun Spartans": u"هامرون سبارتانز",
+    "Sliema Wanderers": u"سليما واندررز",
+    # ── Russian Premier League ───────────────────────────────────────────────
+    "Zenit": u"زينيت سانت بطرسبرغ",
+    "Zenit Saint Petersburg": u"زينيت سانت بطرسبرغ",
+    "Zenit St Petersburg": u"زينيت سانت بطرسبرغ",
+    "Zenit St. Petersburg": u"زينيت سانت بطرسبرغ",
+    "Spartak Moscow": u"سبارتاك موسكو",
+    "Spartak": u"سبارتاك موسكو",
+    "CSKA Moscow": u"سسكا موسكو",
+    "Lokomotiv Moscow": u"لوكوموتيف موسكو",
+    "Dynamo Moscow": u"دينامو موسكو",
+    "FC Krasnodar": u"كراسنودار",
+    "Krasnodar": u"كراسنودار",
+    "Rubin Kazan": u"روبين كازان",
+    "Rubin": u"روبين كازان",
+    "FC Rostov": u"روستوف",
+    "Rostov": u"روستوف",
+    "Akhmat Grozny": u"أخمات غروزني",
+    "Krylia Sovetov": u"كريليا سوفيتوف",
+    "Krylia Sovetov Samara": u"كريليا سوفيتوف",
+    "FC Sochi": u"سوتشي",
+    "Sochi": u"سوتشي",
+    "FC Khimki": u"خيمكي",
+    "Dynamo Makhachkala": u"دينامو محج قلعة",
+    "FC Pari Nizhny Novgorod": u"نيجني نوفغورود",
+    "Fakel Voronezh": u"فاكل فورونيج",
+    "FC Orenburg": u"أورينبورغ",
+    "Akron Tolyatti": u"أكرون تولياتي",
+    "Baltika Kaliningrad": u"بالتيكا كالينينغراد",
+    "Ural Yekaterinburg": u"أورال",
+    # ── English League One & League Two ──────────────────────────────────────
+    "Wrexham": u"ريكسهام",
+    "Wrexham AFC": u"ريكسهام",
+    "Birmingham City": u"برمنغهام سيتي",
+    "Charlton Athletic": u"تشارلتون أثلتيك",
+    "Huddersfield Town": u"هدرسفيلد تاون",
+    "Bolton Wanderers": u"بولتون واندررز",
+    "Reading": u"ريدينغ",
+    "Blackpool": u"بلاكبول",
+    "Wigan Athletic": u"ويغان أثلتيك",
+    "Barnsley": u"بارنسلي",
+    "Peterborough United": u"بيتربورو يونايتد",
+    "Stockport County": u"ستوكبورت كاونتي",
+    "Mansfield Town": u"مانسفيلد تاون",
+    "Lincoln City": u"لينكولن سيتي",
+    "Leyton Orient": u"ليتون أورينت",
+    "Bristol Rovers": u"بريستول روفرز",
+    "Wycombe Wanderers": u"ويكمب واندررز",
+    "Rotherham United": u"روذرهام يونايتد",
+    "Burton Albion": u"بيرتون ألبيون",
+    "Exeter City": u"إكستر سيتي",
+    "Northampton Town": u"نورثامبتون تاون",
+    "Cambridge United": u"كامبريدج يونايتد",
+    "Shrewsbury Town": u"شروزبري تاون",
+    "Crawley Town": u"كرولي تاون",
+    "Notts County": u"نوتس كاونتي",
+    "Bradford City": u"برادفورد سيتي",
+    "Chesterfield": u"تشيسترفيلد",
+    "MK Dons": u"ميلتون كينز دونز",
+    "Milton Keynes Dons": u"ميلتون كينز دونز",
+    "AFC Wimbledon": u"إيه إف سي ويمبلدون",
+    "Doncaster Rovers": u"دونكاستر روفرز",
+    "Gillingham": u"جيلينغهام",
+    "Walsall": u"والسول",
+    "Crewe Alexandra": u"كرو ألكساندرا",
+    "Tranmere Rovers": u"ترانمير روفرز",
+    "Salford City": u"سالفورد سيتي",
+    "Carlisle United": u"كارلايل يونايتد",
+    "Port Vale": u"بورت فالي",
+    "Fleetwood Town": u"فليتوود تاون",
+    # ── Oceania & FIFA Club World Cup ────────────────────────────────────────
+    "Auckland City": u"أوكلاند سيتي",
+    "Auckland City FC": u"أوكلاند سيتي",
+    "Hienghène Sport": u"هيينغين سبورت",
+    "Hienghene Sport": u"هيينغين سبورت",
+    "AS Pirae": u"بيراي التاهيتي",
+    "AS Magenta": u"ماجينتا",
+    "Team Wellington": u"تيم ويلينغتون",
+    "Waitakere United": u"وايتاكيري يونايتد",
+    "Rewa FC": u"ريوا الفيجي",
+    "Suva FC": u"سوفا الفيجي",
+    # ── Women's Super Teams (UWCL & Leagues) ──────────────────────────────────
+    "Barcelona Femení": u"برشلونة للسيدات",
+    "Barcelona Femeni": u"برشلونة للسيدات",
+    "FC Barcelona Femení": u"برشلونة للسيدات",
+    "Lyon Féminin": u"أولمبيك ليون للسيدات",
+    "Lyon Feminin": u"أولمبيك ليون للسيدات",
+    "Olympique Lyonnais Féminin": u"أولمبيك ليون للسيدات",
+    "Chelsea Women": u"تشيلسي للسيدات",
+    "Chelsea FC Women": u"تشيلسي للسيدات",
+    "Arsenal Women": u"أرسنال للسيدات",
+    "Arsenal WFC": u"أرسنال للسيدات",
+    "Manchester City Women": u"مانشستر سيتي للسيدات",
+    "Man City Women": u"مانشستر سيتي للسيدات",
+    "Real Madrid Femenino": u"ريال مدريد للسيدات",
+    "Real Madrid Femenil": u"ريال مدريد للسيدات",
+    "Wolfsburg Women": u"فولفسبورغ للسيدات",
+    "VfL Wolfsburg Women": u"فولفسبورغ للسيدات",
+    "Bayern Munich Women": u"بايرن ميونخ للسيدات",
+    "FC Bayern Women": u"بايرن ميونخ للسيدات",
+    "PSG Féminine": u"باريس سان جيرمان للسيدات",
+    "PSG Feminine": u"باريس سان جيرمان للسيدات",
+    "Paris Saint-Germain Féminine": u"باريس سان جيرمان للسيدات",
+    "Juventus Women": u"يوفنتوس للسيدات",
+    "Roma Women": u"روما للسيدات",
+    "AS Roma Women": u"روما للسيدات",
+    # ── Remaining National Teams & Aliases ────────────────────────────────────
+    "DR Congo": u"جمهورية الكونغو الديمقراطية",
+    "Congo DR": u"جمهورية الكونغو الديمقراطية",
+    "Democratic Republic of the Congo": u"جمهورية الكونغو الديمقراطية",
+    "Republic of Ireland": u"جمهورية أيرلندا",
+    "Ireland": u"جمهورية أيرلندا",
+    "North Korea": u"كوريا الشمالية",
+    "Korea DPR": u"كوريا الشمالية",
+    "South Korea": u"كوريا الجنوبية",
+    "Korea Republic": u"كوريا الجنوبية",
+    "Cape Verde": u"الرأس الأخضر",
+    "Cabo Verde": u"الرأس الأخضر",
+    "Central African Republic": u"جمهورية أفريقيا الوسطى",
+    "Bosnia and Herzegovina": u"البوسنة والهرسك",
+    "Bosnia-Herzegovina": u"البوسنة والهرسك",
+    "Bosnia": u"البوسنة والهرسك",
+    "North Macedonia": u"مقدونيا الشمالية",
+    "FYR Macedonia": u"مقدونيا الشمالية",
+    "Trinidad and Tobago": u"ترينيداد وتوباغو",
+    "Saint Kitts and Nevis": u"سانت كيتس ونيفيس",
+    "Antigua and Barbuda": u"أنتيغوا وبربودا",
+    # ── Belgian Pro League & Challenger Pro League ───────────────────────────
+    "Club Brugge": u"كلوب بروج",
+    "Club Brugge KV": u"كلوب بروج",
+    "Brugge": u"كلوب بروج",
+    "Anderlecht": u"أندرلخت",
+    "RSC Anderlecht": u"أندرلخت",
+    "Genk": u"جينك",
+    "KRC Genk": u"جينك",
+    "RC Genk": u"جينك",
+    "Gent": u"غينت",
+    "KAA Gent": u"غينت",
+    "AA Gent": u"غينت",
+    "Union Saint-Gilloise": u"يونيون سانت خيلويزي",
+    "Union Saint Gilloise": u"يونيون سانت خيلويزي",
+    "Union SG": u"يونيون سانت خيلويزي",
+    "Royale Union Saint-Gilloise": u"يونيون سانت خيلويزي",
+    "RUSG": u"يونيون سانت خيلويزي",
+    "Standard Liège": u"ستاندارد لييج",
+    "Standard Liege": u"ستاندارد لييج",
+    "Standard de Liège": u"ستاندارد لييج",
+    "Royal Antwerp": u"رويال أنتويرب",
+    "Royal Antwerp FC": u"رويال أنتويرب",
+    "Antwerp": u"رويال أنتويرب",
+    "Cercle Brugge": u"سيركل بروج",
+    "Cercle Brugge KSV": u"سيركل بروج",
+    "Mechelen": u"كيه في ميخلين",
+    "KV Mechelen": u"كيه في ميخلين",
+    "Sint-Truiden": u"سينت ترويدن",
+    "Sint-Truidense VV": u"سينت ترويدن",
+    "STVV": u"سينت ترويدن",
+    "Westerlo": u"فيسترلو",
+    "KVC Westerlo": u"فيسترلو",
+    "Sporting Charleroi": u"سبورتينغ شارلروا",
+    "Charleroi": u"سبورتينغ شارلروا",
+    "R. Charleroi SC": u"سبورتينغ شارلروا",
+    "Kortrijk": u"كورتريك",
+    "KV Kortrijk": u"كورتريك",
+    "OH Leuven": u"آود هيفرلي لوفين",
+    "Oud-Heverlee Leuven": u"آود هيفرلي لوفين",
+    "OHL": u"آود هيفرلي لوفين",
+    "FCV Dender EH": u"ديندر",
+    "Dender": u"ديندر",
+    "Beerschot": u"بيرشوت",
+    "K. Beerschot V.A.": u"بيرشوت",
+    "Eupen": u"أوبين",
+    "KAS Eupen": u"أوبين",
+    "RWD Molenbeek": u"مولينبيك",
+    "RWDM": u"مولينبيك",
+    "SV Zulte Waregem": u"زولته فاريجيم",
+    "Zulte Waregem": u"زولته فاريجيم",
+    "SK Beveren": u"بيفيرين",
+    "Beveren": u"بيفيرين",
+    "Waasland-Beveren": u"بيفيرين",
+    "Lierse": u"ليرس",
+    "Lierse Kempenzonen": u"ليرس",
+    "Lommel SK": u"لوميل",
+    "Lommel": u"لوميل",
+    "KSC Lokeren-Temse": u"لوكيرين",
+    "Lokeren": u"لوكيرين",
+    "RFC Liège": u"لييج",
+    "RFC Liege": u"لييج",
+    "Deinze": u"دينزه",
+    "KMSK Deinze": u"دينزه",
+    "Patro Eisden": u"باترو إيسدن",
+    "Patro Eisden Maasmechelen": u"باترو إيسدن",
+    "Francs Borains": u"فرانكس بوران",
+    "Club NXT": u"كلوب إن إكس تي",
+    "Jong Genk": u"جينك للشباب",
+    "RSCA Futures": u"أندرلخت للشباب",
+    "RFC Seraing": u"سيرينغ",
+    "Seraing": u"سيرينغ",
+    "KV Oostende": u"أوستينده",
+    "Oostende": u"أوستينده",
+    "Mouscron": u"موسكرون",
+    "Royal Excel Mouscron": u"موسكرون",
+    # ── Scottish Premiership & Championship (SPFL) ───────────────────────────
+    "Celtic": u"سلتيك",
+    "Celtic FC": u"سلتيك",
+    "Rangers": u"رينجرز",
+    "Rangers FC": u"رينجرز",
+    "Glasgow Rangers": u"رينجرز",
+    "Aberdeen": u"أبردين",
+    "Aberdeen FC": u"أبردين",
+    "Heart of Midlothian": u"هارتس",
+    "Hearts": u"هارتس",
+    "Heart of Midlothian FC": u"هارتس",
+    "Hibernian": u"هيبرنيان",
+    "Hibs": u"هيبرنيان",
+    "Hibernian FC": u"هيبرنيان",
+    "Dundee United": u"دندي يونايتد",
+    "Dundee Utd": u"دندي يونايتد",
+    "Dundee": u"دندي إف سي",
+    "Dundee FC": u"دندي إف سي",
+    "Kilmarnock": u"كيلمارنوك",
+    "Kilmarnock FC": u"كيلمارنوك",
+    "Motherwell": u"ماذرويل",
+    "Motherwell FC": u"ماذرويل",
+    "St. Mirren": u"سانت ميرين",
+    "St Mirren": u"سانت ميرين",
+    "Saint Mirren": u"سانت ميرين",
+    "Ross County": u"روس كاونتي",
+    "Ross County FC": u"روس كاونتي",
+    "St. Johnstone": u"سانت جونستون",
+    "St Johnstone": u"سانت جونستون",
+    "Saint Johnstone": u"سانت جونستون",
+    "Livingston": u"ليفينغستون",
+    "Livingston FC": u"ليفينغستون",
+    "Partick Thistle": u"بارتيك ثيسل",
+    "Partick Thistle FC": u"بارتيك ثيسل",
+    "Raith Rovers": u"ريث روفرز",
+    "Raith Rovers FC": u"ريث روفرز",
+    "Dunfermline Athletic": u"دونفرملاين أثلتيك",
+    "Dunfermline": u"دونفرملاين أثلتيك",
+    "Inverness Caledonian Thistle": u"إنفرنيس",
+    "Inverness CT": u"إنفرنيس",
+    "Inverness": u"إنفرنيس",
+    "Falkirk": u"فالكيرك",
+    "Falkirk FC": u"فالكيرك",
+    "Ayr United": u"آير يونايتد",
+    "Ayr United FC": u"آير يونايتد",
+    "Greenock Morton": u"غرينوك مورتون",
+    "Morton": u"غرينوك مورتون",
+    "Queen's Park": u"كوينز بارك",
+    "Queens Park": u"كوينز بارك",
+    "Queen of the South": u"كوين أوف ذا ساوث",
+    "Airdrieonians": u"إيردريونيانز",
+    "Airdrie": u"إيردريونيانز",
+    "Hamilton Academical": u"هاميلتون أكاديميكال",
+    "Hamilton": u"هاميلتون أكاديميكال",
+    "Arbroath": u"أربروث",
+    "Arbroath FC": u"أربروث",
+    "Alloa Athletic": u"ألوا أثلتيك",
+    "Alloa": u"ألوا أثلتيك",
+    "Cove Rangers": u"كوف رينجرز",
+    "Montrose": u"مونتروز",
+    "Kelty Hearts": u"كيلتي هارتس",
+    "Stenhousemuir": u"ستينهاوسموير",
+    "Peterhead": u"بيترهيد",
+    "East Fife": u"إيست فايف",
+    "Stirling Albion": u"ستيرلينغ ألبيون",
+    "Dumbarton": u"دمبارتون",
+    "Stranraer": u"سترانرير",
+    "Elgin City": u"إلجين سيتي",
+    "Edinburgh City": u"إدنبرة سيتي",
+    # ── Nordic & Finnish Veikkausliiga Clubs ─────────────────────────────────
+    "FC Inter Turku": u"إنتر توركو",
+    "Inter Turku": u"إنتر توركو",
+    "HJK Helsinki": u"هلسنكي",
+    "HJK": u"هلسنكي",
+    "KuPS": u"كوبس",
+    "KuPS Kuopio": u"كوبس",
+    "SJK Seinäjoki": u"إس جيه كيه",
+    "SJK": u"إس جيه كيه",
+    "Ilves Tampere": u"إلفيس تامبيري",
+    "Ilves": u"إلفيس تامبيري",
+    "VPS Vaasa": u"في بي إس فآسا",
+    "VPS": u"في بي إس فآسا",
+    "FC Haka": u"هاكا",
+    "Haka": u"هاكا",
+    "IFK Mariehamn": u"مارييهامين",
+    "AC Oulu": u"أولو",
+    "FC Lahti": u"لاهتي",
+    "IF Gnistan": u"غنيستان",
+    "Gnistan": u"غنيستان",
+    "Ekenäs IF": u"إيكيناس",
+    "EIF": u"إيكيناس",
+    "FC Honka": u"هونكا",
+    "Honka": u"هونكا",
+    "RoPS": u"روبس",
+    "TPS Turku": u"تي بي إس توركو",
+    "FC KTP": u"كيه تي بي",
+    "KTP": u"كيه تي بي",
+    "FF Jaro": u"يارو",
+    "Jaro": u"يارو",
+    "Malmö FF": u"مالمو",
+    "Malmo FF": u"مالمو",
+    "AIK": u"أيك ستوكهولم",
+    "AIK Stockholm": u"أيك ستوكهولم",
+    "Djurgårdens IF": u"يورغوردينس",
+    "Djurgarden": u"يورغوردينس",
+    "Hammarby IF": u"هاماربي",
+    "Hammarby": u"هاماربي",
+    "IFK Göteborg": u"غوتنبرغ",
+    "IFK Goteborg": u"غوتنبرغ",
+    "IFK Norrköping": u"نوركوبينغ",
+    "IFK Norrkoping": u"نوركوبينغ",
+    "BK Häcken": u"هاكن",
+    "BK Hacken": u"هاكن",
+    "Hacken": u"هاكن",
+    "IF Elfsborg": u"إلفسبورغ",
+    "Elfsborg": u"إلفسبورغ",
+    "FK Bodø/Glimt": u"بودو غليمت",
+    "Bodo/Glimt": u"بودو غليمت",
+    "Bodo Glimt": u"بودو غليمت",
+    "Molde FK": u"مولده",
+    "Molde": u"مولده",
+    "Rosenborg BK": u"روزنبورغ",
+    "Rosenborg": u"روزنبورغ",
+    "SK Brann": u"بران",
+    "Brann": u"بران",
+    "Viking FK": u"فايكنغ",
+    "Viking": u"فايكنغ",
+    "Vålerenga": u"فاليرينغا",
+    "Valerenga": u"فاليرينغا",
+    "FC Copenhagen": u"كوبنهاغن",
+    "FC København": u"كوبنهاغن",
+    "Copenhagen": u"كوبنهاغن",
+    "Brøndby IF": u"بروندبي",
+    "Brondby": u"بروندبي",
+    "FC Midtjylland": u"ميتييلاند",
+    "Midtjylland": u"ميتييلاند",
+    "FC Nordsjælland": u"نوردشيلاند",
+    "Nordsjaelland": u"نوردشيلاند",
+    "Aarhus GF": u"آرهوس",
+    "AGF": u"آرهوس",
+    "Aalborg BK": u"ألبورغ",
+    "AaB": u"ألبورغ",
+    "Silkeborg IF": u"سيلكيبورغ",
+    "Silkeborg": u"سيلكيبورغ",
+    "Randers FC": u"راندرز",
+    "Randers": u"راندرز",
+    "Viborg FF": u"فيبورغ",
+    "Viborg": u"فيبورغ",
+    "Odense Boldklub": u"أودنسه",
+    "OB": u"أودنسه",
+    "Vejle Boldklub": u"فايله",
+    "Vejle": u"فايله",
+    "Lyngby BK": u"لينغبي",
+    "Lyngby": u"لينغبي",
+    "Sønderjyske": u"سوندرييسكه",
+    "Sonderjyske": u"سوندرييسكه",
+    # ── Andorran & Microstate Clubs ──────────────────────────────────────────
+    "Inter Club d'Escaldes": u"إنتر ديسكالديس",
+    "Inter Club d Escaldes": u"إنتر ديسكالديس",
+    "Inter d'Escaldes": u"إنتر ديسكالديس",
+    "Inter Escaldes": u"إنتر ديسكالديس",
+    "FC Santa Coloma": u"سانتا كولوما",
+    "Santa Coloma": u"سانتا كولوما",
+    "UE Santa Coloma": u"يو إي سانتا كولوما",
+    "UE Sant Julià": u"سانت خوليا",
+    "UE Sant Julia": u"سانت خوليا",
+    "FC Rànger's": u"رينجرز الأندوري",
+    "FC Rangers": u"رينجرز الأندوري",
+    "Atlètic Club d'Escaldes": u"أتلتيك ديسكالديس",
+    "Atlètic d'Escaldes": u"أتلتيك ديسكالديس",
+    "FC Ordino": u"أوردينو",
+    "FC Pas de la Casa": u"باس دي لا كاسا",
+    "Penya Encarnada": u"بينيا إنكارنادا",
+    "FC Lusitanos": u"لوسيتانوس",
+    # ── Disambiguated Inter, Sporting, Racing & Spartak Clubs ────────────────
+    "Inter Miami": u"إنتر ميامي",
+    "Inter Miami CF": u"إنتر ميامي",
+    "Inter de Limeira": u"إنتر دي ليميرا",
+    "Inter Limeira": u"إنتر دي ليميرا",
+    "Inter de Santa Maria": u"إنتر دي سانتا ماريا",
+    "Inter Leipzig": u"إنتر لايبزيغ",
+    "FC Inter Leipzig": u"إنتر لايبزيغ",
+    "Interclube": u"إنتر كلوب الأنجولي",
+    "Sporting CP": u"سبورتينغ لشبونة",
+    "Sporting Lisbon": u"سبورتينغ لشبونة",
+    "Sporting Clube de Portugal": u"سبورتينغ لشبونة",
+    "Sporting de Gijón": u"سبورتينغ خيخون",
+    "Sporting Gijon": u"سبورتينغ خيخون",
+    "Real Sporting de Gijón": u"سبورتينغ خيخون",
+    "Sporting Braga": u"سبورتينغ براغا",
+    "SC Braga": u"سبورتينغ براغا",
+    "Sporting Charleroi": u"سبورتينغ شارلروا",
+    "Sporting Kansas City": u"سبورتينغ كانساس سيتي",
+    "Sporting KC": u"سبورتينغ كانساس سيتي",
+    "Sporting Cristal": u"سبورتينغ كريستال",
+    "Sporting San José": u"سبورتينغ سان خوسيه",
+    "Sporting San Jose": u"سبورتينغ سان خوسيه",
+    "Sporting FC": u"سبورتينغ سان خوسيه",
+    "Racing Club": u"راسينغ كلوب الأرجنتيني",
+    "Racing Club de Avellaneda": u"راسينغ كلوب الأرجنتيني",
+    "Racing de Avellaneda": u"راسينغ كلوب الأرجنتيني",
+    "Racing Santander": u"راسينغ سانتاندير",
+    "Real Racing Club": u"راسينغ سانتاندير",
+    "Racing de Santander": u"راسينغ سانتاندير",
+    "Racing de Ferrol": u"راسينغ فيرول",
+    "Racing Ferrol": u"راسينغ فيرول",
+    "Racing Club de Lens": u"لانس",
+    "Racing Club de Strasbourg": u"ستراسبورغ",
+    "Racing Club de Montevideo": u"راسينغ مونتيفيديو",
+    "Racing Montevideo": u"راسينغ مونتيفيديو",
+    "Spartak Moscow": u"سبارتاك موسكو",
+    "Spartak Trnava": u"سبارتاك ترنافا",
+    "FC Spartak Trnava": u"سبارتاك ترنافا",
+    "Spartak Subotica": u"سبارتاك سوبوتيتسا",
+    "FK Spartak Subotica": u"سبارتاك سوبوتيتسا",
+    "Spartak Varna": u"سبارتاك فارنا",
+    "Sparta Prague": u"سبارتا براغ",
+    "AC Sparta Praha": u"سبارتا براغ",
+    "Sparta Praha": u"سبارتا براغ",
+    "Sparta Rotterdam": u"سبارتا روتردام",
+    "Slavia Prague": u"سلافيا براغ",
+    "SK Slavia Praha": u"سلافيا براغ",
+    "Slavia Praha": u"سلافيا براغ",
+    "Slavia Sofia": u"سلافيا صوفيا",
+    "Slavia Mozyr": u"سلافيا موزير",
+    "Lokomotiv Moscow": u"لوكوموتيف موسكو",
+    "Lokomotiv Sofia": u"لوكوموتيف صوفيا",
+    "FC Lokomotiv Sofia": u"لوكوموتيف صوفيا",
+    "Lokomotiv Plovdiv": u"لوكوموتيف بلوفديف",
+    "PFC Lokomotiv Plovdiv": u"لوكوموتيف بلوفديف",
+    "Lokomotiv Tashkent": u"لوكوموتيف طشقند",
+    "Lokomotiva Zagreb": u"لوكوموتيفا زغرب",
+    "Dinamo Zagreb": u"دينامو زغرب",
+    "Dynamo Kyiv": u"دينامو كييف",
+    "Dynamo Moscow": u"دينامو موسكو",
+    "Dinamo Tbilisi": u"دينامو تبليسي",
+    "Dinamo Batumi": u"دينامو باتومي",
+    "Dinamo Minsk": u"دينامو مينسك",
+    "Dinamo Brest": u"دينامو برست",
+    "Dinamo Tirana": u"دينامو تيرانا",
+    "Dinamo City": u"دينامو سيتي الألباني",
+    "Dinamo Samarqand": u"دينامو سمرقند",
+    "Dynamo Makhachkala": u"دينامو محج قلعة",
+    "Dynamo Dresden": u"دينامو دريسدن",
+    "Dynamo České Budějovice": u"دينامو تشيسكي بوديوفيتسه",
+    "Dynamo Ceske Budejovice": u"دينامو تشيسكي بوديوفيتسه",
+    "Houston Dynamo": u"هيوستن دينامو",
+    "Houston Dynamo FC": u"هيوستن دينامو",
+    "Partizan Belgrade": u"بارتيزان بلغراد",
+    "FK Partizan": u"بارتيزان بلغراد",
+    "Partizani Tirana": u"بارتيزاني تيرانا",
+    "FK Partizani": u"بارتيزاني تيرانا",
+    "Crvena Zvezda": u"النجم الأحمر بلغراد",
+    "Red Star Belgrade": u"النجم الأحمر بلغراد",
+    "Red Star FC": u"رد ستار الفرنسي",
+    "Red Star Paris": u"رد ستار الفرنسي",
+    # ── Swiss & Austrian Bundesliga Clubs ────────────────────────────────────
+    "BSC Young Boys": u"يانغ بويز",
+    "Young Boys": u"يانغ بويز",
+    "FC Basel": u"بازل",
+    "Basel": u"بازل",
+    "FC Zürich": u"زيورخ",
+    "FC Zurich": u"زيورخ",
+    "Zurich": u"زيورخ",
+    "Grasshopper Club Zürich": u"غراسهوبرز",
+    "Grasshoppers": u"غراسهوبرز",
+    "Servette FC": u"سيرفيت",
+    "Servette": u"سيرفيت",
+    "FC Lugano": u"لوغانو",
+    "Lugano": u"لوغانو",
+    "FC St. Gallen": u"سانت غالن",
+    "St. Gallen": u"سانت غالن",
+    "FC Luzern": u"لوزيرن",
+    "Luzern": u"لوزيرن",
+    "FC Sion": u"سيون",
+    "Sion": u"سيون",
+    "FC Winterthur": u"فينترتور",
+    "Winterthur": u"فينترتور",
+    "Yverdon-Sport": u"إيفرتون سبورت",
+    "Yverdon": u"إيفرتون سبورت",
+    "Lausanne-Sport": u"لوزان سبورت",
+    "Lausanne": u"لوزان سبورت",
+    "Red Bull Salzburg": u"ريد بول سالزبورغ",
+    "RB Salzburg": u"ريد بول سالزبورغ",
+    "Salzburg": u"ريد بول سالزبورغ",
+    "SK Sturm Graz": u"شتورم غراتس",
+    "Sturm Graz": u"شتورم غراتس",
+    "SK Rapid Wien": u"رابيد فيينا",
+    "Rapid Vienna": u"رابيد فيينا",
+    "Rapid Wien": u"رابيد فيينا",
+    "FK Austria Wien": u"أوستريا فيينا",
+    "Austria Vienna": u"أوستريا فيينا",
+    "Austria Wien": u"أوستريا فيينا",
+    "LASK": u"لاسك لينتس",
+    "LASK Linz": u"لاسك لينتس",
+    "Wolfsberger AC": u"فولفسبيرغر",
+    "WAC": u"فولفسبيرغر",
+    "TSV Hartberg": u"هارتبرغ",
+    "Hartberg": u"هارتبرغ",
+    "SK Austria Klagenfurt": u"أوستريا كلاغنفورت",
+    "SCR Altach": u"ألتاخ",
+    "Altach": u"ألتاخ",
+    "Grazer AK": u"غراتس",
+    "GAK": u"غراتس",
+    "WSG Tirol": u"تيرول",
+    "FC Blau-Weiß Linz": u"بلو فايس لينتس",
+    "Blau-Weiss Linz": u"بلو فايس لينتس",
+    # ── Additional Official ESPN Competitions & Teams ────────────────────────
+    # Saudi King's Cup & Regional
+    "Al Anwar": u"الأنوار",
+    "Al-Anwar": u"الأنوار",
+    "Al Bukayriyah": u"البكيرية",
+    "Al-Bukayriyah": u"البكيرية",
+    # Turkish Süper Lig & 1. Lig
+    "Galatasaray": u"غلطة سراي",
+    "Fenerbahce": u"فنربخشة",
+    "Fenerbahçe": u"فنربخشة",
+    "Besiktas": u"بشكتاش",
+    "Beşiktaş": u"بشكتاش",
+    "Trabzonspor": u"طرابزون سبور",
+    "Istanbul Basaksehir": u"إسطنبول باشاك شهير",
+    "Başakşehir": u"إسطنبول باشاك شهير",
+    "Alanyaspor": u"ألانيا سبور",
+    "Konyaspor": u"قونية سبور",
+    "Kasimpasa": u"قاسم باشا",
+    "Kasımpaşa": u"قاسم باشا",
+    "Goztepe": u"غوزتيبي",
+    "Göztepe": u"غوزتيبي",
+    "Samsunspor": u"سامسون سبور",
+    "Gaziantep FK": u"غازي عنتاب",
+    "Gaziantep": u"غازي عنتاب",
+    "Eyupspor": u"أيوب سبور",
+    "Eyüpspor": u"أيوب سبور",
+    "Caykur Rizespor": u"تشايكور ريزا سبور",
+    "Çaykur Rizespor": u"تشايكور ريزا سبور",
+    "Kocaelispor": u"كوجالي سبور",
+    "Genclerbirligi": u"جينتسليربيرليغي",
+    "Gençlerbirliği": u"جينتسليربيرليغي",
+    "Amed SFK": u"آمد سبور",
+    "Amed SK": u"آمد سبور",
+    "Çorum FK": u"تشوروم",
+    "Corum FK": u"تشوروم",
+    "Erzurum BB": u"أرضروم سبور",
+    "BB Erzurumspor": u"أرضروم سبور",
+    # German Bundesliga, 2. Bundesliga & DFB Pokal
+    "FC Cologne": u"كولن",
+    "1. FC Köln": u"كولن",
+    "TSV Eintracht Braunschweig": u"آينتراخت براونشفايغ",
+    "Eintracht Braunschweig": u"آينتراخت براونشفايغ",
+    "1. FC Phönix Lübeck": u"فونيكس لوبيك",
+    "Phönix Lübeck": u"فونيكس لوبيك",
+    "Bahlinger SC 1929": u"بالينغن",
+    "Bahlinger SC": u"بالينغن",
+    "Eintracht Trier": u"آينتراخت ترير",
+    "FC Carl Zeiss Jena": u"كارل زايس يينا",
+    "Carl Zeiss Jena": u"كارل زايس يينا",
+    "FC Erzgebirge Aue": u"إرتسغيبيرغه آوه",
+    "Erzgebirge Aue": u"إرتسغيبيرغه آوه",
+    "HEBC Hamburg": u"هامبورغ إتش إي بي سي",
+    "Hallescher FC": u"هاليشر",
+    "Hemelingen": u"هيملينغن",
+    "SV Hemelingen": u"هيملينغن",
+    "Lüneburger SK Hansa": u"لونيبورغر هانزا",
+    "SC St. Tönis": u"سانت تونيس",
+    "SC Verl 1924": u"فيرل",
+    "SC Verl": u"فيرل",
+    "SG Sonnenhof Großaspach": u"سوننهوف غروساسباخ",
+    "Sonnenhof Großaspach": u"سوننهوف غروساسباخ",
+    "SSV Jeddeloh II": u"يدلوه الثاني",
+    "SV Waldhof Mannheim": u"فالدوف مانهايم",
+    "Waldhof Mannheim": u"فالدوف مانهايم",
+    "Schott": u"شوت ماينتس",
+    "TSV Schott Mainz": u"شوت ماينتس",
+    "VFB Krieschow": u"كرويشوف",
+    "VSG Altglienicke": u"ألتغلينيكه",
+    "Viktoria Köln": u"فيكتوريا كولن",
+    "Westfalia Rhynern": u"وستفاليا راينرن",
+    "Würzburger Kickers": u"فورتسبورغر كيكرز",
+    # English Football League (League One, Two, FA Cup)
+    "Bromley": u"بروملي",
+    "Stevenage": u"ستيفيناج",
+    "Accrington Stanley": u"أكرينغتون ستانلي",
+    "Barnet": u"بارنت",
+    "Cheltenham Town": u"تشيلتنهام تاون",
+    "Colchester United": u"كولتشستر يونايتد",
+    "Grimsby Town": u"غريمسبي تاون",
+    "Newport County": u"نيوبورت كاونتي",
+    "Oldham Athletic": u"أولدهام أثلتيك",
+    "Rochdale": u"روتشديل",
+    "Swindon Town": u"سويندون تاون",
+    "York City": u"يورك سيتي",
+    "AFC Telford United": u"تيلفورد يونايتد",
+    "AFC Totton": u"توتون",
+    "Aldershot Town": u"ألدرشوت تاون",
+    "Altrincham": u"ألترينتشام",
+    "Barrow": u"بارو",
+    "Boreham Wood": u"بورهام وود",
+    "Brackley Town": u"براكلي تاون",
+    "Braintree Town": u"برينتري تاون",
+    "Buxton": u"باكستون",
+    "Chatham Town": u"تشاثام تاون",
+    "Chelmsford": u"تشيلمسفورد",
+    "Chelmsford City": u"تشيلمسفورد",
+    "Chester FC": u"تشيستر",
+    "Eastleigh": u"إيستليغ",
+    "Ebbsfleet United": u"إبسفليت يونايتد",
+    "FC Halifax Town": u"هاليفاكس تاون",
+    "Forest Green Rovers": u"فورست غرين روفرز",
+    "Gainsborough Trinity": u"غينسبورو ترينيتي",
+    "Gateshead": u"غيتسهيد",
+    "Harrogate Town": u"هاروغيت تاون",
+    "Hemel Hempstead Town": u"هيمل همبستيد تاون",
+    "Macclesfield FC": u"ماكليسفيلد",
+    "Maldon & Tiptree": u"مالدون وتيبتري",
+    "Scunthorpe United": u"سكونثورب يونايتد",
+    "Slough Town": u"سلو تاون",
+    "South Shields": u"ساوث شيلدز",
+    "Southend United": u"ساوثيند يونايتد",
+    "Spennymoor Town": u"سبينيمور تاون",
+    "St Albans City": u"سانت ألبانز سيتي",
+    "Sutton United": u"ساتون يونايتد",
+    "Tamworth": u"تاموورث",
+    "Wealdstone": u"ويلدستون",
+    "Weston-super-Mare": u"وستون سوبر مير",
+    # Spanish Copa del Rey & Segunda
+    "CD Sabadell": u"ساباديل",
+    "Sabadell": u"ساباديل",
+    "Ceuta": u"سبتة",
+    "AD Ceuta": u"سبتة",
+    "RC Celta Fortuna": u"سلتا فيغو الرديف",
+    "Celta Fortuna": u"سلتا فيغو الرديف",
+    "Real Sociedad II": u"ريال سوسيداد الرديف",
+    "Alberite": u"ألبريتي",
+    "Alcalá": u"ألكالا",
+    "RSD Alcalá": u"ألكالا",
+    "Antequera CF": u"أنتيكيرا",
+    "Antequera": u"أنتيكيرا",
+    "Arenas Club": u"أريناس دي غيتشو",
+    "Atletico Astorga": u"أتلتيكو أستورغا",
+    "Atlético Astorga": u"أتلتيكو أستورغا",
+    "Atlètic Lleida": u"أتلتيك لاردة",
+    "Atlètic Sant Just": u"أتلتيك سانت خوست",
+    "Atlético Baleares": u"أتلتيكو بالياريس",
+    "Atlético Calatayud": u"أتلتيكو كالاتايود",
+    "Atlético Melilla": u"أتلتيكو مليلية",
+    "Atlético Tordesillas": u"أتلتيكو تورديسيلاس",
+    "Azuaga": u"أزواغا",
+    "Betis CF": u"ريال بيتيس الرديف",
+    "Betis Deportivo": u"ريال بيتيس الرديف",
+    "CD Artistico Navalcarnero": u"نافالكارنيرو",
+    "Navalcarnero": u"نافالكارنيرو",
+    "CD Ebro": u"إيبرو",
+    "CD Estepona": u"إستيبونا",
+    "CD Extremadura": u"إكستريمادورا",
+    "CE Europa": u"أوروبا",
+    "CE Sant Jordi": u"سانت جوردي",
+    "Cacereno": u"كاسيرينيو",
+    "CP Cacereño": u"كاسيرينيو",
+    "Campanario": u"كامباناريو",
+    "Caudal Deportivo": u"كاودال ديبورتيفو",
+    "Cieza": u"سيزا",
+    "Club Atlético Antoniano": u"أتلتيكو أنطونيانو",
+    "Constancia": u"كونستانسيا",
+    "Cultural Leonesa": u"كولتورال ليونيسا",
+    "Egüés": u"فالي دي إغويس",
+    "Valle de Egüés": u"فالي دي إغويس",
+    "Getxo": u"غيتشو",
+    "Gimnàstic de Tarragona": u"خيمناستيك طركونة",
+    "Gimnastic de Tarragona": u"خيمناستيك طركونة",
+    "Inter de Valdemoro": u"إنتر دي فالديمورو",
+    "Juventud Torremolinos": u"توريمولينوس",
+    "La Unión Atlético": u"لا يونيون أتلتيكو",
+    "Langreo": u"لانغريو",
+    "Lorca Deportiva": u"لوركا ديبورتيفا",
+    "Lourdes": u"لورد",
+    "Lucena CF": u"لوسينا",
+    "Manises CF": u"مانيسيس",
+    "Maracena": u"ماراسينا",
+    "Mutilvera": u"موتيلفيرا",
+    "Mérida": u"ميريدا",
+    "Mérida AD": u"ميريدا",
+    "Naxara": u"ناخارا",
+    "Náxara CD": u"ناخارا",
+    "Negreira": u"نيغريرا",
+    "Numancia": u"نومانسيا",
+    "CD Numancia": u"نومانسيا",
+    "Orihuela": u"أوريويلا",
+    "Orihuela CF": u"أوريويلا",
+    "Ourense CF": u"أورينسي",
+    "Palma del Río": u"بالما ديل ريو",
+    "Poblense": u"بوبلينسي",
+    "Ponferradina": u"بونفيرادينا",
+    "Pontevedra": u"بونتيفيدرا",
+    "Portugalete": u"بورتوغاليتي",
+    "Puente Genil": u"بوينتي خينيل",
+    "Puerto De Vega": u"بويرتو دي فيغا",
+    "Quintanar del Rey": u"كينتانار ديل ري",
+    "Rayo Majadahonda": u"رايو ماجاداهوندا",
+    "Real Aviles Industrial": u"ريال أفيليس",
+    "Real Jaen CF": u"ريال خاين",
+    "Real Jaén": u"ريال خاين",
+    "Real Murcia": u"ريال مورسيا",
+    "Real Ávila": u"ريال أفيلا",
+    "Reus FC Reddis": u"ريوس ريديس",
+    "SD Logroñés": u"إس دي لوغرونييس",
+    "Sant Andreu": u"سانت أندرو",
+    "Sporting Ceuta": u"سبورتينغ سبتة",
+    "Sámano": u"سامانو",
+    "Talavera": u"تالافيرا",
+    "Tarazona": u"تارازونا",
+    "Teruel": u"تيرويل",
+    "Textil Escudo": u"تيكستيل إسكودو",
+    "Toledo": u"طليطلة",
+    "Torrent": u"تورينت",
+    "Tropezón": u"تروبيزون",
+    "UCAM Murcia": u"يوكام مورسيا",
+    "UD Ibiza": u"إيبيزا",
+    "UD Logroñés": u"لوغرونييس",
+    "UD Ourense": u"يو دي أورينسي",
+    "UD San Fernando": u"سان فرناندو",
+    "Unión Deportiva Los Garres": u"لوس غاريس",
+    "Utebo": u"أوتيبو",
+    "Yuncos": u"يونكوس",
+    # French Ligue 2 & Coupe de France
+    "Boulogne": u"بولون",
+    "US Boulogne": u"بولون",
+    "Dijon FCO": u"ديجون",
+    "Dijon": u"ديجون",
+    "Rodez Aveyron": u"روديز",
+    "Rodez": u"روديز",
+    "Stade Laval": u"ستاد لافال",
+    "Laval": u"ستاد لافال",
+    "AS Le Gosier": u"لو غوزييه",
+    "Arcachon": u"أركاشون",
+    "Avranches": u"أفرانش",
+    "Bayeux": u"بايو",
+    "Biesheim": u"بيسهايم",
+    "Blois Foot 41": u"بلوة",
+    "Bourg-Peronnas": u"بورغ بيروناس",
+    "Canet Roussillon FC": u"كاني روسيون",
+    "Chantilly": u"شانتيي",
+    "Concarneau": u"كونكارنو",
+    "Dieppe": u"دييب",
+    "FC Freyming": u"فريمينغ",
+    "FC Istres": u"إستر",
+    "Istres": u"إستر",
+    "FC Périgny": u"بيريني",
+    "Feignies": u"فيني أولنوي",
+    "Fontenay Foot": u"فونتيناي",
+    "GSI Pontivy": u"بونتيفي",
+    "Hauts Lyonnais": u"أو ليوني",
+    "IC Croix": u"كروا",
+    "Le Puy": u"لو بوي",
+    "Les Herbiers": u"لي زيربيي",
+    "Les Sables": u"لي سابل",
+    "Lyon-Duchère": u"ليون دوشير",
+    "Montreuil FC": u"مونتروي",
+    "Olympique Marcquois": u"مارك إن بارول",
+    "Orléans": u"أورليان",
+    "US Orléans": u"أورليان",
+    "Raon-l'Etape": u"راون ليتيب",
+    "Saint-Cyr Collonges": u"سان سير كولونج",
+    "Sport Athlétique Mérignacais": u"ميرينياك",
+    "Stade Béthunois": u"بيتون",
+    "US Chauvigny": u"شوفيني",
+    "US Lusitanos Saint-Maur": u"سان مور",
+    # Italian Serie B & Coppa Italia
+    "Arezzo": u"أريتسو",
+    "Padova": u"بادوفا",
+    "US Avellino": u"أفيلينو",
+    "Avellino": u"أفيلينو",
+    "Virtus Entella": u"فيرتوس إنتيلا",
+    "Potenza": u"بوتنسا",
+    "Ravenna": u"رافينا",
+    "Union Brescia": u"بريشيا",
+    # Greek Super League
+    "Asteras Tripoli": u"أستيراس تريبوليس",
+    "Iraklis": u"إيراكليس",
+    "Kalamata": u"كالاماتا",
+    "Kifisia": u"كيفيسيا",
+    "Levadiakos": u"ليفادياكوس",
+    # Cypriot First Division
+    "AEL": u"أيل ليماسول",
+    "AEL Limassol": u"أيل ليماسول",
+    "Akritas Chlorakas": u"أكريتاس كلوراكاس",
+    "Anorthosis": u"أنورثوسيس فاماغوستا",
+    "Anorthosis Famagusta": u"أنورثوسيس فاماغوستا",
+    "Enosis Neon Paralimni": u"إينوسيس باراليمني",
+    "Ethnikos Achnas": u"إثنيكوس أخناس",
+    "Krasava": u"كراسافا",
+    "Olympiakos Nicosia": u"أولمبياكوس نيقوسيا",
+    "Omonia Aradippou": u"أومونيا أراديبو",
+    # Belgian, Argentine, Mexican, Russian, UEFA & MLS
+    "Central Córdoba (Santiago del Estero)": u"سنترال كوردوبا",
+    "Estudiantes de Río Cuarto": u"إستوديانتس ريو كوارتو",
+    "Gimnasia (Mendoza)": u"خيمناسيا ميندوزا",
+    "Sarmiento (Junín)": u"سارمينتو",
+    "Unión (Santa Fe)": u"يونيون دي سانتا في",
+    "RAAL La Louvière": u"لا لوفيير",
+    "Royal Charleroi SC": u"شارلروا",
+    "Charleroi": u"شارلروا",
+    "Sint-Truidense": u"سينت ترويدن",
+    "América": u"كلوب أمريكا",
+    "CF América": u"كلوب أمريكا",
+    "Club América": u"كلوب أمريكا",
+    "Atlante": u"أتلانتي",
+    "Atlético de San Luis": u"أتلتيكو سان لويس",
+    "León": u"كلوب ليون",
+    "Club León": u"كلوب ليون",
+    "Académico de Viseu": u"أكاديميكو فيسيو",
+    "Dinamo Moscow": u"دينامو موسكو",
+    "Gazovik Orenburg": u"أورينبورغ",
+    "FC Orenburg": u"أورينبورغ",
+    "Rodina Moscow": u"رودينا موسكو",
+    "F.C. København": u"كوبنهاغن",
+    "FC København": u"كوبنهاغن",
+    "Breidablik": u"بريدابليك",
+    "CSU Craiova": u"يونيفيرسيتاتيا كرايوفا",
+    "Drita Gjilan": u"دريتا",
+    "KF Shkëndija": u"شكينديا",
+    "Lausanne Sports": u"لوزان سبورت",
+    "Shelbourne": u"شيلبورن",
+    "Red Bull New York": u"نيويورك ريد بولز",
 }
 
 _TEAM_NAME_CACHE = {}
+_TEAM_TRANSLATIONS_FAST = {}
+
+def _init_team_translations_fast():
+    global _TEAM_TRANSLATIONS_FAST, TEAM_TRANSLATIONS_AR, _TEAM_SYNONYMS
+    fast_map = {}
+    for k, v in TEAM_TRANSLATIONS_AR.items():
+        fast_map[k] = v
+        k_norm = _ascii_fold(k.strip().lower())
+        fast_map[k_norm] = v
+        k_clean = k_norm
+        for ch in ("-", "'", ".", ",", "(", ")"):
+            k_clean = k_clean.replace(ch, " ")
+        k_clean = " ".join(k_clean.split())
+        fast_map[k_clean] = v
+
+        # Automatically generate Al- / El- variations (al diriyah <-> aldiriyah <-> al-diriyah)
+        if k_clean.startswith("al ") or k_clean.startswith("el "):
+            rest = k_clean[3:].strip()
+            fast_map["al" + rest] = v
+            fast_map["al-" + rest] = v
+            fast_map["el " + rest] = v
+            fast_map["el-" + rest] = v
+            fast_map["el" + rest] = v
+            if len(rest) >= 4 and rest not in fast_map:
+                fast_map[rest] = v
+        elif k_clean.startswith("al") and len(k_clean) > 4:
+            rest = k_clean[2:].strip()
+            fast_map["al " + rest] = v
+            fast_map["al-" + rest] = v
+            fast_map["el " + rest] = v
+            fast_map["el-" + rest] = v
+            fast_map["el" + rest] = v
+            if len(rest) >= 4 and rest not in fast_map:
+                fast_map[rest] = v
+
+        # Auto suffix variations (e.g. neom -> neom sc, neom fc, neom club)
+        for sfx in (" fc", " sc", " club", " cf", " cd"):
+            if k_clean.endswith(sfx):
+                base = k_clean[:-len(sfx)].strip()
+                if base not in fast_map:
+                    fast_map[base] = v
+            else:
+                if (k_clean + sfx) not in fast_map:
+                    fast_map[k_clean + sfx] = v
+
+    for syn_key, target in _TEAM_SYNONYMS.items():
+        syn_norm = _ascii_fold(syn_key.strip().lower())
+        target_norm = _ascii_fold(target.strip().lower())
+        if target in TEAM_TRANSLATIONS_AR:
+            fast_map[syn_norm] = TEAM_TRANSLATIONS_AR[target]
+        elif target_norm in fast_map:
+            fast_map[syn_norm] = fast_map[target_norm]
+        elif target in fast_map:
+            fast_map[syn_norm] = fast_map[target]
+
+    _TEAM_TRANSLATIONS_FAST = fast_map
+
+_init_team_translations_fast()
+
 
 def _team_name(name):
-    global PLUGIN_LANGUAGE, _TEAM_NAME_CACHE
+    """Ultra-fast O(1) team name translation with pre-computed hash lookup and caching."""
+    global PLUGIN_LANGUAGE, _TEAM_NAME_CACHE, _TEAM_TRANSLATIONS_FAST
     if not name:
         return name
     try:
@@ -15988,12 +20997,127 @@ def _team_name(name):
         elif not isinstance(name, (str, type(u""))):
             name = str(name)
         if PLUGIN_LANGUAGE == "ar" and name:
-            if name in _TEAM_NAME_CACHE:
-                return _TEAM_NAME_CACHE[name]
-            for k, v in TEAM_TRANSLATIONS_AR.items():
-                if smart_match_team(name, k):
-                    _TEAM_NAME_CACHE[name] = v
-                    return v
+            cached = _TEAM_NAME_CACHE.get(name)
+            if cached is not None:
+                return cached
+
+            # 1. Exact raw key match
+            if name in TEAM_TRANSLATIONS_AR:
+                res = TEAM_TRANSLATIONS_AR[name]
+                _TEAM_NAME_CACHE[name] = res
+                return res
+
+            # 2. Normalized key match
+            norm = _ascii_fold(name.strip().lower())
+            if norm in _TEAM_TRANSLATIONS_FAST:
+                res = _TEAM_TRANSLATIONS_FAST[norm]
+                _TEAM_NAME_CACHE[name] = res
+                return res
+
+            # 3. Clean punctuation match
+            clean = norm
+            for ch in ("-", "'", ".", ",", "(", ")"):
+                clean = clean.replace(ch, " ")
+            clean = " ".join(clean.split())
+            if clean in _TEAM_TRANSLATIONS_FAST:
+                res = _TEAM_TRANSLATIONS_FAST[clean]
+                _TEAM_NAME_CACHE[name] = res
+                return res
+
+            # 4. Standard club prefix / suffix removal (fc, cf, sc, ac, asd, acv, cd, etc.)
+            for pfx in ("fc ", "cf ", "sc ", "ac ", "cd ", "sk ", "fk ", "as ", "us ", "if ", "ifk ", "bk ", "ff ", "afc ", "kv ", "asd ", "acv ", "ud ", "sd "):
+                if clean.startswith(pfx):
+                    sub = clean[len(pfx):].strip()
+                    if sub in _TEAM_TRANSLATIONS_FAST:
+                        res = _TEAM_TRANSLATIONS_FAST[sub]
+                        _TEAM_NAME_CACHE[name] = res
+                        return res
+            for sfx in (" fc", " cf", " sc", " ac", " cd", " sk", " fk", " club", " afc", " ksv", " kv", " vv", " bk", " if", " ifk", " ff", " ksa", " uae", " qat", " egy"):
+                if clean.endswith(sfx):
+                    sub = clean[:-len(sfx)].strip()
+                    if sub in _TEAM_TRANSLATIONS_FAST:
+                        res = _TEAM_TRANSLATIONS_FAST[sub]
+                        _TEAM_NAME_CACHE[name] = res
+                        return res
+
+            # 5. Handle concatenated Al- / El- (e.g. 'aldiriyah' -> 'al diriyah' or 'diriyah')
+            if clean.startswith("al") and len(clean) > 4:
+                cand1 = "al " + clean[2:].strip()
+                cand2 = clean[2:].strip()
+                if cand1 in _TEAM_TRANSLATIONS_FAST:
+                    res = _TEAM_TRANSLATIONS_FAST[cand1]
+                    _TEAM_NAME_CACHE[name] = res
+                    return res
+                if cand2 in _TEAM_TRANSLATIONS_FAST:
+                    res = _TEAM_TRANSLATIONS_FAST[cand2]
+                    _TEAM_NAME_CACHE[name] = res
+                    return res
+            elif clean.startswith("el") and len(clean) > 4:
+                cand1 = "el " + clean[2:].strip()
+                cand2 = clean[2:].strip()
+                if cand1 in _TEAM_TRANSLATIONS_FAST:
+                    res = _TEAM_TRANSLATIONS_FAST[cand1]
+                    _TEAM_NAME_CACHE[name] = res
+                    return res
+                if cand2 in _TEAM_TRANSLATIONS_FAST:
+                    res = _TEAM_TRANSLATIONS_FAST[cand2]
+                    _TEAM_NAME_CACHE[name] = res
+                    return res
+
+            # 6. Dynamic Reserve / B Team / Youth / Women detection
+            reserve_sfx = (" ii", " b", " 2", " iii", " c", " 3", " b team", " ii team", " team b", " reserves", " reserve", " u23", " fortuna", " atletico")
+            for sfx in reserve_sfx:
+                if clean.endswith(sfx):
+                    base = clean[:-len(sfx)].strip()
+                    res_base = _TEAM_TRANSLATIONS_FAST.get(base)
+                    if not res_base:
+                        for pfx in ("fc ", "cf ", "sc ", "ac ", "cd ", "real ", "deportivo ", "atletico "):
+                            if base.startswith(pfx):
+                                res_base = _TEAM_TRANSLATIONS_FAST.get(base[len(pfx):].strip())
+                                if res_base: break
+                    if res_base:
+                        res = res_base + u" الرديف"
+                        _TEAM_NAME_CACHE[name] = res
+                        return res
+
+            youth_sfx = (" u21", " u19", " u20", " u18", " u17", " youth", " academy", " sub 21", " sub 19", " sub 20")
+            for sfx in youth_sfx:
+                if clean.endswith(sfx):
+                    base = clean[:-len(sfx)].strip()
+                    res_base = _TEAM_TRANSLATIONS_FAST.get(base)
+                    if not res_base:
+                        for pfx in ("fc ", "cf ", "sc ", "ac ", "cd ", "real ", "deportivo ", "atletico "):
+                            if base.startswith(pfx):
+                                res_base = _TEAM_TRANSLATIONS_FAST.get(base[len(pfx):].strip())
+                                if res_base: break
+                    if res_base:
+                        res = res_base + u" للشباب"
+                        _TEAM_NAME_CACHE[name] = res
+                        return res
+
+            women_sfx = (" women", " femenino", " feminin", " femeni", " wfc", " ladies", " (w)", " w", " femenil")
+            for sfx in women_sfx:
+                if clean.endswith(sfx):
+                    base = clean[:-len(sfx)].strip()
+                    res_base = _TEAM_TRANSLATIONS_FAST.get(base)
+                    if not res_base:
+                        for pfx in ("fc ", "cf ", "sc ", "ac ", "cd ", "real ", "deportivo ", "atletico "):
+                            if base.startswith(pfx):
+                                res_base = _TEAM_TRANSLATIONS_FAST.get(base[len(pfx):].strip())
+                                if res_base: break
+                    if res_base:
+                        res = res_base + u" للسيدات"
+                        _TEAM_NAME_CACHE[name] = res
+                        return res
+
+            # 7. Synonym canonical lookup
+            canonical = _TEAM_SYNONYMS.get(clean) or _TEAM_SYNONYMS.get(norm)
+            if canonical and canonical in _TEAM_TRANSLATIONS_FAST:
+                res = _TEAM_TRANSLATIONS_FAST[canonical]
+                _TEAM_NAME_CACHE[name] = res
+                return res
+
+            # If no exact translation match found, preserve the original name
             _TEAM_NAME_CACHE[name] = name
     except Exception:
         pass
@@ -16052,16 +21176,6 @@ class TeamRostersScreen(Screen):
 
         self.red_card_ids = set()
         self.scorer_goals = {}
-
-        self.sport = ''
-        try:
-            parts = (league_url or '').rstrip('/').split('/')
-            for i, part in enumerate(parts):
-                if part == 'sports' and i + 1 < len(parts):
-                    self.sport = parts[i + 1]
-                    break
-        except Exception:
-            pass
 
         self.sw  = SCREEN_WIDTH
         self.sh  = SCREEN_HEIGHT
@@ -16397,7 +21511,6 @@ class TeamRostersScreen(Screen):
                             'position': a_obj.get('position',{}).get('abbreviation','')
                                         or group.get('name','').upper()[:2],
                             'starter':  ath.get('starter', True),
-                            'headshot': a_obj.get('headshot', {}).get('href', '') if isinstance(a_obj.get('headshot'), dict) else '',
                         })
                 unique_players = []
                 for p in players:
@@ -16438,7 +21551,6 @@ class TeamRostersScreen(Screen):
                             'jersey':   str(entry.get('jersey','')),
                             'position': entry.get('position',{}).get('abbreviation',''),
                             'starter':  entry.get('starter', False),
-                            'headshot': a_obj.get('headshot', {}).get('href', '') if isinstance(a_obj.get('headshot'), dict) else '',
                         })
                     unique_players = []
                     for p in players:
@@ -16519,25 +21631,6 @@ class TeamRostersScreen(Screen):
         step = avail // (n - 1)
         return [top + i * step for i in range(n)]
 
-    def _load_online_headshot(self, widget_key, player, w, h):
-        """Online fallback for a player with no local roster image match.
-        Prefers the exact headshot URL ESPN already supplies in the roster
-        payload; falls back to ESPN's public headshot-combiner CDN using the
-        athlete ID otherwise. Never scrapes third-party sites (e.g. futbin.com
-        disallows automated access per its robots.txt) - ESPN's own CDN is
-        already the source used elsewhere in this plugin (PlayerProfileScreen)."""
-        try:
-            url = player.get('headshot', '')
-            player_id = player.get('id', '')
-            if not url and player_id and self.sport:
-                url = "https://a.espncdn.com/combiner/i?img=/i/headshots/{}/players/full/{}.png".format(self.sport, player_id)
-            if not url:
-                return
-            img_id = "hs_{}_{}".format(self.sport or 'x', player_id or hashlib.md5(url.encode('utf-8')).hexdigest()[:10])
-            load_player_headshot(self, widget_key, url, img_id, w, h)
-        except Exception:
-            pass
-
     def _place(self, side, slot, player, x, y):
         prefix  = "h" if side == "home" else "a"
         country = self.h_name if side == "home" else self.a_name
@@ -16565,8 +21658,6 @@ class TeamRostersScreen(Screen):
 
         if img_path and img_path != placeholder_path and os.path.exists(img_path):
             self.image_queue.append((prefix, slot, img_path))
-        else:
-            self._load_online_headshot("{}_img_{}".format(prefix, slot), player, self.img_w, self.img_h)
 
         player_id = player.get('id', '')
         has_rc = player_id and player_id in self.red_card_ids
@@ -16698,8 +21789,6 @@ class TeamRostersScreen(Screen):
             img_path = find_player_image(country, player.get('name', ''), player.get('jersey', ''))
             if img_path and img_path != placeholder_path and os.path.exists(img_path):
                 self.image_queue.append(("{}_sub".format(prefix), j, img_path))
-            else:
-                self._load_online_headshot("{}_sub_img_{}".format(prefix, j), player, sub_img_w, sub_img_h)
                 
             lbl_x = img_x + sub_img_w + 5
             lbl_w = self.col_w - sub_img_w - 10
@@ -22492,8 +27581,8 @@ class SimpleSportsScreen(Screen):
                     _fav_set = set(f["team_id"] for f in self.monitor.favorite_teams)
                     _h_star  = u"\u2605 " if snap.get('h_team_id') in _fav_set and _fav_set else ""
                     _a_star  = u"\u2605 " if snap.get('a_team_id') in _fav_set and _fav_set else ""
-                    left_text  = _h_star + truncate_name(_team_name(snap['h_name']), 25 - len(_h_star))
-                    right_text = _a_star + truncate_name(_team_name(snap['a_name']), 25 - len(_a_star))
+                    left_text  = _h_star + truncate_name(snap.get('h_name_disp') or _team_name(snap['h_name']), 25 - len(_h_star))
+                    right_text = _a_star + truncate_name(snap.get('a_name_disp') or _team_name(snap['a_name']), 25 - len(_a_star))
                     score_text = snap['score_str']
                     h_score_int = snap['h_score_int']
                     a_score_int = snap['a_score_int']
@@ -22784,6 +27873,7 @@ class SimpleSportsScreen(Screen):
         else: alert_lbl = _t("Goal Alert: SOUND")
         
         minibar1_style_lbl = _t("Default") if getattr(self.monitor, "minibar_1_style", "default") == "default" else _t("World Cup")
+        toast_anim_txt = _t("ON") if getattr(self.monitor, "toast_animation", True) else _t("OFF")
         
         menu_options = [
             (_t("Check for Updates"), "update"),
@@ -22795,6 +27885,7 @@ class SimpleSportsScreen(Screen):
             (_t("Set Voter Name: ") + self.monitor.voter_name, "voter_name"),
             (_t("Goal Sound: ") + cur_sound_lbl, "goal_sound"),
             (_t("Goal Alert Mode: ") + alert_lbl, "toggle_goal_alert"),
+            (_t("Toast Animation: ") + toast_anim_txt, "toggle_toast_animation"),
             (_t("AI Mode: ") + ai_status, "ai_mode"),
             (_t("Notifications Test"), "notif_test"),
             (u"Language / \u0644\u063a\u0629: " + cur_lang_lbl, "change_language"),
@@ -22821,6 +27912,12 @@ class SimpleSportsScreen(Screen):
             elif action == "ai_mode": self.open_ai_mode_menu()
             elif action == "toggle_goal_alert":
                 self.open_goal_alert_selector()
+            elif action == "toggle_toast_animation":
+                self.monitor.toast_animation = not getattr(self.monitor, "toast_animation", True)
+                self.monitor.save_config()
+                status = _t("ON") if self.monitor.toast_animation else _t("OFF")
+                msg = _t("Toast Animation: ") + status
+                self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
             elif action == "notif_test": self.run_notification_test()
             elif action == "change_language": self.open_language_selector()
 
@@ -22915,11 +28012,18 @@ class SimpleSportsScreen(Screen):
     def language_selected(self, selection):
         if not selection:
             return
-        global PLUGIN_LANGUAGE
+        global PLUGIN_LANGUAGE, _TEAM_NAME_CACHE
         new_lang = selection[1]
         if new_lang == PLUGIN_LANGUAGE:
             return
         PLUGIN_LANGUAGE = new_lang
+        _TEAM_NAME_CACHE.clear()
+        try:
+            for snap in self.monitor.match_snapshots.values():
+                snap['h_name_disp'] = _team_name(snap.get('h_name', ''))
+                snap['a_name_disp'] = _team_name(snap.get('a_name', ''))
+        except Exception:
+            pass
         self.monitor.save_config()
         if PLUGIN_LANGUAGE == "ar":
             msg = u"\u062a\u0645 \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0644\u063a\u0629 \u0625\u0644\u0649 \u0627\u0644\u0639\u0631\u0628\u064a\u0629.\n\u0633\u064a\u062a\u0645 \u0625\u0639\u0627\u062f\u0629 \u0641\u062a\u062d \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0622\u0646."
@@ -23247,6 +28351,16 @@ class SimpleSportsScreen(Screen):
             self.close(True)
             return
 
+        if key_num == 8:
+            k8_idx = getattr(self.monitor, 'key8_league_index', -1)
+            if k8_idx is None or k8_idx < 0 or k8_idx >= len(DATA_SOURCES):
+                msg = _t("No league assigned to Key 8 yet.\nPress 8 on any league in Select League to assign it.")
+                self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=5)
+                return
+            self.monitor.set_league(k8_idx)
+            self.close(True)
+            return
+
         mapping = {
             1: 11,  # UEFA Champions League
             2: 16,  # Premier League
@@ -23255,7 +28369,6 @@ class SimpleSportsScreen(Screen):
             5: 37,  # Bundesliga
             6: 42,  # Ligue 1
             7: 111, # NBA
-            8: 165, # FIFA World Cup
         }
         if key_num in mapping:
             self.monitor.set_league(mapping[key_num])
@@ -26132,7 +31245,7 @@ class LeaderboardScreen(Screen):
         self["key_green"]  = Label(_t("Score Rank"))
         self["key_yellow"] = Label(_t("Accuracy Rank"))
         self["key_blue"]   = Label(_t("My Profile"))
-        self["hint"]       = Label(_t(u"\u25c4 \u25ba  Change Sport"))
+        self["hint"]       = Label(_t(u"\u25c4 \u25ba  Change League / Sport"))
         # Column headers
         self["col_rank"]  = Label("#")
         self["col_name"]  = Label(_t("Player"))
@@ -26240,8 +31353,33 @@ class LeaderboardScreen(Screen):
                         "badge": stored_badge
                     })
 
-            # Build the navigation list
-            self.available_sports = ["Global"] + sorted(list(sports_set))
+            # Build the navigation list with Top 5 European Leagues & World Cup priority
+            preferred_order = [
+                "Global",
+                "Premier League",
+                "La Liga",
+                "Serie A",
+                "Bundesliga",
+                "Ligue 1",
+                "Champions League",
+                "World Cup"
+            ]
+            nav_list = []
+            for item in preferred_order:
+                if item == "Global" or item in sports_set:
+                    nav_list.append(item)
+
+            # Ensure all Top 5 European leagues + World Cup are always accessible in the navigation
+            for item in preferred_order:
+                if item not in nav_list:
+                    nav_list.append(item)
+
+            # Append any other sports / leagues present in the database
+            for s in sorted(list(sports_set)):
+                if s not in nav_list:
+                    nav_list.append(s)
+
+            self.available_sports = nav_list
             self.apply_sort()
 
         except Exception as e:
@@ -26283,12 +31421,13 @@ class LeaderboardScreen(Screen):
 
         current_sport = self.available_sports[self.current_sport_idx]
 
-        # 1. Sport filter label
+        # 1. Sport / League filter label
         if current_sport == "Global":
             self["sport_label"].setText(u"◄  {}  ►".format(_t("Global Ranking")))
         else:
-            self["sport_label"].setText(
-                u"◄  {} {}  ►".format(current_sport.upper(), _t("Only")))
+            trans = _t(current_sport)
+            disp_title = trans if trans != current_sport else current_sport
+            self["sport_label"].setText(u"◄  {}  ►".format(disp_title))
 
         # 2. Filter
         filtered_users = [
@@ -28256,14 +33395,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Universal Skins (720p-4K), Key Moments, Cup Aggregate, Audio Alerts, AI, and EPG v6.6 by reali22",
+            description="Live Sports Scores, v6.7 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Universal Skins (720p-4K), Key Moments, Cup Aggregate, Audio Alerts, AI, and EPG v6.6 by reali22",
+            description="Live Sports Scores, v6.7 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -28278,7 +33417,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, Universal Skins (720p-4K), Key Moments, Cup Aggregate, Audio Alerts, AI, and EPG v6.6 by reali22",
+            description="Live Sports Scores, v6.7 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
