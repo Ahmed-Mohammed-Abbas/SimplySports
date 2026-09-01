@@ -1451,9 +1451,8 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.8" 
+CURRENT_VERSION = "6.8"
 # v6.8 brings full Egyptian Premier League live scores, lineups, and match timelines, match-start auto-zap timers, smarter distraction-free notifications, unified Arabic translations, and multi-league refresh fixes.
-
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
 # ==============================================================================
@@ -22252,6 +22251,9 @@ class TeamRostersScreen(Screen):
         self._fetch_lineups()
 
     def _fetch_lineups(self):
+        if str(self.league_url).startswith("epl://"):
+            self._fetch_epl_lineups()
+            return
         try:
             base_url = self.league_url.split('?')[0]
             url_parts = base_url.rstrip('/').split('/')
@@ -22270,6 +22272,125 @@ class TeamRostersScreen(Screen):
                 self._on_data).addErrback(lambda err: self._fetch_summary_fallback())
         except Exception as e:
             self._fetch_summary_fallback()
+
+    def _fetch_epl_lineups(self):
+        def _run():
+            try:
+                import urllib.request as _urllib
+                import ssl as _ssl
+                ctx = _ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = _ssl.CERT_NONE
+                url = "https://www.filgoal.com/matches/{}".format(self.event_id)
+                req = _urllib.Request(
+                    url,
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
+                )
+                raw_html = _urllib.urlopen(req, timeout=12, context=ctx).read()
+                from twisted.internet import reactor
+                reactor.callFromThread(self._on_epl_data, raw_html)
+            except Exception as e:
+                log_dbg(f"[EPL Rosters] Fetch error: {e}")
+                from twisted.internet import reactor
+                reactor.callFromThread(self._on_error, e)
+
+        t = threading.Thread(target=_run)
+        t.daemon = True
+        t.start()
+
+    def _on_epl_data(self, raw_html):
+        try:
+            self.image_timer.stop()
+        except:
+            pass
+        self.image_queue = []
+
+        try:
+            html = raw_html.decode('utf-8', errors='ignore')
+            m = re.search(r'var viewModelData = (\{.*?\});', html, re.DOTALL)
+            if not m:
+                self._on_error("No viewmodel data")
+                return
+            data = json.loads(m.group(1))
+
+            def map_pos(pos_id, pos_name):
+                pos_name = str(pos_name or '')
+                if pos_id == 1 or 'حارس' in pos_name or 'gk' in pos_name.lower():
+                    return 'GK'
+                elif pos_id == 2 or 'مدافع' in pos_name or 'دفاع' in pos_name or 'def' in pos_name.lower():
+                    return 'DEF'
+                elif pos_id == 3 or 'وسط' in pos_name or 'mid' in pos_name.lower():
+                    return 'MID'
+                elif pos_id == 4 or 'مهاجم' in pos_name or 'هجوم' in pos_name or 'fwd' in pos_name.lower():
+                    return 'FWD'
+                return 'MID'
+
+            def conv_players(squad_list, is_starter=True):
+                res = []
+                for p in squad_list:
+                    pid = str(p.get('PersonId') or p.get('Id') or '')
+                    pname = p.get('PersonName') or p.get('Name') or ''
+                    num = str(p.get('ShirtNumber') or '')
+                    pos = map_pos(p.get('PlayerPositionId'), p.get('PlayerPositionName'))
+                    photo = p.get('PersonLogoUrl') or ''
+                    if photo.startswith('//'):
+                        photo = 'https:' + photo
+                    res.append({
+                        'id': pid,
+                        'name': pname,
+                        'jersey': num,
+                        'position': pos,
+                        'starter': is_starter,
+                        'headshot': photo
+                    })
+                return res
+
+            h_p = conv_players(data.get('HomeTeamSquad') or [], is_starter=True)
+            a_p = conv_players(data.get('AwayTeamSquad') or [], is_starter=True)
+            h_s = conv_players(data.get('HomeTeamSpareSquad') or [], is_starter=False)
+            a_s = conv_players(data.get('AwayTeamSpareSquad') or [], is_starter=False)
+
+            red_card_ids = set()
+            scorer_goals = {}
+
+            for ev in data.get('Events') or []:
+                ev_type = ev.get('MatchEventTypeName') or ''
+                ev_id = ev.get('MatchEventTypeId', 0)
+                paid = str(ev.get('PlayerAId') or '')
+                if ev_id == 4 or 'حمراء' in ev_type:
+                    if paid: red_card_ids.add(paid)
+                if ev_id == 1 or 'هدف' in ev_type:
+                    if paid: scorer_goals[paid] = scorer_goals.get(paid, 0) + 1
+
+            self.red_card_ids = red_card_ids
+            self.scorer_goals = scorer_goals
+
+        except Exception as e:
+            log_dbg(f"[EPL Rosters] Parse error: {e}")
+            h_p, h_s, a_p, a_s = [], [], [], []
+
+        if not h_p and not a_p:
+            no_rosters_text = u"لم يتم توفير تشكيلة الفريقين بعد" if PLUGIN_LANGUAGE == "ar" else u"No team rosters provided yet"
+            self["loading"].setText(no_rosters_text)
+            self["loading"].show()
+        else:
+            self["loading"].hide()
+
+        if not h_p:
+            h_p = [{'name':'','jersey':'','position':pos}
+                   for pos in ['GK','CB','CB','CB','CB','CM','CM','CM','ST','ST','LW']]
+        if not a_p:
+            a_p = [{'name':'','jersey':'','position':pos}
+                   for pos in ['GK','CB','CB','CB','CB','CM','CM','CM','ST','ST','LW']]
+
+        self._render_team(h_p, "home")
+        self._render_team(a_p, "away")
+        self._render_subs(h_s, "home")
+        self._render_subs(a_s, "away")
+        if self.image_queue:
+            self.image_timer.start(120, False)
 
     def _fetch_summary_fallback(self):
         try:
