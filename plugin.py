@@ -114,7 +114,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.7"
+VERSION = "6.8"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -429,8 +429,11 @@ TRANSLATIONS = {
     "Find in Bouquets":           {"ar": u"\u0627\u0644\u0628\u062d\u062b \u0641\u064a \u0627\u0644\u0628\u0627\u0642\u0627\u062a"},
     "Loading LiveSoccerTV...":    {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 LiveSoccerTV..."},
     "Match Not Started Yet":      {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629 \u0644\u0645 \u062a\u0628\u062f\u0623 \u0628\u0639\u062f"},
+    "Watch Now":                  {"ar": u"\u0645\u0634\u0627\u0647\u062f\u0629 \u0627\u0644\u0622\u0646"},
+    "Zap when match starts":      {"ar": u"\u0627\u0646\u062a\u0642\u0627\u0644 \u0639\u0646\u062f \u0628\u062f\u0621 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Zap Now (Preview Channel)":  {"ar": u"\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u0622\u0646 (\u0645\u0639\u0627\u064a\u0646\u0629 \u0627\u0644\u0642\u0646\u0627\u0629)"},
     "Remind & Zap (When match starts)": {"ar": u"\u062a\u0630\u0643\u064a\u0631 \u0648\u062a\u0628\u062f\u064a\u0644 (\u0639\u0646\u062f \u0628\u062f\u0621 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629)"},
+    "Zap Reminder Set!\nYou will be asked to zap when the match starts.": {"ar": u"\u062a\u0645 \u0636\u0628\u0637 \u0627\u0644\u062a\u0630\u0643\u064a\u0631 \u0648\u0627\u0644\u062a\u0628\u062f\u064a\u0644!\n\u0633\u064a\u062a\u0645 \u062a\u0646\u0628\u064a\u0647\u0643 \u0644\u0644\u062a\u0628\u062f\u064a\u0644 \u0639\u0646\u062f \u0628\u062f\u0621 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629."},
     "Found {} via EPG":           {"ar": u"\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0651\u0649 {} \u0639\u0628\u0631 EPG"},
     "Scanning 2 Sources for {}…": {"ar": u"\u062c\u0627\u0631\u064d \u0641\u062d\u0635 \u0645\u0635\u062f\u0631\u064a\u0646 \u0644\u0640 {}..."},
     "No Sat Feeds Today":         {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0641\u064a\u062f\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
@@ -782,7 +785,10 @@ LEAGUE_NAMES_AR = {
     u"Copa America Qualifying":                       u"\u062a\u0635\u0641\u064a\u0627\u062a \u0643\u0648\u0628\u0627 \u0623\u0645\u0631\u064a\u0643\u0627",
     u"Copa America Femenina":                         u"\u0643\u0648\u0628\u0627 \u0623\u0645\u0631\u064a\u0643\u0627 \u0644\u0644\u0646\u0633\u0627\u0621",
     u"CONMEBOL Recopa":                               u"\u0631\u064a\u0643\u0648\u0628\u0627 \u0627\u0644\u0643\u0648\u0646\u0645\u064a\u0628\u0648\u0644",
-    # ── Middle East & Asia ──────────────────────────────────────────────────
+    # ── Middle East & Africa ────────────────────────────────────────────────
+    u"Egyptian Premier League":                       u"\u062f\u0648\u0631\u064a \u0631\u0627\u0628\u0637\u0629 \u0627\u0644\u0623\u0646\u062f\u064a\u0629 \u0627\u0644\u0645\u0635\u0631\u064a\u0629 \u0627\u0644\u0645\u062d\u062a\u0631\u0641\u0629",
+    u"Egyptian League Cup":                           u"\u0643\u0623\u0633 \u0631\u0627\u0628\u0637\u0629 \u0627\u0644\u0623\u0646\u062f\u064a\u0629 \u0627\u0644\u0645\u0635\u0631\u064a\u0629",
+    u"Egyptian Super Cup":                            u"\u0643\u0623\u0633 \u0627\u0644\u0633\u0648\u0628\u0631 \u0627\u0644\u0645\u0635\u0631\u064a",
     u"Saudi Pro League":                              u"\u062f\u0648\u0631\u064a \u0631\u0648\u0634\u0646 \u0627\u0644\u0633\u0639\u0648\u062f\u064a \u0644\u0644\u0645\u062d\u062a\u0631\u0641\u064a\u0646",
     u"Saudi Kings Cup":                               u"\u0643\u0623\u0633 \u0627\u0644\u0645\u0644\u0643 \u0627\u0644\u0633\u0639\u0648\u062f\u064a",
     u"J1 League Japan":                               u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u064a\u0627\u0628\u0627\u0646\u064a J1",
@@ -1445,7 +1451,8 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.7"
+CURRENT_VERSION = "6.8" 
+# v6.8 brings full Egyptian Premier League live scores, lineups, and match timelines, match-start auto-zap timers, smarter distraction-free notifications, unified Arabic translations, and multi-league refresh fixes.
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -1726,6 +1733,7 @@ DATA_SOURCES = [
     ("Copa Libertadores", "https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.libertadores/scoreboard"),
     ("Copa Sudamericana", "https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.sudamericana/scoreboard"),
     ("Copa America", "https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.america/scoreboard"),
+    ("Egyptian Premier League", "epl://api"),
     ("Saudi Pro League", "https://site.api.espn.com/apis/site/v2/sports/soccer/ksa.1/scoreboard"),
     ("Saudi Kings Cup", "https://site.api.espn.com/apis/site/v2/sports/soccer/ksa.kings.cup/scoreboard"),
     ("J1 League Japan", "https://site.api.espn.com/apis/site/v2/sports/soccer/jpn.1/scoreboard"),
@@ -1938,7 +1946,7 @@ DATA_SOURCES = [
 # Stays automatically in sync whenever new soccer leagues are added to DATA_SOURCES.
 SOCCER_DATA_SOURCES = [
     (name, url) for name, url in DATA_SOURCES
-    if "/sports/soccer/" in url
+    if "/sports/soccer/" in url or url.startswith("epl://")
 ]
 
 # ==============================================================================
@@ -1947,9 +1955,12 @@ SOCCER_DATA_SOURCES = [
 def get_slug_from_url(url):
     """Extract a stable, sport-namespaced slug from an ESPN API URL.
     e.g. 'https://site.api.espn.com/.../sports/soccer/eng.1/scoreboard' -> 'soccer/eng.1'
-    EuroLeague sentinel URLs return 'euroleague'."""
+    EuroLeague sentinel URLs return 'euroleague'.
+    EPL sentinel URLs return 'soccer/epl.1'."""
     if url.startswith("euroleague://"):
         return "euroleague"
+    if url.startswith("epl://"):
+        return "soccer/epl.1"
     try:
         parts = url.split('/sports/')
         if len(parts) > 1:
@@ -2094,6 +2105,8 @@ def get_sport_id_prefix(league_url):
     # EuroLeague sentinel URL
     if league_url.startswith("euroleague://"):
         return "basketball_"
+    if league_url.startswith("epl://"):
+        return "soccer_"
 
     url_lower = league_url.lower()
     parts = url_lower.split('/')
@@ -3037,6 +3050,110 @@ def get_local_time_str(utc_date_str):
 def get_league_abbr(full_name):
     if not full_name: return ""
     return full_name[:3].upper()
+
+
+def is_system_screen_active(session):
+    """
+    Returns True ONLY when an Enigma2 system menu, setup screen, channel list,
+    EPG, virtual keyboard, or 3rd-party plugin window is currently active and focused.
+    Returns False (= notifications allowed) when the user is on:
+      - Live TV / MoviePlayer (idle)
+      - Any SimplySport plugin screen or minibar
+      - Any SimplySport toast / notification overlay
+    """
+    if not session:
+        return False
+    try:
+        PLUGIN_SCREENS = {
+            # Main screens
+            "SimpleSportsScreen",
+            "GameInfoScreen",
+            "TeamStandingScreen",
+            "TeamRostersScreen",
+            "LeaderboardScreen",
+            "BroadcastingChannelsScreen",
+            "AthleteProfileScreen",
+            "WatchPartyScreen",
+            "PersonalProfileScreen",
+            "RacingDriverInfoScreen",
+            "SimplePlayer",
+            # Selectors & managers
+            "LeagueSelector",
+            "FavoriteLeagueSelector",
+            "FavoriteTeamLeagueSelector",
+            "FavoriteTeamPickerScreen",
+            "FavoriteTeamsManagerScreen",
+            # LiveScore CZ screens
+            "LiveScoreCZScreen",
+            "LiveScoreCZGameInfoScreen",
+            "LiveScoreCZTeamStandingScreen",
+            # Mini bars
+            "SimpleSportsMiniBar",
+            "SimpleSportsMiniBar2",
+            "LiveScoreCZMiniBar3",
+            "RacingMiniBar",
+            # Toasts & notifications (transient overlays)
+            "GoalToast",
+            "FavTeamToast",
+            "AIToast",
+            "LiveScoreFollowToast",
+            "AIToastSimple",
+            "ZapNotificationScreen",
+        }
+
+        TV_WATCHING_CLASSES = {
+            "InfoBar",
+            "MoviePlayer",
+            "TimeshiftState",
+            "PVRState",
+            "Volume",
+            "Mute",
+            "UnhandledKey",
+            "Dish",
+            "RdsInfoDisplay",
+            "Subtitles",
+        }
+
+        # 1. Quick check: Enigma2 topmost focused dialog
+        top_dialog = getattr(session, "current_dialog", None)
+        if top_dialog:
+            cls = top_dialog.__class__.__name__
+            if cls in PLUGIN_SCREENS or cls in TV_WATCHING_CLASSES:
+                return False
+
+        dialog_stack = getattr(session, "dialog_stack", None)
+        if not dialog_stack:
+            return False
+
+        # In Enigma2 (openATV, openPLi, VTi, DreamOS), dialog_stack is a list of (dialog, flags) tuples
+        for item in reversed(dialog_stack):
+            if not item:
+                continue
+            dialog = item[0] if isinstance(item, (tuple, list)) else item
+            if not dialog:
+                continue
+
+            # Only check screens that are actively executing / in foreground
+            if hasattr(dialog, "execing") and not dialog.execing:
+                continue
+
+            cls_name = dialog.__class__.__name__
+
+            # Our own plugin screens / minibars / toasts -> Always allow
+            if cls_name in PLUGIN_SCREENS:
+                return False
+
+            # Normal TV watching overlays -> Continue checking stack
+            if cls_name in TV_WATCHING_CLASSES:
+                continue
+
+            # Any other active modal window (Menu, Setup, ChannelSelection, EPG, 3rd party plugins)
+            return True
+
+        return False
+    except Exception as e:
+        print("[SimplySport] is_system_screen_active error: {}".format(e))
+        return False
 
 
 def safe_connect(timer_obj, func):
@@ -5387,7 +5504,7 @@ class SportsMonitor:
 
     def _show_ai_notification(self, text):
         """Display an auto-dismissing popup with the AI-generated message."""
-        if not self.session:
+        if not self.session or is_system_screen_active(self.session):
             return
         try:
             self.session.open(AIToast, text, 10000)
@@ -6276,7 +6393,7 @@ class SportsMonitor:
         for those sports returns 0 events when the dates parameter is appended.
         They use tournament-level/week-level date ranges and have their own internal filtering.
         """
-        if url.startswith('euroleague://'):
+        if url.startswith('euroleague://') or url.startswith('epl://'):
             return url
 
         # Tennis, MMA/Boxing, and Racing APIs break with ?dates= parameter — skip them
@@ -6377,6 +6494,15 @@ class SportsMonitor:
             sentinel = "euroleague://api"
             if sentinel not in self.active_requests:
                 self._fetch_euroleague_data(name)
+            else:
+                self.batch_remaining -= 1
+            return
+
+        # Egyptian Premier League uses official portal scraper; route through dedicated fetcher
+        if url.startswith("epl://"):
+            sentinel = "epl://api"
+            if sentinel not in self.active_requests:
+                self._fetch_epl_data(name)
             else:
                 self.batch_remaining -= 1
             return
@@ -6493,6 +6619,7 @@ class SportsMonitor:
         except: pass
     def set_league(self, index):
         self.is_custom_mode = False
+        self.is_favorite_mode = False
 
         # FIX: Stop any running batch operations from previous custom mode
         self.batch_is_active = False
@@ -6658,6 +6785,11 @@ class SportsMonitor:
         if not self.session:
             return
 
+        if is_system_screen_active(self.session):
+            # Defer favorite team reminder while user is navigating system settings/menus
+            reactor.callLater(4.0, lambda: self._fire_fav_toast(snap, fav_entry, label_en, ko_ts))
+            return
+
         home_name   = snap.get("h_name", "")
         away_name   = snap.get("a_name", "")
         league_name = snap.get("league_name", fav_entry.get("league_name", ""))
@@ -6668,6 +6800,9 @@ class SportsMonitor:
         team_name   = fav_entry.get("team_name", "")
 
         def _open():
+            if is_system_screen_active(self.session):
+                reactor.callLater(4.0, lambda: self._fire_fav_toast(snap, fav_entry, label_en, ko_ts))
+                return
             try:
                 self.session.open(
                     FavTeamToast,
@@ -6683,7 +6818,14 @@ class SportsMonitor:
 
     def trigger_zap_alert(self, rem):
         if self.session:
+            if is_system_screen_active(self.session):
+                reactor.callLater(3.0, lambda: self.trigger_zap_alert(rem))
+                return
+
             def _open_zap():
+                if is_system_screen_active(self.session):
+                    reactor.callLater(3.0, lambda: self.trigger_zap_alert(rem))
+                    return
                 # Use ZapNotificationScreen instead of MessageBox
                 self.session.openWithCallback(partial(self.zap_confirmation_callback, domain=(rem.get("sref"),)),
                     ZapNotificationScreen,
@@ -6821,6 +6963,8 @@ class SportsMonitor:
             self.livescore_cz_scores[href] = curr_score
 
             if alert_type and self.session:
+                if is_system_screen_active(self.session):
+                    continue
                 home = entry.get("home", "Home")
                 away = entry.get("away", "Away")
                 score = entry.get("score", "-:-")
@@ -6871,6 +7015,12 @@ class SportsMonitor:
                     if sentinel not in self.active_requests:
                         self.cancel_active_requests()
                         self._fetch_euroleague_data(name)
+                # Egyptian Premier League uses official portal scraper
+                elif url.startswith("epl://"):
+                    sentinel = "epl://api"
+                    if sentinel not in self.active_requests:
+                        self.cancel_active_requests()
+                        self._fetch_epl_data(name)
                 elif url not in self.active_requests:
                     self.cancel_active_requests()
                     fetch_url = self._build_dated_url(url)
@@ -7868,6 +8018,406 @@ class SportsMonitor:
         t.daemon = True
         t.start()
 
+    # ==========================================================================
+    # EGYPTIAN PRO LEAGUE (EPL) – dedicated portal & match center scraper
+    # ==========================================================================
+    EPL_SENTINEL    = "epl://api"
+    EPL_BASE_URL    = "https://www.egyptianproleague.com"
+    EPL_LIBRARY_URL = "https://library.egyptianproleague.com/"
+
+    def _fetch_epl_data(self, league_name):
+        """Fetch match fixtures and live scores for the selected day offset."""
+        sentinel = self.EPL_SENTINEL
+        self.active_requests.add(sentinel)
+
+        def _run():
+            try:
+                import urllib.request as _urllib
+                import json
+                import re
+                import datetime
+                import ssl as _ssl
+
+                ctx = _ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = _ssl.CERT_NONE
+
+                today = datetime.date.today()
+                offset = getattr(self, 'ch_day_offset', 0)
+                if offset != 0:
+                    today = today + datetime.timedelta(days=offset)
+                target_date_str = today.strftime('%Y-%m-%d')
+
+                hdrs = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+
+                events = []
+
+                # 1. Primary match engine: Official EPL Azure REST API
+                azure_url = f"https://egypl-api.azurewebsites.net/Auth/1667/matches/{target_date_str}"
+                try:
+                    req = _urllib.Request(azure_url, headers=hdrs)
+                    raw_json = _urllib.urlopen(req, timeout=10, context=ctx).read().decode('utf-8', errors='ignore')
+                    data = json.loads(raw_json)
+                    if isinstance(data, list) and data:
+                        for m in data:
+                            m_id = str(m.get('id') or hashlib.md5(str(m).encode('utf-8')).hexdigest()[:10])
+                            h_name = m.get('homeTeamName', 'Home')
+                            a_name = m.get('awayTeamName', 'Away')
+                            h_id = m.get('homeTeamId', '')
+                            a_id = m.get('awayTeamId', '')
+
+                            h_logo = f"https://semedia.filgoal.com/Photos/Team/Medium/{h_id}.png" if h_id else ""
+                            a_logo = f"https://semedia.filgoal.com/Photos/Team/Medium/{a_id}.png" if a_id else ""
+
+                            h_score = str(m.get('homeScore') if m.get('homeScore') is not None else '')
+                            a_score = str(m.get('awayScore') if m.get('awayScore') is not None else '')
+
+                            stadium = m.get('stadiumName') or ''
+                            referee = m.get('refereeName') or ''
+
+                            status_obj = m.get('currentMatchStatus') or {}
+                            status_id = status_obj.get('matchStatusId') or status_obj.get('status', 0)
+                            status_name = status_obj.get('matchStatusName') or m.get('statusDescription') or ''
+
+                            state = 'pre'
+                            status_short = 'SCH'
+                            completed = False
+
+                            if status_id in (3, 4, 5) or 'شوط' in status_name or 'مباشر' in status_name or status_name == 'استراحة':
+                                state = 'in'
+                                if status_name == 'استراحة' or status_id == 4:
+                                    status_short = 'HT'
+                                elif status_id == 5 or 'ثاني' in status_name:
+                                    te = status_obj.get('TimeElapsed') or {}
+                                    mins = te.get('Minutes', 0) if isinstance(te, dict) else 0
+                                    status_short = f"{45 + mins}'" if mins > 0 else "2H"
+                                elif status_id == 3 or 'اول' in status_name:
+                                    te = status_obj.get('TimeElapsed') or {}
+                                    mins = te.get('Minutes', 0) if isinstance(te, dict) else 0
+                                    status_short = f"{mins}'" if mins > 0 else "1H"
+                                else:
+                                    status_short = 'LIVE'
+                            elif status_id == 9 or status_name in ('انتهت', 'FT', 'Finished') or (h_score != '' and a_score != '' and status_id != 1):
+                                state = 'post'
+                                status_short = 'FT'
+                                completed = True
+
+                            date_val = m.get('date', '')
+                            date_iso = str(date_val) if date_val else target_date_str + "T18:00:00Z"
+                            if not date_iso.endswith('Z') and 'T' in date_iso:
+                                date_iso += 'Z'
+
+                            ev = {
+                                'id': m_id,
+                                'date': date_iso,
+                                'name': f"{h_name} vs {a_name}",
+                                'shortName': f"{h_name} vs {a_name}",
+                                'league_name': league_name,
+                                'league_url': self.EPL_SENTINEL,
+                                'competitions': [{
+                                    'id': m_id,
+                                    'date': date_iso,
+                                    'venue': {'fullName': stadium, 'address': {'city': ''}},
+                                    'broadcasts': [{'names': ['ON Time Sports 1 HD', 'ON Time Sports 2 HD']}],
+                                    'competitors': [
+                                        {
+                                            'id': str(h_id),
+                                            'homeAway': 'home',
+                                            'score': h_score,
+                                            'team': {
+                                                'id': str(h_id),
+                                                'name': h_name,
+                                                'displayName': h_name,
+                                                'shortDisplayName': h_name,
+                                                'logo': h_logo
+                                            }
+                                        },
+                                        {
+                                            'id': str(a_id),
+                                            'homeAway': 'away',
+                                            'score': a_score,
+                                            'team': {
+                                                'id': str(a_id),
+                                                'name': a_name,
+                                                'displayName': a_name,
+                                                'shortDisplayName': a_name,
+                                                'logo': a_logo
+                                            }
+                                        }
+                                    ]
+                                }],
+                                'status': {
+                                    'type': {
+                                        'state': state,
+                                        'completed': completed,
+                                        'description': status_name or ('Final' if completed else 'Scheduled'),
+                                        'shortDetail': status_short
+                                    }
+                                }
+                            }
+                            events.append(ev)
+                except Exception as e:
+                    log_dbg(f"[EPL] Azure fetch error: {e}")
+
+                # 2. Secondary match engine: FilGoal dated match center (if Azure API returned 0 events)
+                if not events:
+                    filgoal_url = f"https://www.filgoal.com/matches/?date={target_date_str}"
+                    try:
+                        req = _urllib.Request(filgoal_url, headers=hdrs)
+                        raw_html = _urllib.urlopen(req, timeout=12, context=ctx).read().decode('utf-8', errors='ignore')
+                        m = re.search(r'var viewModelData = (\[.*?\]);', raw_html, re.DOTALL)
+                        if m:
+                            data = json.loads(m.group(1))
+                            for group in data:
+                                grp_ts_str = group.get('Date', '')
+                                ts_m = re.search(r'\d+', str(grp_ts_str))
+                                grp_date_str = ""
+                                if ts_m:
+                                    try:
+                                        ts_sec = int(ts_m.group(0)) / 1000.0
+                                        grp_date_str = datetime.datetime.fromtimestamp(ts_sec, datetime.timezone.utc).strftime("%Y-%m-%d")
+                                    except Exception:
+                                        pass
+
+                                for match in group.get('Matches', []):
+                                    c_slug = str(match.get('ChampionshipSlug') or '')
+                                    c_name = str(match.get('ChampionshipName') or '')
+                                    # Filter specifically for Egyptian Premier League & Egyptian domestic competitions
+                                    is_epl = any(k in c_slug for k in ['الدوري-المصري', 'دوري-nile', 'كأس-الرابطة-المصرية', 'كأس-السوبر-المصري', 'كأس-مصر']) or \
+                                             any(k in c_name for k in ['الدوري المصري', 'دوري Nile', 'رابطة الأندية المصرية', 'كأس السوبر المصري', 'كأس مصر'])
+                                    if not is_epl:
+                                        continue
+
+                                    m_id = str(match.get('Id') or hashlib.md5(str(match).encode('utf-8')).hexdigest()[:10])
+                                    h_id = match.get('HomeTeamId', '')
+                                    a_id = match.get('AwayTeamId', '')
+                                    h_name = match.get('HomeTeamName', 'Home')
+                                    a_name = match.get('AwayTeamName', 'Away')
+
+                                    h_logo = f"https://semedia.filgoal.com/Photos/Team/Medium/{h_id}.png" if h_id else ""
+                                    a_logo = f"https://semedia.filgoal.com/Photos/Team/Medium/{a_id}.png" if a_id else ""
+
+                                    h_score = str(match.get('HomeScore') if match.get('HomeScore') is not None else '')
+                                    a_score = str(match.get('AwayScore') if match.get('AwayScore') is not None else '')
+
+                                    stadium = match.get('StadiumName') or ''
+                                    referee = match.get('RefereeName') or ''
+
+                                    status_obj = match.get('CurrentMatchStatus') or {}
+                                    status_id = status_obj.get('Status') or status_obj.get('MatchStatusId', 0)
+                                    status_name = status_obj.get('MatchStatusName') or match.get('StatusDescription') or ''
+
+                                    state = 'pre'
+                                    status_short = 'SCH'
+                                    completed = False
+
+                                    if status_id in (3, 4, 5) or 'شوط' in status_name or 'مباشر' in status_name or status_name == 'استراحة':
+                                        state = 'in'
+                                        status_short = 'HT' if status_name == 'استراحة' else 'LIVE'
+                                    elif status_id == 9 or status_name == 'انتهت' or (h_score != '' and a_score != '' and status_id != 1):
+                                        state = 'post'
+                                        status_short = 'FT'
+                                        completed = True
+
+                                    match_ts_str = match.get('Date', grp_ts_str)
+                                    date_iso = (grp_date_str or target_date_str) + "T18:00:00Z"
+                                    m_ts = re.search(r'\d+', str(match_ts_str))
+                                    if m_ts:
+                                        try:
+                                            ts_sec = int(m_ts.group(0)) / 1000.0
+                                            date_iso = datetime.datetime.fromtimestamp(ts_sec, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                                        except Exception:
+                                            pass
+
+                                    ev = {
+                                        'id': m_id,
+                                        'date': date_iso,
+                                        'name': f"{h_name} vs {a_name}",
+                                        'shortName': f"{h_name} vs {a_name}",
+                                        'league_name': league_name,
+                                        'league_url': self.EPL_SENTINEL,
+                                        'competitions': [{
+                                            'id': m_id,
+                                            'date': date_iso,
+                                            'venue': {'fullName': stadium, 'address': {'city': ''}},
+                                            'broadcasts': [{'names': ['ON Time Sports 1 HD', 'ON Time Sports 2 HD']}],
+                                            'competitors': [
+                                                {
+                                                    'id': str(h_id),
+                                                    'homeAway': 'home',
+                                                    'score': h_score,
+                                                    'team': {
+                                                        'id': str(h_id),
+                                                        'name': h_name,
+                                                        'displayName': h_name,
+                                                        'shortDisplayName': h_name,
+                                                        'logo': h_logo
+                                                    }
+                                                },
+                                                {
+                                                    'id': str(a_id),
+                                                    'homeAway': 'away',
+                                                    'score': a_score,
+                                                    'team': {
+                                                        'id': str(a_id),
+                                                        'name': a_name,
+                                                        'displayName': a_name,
+                                                        'shortDisplayName': a_name,
+                                                        'logo': a_logo
+                                                    }
+                                                }
+                                            ]
+                                        }],
+                                        'status': {
+                                            'type': {
+                                                'state': state,
+                                                'completed': completed,
+                                                'description': status_name or ('Final' if completed else 'Scheduled'),
+                                                'shortDetail': status_short
+                                            }
+                                        }
+                                    }
+                                    events.append(ev)
+                    except Exception as e:
+                        log_dbg(f"[EPL] FilGoal fetch error: {e}")
+
+                # 3. Fallback to EPL official portal if both above returned no events
+                if not events:
+                    try:
+                        req = _urllib.Request(f"{self.EPL_BASE_URL}/league/matches", headers=hdrs)
+                        raw_html = _urllib.urlopen(req, timeout=12, context=ctx).read().decode('utf-8', errors='ignore')
+                        m = re.search(r'<script[^>]*id=[\'"][^\'"]*state[^\'"]*[\'"][^>]*>(.*?)</script>', raw_html, re.DOTALL)
+                        if m:
+                            state_data = json.loads(m.group(1).strip())
+                            for k, v in state_data.items():
+                                if isinstance(v, dict) and 'body' in v:
+                                    body = v['body']
+                                    if isinstance(body, list) and body:
+                                        for item in body:
+                                            ev = self._convert_epl_match(item, league_name)
+                                            if ev:
+                                                events.append(ev)
+                    except Exception as e:
+                        log_dbg(f"[EPL] Portal fetch error: {e}")
+
+                fake_body = json.dumps({
+                    'events': events,
+                    'leagues': [{'name': league_name, 'id': 'epl', 'logos': [{'href': 'https://library.egyptianproleague.com/Images/logo.png'}]}]
+                }).encode('utf-8')
+                reactor.callFromThread(self._on_epl_data, fake_body, league_name, sentinel)
+            except Exception as e:
+                log_dbg(f"[EPL] Fetch error: {e}")
+                reactor.callFromThread(self._on_epl_error, sentinel)
+
+        t = threading.Thread(target=_run)
+        t.daemon = True
+        t.start()
+
+    def _on_epl_data(self, fake_body, league_name, sentinel):
+        # In custom batch mode, use the batch pipeline so batch_remaining is decremented
+        # and data is appended incrementally without wiping out other leagues.
+        # NOTE: Do NOT discard sentinel before collect_batch_response_incremental —
+        # it checks active_requests and would drop the response as a "ghost" request.
+        if self.is_custom_mode and self.batch_is_active:
+            self.collect_batch_response_incremental(fake_body, league_name, sentinel)
+        else:
+            self.active_requests.discard(sentinel)
+            self.parse_single_json(fake_body, league_name, self.EPL_SENTINEL)
+
+    def _on_epl_error(self, sentinel):
+        # In custom batch mode, decrement batch_remaining so the batch can finalize
+        if self.is_custom_mode and self.batch_is_active:
+            self.collect_batch_error(None, sentinel)
+        else:
+            self.active_requests.discard(sentinel)
+            self.status_message = "Egyptian Pro League data temporarily unavailable."
+            self._trigger_callbacks(True)
+
+    def _convert_epl_match(self, m, league_name):
+        try:
+            m_id = str(m.get('id', hashlib.md5(str(m).encode('utf-8')).hexdigest()[:10]))
+            home_name = m.get('homeTeamName') or m.get('team1Name') or m.get('homeTeam', {}).get('name', 'Home')
+            away_name = m.get('awayTeamName') or m.get('team2Name') or m.get('awayTeam', {}).get('name', 'Away')
+
+            home_logo = m.get('homeTeamLogo') or m.get('team1Logo') or m.get('homeTeam', {}).get('logo', '')
+            away_logo = m.get('awayTeamLogo') or m.get('team2Logo') or m.get('awayTeam', {}).get('logo', '')
+
+            if home_logo and not home_logo.startswith('http'):
+                home_logo = self.EPL_LIBRARY_URL + home_logo.lstrip('/')
+            if away_logo and not away_logo.startswith('http'):
+                away_logo = self.EPL_LIBRARY_URL + away_logo.lstrip('/')
+
+            home_score = str(m.get('homeScore', m.get('team1Score', '')) or '')
+            away_score = str(m.get('awayScore', m.get('team2Score', '')) or '')
+
+            stadium = m.get('stadium') or m.get('venue') or m.get('stadiumName') or ''
+            referee = m.get('referee') or m.get('refereeName') or ''
+
+            status_text = str(m.get('status') or m.get('matchStatus') or '')
+            state = 'pre'
+            if status_text in ('انتهت', 'FT', 'Full Time', 'Finished'):
+                state = 'post'
+            elif status_text in ('مباشر', 'Live', 'In Progress', 'HT', 'الشوط الأول', 'الشوط الثاني'):
+                state = 'in'
+            elif home_score != '' and away_score != '':
+                state = 'post'
+
+            date_str = m.get('date') or m.get('matchDate') or datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            return {
+                'id': m_id,
+                'date': date_str,
+                'name': f"{home_name} vs {away_name}",
+                'shortName': f"{home_name} vs {away_name}",
+                'league_name': league_name,
+                'league_url': self.EPL_SENTINEL,
+                'competitions': [{
+                    'id': m_id,
+                    'date': date_str,
+                    'venue': {'fullName': stadium, 'address': {'city': ''}},
+                    'broadcasts': [{'names': ['ON Time Sports 1 HD', 'ON Time Sports 2 HD']}],
+                    'competitors': [
+                        {
+                            'id': f"epl_{hashlib.md5(home_name.encode('utf-8')).hexdigest()[:6]}",
+                            'homeAway': 'home',
+                            'score': home_score,
+                            'team': {
+                                'id': f"epl_{hashlib.md5(home_name.encode('utf-8')).hexdigest()[:6]}",
+                                'name': home_name,
+                                'displayName': home_name,
+                                'shortDisplayName': home_name,
+                                'logo': home_logo
+                            }
+                        },
+                        {
+                            'id': f"epl_{hashlib.md5(away_name.encode('utf-8')).hexdigest()[:6]}",
+                            'homeAway': 'away',
+                            'score': away_score,
+                            'team': {
+                                'id': f"epl_{hashlib.md5(away_name.encode('utf-8')).hexdigest()[:6]}",
+                                'name': away_name,
+                                'displayName': away_name,
+                                'shortDisplayName': away_name,
+                                'logo': away_logo
+                            }
+                        }
+                    ]
+                }],
+                'status': {
+                    'type': {
+                        'state': state,
+                        'completed': (state == 'post'),
+                        'description': status_text or ('Final' if state == 'post' else 'Scheduled'),
+                        'shortDetail': status_text or ('FT' if state == 'post' else 'SCH')
+                    }
+                }
+            }
+        except Exception as e:
+            log_dbg(f"[EPL] Convert match error: {e}")
+            return None
+
     @profile_function("SportsMonitor")
     def parse_incremental_json(self, body, league_name_fixed, league_url):
         self.process_events_data([(body, league_name_fixed, league_url)], append_mode=True)
@@ -7886,7 +8436,7 @@ class SportsMonitor:
         league_url = snap.get('league_url', '').lower()
         is_basketball = '/basketball/' in league_url or 'euroleague' in league_url
         is_soccer = '/soccer/' in league_url
-        notification = (match_id, score, scorer, event_type, scoring_team, sound_type)
+        notification = (match_id, score, scorer, event_type, scoring_team, sound_type, time.time())
 
         # BASKETBALL MERGE: If same basketball match already in queue, merge scorer text
         if is_basketball and event_type == 'goal':
@@ -7899,7 +8449,8 @@ class SportsMonitor:
                     # Update score to latest and merge scorer
                     self.notification_queue[i] = (
                         match_id, score, merged_scorer,
-                        existing[3], existing[4], existing[5]
+                        existing[3], existing[4], existing[5],
+                        existing[6] if len(existing) > 6 else time.time()
                     )
                     return  # Merged, no new entry needed
 
@@ -7945,8 +8496,28 @@ class SportsMonitor:
             return
         if self.notification_active or not self.notification_queue: return
 
+        # Check if an Enigma2 system menu, setup screen, channel list, or other plugin is active
+        if is_system_screen_active(self.session):
+            now = time.time()
+            # Clean up stale notifications (> 180s) to avoid bursting stale alerts after long settings sessions
+            self.notification_queue = [
+                it for it in self.notification_queue
+                if (len(it) < 7 or (now - it[6] < 180))
+            ]
+            if not self.notification_queue:
+                return
+            # Postpone processing and re-check once the user closes the system screen/menu
+            reactor.callLater(2.5, self.process_queue)
+            return
+
         try:
             item = self.notification_queue.pop(0)
+            now = time.time()
+            if len(item) >= 7 and (now - item[6] > 180):
+                # Stale item dropped, try next in queue
+                reactor.callLater(0.1, self.process_queue)
+                return
+
             # Simplified item: (match_id, score, scorer, event_type, scoring_team, sound_type)
             match_id, score, scorer, event_type, scoring_team, sound_type = item[:6]
             self.notification_active = True
@@ -7955,6 +8526,15 @@ class SportsMonitor:
             if self.session:
                 try:
                     def _open_toast():
+                        # Final guard right before opening
+                        if is_system_screen_active(self.session):
+                            self.notification_queue.insert(0, item)
+                            self.notification_active = False
+                            self.current_toast = None
+                            self.current_toast_match = None
+                            reactor.callLater(2.5, self.process_queue)
+                            return
+
                         # SYNC: Play sound RIGHT when toast opens
                         if sound_type == 'goal' and self.discovery_mode == 2:
                             self.play_sound()
@@ -9566,6 +10146,11 @@ class TeamStandingScreen(Screen):
             self._fetch_euroleague_standings()
             return
 
+        # ── Egyptian Premier League: fetch from official portal ────────────────
+        if (self.league_url or '').startswith("epl://"):
+            self._fetch_epl_standings()
+            return
+
         # Sports with no ESPN standings endpoint — show message immediately
         NO_STANDINGS_SPORTS = ('tennis', 'golf', 'mma', 'boxing')
         for ns in NO_STANDINGS_SPORTS:
@@ -9746,6 +10331,87 @@ class TeamStandingScreen(Screen):
         self["loading"].hide()
         self.standings_rows = [StandingTableEntry(
             "-", "EuroLeague standings temporarily unavailable.", "-", "-", "-", "-", "-", "-", self.theme)]
+        self.current_page = 0
+        self.update_display()
+
+    # ==========================================================================
+    # EGYPTIAN PRO LEAGUE (EPL) STANDINGS
+    # ==========================================================================
+    def _fetch_epl_standings(self):
+        """Fetch Egyptian Premier League standings / participating clubs from official portal."""
+        def _run():
+            try:
+                import urllib.request as _urllib
+                import json
+                import re
+
+                req = _urllib.Request(
+                    "https://www.egyptianproleague.com/league/standings",
+                    headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                )
+                html = _urllib.urlopen(req, timeout=12).read().decode('utf-8', errors='ignore')
+                m = re.search(r'<script[^>]*id=[\'"][^\'"]*state[^\'"]*[\'"][^>]*>(.*?)</script>', html, re.DOTALL)
+                clubs = []
+                if m:
+                    state_data = json.loads(m.group(1).strip())
+                    for k, v in state_data.items():
+                        if isinstance(v, dict) and 'body' in v:
+                            body = v['body']
+                            if isinstance(body, dict) and 'items' in body:
+                                for it in body['items']:
+                                    if 'name' in it:
+                                        clubs.append(it)
+                            elif isinstance(body, list) and body:
+                                for it in body:
+                                    if 'name' in it or 'team' in it:
+                                        clubs.append(it)
+                reactor.callFromThread(self._on_epl_standings, clubs)
+            except Exception as e:
+                log_dbg(f"[EPL Standings] Error: {e}")
+                reactor.callFromThread(self._on_epl_standings_error)
+
+        import threading as _threading
+        t = _threading.Thread(target=_run)
+        t.daemon = True
+        t.start()
+
+    def _on_epl_standings(self, clubs):
+        try:
+            self["loading"].hide()
+            self.standings_rows = []
+            hdr = ("#", "CLUB", "P", "W", "D", "L", "GD", "PTS")
+            self.standings_rows.append(StandingTableEntry(
+                hdr[0], hdr[1], hdr[2], hdr[3], hdr[4], hdr[5], hdr[6], hdr[7],
+                self.theme, is_header=True
+            ))
+
+            for idx, c in enumerate(clubs, 1):
+                name = c.get('name', 'Club')
+                p = str(c.get('played', c.get('gamesPlayed', '-')))
+                w = str(c.get('won', c.get('wins', '-')))
+                d = str(c.get('drawn', c.get('draws', '-')))
+                l = str(c.get('lost', c.get('losses', '-')))
+                gd = str(c.get('goalDifference', c.get('gd', '-')))
+                pts = str(c.get('points', c.get('pts', '-')))
+                self.standings_rows.append(StandingTableEntry(
+                    str(idx), name, p, w, d, l, gd, pts, self.theme
+                ))
+
+            if not clubs:
+                self.standings_rows.append(StandingTableEntry(
+                    "-", "EPL standings currently updating.", "-", "-", "-", "-", "-", "-", self.theme
+                ))
+
+            self.current_page = 0
+            self.update_display()
+        except Exception as e:
+            log_dbg(f"[EPL Standings] Render error: {e}")
+
+    def _on_epl_standings_error(self):
+        self["loading"].hide()
+        self.standings_rows = [
+            StandingTableEntry("-", "EPL standings temporarily unavailable.", "-", "-", "-", "-", "-", "-", self.theme)
+        ]
         self.current_page = 0
         self.update_display()
 
@@ -10578,6 +11244,11 @@ class GameInfoScreen(Screen):
             self.odds_url    = ""
             self.cdn_url     = ""
             self._is_euroleague = True
+        elif league_url.startswith("epl://"):
+            self.summary_url = "https://www.filgoal.com/matches/{}".format(event_id)
+            self.odds_url    = ""
+            self.cdn_url     = ""
+            self._is_epl     = True
         # Tennis Special Handling: needs tournament_id as event and match_id as competition
         # Tennis Special Handling: needs tournament_id as event and match_id as competition
         elif self.sport_type == SPORT_TYPE_TENNIS:
@@ -11175,6 +11846,8 @@ class GameInfoScreen(Screen):
         if self.summary_url:
             if getattr(self, '_is_euroleague', False):
                 getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_euroleague_stats).addErrback(self.error_details)
+            elif getattr(self, '_is_epl', False):
+                self._fetch_epl_game_details()
             else:
                 # Primary summary endpoint (fast max-age=5s, full real-time live data)
                 getPage(self.summary_url.encode('utf-8'), headers=headers_dict).addCallback(self.parse_details).addErrback(self.error_summary_fallback)
@@ -11363,6 +12036,188 @@ class GameInfoScreen(Screen):
                     self.full_rows.append(TextListEntry("  {} - {} Pts, {} Reb, {} Ast".format(name, pts, reb, ast), self.theme, align="left"))
                 self.full_rows.append(TextListEntry("", self.theme))
                 
+            self["info_list"].setList(self.full_rows)
+            self.update_page_info()
+        except Exception as e:
+            self.error_details(e)
+
+    def _fetch_epl_game_details(self):
+        def _run():
+            try:
+                import urllib.request as _urllib
+                import ssl as _ssl
+                ctx = _ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = _ssl.CERT_NONE
+                req = _urllib.Request(
+                    self.summary_url,
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
+                )
+                raw_html = _urllib.urlopen(req, timeout=12, context=ctx).read()
+                from twisted.internet import reactor
+                reactor.callFromThread(self.parse_epl_details, raw_html)
+            except Exception as e:
+                log_dbg(f"[EPL GameInfo] Fetch error: {e}")
+                from twisted.internet import reactor
+                reactor.callFromThread(self.error_details, e)
+
+        t = threading.Thread(target=_run)
+        t.daemon = True
+        t.start()
+
+    def parse_epl_details(self, body):
+        try:
+            self["loading"].hide()
+            html = body.decode('utf-8', errors='ignore')
+            m = re.search(r'var viewModelData = (\{.*?\});', html, re.DOTALL)
+            if not m:
+                # Fallback to standard error or basic display
+                self.error_details(None)
+                return
+
+            data = json.loads(m.group(1))
+
+            h_name = data.get('HomeTeamName', 'Home')
+            a_name = data.get('AwayTeamName', 'Away')
+            h_id = data.get('HomeTeamId', '')
+            a_id = data.get('AwayTeamId', '')
+
+            h_score = str(data.get('HomeScore') if data.get('HomeScore') is not None else '0')
+            a_score = str(data.get('AwayScore') if data.get('AwayScore') is not None else '0')
+
+            stadium = data.get('StadiumName', '')
+            referee = data.get('RefereeName', '')
+            h_coach = data.get('HomeTeamCoachName', '')
+            a_coach = data.get('AwayTeamCoachName', '')
+            h_form = data.get('HomeTeamFormationName', '')
+            a_form = data.get('AwayTeamFormationName', '')
+
+            status_obj = data.get('CurrentMatchStatus') or {}
+            status_name = status_obj.get('MatchStatusName') or data.get('StatusDescription') or ''
+
+            # Update Header
+            self["h_name"].setText(_team_name(h_name))
+            self["a_name"].setText(_team_name(a_name))
+            self.h_team_name = _team_name(h_name)
+            self.a_team_name = _team_name(a_name)
+
+            self["h_score"].setText(h_score)
+            self["a_score"].setText(a_score)
+            self["h_score"].show(); self["a_score"].show(); self["score_sep"].show()
+            self["countdown_label"].hide(); self["start_time_label"].hide()
+
+            if stadium:
+                self["stadium_name"].setText(stadium)
+
+            # Logos
+            h_logo = f"https://semedia.filgoal.com/Photos/Team/Medium/{h_id}.png" if h_id else ""
+            a_logo = f"https://semedia.filgoal.com/Photos/Team/Medium/{a_id}.png" if a_id else ""
+            if h_logo: self.download_logo(h_logo, "h_logo", f"soccer_{h_id}")
+            if a_logo: self.download_logo(a_logo, "a_logo", f"soccer_{a_id}")
+
+            self.full_rows = []
+
+            # 1. MATCH INFORMATION
+            self.full_rows.append(TextListEntry("MATCH INFORMATION", self.theme, is_header=True))
+            if stadium:
+                self.full_rows.append(StatsListEntry("STADIUM", "", stadium, self.theme))
+            if referee:
+                self.full_rows.append(StatsListEntry("REFEREE", "", referee, self.theme))
+            if h_coach or a_coach:
+                self.full_rows.append(StatsListEntry("COACH", h_coach, a_coach, self.theme))
+            if h_form or a_form:
+                self.full_rows.append(StatsListEntry("FORMATION", h_form, a_form, self.theme))
+
+            self.full_rows.append(StatsListEntry("", "", "", self.theme))
+
+            # 2. MATCH EVENTS / TIMELINE
+            events = data.get('Events') or []
+            if events:
+                self.full_rows.append(TextListEntry("MATCH EVENTS ({})".format(len(events)), self.theme, is_header=True))
+                sorted_events = sorted(events, key=lambda x: (x.get('CalculatedTime', 0), x.get('CalculatedAdditionalTime', 0)))
+                for ev in sorted_events:
+                    min_val = ev.get('CalculatedTime', 0)
+                    add_val = ev.get('CalculatedAdditionalTime', 0)
+                    time_lbl = "{}'".format(min_val) if add_val == 0 else "{}+{}'".format(min_val, add_val)
+
+                    ev_type = ev.get('MatchEventTypeName', '')
+                    p_a = ev.get('PlayerAName', '')
+                    p_b = ev.get('PlayerBName', '')
+                    team_id = ev.get('TeamId')
+                    h_team_id = data.get('HomeTeamId')
+
+                    is_home = (team_id == h_team_id)
+                    h_text = ""
+                    a_text = ""
+
+                    if "هدف" in ev_type:
+                        tag = "[Goal] " + p_a
+                    elif "صفراء" in ev_type:
+                        tag = "[YC] " + p_a
+                    elif "حمراء" in ev_type:
+                        tag = "[RC] " + p_a
+                    elif "تبديل" in ev_type:
+                        tag = "[SUB] " + p_a + (" (IN: " + p_b + ")" if p_b else "")
+                    elif "قائم" in ev_type:
+                        tag = "Shot on Post: " + p_a
+                    elif "ركنية" in ev_type:
+                        tag = "Corner: " + p_a
+                    else:
+                        tag = ev_type + ": " + p_a
+
+                    if is_home:
+                        h_text = tag
+                    else:
+                        a_text = tag
+
+                    self.full_rows.append(EventListEntry(time_lbl, h_text, a_text, self.theme))
+
+                self.full_rows.append(StatsListEntry("", "", "", self.theme))
+
+            # 3. MATCH STATS
+            stats = data.get('MatchStatistics') or []
+            if stats:
+                self.full_rows.append(TextListEntry("TEAM STATS", self.theme, is_header=True))
+                for st in stats:
+                    name = st.get('Name') or st.get('StatName', '')
+                    h_v = str(st.get('HomeValue', '0'))
+                    a_v = str(st.get('AwayValue', '0'))
+                    self.full_rows.append(StatsListEntry(name, h_v, a_v, self.theme))
+                self.full_rows.append(StatsListEntry("", "", "", self.theme))
+
+            # 4. STARTING LINEUPS
+            h_squad = data.get('HomeTeamSquad') or []
+            a_squad = data.get('AwayTeamSquad') or []
+            if h_squad or a_squad:
+                self.full_rows.append(TextListEntry("STARTING LINEUPS", self.theme, is_header=True))
+                self.full_rows.append(RosterListEntry(u"\u2022 " + h_name, u"\u2022 " + a_name, self.theme))
+                max_len = max(len(h_squad), len(a_squad))
+                for i in range(max_len):
+                    hp = h_squad[i] if i < len(h_squad) else {}
+                    ap = a_squad[i] if i < len(a_squad) else {}
+                    h_pos = " ({})".format(hp.get('PlayerPositionName', '')) if hp.get('PlayerPositionName') else ""
+                    a_pos = " ({})".format(ap.get('PlayerPositionName', '')) if ap.get('PlayerPositionName') else ""
+                    h_str = u"\u2605 #{} {}{}".format(hp.get('ShirtNumber', ''), hp.get('PersonName', ''), h_pos) if hp else ""
+                    a_str = u"\u2605 #{} {}{}".format(ap.get('ShirtNumber', ''), ap.get('PersonName', ''), a_pos) if ap else ""
+                    self.full_rows.append(RosterListEntry(h_str, a_str, self.theme))
+                self.full_rows.append(StatsListEntry("", "", "", self.theme))
+
+            # 5. SUBSTITUTES
+            h_bench = data.get('HomeTeamSpareSquad') or []
+            a_bench = data.get('AwayTeamSpareSquad') or []
+            if h_bench or a_bench:
+                self.full_rows.append(TextListEntry("SUBSTITUTES", self.theme, is_header=True))
+                self.full_rows.append(RosterListEntry(u"\u2022 " + h_name, u"\u2022 " + a_name, self.theme))
+                max_len = max(len(h_bench), len(a_bench))
+                for i in range(max_len):
+                    hp = h_bench[i] if i < len(h_bench) else {}
+                    ap = a_bench[i] if i < len(a_bench) else {}
+                    h_str = "#{} {}".format(hp.get('ShirtNumber', ''), hp.get('PersonName', '')) if hp else ""
+                    a_str = "#{} {}".format(ap.get('ShirtNumber', ''), ap.get('PersonName', '')) if ap else ""
+                    self.full_rows.append(RosterListEntry(h_str, a_str, self.theme))
+
             self["info_list"].setList(self.full_rows)
             self.update_page_info()
         except Exception as e:
@@ -14581,6 +15436,9 @@ class LeagueSelector(Screen):
         # EuroLeague sentinel URL — classify as basketball
         if url.startswith("euroleague://"):
             return 'basketball'
+        # Egyptian Premier League sentinel URL — classify as soccer
+        if url.startswith("epl://"):
+            return 'soccer'
         try:
             parts = url.split('/sports/')
             if len(parts) > 1:
@@ -14697,6 +15555,9 @@ class LeagueSelector(Screen):
         # EuroLeague uses its own API — no ESPN logo is available
         if api_url.startswith("euroleague://"):
             return None
+        # Egyptian Premier League uses official portal logo
+        if api_url.startswith("epl://"):
+            return "https://library.egyptianproleague.com/Images/logo.png"
         KNOWN_LOGOS = {
             '164205': ('rugby', '164205'),
             '242041': ('rugby', '242041'),
@@ -15664,14 +16525,22 @@ _TEAM_SYNONYMS = {
         "tot":                    "tottenham",
         "wolves":                 "wolverhampton",
         "wol":                    "wolverhampton",
+        "nottingham":             "nottingham forest",
         "nottm forest":           "nottingham forest",
         "nfo":                    "nottingham forest",
+        "sheff utd":              "sheffield united",
+        "sheffield utd":          "sheffield united",
+        "shu":                    "sheffield united",
+        "sheff wed":              "sheffield wednesday",
+        "sheffield wed":          "sheffield wednesday",
         "brighton & hove albion": "brighton",
         "brighton and hove albion": "brighton",
         "bha":                    "brighton",
         "afc bournemouth":        "bournemouth",
         "bou":                    "bournemouth",
         "ars":                    "arsenal",
+        "aston villa":            "aston villa",
+        "villa":                  "aston villa",
         "avl":                    "aston villa",
         "bre":                    "brentford",
         "che":                    "chelsea",
@@ -15684,6 +16553,9 @@ _TEAM_SYNONYMS = {
         "new":                    "newcastle",
         "sou":                    "southampton",
         "whu":                    "west ham",
+        "west brom":              "west bromwich albion",
+        "wba":                    "west bromwich albion",
+        "qpr":                    "queens park rangers",
         # Spanish La Liga clubs
         "real madrid":            "real madrid",
         "rma":                    "real madrid",
@@ -15693,6 +16565,8 @@ _TEAM_SYNONYMS = {
         "bar":                    "barcelona",
         "atletico madrid":        "atletico madrid",
         "atletico de madrid":     "atletico madrid",
+        "atl madrid":             "atletico madrid",
+        "atl. madrid":            "atletico madrid",
         "atm":                    "atletico madrid",
         "atl":                    "atletico madrid",
         "athletic club":          "athletic bilbao",
@@ -15701,6 +16575,7 @@ _TEAM_SYNONYMS = {
         "real sociedad":          "real sociedad",
         "rso":                    "real sociedad",
         "real betis":             "real betis",
+        "betis":                  "real betis",
         "bet":                    "real betis",
         "villarreal":             "villarreal",
         "vil":                    "villarreal",
@@ -15716,6 +16591,7 @@ _TEAM_SYNONYMS = {
         "celta vigo":             "celta vigo",
         "celta de vigo":          "celta vigo",
         "rc celta":               "celta vigo",
+        "celta":                  "celta vigo",
         "cel":                    "celta vigo",
         "rayo vallecano":         "rayo vallecano",
         "rayo":                   "rayo vallecano",
@@ -15740,6 +16616,8 @@ _TEAM_SYNONYMS = {
         "leganes":                "leganes",
         "cd leganes":             "leganes",
         "leg":                    "leganes",
+        "dep la coruna":          "deportivo la coruna",
+        "deportivo la coruna":    "deportivo la coruna",
         # Italian Serie A clubs
         "inter milan":            "inter",
         "internazionale":         "inter",
@@ -15747,8 +16625,25 @@ _TEAM_SYNONYMS = {
         "int":                    "inter",
         "ac milan":               "milan",
         "acm":                    "milan",
+        "mil":                    "milan",
         "juventus":               "juventus",
+        "juve":                   "juventus",
         "juv":                    "juventus",
+        # French Ligue 1 & German Bundesliga
+        "paris saint-germain":    "paris saint-germain",
+        "paris sg":               "paris saint-germain",
+        "psg":                    "paris saint-germain",
+        "st etienne":             "saint-etienne",
+        "st. etienne":            "saint-etienne",
+        "monchengladbach":        "borussia monchengladbach",
+        "m'gladbach":             "borussia monchengladbach",
+        "mgladbach":              "borussia monchengladbach",
+        "dortmund":               "borussia dortmund",
+        "bvb":                    "borussia dortmund",
+        "bayern":                 "bayern munich",
+        "bay":                    "bayern munich",
+        "leverkusen":             "bayer leverkusen",
+        "b04":                    "bayer leverkusen",
         "napoli":                 "napoli",
         "ssc napoli":             "napoli",
         "nap":                    "napoli",
@@ -22160,8 +23055,8 @@ class SimpleSportsMiniBar2(Screen):
                 match_data = {
                     'league':     snap['league_name'],
                     'color':      l_color,
-                    'home':       snap['h_name_short'],
-                    'away':       snap['a_name_short'],
+                    'home':       snap.get('h_name_disp') or _team_name(snap.get('h_name', '')) or snap.get('h_name_short', ''),
+                    'away':       snap.get('a_name_disp') or _team_name(snap.get('a_name', '')) or snap.get('a_name_short', ''),
                     'score':      snap['score_str'],
                     'status':     snap['status_short'],
                     'time':       snap['time_str'],
@@ -22172,8 +23067,8 @@ class SimpleSportsMiniBar2(Screen):
                     'a_id':       snap['a_logo_id'],
                     'l_id':       snap['l_logo_id'],
                     # MiniBar2 extras for lazy scorer loading
-                    'home_clean': snap['h_name_short'],
-                    'away_clean': snap['a_name_short'],
+                    'home_clean': snap.get('h_name_disp') or _team_name(snap.get('h_name', '')) or snap.get('h_name_short', ''),
+                    'away_clean': snap.get('a_name_disp') or _team_name(snap.get('a_name', '')) or snap.get('a_name_short', ''),
                     'h_scorers':  None,
                     'a_scorers':  None,
                     'event_ref':  event,
@@ -22900,8 +23795,8 @@ class SimpleSportsMiniBar(Screen):
                 h_scorer, a_scorer = self.get_scorers_string(event, snap['h_team_id'], snap['a_team_id'])
                 match_data = {
                     'league':  snap['league_name'],
-                    'home':    snap['h_name_short'],
-                    'away':    snap['a_name_short'],
+                    'home':    snap.get('h_name_disp') or _team_name(snap.get('h_name', '')) or snap.get('h_name_short', ''),
+                    'away':    snap.get('a_name_disp') or _team_name(snap.get('a_name', '')) or snap.get('a_name_short', ''),
                     'h_abbrev': snap.get('h_abbrev', ''),
                     'a_abbrev': snap.get('a_abbrev', ''),
                     'score':   snap['score_str'],
@@ -22992,9 +23887,13 @@ class SimpleSportsMiniBar(Screen):
                 try: self["lbl_time"].instance.setFont(gFont("Regular", font_size))
                 except: pass
 
-            # ── Team names (prefer abbreviation, auto-scale font size) ───────
-            h_name = data.get('h_abbrev', '') or data.get('home', '')
-            a_name = data.get('a_abbrev', '') or data.get('away', '')
+            # ── Team names (prefer abbreviation in EN, translated name in AR, auto-scale font size) ───────
+            if PLUGIN_LANGUAGE == "ar":
+                h_name = data.get('home') or _team_name(data.get('h_name_full', ''))
+                a_name = data.get('away') or _team_name(data.get('a_name_full', ''))
+            else:
+                h_name = data.get('h_abbrev', '') or data.get('home', '')
+                a_name = data.get('a_abbrev', '') or data.get('away', '')
 
             h_name = _team_name(str(h_name))
             a_name = _team_name(str(a_name))
@@ -29446,6 +30345,34 @@ class BroadcastingChannelsScreen(Screen):
         res.append((eListboxPythonMultiContent.TYPE_TEXT, 130, 32, 750, 25, 1, RT_HALIGN_LEFT | RT_VALIGN_CENTER, event_name, c_dim, c_sel))
         return res
 
+    def is_match_scheduled(self):
+        """Returns True if the target match is scheduled / not yet live."""
+        if self.target_event:
+            state = self.target_event.get('state')
+            if not state and isinstance(self.target_event.get('status'), dict):
+                st = self.target_event.get('status')
+                if isinstance(st.get('type'), dict):
+                    state = st.get('type', {}).get('state', '')
+                else:
+                    state = st.get('state', '')
+
+            if state == 'pre':
+                return True
+            if state in ('in', 'post', 'finished', 'live'):
+                return False
+
+            status_short = str(self.target_event.get('status_short', '')).upper()
+            if status_short in ('SCH', 'PRE', 'UPCOMING', 'SCHED') or ('/' in status_short and not ':' in status_short):
+                return True
+            if status_short in ('LIVE', 'HT', 'FT', 'FIN', 'AET', 'PEN'):
+                return False
+
+        now = int(time.time())
+        if self.match_time_ts and self.match_time_ts > (now + 60):
+            return True
+
+        return False
+
     def zap_to_channel(self):
         idx = self["list"].getSelectedIndex()
         if idx is None:
@@ -29476,78 +30403,50 @@ class BroadcastingChannelsScreen(Screen):
             return
 
         # ----------------------------------------------------------------
-        # IPTV stream entry (4097:… sref) – play immediately via E2 nav
+        # If match is scheduled: offer "Watch Now" vs "Zap when match starts"
         # ----------------------------------------------------------------
-        if sref.startswith('4097:'):
-            self.real_zap(sref)
-            return
-
-        # ----------------------------------------------------------------
-        # Normal Enigma2 service reference – respect match time
-        # ----------------------------------------------------------------
-        now = int(time.time())
-
-        # Primary check: timestamp says the match is more than 5 minutes away.
-        # Secondary check: the event itself is in 'pre' (scheduled) state.
-        #   This catches two failure modes:
-        #     a) ev_date_str parsing failed → fallback set match_time_ts = time.time()
-        #        which makes match_time_ts == now → primary check fails even though
-        #        the match IS scheduled.
-        #     b) Kick-off was delayed → timestamp is in the past but match hasn't
-        #        started yet (API lag), still showing as 'pre'.
-        event_state = ''
-        if self.target_event:
-            try:
-                event_state = (self.target_event
-                               .get('status', {})
-                               .get('type', {})
-                               .get('state', ''))
-            except Exception:
-                pass
-
-        # Treat a match as "future / not yet live" if:
-        #   - Timestamp is clearly in the future (> 5 min), OR
-        #   - Event is explicitly marked as scheduled ('pre') and its timestamp
-        #     is no more than 4 hours in the past (handles API lag / late kick-offs)
-        is_future = (
-            self.match_time_ts > now + 300
-            or (event_state == 'pre' and self.match_time_ts >= now - 14400)
-        )
-
-        if is_future:
+        if self.is_match_scheduled():
             self.session.openWithCallback(
-                self.zap_callback,
+                partial(self.zap_callback, sref=sref, item=item),
                 ChoiceBox,
                 title=_t("Match Not Started Yet"),
                 list=[
-                    (_t("Zap Now (Preview Channel)"), "zap"),
-                    (_t("Remind & Zap (When match starts)"), "remind_zap")
+                    (_t("Watch Now"), "watch_now"),
+                    (_t("Zap when match starts"), "zap_on_start")
                 ]
             )
         else:
             self.real_zap(sref)
 
-    def zap_callback(self, answer):
+    def zap_callback(self, answer, sref=None, item=None):
         if not answer:
             return
         action = answer[1]
 
-        idx = self["list"].getSelectedIndex()
-        if idx is None:
-            return
-        item = self["list"].list[idx][0]
-        sref = item[0]
-        sname = item[1]
-        event_name = item[2]
+        if not sref and item:
+            sref = item[0]
 
-        if action == "zap":
-            self.real_zap(sref)
-        elif action == "remind_zap":
+        if action in ("zap", "watch_now"):
+            if sref:
+                self.real_zap(sref)
+        elif action in ("remind_zap", "zap_on_start"):
             try:
-                trigger = self.match_time_ts
+                trigger = self.match_time_ts or int(time.time())
                 label = "Zap Reminder"
-                global_sports_monitor.add_reminder(event_name, trigger, "SimplySports", "", "", label, sref=sref)
-                self.session.open(MessageBox, "Zap Reminder Set!\nYou will be asked to zap when the match starts.",
+                event_name = "Match"
+                if self.target_event:
+                    event_name = self.target_event.get('name') or (self._match_home + " vs " + self._match_away)
+                elif item and len(item) > 2:
+                    event_name = item[2]
+
+                h_logo = self.target_event.get('h_logo_url', '') if self.target_event else ''
+                a_logo = self.target_event.get('a_logo_url', '') if self.target_event else ''
+                h_id   = self.target_event.get('h_logo_id', '') if self.target_event else ''
+                a_id   = self.target_event.get('a_logo_id', '') if self.target_event else ''
+                l_name = self.target_event.get('league_name', 'SimplySports') if self.target_event else 'SimplySports'
+
+                global_sports_monitor.add_reminder(event_name, trigger, l_name, h_logo, a_logo, label, sref=sref, h_id=h_id, a_id=a_id)
+                self.session.open(MessageBox, _t("Zap Reminder Set!\nYou will be asked to zap when the match starts."),
                                   MessageBox.TYPE_INFO, timeout=5)
             except Exception as e:
                 self.session.open(MessageBox, "Error setting reminder: " + str(e), MessageBox.TYPE_ERROR)
@@ -33400,14 +34299,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.7 by reali22",
+            description="Live Sports Scores, v6.8 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.7 by reali22",
+            description="Live Sports Scores, v6.8 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -33422,7 +34321,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.7 by reali22",
+            description="Live Sports Scores, v6.8 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
