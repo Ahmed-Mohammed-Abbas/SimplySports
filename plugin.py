@@ -114,7 +114,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.8"
+VERSION = "6.9"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -301,6 +301,18 @@ TRANSLATIONS = {
     "Check for Updates":          {"ar": u"\u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u062a\u062d\u062f\u064a\u062b\u0627\u062a"},
     "Change Interface Theme":     {"ar": u"\u062a\u063a\u064a\u064a\u0631 \u0645\u0638\u0647\u0631 \u0627\u0644\u0648\u0627\u062c\u0647\u0629"},
     "Bottom Minibar Style (Default Theme only)":    {"ar": u"\u0646\u0645\u0637 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0633\u0641\u0644\u064a (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"},
+    "Background Color (Main Theme only)":           {"ar": u"\u0644\u0648\u0646 \u0627\u0644\u062e\u0644\u0641\u064a\u0629 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0631\u0626\u064a\u0633\u064a)"},
+    "Background Color (Main Theme only): ":         {"ar": u"\u0644\u0648\u0646 \u0627\u0644\u062e\u0644\u0641\u064a\u0629 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0631\u0626\u064a\u0633\u064a): "},
+    "Select Background Color (Main Theme Only)":    {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0644\u0648\u0646 \u0627\u0644\u062e\u0644\u0641\u064a\u0629 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0631\u0626\u064a\u0633\u064a)"},
+    "Default (Dark Slate)":                         {"ar": u"\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a (\u0641\u062d\u0645\u064a \u062f\u0627\u0643\u0646)"},
+    "Pure Black (OLED)":                            {"ar": u"\u0623\u0633\u0648\u062f \u0646\u0642\u064a (OLED)"},
+    "Deep Navy":                                    {"ar": u"\u0623\u0632\u0631\u0642 \u0643\u062d\u0644\u064a \u062f\u0627\u0643\u0646"},
+    "Midnight Blue":                                {"ar": u"\u0623\u0632\u0631\u0642 \u0644\u064a\u0644\u064a"},
+    "Dark Emerald":                                 {"ar": u"\u0623\u062e\u0636\u0631 \u0632\u0645\u0631\u062f\u064a \u062f\u0627\u0643\u0646"},
+    "Deep Purple":                                  {"ar": u"\u0628\u0646\u0641\u0633\u062c\u064a \u062f\u0627\u0643\u0646"},
+    "Dark Maroon":                                  {"ar": u"\u0639\u0646\u0627\u0628\u064a \u062f\u0627\u0643\u0646"},
+    "Dark Graphite":                                {"ar": u"\u0631\u0645\u0627\u062f\u064a \u063a\u0631\u0627\u0641\u064a\u062a"},
+    "Background color saved.":                      {"ar": u"\u062a\u0645 \u062d\u0641\u0638 \u0644\u0648\u0646 \u0627\u0644\u062e\u0644\u0641\u064a\u0629."},
     "Main Screen Transparency (Default Theme only)": {"ar": u"\u0634\u0641\u0627\u0641\u064a\u0629 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"},
     "Show Plugin in Main Menu: ": {"ar": u"\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c \u0641\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629: "},
     "Set Voter Name: ":           {"ar": u"\u062a\u0639\u064a\u064a\u0646 \u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0648\u0651\u062a: "},
@@ -1098,7 +1110,35 @@ def fetch_soccer_teams_threaded(league_slug, on_result):
 
         teams = []
 
-        # Stage 1: site API (full inline objects)
+        if league_slug == "epl.1" or str(league_slug).startswith("epl"):
+            teams = [
+                {"id": "1", "name": "الأهلي", "short": "الأهلي", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/1.png"},
+                {"id": "2", "name": "الزمالك", "short": "الزمالك", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/2.png"},
+                {"id": "1451", "name": "بيراميدز", "short": "بيراميدز", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/1451.png"},
+                {"id": "12723", "name": "سيراميكا كليوباترا", "short": "سيراميكا", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/12723.png"},
+                {"id": "8", "name": "المصري", "short": "المصري", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/8.png"},
+                {"id": "13", "name": "الاتحاد السكندري", "short": "الاتحاد", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/13.png"},
+                {"id": "860", "name": "سموحة", "short": "سموحة", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/860.png"},
+                {"id": "1683", "name": "زد", "short": "زد", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/1683.png"},
+                {"id": "150", "name": "إنبي", "short": "إنبي", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/150.png"},
+                {"id": "617", "name": "الجونة", "short": "الجونة", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/617.png"},
+                {"id": "304", "name": "طلائع الجيش", "short": "طلائع الجيش", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/304.png"},
+                {"id": "12724", "name": "مودرن سبورت", "short": "مودرن سبورت", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/12724.png"},
+                {"id": "653", "name": "بتروجت", "short": "بتروجت", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/653.png"},
+                {"id": "7", "name": "غزل المحلة", "short": "غزل المحلة", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/7.png"},
+                {"id": "1016", "name": "وادي دجلة", "short": "وادي دجلة", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/1016.png"},
+                {"id": "11", "name": "المقاولون العرب", "short": "المقاولون", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/11.png"},
+                {"id": "12", "name": "القناة", "short": "القناة", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/12.png"},
+                {"id": "812", "name": "أبو قير للأسمدة", "short": "أبو قير", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/812.png"},
+                {"id": "610", "name": "بترول أسيوط", "short": "بترول أسيوط", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/610.png"},
+                {"id": "2188", "name": "البنك الأهلي", "short": "البنك الأهلي", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/2188.png"},
+                {"id": "3", "name": "الإسماعيلي", "short": "الإسماعيلي", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/3.png"},
+                {"id": "6", "name": "حرس الحدود", "short": "حرس الحدود", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/6.png"},
+                {"id": "5", "name": "فاركو", "short": "فاركو", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/5.png"},
+                {"id": "10", "name": "بلدية المحلة", "short": "بلدية المحلة", "logo_url": "https://semedia.filgoal.com/Photos/Team/Medium/10.png"},
+            ]
+            reactor.callFromThread(on_result, teams)
+            return
         try:
             site_url = (
                 "https://site.api.espn.com/apis/site/v2/sports/soccer"
@@ -1451,8 +1491,8 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.8"
-# v6.8 brings full Egyptian Premier League live scores, lineups, and match timelines, match-start auto-zap timers, smarter distraction-free notifications, unified Arabic translations, and multi-league refresh fixes.
+CURRENT_VERSION = "6.9"
+# v6.9 introduces Main Theme Background Color customization (8 curated TV palettes including OLED Pure Black), full Egyptian Premier League official video highlights & clips direct playback in Game Info, official EPL league logo integration, instant league switching, and EPL favorite teams support, main UI background color, Arena screen live filter fix, and basketball sound notifications fix.
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
 # ==============================================================================
@@ -2023,9 +2063,11 @@ SPORT_TYPE_RUGBY = "rugby"       # Six Nations, Super Rugby, NRL
 
 
 def get_soccer_league_slug(url):
-    """Extract the ESPN league slug from a site.api.espn.com soccer scoreboard URL.
+    """Extract the league slug from a soccer scoreboard URL or sentinel.
     e.g. 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard' -> 'eng.1'
     """
+    if str(url).startswith("epl://"):
+        return "epl.1"
     try:
         parts = url.rstrip("/").split("/")
         if "soccer" in parts:
@@ -2052,6 +2094,8 @@ def get_leaderboard_league_category(league, league_url="", sport="soccer"):
         l_str = (str(league or "") + " " + str(league_url or "")).lower()
         if "fifa.world" in l_str or "world cup" in l_str or "world.cup" in l_str:
             return "World Cup"
+        if "egypt" in l_str or "epl://api" in l_str or "egyptian" in l_str or league == "epl":
+            return "Egyptian League"
         if "eng.1" in l_str or "premier" in l_str or "epl" in l_str:
             return "Premier League"
         if "esp.1" in l_str or "la liga" in l_str or "laliga" in l_str or "primera division" in l_str:
@@ -2663,6 +2707,51 @@ def snapshot_passes_filter(snap, filter_mode, today, tomorrow, yesterday):
 
 
 # ==============================================================================
+# EPL LOGO RESOLVER HELPERS (FIRST CHOICE & FALLBACK ARCHITECTURE)
+# ==============================================================================
+def get_bundled_epl_logo_path():
+    """
+    First choice resolver for Egyptian Premier League logo.
+    Discovers the bundled epl_logo.png shipped with the plugin package.
+    """
+    candidates = []
+    try:
+        if 'resolveFilename' in globals() and 'SCOPE_PLUGINS' in globals():
+            candidates.append(resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/epl_logo.png"))
+            candidates.append(resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/icons/epl_logo.png"))
+    except Exception:
+        pass
+    try:
+        candidates.append(os.path.join(os.path.dirname(__file__), "epl_logo.png"))
+        candidates.append(os.path.join(os.path.dirname(__file__), "icons", "epl_logo.png"))
+        candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "epl_logo.png"))
+    except Exception:
+        pass
+    candidates.append("/usr/lib/enigma2/python/Plugins/Extensions/SimplySports/epl_logo.png")
+
+    for cand in candidates:
+        try:
+            if cand and os.path.exists(cand) and os.path.getsize(cand) > 100:
+                return cand
+        except Exception:
+            pass
+    return None
+
+
+def is_epl_logo_request(url, img_id):
+    """
+    Returns True if the requested logo belongs to the Egyptian Premier League.
+    """
+    s_id = str(img_id or '').lower()
+    s_url = str(url or '').lower()
+    if s_id in ('league_epl', 'epl') or s_id.startswith('league_epl'):
+        return True
+    if 'egyptianproleague' in s_url or s_url.startswith('epl://') or 'epl_logo.png' in s_url:
+        return True
+    return False
+
+
+# ==============================================================================
 # UNIFIED LOGO LOADER
 # ==============================================================================
 def load_logo_to_widget(screen, widget_name, url, img_id=None, on_loaded=None, keep_existing=False):
@@ -2682,7 +2771,40 @@ def load_logo_to_widget(screen, widget_name, url, img_id=None, on_loaded=None, k
     cache_dir = LOGO_CACHE_DIR + "/"
     file_path = cache_dir + str(img_id) + ".png"
 
-    # Serve from disk cache (100-byte minimum to reject corrupt files)
+    # -------------------------------------------------------------------------
+    # CHOICE 1 (PRIMARY): Use bundled epl_logo.png for Egyptian Premier League
+    # -------------------------------------------------------------------------
+    if is_epl_logo_request(url, img_id):
+        bundled_epl = get_bundled_epl_logo_path()
+        if bundled_epl:
+            import shutil
+            try:
+                if not os.path.exists(cache_dir): os.makedirs(cache_dir)
+                if not os.path.exists(file_path) or os.path.getsize(file_path) < 100:
+                    shutil.copyfile(bundled_epl, file_path)
+            except Exception:
+                pass
+            try:
+                active_src = file_path if (os.path.exists(file_path) and os.path.getsize(file_path) > 100) else bundled_epl
+                ptr = GLOBAL_PIXMAP_CACHE.get(active_src)
+                if not ptr and LoadPixmap:
+                    ptr = LoadPixmap(cached=True, path=active_src)
+                    if ptr: GLOBAL_PIXMAP_CACHE[active_src] = ptr
+                if ptr and screen[widget_name].instance:
+                    screen[widget_name].instance.setPixmap(ptr)
+                    screen[widget_name].instance.setScale(1)
+                elif screen[widget_name].instance:
+                    screen[widget_name].instance.setPixmapFromFile(active_src)
+                    screen[widget_name].instance.setScale(1)
+                screen[widget_name].show()
+                if on_loaded: on_loaded()
+                return
+            except Exception:
+                pass
+
+    # -------------------------------------------------------------------------
+    # CHOICE 2 (FALLBACK): Serve from disk cache (100-byte minimum to reject corrupt files)
+    # -------------------------------------------------------------------------
     if os.path.exists(file_path) and os.path.getsize(file_path) > 100:
         # Validate PNG magic bytes (\x89PNG) — a 404/HTML error page saved by a
         # previous failed download passes the size check but cannot be loaded as
@@ -2750,13 +2872,33 @@ def load_logo_to_widget(screen, widget_name, url, img_id=None, on_loaded=None, k
     if not keep_existing:
         try: screen[widget_name].hide()
         except: pass
+    def _fallback_download(err=None):
+        def _thread_fallback():
+            try:
+                import urllib.request as _urllib, ssl as _ssl
+                _ctx = _ssl.create_default_context()
+                _ctx.check_hostname = False
+                _ctx.verify_mode = _ssl.CERT_NONE
+                _req = _urllib.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+                with _urllib.urlopen(_req, context=_ctx, timeout=8) as _resp:
+                    _data = _resp.read()
+                    if _data and len(_data) > 100:
+                        with open(file_path, 'wb') as _f: _f.write(_data)
+                        reactor.callFromThread(_on_done, _data)
+            except Exception:
+                pass
+        _t = threading.Thread(target=_thread_fallback)
+        _t.daemon = True
+        _t.start()
+
     try:
         headers = {b'User-Agent': b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        downloadPage(url.encode('utf-8'), file_path, headers=headers, timeout=10).addCallback(_on_done).addErrback(lambda e: None)
+        downloadPage(url.encode('utf-8'), file_path, headers=headers, timeout=10).addCallback(_on_done).addErrback(_fallback_download)
     except:
         try:
-            downloadPage(url.encode('utf-8'), file_path).addCallback(_on_done).addErrback(lambda e: None)
-        except: pass
+            downloadPage(url.encode('utf-8'), file_path).addCallback(_on_done).addErrback(_fallback_download)
+        except:
+            _fallback_download()
 
 
 # ==============================================================================
@@ -2851,7 +2993,7 @@ def _spread_to_probs(spread, league_url):
         sigma = 1.3; has_draw = True
     elif 'hockey' in url_l or 'nhl' in url_l:
         sigma = 1.6; has_draw = False
-    elif 'basketball' in url_l or 'nba' in url_l or 'ncaab' in url_l:
+    elif 'basketball' in url_l or 'nba' in url_l or 'ncaab' in url_l or 'fiba' in url_l or 'euroleague' in url_l:
         sigma = 11.0; has_draw = False
     elif 'football' in url_l or 'nfl' in url_l or 'ncaaf' in url_l:
         sigma = 13.5; has_draw = False
@@ -3296,10 +3438,39 @@ def draw_card(res, x, y, w, h, radius, fill, fill_sel, border=None, border_sel=N
 
 
 # ==============================================================================
+# MAIN THEME BACKGROUND COLOR PRESETS
+# ==============================================================================
+MAIN_THEME_BG_COLORS = {
+    "default":  {"name_en": "Default (Dark Slate)", "name_ar": u"\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a (\u0641\u062d\u0645\u064a \u062f\u0627\u0643\u0646)", "deep_hex": "111418", "navy_hex": "0E1621", "deep_int": 0x111418, "navy_int": 0x0E1621},
+    "black":    {"name_en": "Pure Black (OLED)",    "name_ar": u"\u0623\u0633\u0648\u062f \u0646\u0642\u064a (OLED)",        "deep_hex": "000000", "navy_hex": "080808", "deep_int": 0x000000, "navy_int": 0x080808},
+    "navy":     {"name_en": "Deep Navy",            "name_ar": u"\u0623\u0632\u0631\u0642 \u0643\u062d\u0644\u064a \u062f\u0627\u0643\u0646",          "deep_hex": "0A121D", "navy_hex": "060D17", "deep_int": 0x0A121D, "navy_int": 0x060D17},
+    "midnight": {"name_en": "Midnight Blue",        "name_ar": u"\u0623\u0632\u0631\u0642 \u0644\u064a\u0644\u064a",              "deep_hex": "0A1326", "navy_hex": "070E1E", "deep_int": 0x0A1326, "navy_int": 0x070E1E},
+    "emerald":  {"name_en": "Dark Emerald",         "name_ar": u"\u0623\u062e\u0636\u0631 \u0632\u0645\u0631\u062f\u064a \u062f\u0627\u0643\u0646",        "deep_hex": "0B1612", "navy_hex": "07120D", "deep_int": 0x0B1612, "navy_int": 0x07120D},
+    "purple":   {"name_en": "Deep Purple",          "name_ar": u"\u0628\u0646\u0641\u0633\u062c\u064a \u062f\u0627\u0643\u0646",            "deep_hex": "140D1D", "navy_hex": "0E0816", "deep_int": 0x140D1D, "navy_int": 0x0E0816},
+    "maroon":   {"name_en": "Dark Maroon",          "name_ar": u"\u0639\u0646\u0627\u0628\u064a \u062f\u0627\u0643\u0646",              "deep_hex": "180D11", "navy_hex": "12080B", "deep_int": 0x180D11, "navy_int": 0x12080B},
+    "graphite": {"name_en": "Dark Graphite",        "name_ar": u"\u0631\u0645\u0627\u062f\u064a \u063a\u0631\u0627\u0641\u064a\u062a",           "deep_hex": "16181B", "navy_hex": "101215", "deep_int": 0x16181B, "navy_int": 0x101215},
+}
+
+def get_main_bg_preset(color_key=None):
+    """Return dictionary containing hex and int color values for the given or active background color."""
+    if not color_key:
+        if 'global_sports_monitor' in globals() and global_sports_monitor and hasattr(global_sports_monitor, "main_bg_color"):
+            color_key = global_sports_monitor.main_bg_color
+        else:
+            color_key = "default"
+    return MAIN_THEME_BG_COLORS.get(color_key, MAIN_THEME_BG_COLORS["default"])
+
+def get_main_bg_color_name(color_key=None):
+    """Return localized display name of the background color."""
+    preset = get_main_bg_preset(color_key)
+    return _t(preset["name_en"])
+
+
+# ==============================================================================
 # VNEXT DESIGN TOKENS (SimplySports Main UI Renovation)
 # ==============================================================================
-VN_BG_DEEP      = 0x111418   # Deep charcoal - main background
-VN_BG_NAVY      = 0x0E1621   # Dark navy - top/bottom bars
+VN_BG_DEEP      = 0x111418   # Deep charcoal - main background (default)
+VN_BG_NAVY      = 0x0E1621   # Dark navy - top/bottom bars (default)
 VN_CARD         = 0x171C24   # Card surface (default)
 VN_CARD_LIVE    = 0x151F1A   # Card surface tint for LIVE matches
 VN_CARD_SEL     = 0x1F2A38   # Elevated card surface on focus (default)
@@ -3674,6 +3845,10 @@ def VNextListEntry(entry):
         c_live = VN_LIVE_RED
         c_sel = 0x00E5FF           # Vibrant Electric Cyan focus highlight for text & UI elements
 
+        _bg_preset = get_main_bg_preset()
+        vn_bg_deep = _bg_preset["deep_int"]
+        vn_bg_navy = _bg_preset["navy_int"]
+
         if status == "INFO":
             H = sy(136)
             card_y = sy(3)
@@ -3681,7 +3856,7 @@ def VNextListEntry(entry):
             card_x = sx(22)
             card_w = SCREEN_WIDTH - 2 * card_x
             res = [entry]
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
             draw_card(res, card_x, card_y, card_w, card_h, 18, VN_CARD, VN_CARD_SEL, VN_BORDER, 0x00E5FF, border_w=2)
             res.append((eListboxPythonMultiContent.TYPE_TEXT, card_x + sx(20), card_y, card_w - sx(40), card_h, 1, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(left_text), VN_TEXT_SEC, c_sel))
             return res
@@ -3710,10 +3885,10 @@ def VNextListEntry(entry):
 
         res = [entry]
 
-        # Zebra background is not needed - deep charcoal canvas already comes from the
+        # Zebra background is not needed - deep canvas already comes from the
         # screen skin's main_bg; just paint each row's outer gutter to match it so
         # focus/selection never shows a "hole" between cards.
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP, VN_BG_DEEP))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
 
         card_fill = VN_CARD_LIVE if status == "LIVE" else VN_CARD
         card_fill_sel = VN_CARD_LIVE_SEL if status == "LIVE" else VN_CARD_SEL
@@ -3877,7 +4052,7 @@ def VNextListEntry(entry):
             if max_len > 8: font_idx = 3
             elif max_len > 5: font_idx = 0
 
-            score_bg = c_score_bg if isinstance(c_score_bg, int) else VN_BG_NAVY
+            score_bg = c_score_bg if isinstance(c_score_bg, int) else vn_bg_navy
             draw_rounded_box(res, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True)
             draw_rounded_box(res, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True)
             res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s1, c_h_score, c_sel))
@@ -4017,9 +4192,9 @@ def VNextListEntry(entry):
         if status == "LIVE":
             bg_time = VN_LIVE_RED; fg_time = 0xffffff
         elif status == "FIN":
-            bg_time = VN_BG_NAVY; fg_time = VN_GRAY_FIN
+            bg_time = vn_bg_navy; fg_time = VN_GRAY_FIN
         else:
-            bg_time = VN_BG_NAVY; fg_time = VN_ACCENT_CYAN
+            bg_time = vn_bg_navy; fg_time = VN_ACCENT_CYAN
 
         time_w = sx(170)
         time_x = card_x + card_w - sx(22) - time_w
@@ -4038,7 +4213,7 @@ def VNextListEntry(entry):
         elif status == "CAN":
             bg_status = 0x555555; fg_status = 0xffffff; label_status = "CAN"
         else:
-            bg_status = VN_BG_NAVY; fg_status = VN_ACCENT_CYAN; label_status = status if status else "SCH"
+            bg_status = vn_bg_navy; fg_status = VN_ACCENT_CYAN; label_status = status if status else "SCH"
 
         badge_x = time_x
         badge_y = time_y + time_h + sy(8)  # Positioned directly below match date/time badge (card_y + 58)
@@ -5281,6 +5456,7 @@ class SportsMonitor:
         self.ch_day_offset = 0   # 0 = today; +N = N days ahead; -N = N days ago
         self.theme_mode = "default"
         self.transparency = "59"
+        self.main_bg_color = "default"
 
         self.logo_path_cache = {}
         self.missing_logo_cache = set()
@@ -5816,6 +5992,8 @@ class SportsMonitor:
                     self.filter_mode = int(data.get("filter_mode", 0))
                     self.theme_mode = data.get("theme_mode", "default")
                     self.transparency = data.get("transparency", "59")
+                    _bg_col = data.get("main_bg_color", "default")
+                    self.main_bg_color = _bg_col if _bg_col in MAIN_THEME_BG_COLORS else "default"
                     self.discovery_mode = int(data.get("discovery_mode", 0))
                     self.active = (self.discovery_mode > 0)
                     # --- Custom leagues: prefer stable slugs, fall back to legacy indices ---
@@ -5888,6 +6066,7 @@ class SportsMonitor:
 
     def defaults(self):
         self.filter_mode = 2; self.theme_mode = "default"; self.transparency = "59"
+        self.main_bg_color = "default"
         self.discovery_mode = 0; self.reminders = []; self.menu_section = "all"
         self.show_in_menu = True; self.minibar_color_mode = "default"; self.minibar_1_style = "default"
         self.voter_name = "Anonymous"
@@ -5936,6 +6115,7 @@ class SportsMonitor:
             "league_slug": IDX_TO_SLUG.get(self.current_league_index, ""),
             "filter_mode": self.filter_mode,
             "theme_mode": self.theme_mode, "transparency": self.transparency,
+            "main_bg_color": getattr(self, "main_bg_color", "default"),
             "discovery_mode": self.discovery_mode, "active": self.active,
             "custom_indices": self.custom_league_indices,
             "custom_league_slugs": [IDX_TO_SLUG[i] for i in self.custom_league_indices if i in IDX_TO_SLUG],
@@ -6151,6 +6331,95 @@ class SportsMonitor:
         t = threading.Thread(target=_run, daemon=True)
         t.start()
 
+    def _resolve_epl_bet(self, eid, bet):
+        # 1. First check in-memory event_map
+        ev = self.event_map.get(str(eid))
+        if ev:
+            try:
+                comp = dict(ev.get('competitions', [{}])[0])
+                status_dict = ev.get('status', {}) or comp.get('status', {})
+                comp['status'] = status_dict
+                state = status_dict.get('type', {}).get('state', 'pre')
+                if state == 'post':
+                    fake_body = json.dumps({'header': {'competitions': [comp]}}).encode('utf-8')
+                    self._on_summary_resolved(fake_body, eid, bet)
+                    return
+            except Exception as e:
+                log_dbg("EPL bet eval error for {}: {}".format(eid, e))
+
+        # 2. If not found in current event_map or not marked post yet, query Azure EPL API
+        def _fetch_epl_bet_result():
+            try:
+                import urllib.request as _urllib
+                import ssl as _ssl
+                ctx = _ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = _ssl.CERT_NONE
+                hdrs = {'User-Agent': 'Mozilla/5.0'}
+
+                dates_to_check = []
+                today_str = datetime.date.today().strftime('%Y-%m-%d')
+                dates_to_check.append(today_str)
+                ts = bet.get("timestamp", 0)
+                if ts > 0:
+                    b_dt = datetime.datetime.fromtimestamp(ts)
+                    for day_delta in [0, -1, 1, -2, -3]:
+                        d_cand = (b_dt + datetime.timedelta(days=day_delta)).strftime('%Y-%m-%d')
+                        if d_cand not in dates_to_check:
+                            dates_to_check.append(d_cand)
+
+                h_bet = (bet.get("h_name") or "").strip().lower()
+                a_bet = (bet.get("a_name") or "").strip().lower()
+
+                for d_str in dates_to_check:
+                    u = "https://egypl-api.azurewebsites.net/Auth/1667/matches/{}".format(d_str)
+                    try:
+                        req = _urllib.Request(u, headers=hdrs)
+                        resp = _urllib.urlopen(req, timeout=6, context=ctx).read().decode('utf-8', errors='ignore')
+                        data = json.loads(resp)
+                    except Exception:
+                        continue
+
+                    if not isinstance(data, list):
+                        continue
+
+                    for m in data:
+                        m_id = str(m.get('id') or hashlib.md5(str(m).encode('utf-8')).hexdigest()[:10])
+                        h_name = (m.get('homeTeamName') or '').strip().lower()
+                        a_name = (m.get('awayTeamName') or '').strip().lower()
+
+                        matched = False
+                        if m_id == str(eid):
+                            matched = True
+                        elif h_bet and a_bet and (h_bet in h_name or h_name in h_bet) and (a_bet in a_name or a_name in a_bet):
+                            matched = True
+
+                        if matched:
+                            h_score = m.get('homeScore')
+                            a_score = m.get('awayScore')
+                            status_obj = m.get('currentMatchStatus') or {}
+                            status_id = status_obj.get('matchStatusId') or status_obj.get('status', 0)
+                            status_name = status_obj.get('matchStatusName') or m.get('statusDescription') or ''
+                            is_post = (status_id == 9 or status_name in ('انتهت', 'FT', 'Finished') or 
+                                       (h_score is not None and a_score is not None and status_id != 1))
+                            if is_post and h_score is not None and a_score is not None:
+                                comp = {
+                                    'status': {'type': {'state': 'post', 'completed': True}},
+                                    'competitors': [
+                                        {'homeAway': 'home', 'score': int(h_score)},
+                                        {'homeAway': 'away', 'score': int(a_score)}
+                                    ]
+                                }
+                                fake_body = json.dumps({'header': {'competitions': [comp]}}).encode('utf-8')
+                                reactor.callFromThread(self._on_summary_resolved, fake_body, eid, bet)
+                                return
+            except Exception as ex:
+                log_dbg("EPL bet background fetch error: {}".format(ex))
+
+        t = threading.Thread(target=_fetch_epl_bet_result)
+        t.daemon = True
+        t.start()
+
     def evaluate_pending_bets(self):
         if not self.ledger.get("pending_bets"): return
 
@@ -6158,6 +6427,24 @@ class SportsMonitor:
         for eid, bet in list(self.ledger["pending_bets"].items()):
             sport = bet.get("sport", "soccer")
             league = bet.get("league", "")
+
+            # ── Egyptian Premier League: resolve from EPL engine & Azure API ──
+            # EPL event IDs come from the Egyptian Pro League portal, not ESPN.
+            # Route them to _resolve_epl_bet so they are checked against event_map
+            # and the official EPL archive instead of ESPN.
+            is_epl = (league == "epl" or 
+                      bet.get("league_url", "") == "epl://api" or 
+                      bet.get("league_url", "").startswith("epl") or
+                      str(eid).startswith("epl_"))
+            if not is_epl:
+                ev_check = self.event_map.get(str(eid))
+                if ev_check and (ev_check.get("league_url") == "epl://api" or "Egyptian" in ev_check.get("league_name", "")):
+                    is_epl = True
+
+            if is_epl:
+                self._resolve_epl_bet(eid, bet)
+                continue
+
             url = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(sport, league, eid)
 
             if url in self.active_requests: continue
@@ -8108,6 +8395,14 @@ class SportsMonitor:
                             if not date_iso.endswith('Z') and 'T' in date_iso:
                                 date_iso += 'Z'
 
+                            status_obj = {
+                                'type': {
+                                    'state': state,
+                                    'completed': completed,
+                                    'description': status_name or ('Final' if completed else 'Scheduled'),
+                                    'shortDetail': status_short
+                                }
+                            }
                             ev = {
                                 'id': m_id,
                                 'date': date_iso,
@@ -8145,16 +8440,10 @@ class SportsMonitor:
                                                 'logo': a_logo
                                             }
                                         }
-                                    ]
+                                    ],
+                                    'status': status_obj
                                 }],
-                                'status': {
-                                    'type': {
-                                        'state': state,
-                                        'completed': completed,
-                                        'description': status_name or ('Final' if completed else 'Scheduled'),
-                                        'shortDetail': status_short
-                                    }
-                                }
+                                'status': status_obj
                             }
                             events.append(ev)
                 except Exception as e:
@@ -8230,6 +8519,14 @@ class SportsMonitor:
                                         except Exception:
                                             pass
 
+                                    status_obj = {
+                                        'type': {
+                                            'state': state,
+                                            'completed': completed,
+                                            'description': status_name or ('Final' if completed else 'Scheduled'),
+                                            'shortDetail': status_short
+                                        }
+                                    }
                                     ev = {
                                         'id': m_id,
                                         'date': date_iso,
@@ -8267,16 +8564,10 @@ class SportsMonitor:
                                                         'logo': a_logo
                                                     }
                                                 }
-                                            ]
+                                            ],
+                                            'status': status_obj
                                         }],
-                                        'status': {
-                                            'type': {
-                                                'state': state,
-                                                'completed': completed,
-                                                'description': status_name or ('Final' if completed else 'Scheduled'),
-                                                'shortDetail': status_short
-                                            }
-                                        }
+                                        'status': status_obj
                                     }
                                     events.append(ev)
                     except Exception as e:
@@ -8303,7 +8594,7 @@ class SportsMonitor:
 
                 fake_body = json.dumps({
                     'events': events,
-                    'leagues': [{'name': league_name, 'id': 'epl', 'logos': [{'href': 'https://library.egyptianproleague.com/Images/logo.png'}]}]
+                    'leagues': [{'name': league_name, 'id': 'epl', 'logos': [{'href': 'https://egyptianproleague.com/assets/images/logo.png'}]}]
                 }).encode('utf-8')
                 reactor.callFromThread(self._on_epl_data, fake_body, league_name, sentinel)
             except Exception as e:
@@ -8365,6 +8656,15 @@ class SportsMonitor:
 
             date_str = m.get('date') or m.get('matchDate') or datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
+            status_obj = {
+                'type': {
+                    'state': state,
+                    'completed': (state == 'post'),
+                    'description': status_text or ('Final' if state == 'post' else 'Scheduled'),
+                    'shortDetail': status_text or ('FT' if state == 'post' else 'SCH')
+                }
+            }
+
             return {
                 'id': m_id,
                 'date': date_str,
@@ -8402,16 +8702,10 @@ class SportsMonitor:
                                 'logo': away_logo
                             }
                         }
-                    ]
+                    ],
+                    'status': status_obj
                 }],
-                'status': {
-                    'type': {
-                        'state': state,
-                        'completed': (state == 'post'),
-                        'description': status_text or ('Final' if state == 'post' else 'Scheduled'),
-                        'shortDetail': status_text or ('FT' if state == 'post' else 'SCH')
-                    }
-                }
+                'status': status_obj
             }
         except Exception as e:
             log_dbg(f"[EPL] Convert match error: {e}")
@@ -8431,9 +8725,23 @@ class SportsMonitor:
         snap = self.match_snapshots.get(match_id)
         if not snap: return
 
-        sport_type = snap['sport_type']
-        league_url = snap.get('league_url', '').lower()
-        is_basketball = '/basketball/' in league_url or 'euroleague' in league_url
+        sport_type = snap.get('sport_type')
+        league_url = (snap.get('league_url') or '').lower()
+        league_name = (snap.get('league_name') or '').lower()
+
+        # Check if basketball: inspect URL, snap fields, or league name
+        is_basketball = ('/basketball/' in league_url or 
+                         'euroleague' in league_url or 
+                         'fiba' in league_url or 
+                         'basket' in league_url or 
+                         'nba' in league_url or 
+                         'wnba' in league_url or 
+                         self.get_sport_type(league_name, league_url) == 'basketball')
+
+        # BASKETBALL: Visual toast ONLY — strictly disable all sound notifications
+        if is_basketball:
+            sound_type = None
+
         is_soccer = '/soccer/' in league_url
         notification = (match_id, score, scorer, event_type, scoring_team, sound_type, time.time())
 
@@ -8582,20 +8890,29 @@ class SportsMonitor:
         self.current_toast_match = None
         reactor.callLater(0.3, self.process_queue)
 
-    def get_sport_type(self, league_name):
-        lname = league_name.lower()
-        if any(x in lname for x in ['nba', 'wnba', 'basket', 'euroleague']): return 'basketball'
-        if any(x in lname for x in ['nfl', 'ncaa football', 'ufl']): return 'football'
-        if any(x in lname for x in ['mlb', 'baseball']): return 'baseball'
-        if any(x in lname for x in ['nhl', 'hockey']): return 'hockey'
+    def get_sport_type(self, league_name, league_url=""):
+        lname = (league_name or "").lower()
+        lurl = (league_url or "").lower()
+        if '/basketball/' in lurl or 'euroleague' in lurl or 'fiba' in lurl or 'bask' in lurl:
+            return 'basketball'
+        if any(x in lname for x in ['nba', 'wnba', 'basket', 'euroleague', 'fiba', 'eurocup', 'acb', 'bbl', 'lnb', 'bsl', 'cba', 'nbl', 'march madness']):
+            return 'basketball'
+        if '/football/' in lurl or any(x in lname for x in ['nfl', 'ncaa football', 'ufl', 'cfl']):
+            return 'football'
+        if '/baseball/' in lurl or any(x in lname for x in ['mlb', 'baseball']):
+            return 'baseball'
+        if '/hockey/' in lurl or any(x in lname for x in ['nhl', 'hockey']):
+            return 'hockey'
         return 'soccer'
-    def get_cdn_sport_name(self, league_name):
-        lname = league_name.lower()
+
+    def get_cdn_sport_name(self, league_name, league_url=""):
+        lname = (league_name or "").lower()
+        lurl = (league_url or "").lower()
         if 'college' in lname or 'ncaa' in lname: return 'ncaa'
-        if 'nba' in lname or 'basket' in lname: return 'nba'
-        if 'nfl' in lname: return 'nfl'
-        if 'mlb' in lname: return 'mlb'
-        if 'nhl' in lname: return 'nhl'
+        if any(x in lname for x in ['nba', 'wnba', 'basket', 'euroleague', 'fiba']) or '/basketball/' in lurl: return 'nba'
+        if 'nfl' in lname or '/football/' in lurl: return 'nfl'
+        if 'mlb' in lname or '/baseball/' in lurl: return 'mlb'
+        if 'nhl' in lname or '/hockey/' in lurl: return 'nhl'
         return 'soccer'
     def get_score_prefix(self, sport, diff):
         if diff < 0: return "GOAL DISALLOWED"
@@ -8853,6 +9170,22 @@ class SportsMonitor:
 
             target_path = cache_dir + str(team_id) + ".png"
 
+            # -----------------------------------------------------------------
+            # CHOICE 1 (PRIMARY): Use bundled epl_logo.png for Egyptian Premier League
+            # -----------------------------------------------------------------
+            if is_epl_logo_request(url, team_id):
+                bundled_epl = get_bundled_epl_logo_path()
+                if bundled_epl:
+                    import shutil
+                    try:
+                        shutil.copyfile(bundled_epl, target_path)
+                        self.logo_path_cache[team_id] = target_path
+                        self.missing_logo_cache.discard(team_id)
+                        GLOBAL_VALID_LOGO_PATHS.add(target_path)
+                        return
+                    except Exception:
+                        pass
+
             # Download only if missing or empty
             if not os.path.exists(target_path) or os.path.getsize(target_path) == 0:
                 self.pending_logos.add(team_id)
@@ -8867,7 +9200,26 @@ class SportsMonitor:
                     return data
 
                 def on_download_error(err):
-                    self.pending_logos.discard(team_id)
+                    # Unverified SSL fallback thread for certificates with non-critical basic constraints
+                    def _thread_fallback():
+                        try:
+                            import urllib.request as _urllib, ssl as _ssl
+                            _ctx = _ssl.create_default_context()
+                            _ctx.check_hostname = False
+                            _ctx.verify_mode = _ssl.CERT_NONE
+                            _req = _urllib.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+                            with _urllib.urlopen(_req, context=_ctx, timeout=8) as _resp:
+                                _data = _resp.read()
+                                if _data and len(_data) > 100:
+                                    on_download_success(_data)
+                                    return
+                        except Exception:
+                            pass
+                        self.pending_logos.discard(team_id)
+
+                    _t = threading.Thread(target=_thread_fallback)
+                    _t.daemon = True
+                    _t.start()
                     return None
 
                 from twisted.web.http_headers import Headers
@@ -9183,7 +9535,7 @@ class SportsMonitor:
                                 prev_h, prev_a = map(int, self.last_scores[match_id].split('-'))
                                 diff_h = h_score - prev_h
                                 diff_a = a_score - prev_a
-                                sport_type = self.get_sport_type(league_name)
+                                sport_type = self.get_sport_type(league_name, league_url)
 
                                 # Re-format score display "1-0" NO SPACES
                                 score_display = "{}-{}".format(h_score, a_score)
@@ -10385,7 +10737,7 @@ class TeamStandingScreen(Screen):
             ))
 
             for idx, c in enumerate(clubs, 1):
-                name = c.get('name', 'Club')
+                name = _team_name(c.get('name', 'Club'))
                 p = str(c.get('played', c.get('gamesPlayed', '-')))
                 w = str(c.get('won', c.get('wins', '-')))
                 d = str(c.get('drawn', c.get('draws', '-')))
@@ -10809,18 +11161,19 @@ class SimplePlayer(Screen):
             print("[SimplySport] SimplePlayer: Inherited prefetch for " + self.current_prefetch_url)
 
         # Transparent background for video overlay
-        self.skin = scale_skin_xml("""<screen position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#ff000000">
+        self.skin = scale_skin_xml("""<screen position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#00000000">
             <widget name="video_title" position="50,50" size="1000,60" font="Regular;40" foregroundColor="#ffffff" backgroundColor="#000000" transparent="1" zPosition="1" />
             <widget name="progress" position="50,120" size="1000,30" font="Regular;24" foregroundColor="#00FF85" backgroundColor="#000000" transparent="1" zPosition="1" />
             <widget name="hint" position="50,970" size="1820,60" font="Regular;28" foregroundColor="#aaaaaa" backgroundColor="#000000" transparent="1" halign="center" zPosition="1" />
         </screen>""")
         self["video_title"] = Label("Loading Stream...")
         self["progress"] = Label("")
-        self["hint"] = Label("◄► Skip | OK/Exit: Stop")
+        self["hint"] = Label("◄► Skip | Exit: Stop")
+        self.open_time = time.time()
 
         self["actions"] = ActionMap(["OkCancelActions", "InfobarSeekActions", "DirectionActions"], {
             "cancel": self.close,
-            "ok": self.close,
+            "ok": self.handle_ok,
             "seekFwd": self.next_video,      # >> button
             "seekBack": self.prev_video,     # << button
             "right": self.next_video,
@@ -10829,6 +11182,12 @@ class SimplePlayer(Screen):
 
         self.sref = sref
         self.onLayoutFinish.append(self.play)
+
+    def handle_ok(self):
+        # Prevent accidental closing from rapid OK presses on screen open
+        if (time.time() - getattr(self, 'open_time', 0)) < 1.5:
+            return
+        self.close()
 
     def prefetch_next(self, index):
         return # DISABLED for stability (user request: less aggressive)
@@ -10962,8 +11321,17 @@ class SimplePlayer(Screen):
                     self.close()
                     return
             elif self.sref:
+                self.start_time = time.time()
                 self.session.nav.playService(self.sref)
-                self["video_title"].setText("")
+                try:
+                    s_name = self.sref.getName()
+                    if s_name:
+                        self["video_title"].setText(s_name)
+                except Exception:
+                    pass
+                if not self.is_listening:
+                    self.session.nav.event.append(self.on_event)
+                    self.is_listening = True
         except Exception as e:
             print("[SimplySport] Play error: {}".format(e))
             # Increment retry counter
@@ -10975,28 +11343,26 @@ class SimplePlayer(Screen):
             reactor.callLater(2.0, self.play)
 
     def on_event(self, event):
-        # Enhanced event detection
-        # evEOF = 5, evStopped = 8, evUser = 14
-        if event in [5, 8]:  # EOF or Stopped
+        # Enhanced event detection (evEOF = 5, evStopped = 8, evUser = 14)
+        log_dbg("[SimplySport] SimplePlayer on_event: {}".format(event))
+        if event == 5:  # ONLY End-Of-File (evStopped is normal during stream connection/buffering)
             if self.is_advancing: return
 
-            # Grace period: Ignore EOF if within first 5 seconds (buffering)
-            if (time.time() - self.start_time) < 5:
+            # Grace period: Ignore EOF if within first 10 seconds (buffering)
+            if (time.time() - getattr(self, 'start_time', 0)) < 10:
                 return
 
-            print("[SimplySport] Video Finished (Event: {})".format(event))
+            log_dbg("[SimplySport] Video Finished (EOF)")
 
             # Playlist Logic
             if self.playlist:
                 self.is_advancing = True
                 self.playlist_index += 1
                 if self.playlist_index < len(self.playlist):
-                    print("[SimplySport] Advancing to index: {}".format(self.playlist_index))
+                    log_dbg("[SimplySport] Advancing to index: {}".format(self.playlist_index))
                     from twisted.internet import reactor
-                    # Increase delay for stability
                     reactor.callLater(1.2, self.play)
                 else:
-                    # All videos finished
                     self.close()
             else:
                 self.close()
@@ -11248,6 +11614,8 @@ class GameInfoScreen(Screen):
             self.odds_url    = ""
             self.cdn_url     = ""
             self._is_epl     = True
+            self.sport       = "soccer"
+            self.league      = "epl"
         # Tennis Special Handling: needs tournament_id as event and match_id as competition
         # Tennis Special Handling: needs tournament_id as event and match_id as competition
         elif self.sport_type == SPORT_TYPE_TENNIS:
@@ -11700,6 +12068,167 @@ class GameInfoScreen(Screen):
     def play_video(self, url, title):
         if not url: return
 
+        # Check if YouTube URL
+        id_m = re.search(r'(?:embed/|v=|youtu\.be/)([a-zA-Z0-9_-]{11})', url)
+        if id_m:
+            yt_id = id_m.group(1)
+
+            # Direct Stream Resolver Engine
+            def _resolve_and_play():
+                target_url = "https://www.youtube.com/watch?v={}".format(yt_id)
+                direct_stream = None
+                log_dbg("[SimplySport] Resolving YouTube stream for {}".format(yt_id))
+
+                # 1. First: Try in-process Python module (fastest, no CLI process overhead)
+                for mod_name in ["yt_dlp", "youtube_dl"]:
+                    try:
+                        mod = __import__(mod_name)
+                        ydl_opts = {
+                            'quiet': True,
+                            'no_warnings': True,
+                            'skip_download': True,
+                            'extractor_args': {
+                                'youtube': {
+                                    'player_client': ['android', 'web']
+                                }
+                            }
+                        }
+                        with mod.YoutubeDL(ydl_opts) as ydl:
+                            info = ydl.extract_info(target_url, download=False)
+                            if info:
+                                formats = info.get('formats', [])
+
+                                # Step A: Look for known progressive itags: 22 (720p), 18 (360p)
+                                for target_itag in [22, 18, 37, 43]:
+                                    for fmt in formats:
+                                        itag = fmt.get('itag') or fmt.get('format_id')
+                                        u = fmt.get('url', '')
+                                        if not u or 'manifest.googlevideo.com' in u:
+                                            continue
+                                        try:
+                                            if int(itag) == target_itag:
+                                                direct_stream = u
+                                                break
+                                        except Exception:
+                                            if str(itag) == str(target_itag):
+                                                direct_stream = u
+                                                break
+                                    if direct_stream:
+                                        break
+
+                                # Step B: Look for any format with both audio and video
+                                if not direct_stream:
+                                    prog_list = []
+                                    for fmt in formats:
+                                        u = fmt.get('url', '')
+                                        if not u or 'manifest.googlevideo.com' in u:
+                                            continue
+                                        vc = fmt.get('vcodec', 'none')
+                                        ac = fmt.get('acodec', 'none')
+                                        if vc and vc != 'none' and ac and ac != 'none':
+                                            h = fmt.get('height') or 0
+                                            prog_list.append((h, u))
+                                    if prog_list:
+                                        prog_list.sort(key=lambda x: x[0], reverse=True)
+                                        direct_stream = prog_list[0][1]
+
+                                # Step C: Look for any direct /videoplayback stream
+                                if not direct_stream:
+                                    for fmt in reversed(formats):
+                                        u = fmt.get('url', '')
+                                        if u and 'videoplayback' in u and 'manifest.googlevideo.com' not in u:
+                                            direct_stream = u
+                                            break
+
+                                # Step D: info.get('url') if valid and not manifest
+                                if not direct_stream:
+                                    u = info.get('url', '')
+                                    if u and u.startswith("http") and 'manifest.googlevideo.com' not in u:
+                                        direct_stream = u
+
+                                if direct_stream:
+                                    break
+                    except Exception as e:
+                        log_dbg("[SimplySport] In-process {} failed: {}".format(mod_name, e))
+
+                # 2. Second: Try CLI tools on Enigma2
+                if not direct_stream:
+                    cli_candidates = [
+                        ["yt-dlp", "--extractor-args", "youtube:player_client=android,web", "-g", target_url],
+                        ["/usr/bin/yt-dlp", "--extractor-args", "youtube:player_client=android,web", "-g", target_url],
+                        ["yt-dlp", "-g", target_url],
+                        ["/usr/bin/yt-dlp", "-g", target_url],
+                        ["python3", "-m", "yt_dlp", "-g", target_url],
+                    ]
+                    for cmd in cli_candidates:
+                        try:
+                            import subprocess
+                            p = subprocess.Popen(
+                                cmd,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE
+                            )
+                            out, err = p.communicate(timeout=25)
+                            if p.returncode == 0 and out.strip():
+                                lines = out.strip().decode('utf-8', errors='ignore').splitlines()
+                                for line in lines:
+                                    line = line.strip()
+                                    if line.startswith("http") and "manifest.googlevideo.com" not in line:
+                                        direct_stream = line
+                                        break
+                                if direct_stream:
+                                    break
+                        except Exception as e:
+                            log_dbg("[SimplySport] CLI {} error: {}".format(cmd[0], e))
+
+                # 3. Third: Try streamlink CLI
+                if not direct_stream:
+                    try:
+                        import subprocess
+                        p = subprocess.Popen(
+                            ["streamlink", "--stream-url", target_url, "best"],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE
+                        )
+                        out, _ = p.communicate(timeout=15)
+                        if p.returncode == 0 and out.strip():
+                            lines = out.strip().decode('utf-8', errors='ignore').splitlines()
+                            if lines and lines[0].startswith("http"):
+                                direct_stream = lines[0].strip()
+                    except Exception as e:
+                        log_dbg("[SimplySport] streamlink error: {}".format(e))
+
+                from twisted.internet import reactor
+                if direct_stream:
+                    headers = {}
+                    if 'formats' in locals() and formats:
+                        for fmt in formats:
+                            if fmt.get('url') == direct_stream:
+                                headers = fmt.get('http_headers', {})
+                                break
+                    if not headers and 'info' in locals() and info:
+                        headers = info.get('http_headers', {})
+                    ua = headers.get('User-Agent') or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+                    if "#" not in direct_stream:
+                        play_url = "{}#User-Agent={}".format(direct_stream, ua)
+                    else:
+                        play_url = "{}&User-Agent={}".format(direct_stream, ua)
+
+                    ref = "4097:0:1:0:0:0:0:0:0:0:{}:{}".format(play_url.replace(":", "%3a"), title)
+                    log_dbg("[SimplySport] Launching direct stream playback: {}".format(ref[:80]))
+                    reactor.callFromThread(self.session.open, SimplePlayer, eServiceReference(ref))
+                else:
+                    msg = (u"عذراً، يتعذر استخراج رابط الفيديو المباشر.\nيرجى التأكد من تثبيت وتحديث yt-dlp:\nopkg update && opkg install python3-yt-dlp") if PLUGIN_LANGUAGE == "ar" else ("Cannot resolve direct video stream.\nPlease ensure yt-dlp is updated:\nopkg update && opkg install python3-yt-dlp")
+                    reactor.callFromThread(self.session.open, MessageBox, msg, MessageBox.TYPE_WARNING, timeout=6)
+
+            wait_msg = u"جاري استخراج وتشغيل الفيديو..." if PLUGIN_LANGUAGE == "ar" else "Resolving and loading video stream..."
+            self.session.open(MessageBox, wait_msg, MessageBox.TYPE_INFO, timeout=2)
+            t = threading.Thread(target=_resolve_and_play)
+            t.daemon = True
+            t.start()
+            return
+
         clean_url = url.strip()
         ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
@@ -11712,10 +12241,7 @@ class GameInfoScreen(Screen):
             full_url += "&Referer=https://www.espn.com/"
 
         # Use ServiceMP (4097) for stream playback or inherited by SimplePlayer
-        # Note: SimplePlayer will override service_type based on HLS/MP4 detection
-        # Create a basic ref to pass through
         ref = "4097:0:1:0:0:0:0:0:0:0:{}:{}".format(full_url.replace(":", "%3a"), title)
-
         self.session.open(SimplePlayer, eServiceReference(ref))
 
 
@@ -12048,15 +12574,35 @@ class GameInfoScreen(Screen):
                 ctx = _ssl.create_default_context()
                 ctx.check_hostname = False
                 ctx.verify_mode = _ssl.CERT_NONE
-                req = _urllib.Request(
-                    self.summary_url,
-                    headers={
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                    }
-                )
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+                # 1. Fetch match details
+                req = _urllib.Request(self.summary_url, headers=headers)
                 raw_html = _urllib.urlopen(req, timeout=12, context=ctx).read()
+
+                # 2. Fetch Egyptian Pro League official highlight videos
+                videos = []
+                try:
+                    v_url = "https://egypl-api.azurewebsites.net/Videos"
+                    v_req = _urllib.Request(v_url, headers=headers)
+                    with _urllib.urlopen(v_req, timeout=6, context=ctx) as v_resp:
+                        v_data = json.loads(v_resp.read().decode('utf-8'))
+                        for item in v_data.get('items', []):
+                            v_title = item.get('title', '').strip()
+                            v_raw = item.get('url', '')
+                            yt_m = re.search(r'src=["\'](https?://[^"\']+)["\']', v_raw)
+                            vid_url = yt_m.group(1) if yt_m else v_raw
+                            id_m = re.search(r'(?:embed/|v=|youtu\.be/)([a-zA-Z0-9_-]{11})', vid_url)
+                            yt_id = id_m.group(1) if id_m else ""
+                            final_url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else vid_url
+                            if final_url and v_title:
+                                videos.append({'title': v_title, 'url': final_url, 'yt_id': yt_id})
+                except Exception as ve:
+                    log_dbg(f"[EPL GameInfo] Videos fetch error: {ve}")
+
                 from twisted.internet import reactor
-                reactor.callFromThread(self.parse_epl_details, raw_html)
+                reactor.callFromThread(self.parse_epl_details, raw_html, videos)
             except Exception as e:
                 log_dbg(f"[EPL GameInfo] Fetch error: {e}")
                 from twisted.internet import reactor
@@ -12066,7 +12612,7 @@ class GameInfoScreen(Screen):
         t.daemon = True
         t.start()
 
-    def parse_epl_details(self, body):
+    def parse_epl_details(self, body, videos=None):
         try:
             self["loading"].hide()
             html = body.decode('utf-8', errors='ignore')
@@ -12181,6 +12727,36 @@ class GameInfoScreen(Screen):
                 self.full_rows.append(TextListEntry("TEAM STATS", self.theme, is_header=True))
                 for st in stats:
                     name = st.get('Name') or st.get('StatName', '')
+                    if PLUGIN_LANGUAGE != "ar" and _has_arabic(name):
+                        norm_st = _norm_ar(name)
+                        stat_map = {
+                            u'الاستحواذ': 'Possession',
+                            u'نسبه الاستحواذ': 'Possession %',
+                            u'التسديدات': 'Total Shots',
+                            u'اجمالي التسديدات': 'Total Shots',
+                            u'التسديدات علي المرمي': 'Shots on Target',
+                            u'تسديدات علي المرمي': 'Shots on Target',
+                            u'الركنيات': 'Corners',
+                            u'ضربات ركنيه': 'Corners',
+                            u'الاخطاء': 'Fouls',
+                            u'اخطاء': 'Fouls',
+                            u'المخالفات': 'Fouls',
+                            u'البطاقات الصفراء': 'Yellow Cards',
+                            u'بطاقات صفراء': 'Yellow Cards',
+                            u'انذارات': 'Yellow Cards',
+                            u'البطاقات الحمراء': 'Red Cards',
+                            u'بطاقات حمراء': 'Red Cards',
+                            u'طرد': 'Red Cards',
+                            u'التسلل': 'Offsides',
+                            u'حالات التسلل': 'Offsides',
+                            u'التمريرات': 'Total Passes',
+                            u'اجمالي التمريرات': 'Total Passes',
+                            u'دقه التمرير': 'Pass Accuracy %',
+                            u'دقه التمريرات': 'Pass Accuracy %',
+                            u'التصديات': 'Saves',
+                            u'تصديات الحارس': 'Saves'
+                        }
+                        name = stat_map.get(norm_st, name)
                     h_v = str(st.get('HomeValue', '0'))
                     a_v = str(st.get('AwayValue', '0'))
                     self.full_rows.append(StatsListEntry(name, h_v, a_v, self.theme))
@@ -12191,7 +12767,7 @@ class GameInfoScreen(Screen):
             a_squad = data.get('AwayTeamSquad') or []
             if h_squad or a_squad:
                 self.full_rows.append(TextListEntry("STARTING LINEUPS", self.theme, is_header=True))
-                self.full_rows.append(RosterListEntry(u"\u2022 " + h_name, u"\u2022 " + a_name, self.theme))
+                self.full_rows.append(RosterListEntry(u"\u2022 " + _team_name(h_name), u"\u2022 " + _team_name(a_name), self.theme))
                 max_len = max(len(h_squad), len(a_squad))
                 for i in range(max_len):
                     hp = h_squad[i] if i < len(h_squad) else {}
@@ -12208,7 +12784,7 @@ class GameInfoScreen(Screen):
             a_bench = data.get('AwayTeamSpareSquad') or []
             if h_bench or a_bench:
                 self.full_rows.append(TextListEntry("SUBSTITUTES", self.theme, is_header=True))
-                self.full_rows.append(RosterListEntry(u"\u2022 " + h_name, u"\u2022 " + a_name, self.theme))
+                self.full_rows.append(RosterListEntry(u"\u2022 " + _team_name(h_name), u"\u2022 " + _team_name(a_name), self.theme))
                 max_len = max(len(h_bench), len(a_bench))
                 for i in range(max_len):
                     hp = h_bench[i] if i < len(h_bench) else {}
@@ -12216,6 +12792,25 @@ class GameInfoScreen(Screen):
                     h_str = "#{} {}".format(hp.get('ShirtNumber', ''), hp.get('PersonName', '')) if hp else ""
                     a_str = "#{} {}".format(ap.get('ShirtNumber', ''), ap.get('PersonName', '')) if ap else ""
                     self.full_rows.append(RosterListEntry(h_str, a_str, self.theme))
+
+            # 6. EGYPTIAN PRO LEAGUE HIGHLIGHT VIDEOS (أهداف وملخصات البطولة)
+            if videos:
+                self.full_rows.append(StatsListEntry("", "", "", self.theme))
+                self.full_rows.append(TextListEntry(_t("GAME HIGHLIGHTS"), self.theme, is_header=True))
+                self.full_rows.append(TextListEntry(_t("Press OK to play video"), self.theme))
+                insert_idx = len(self.full_rows)
+                self.all_videos = []
+                for vid in videos:
+                    v_title = vid.get('title') or "Video"
+                    v_url = vid.get('url', '')
+                    if v_url:
+                        self.all_videos.append((v_url, v_title))
+                        icon_display = "▶"
+                        payload = ("VIDEO", icon_display, v_title, v_url)
+                        self.full_rows.append(InfoListEntry(payload))
+                if len(self.all_videos) > 1:
+                    payload = ("PLAY ALL", "▶▶", "    " + _t("Play All Highlights") + " ({})".format(len(self.all_videos)), "")
+                    self.full_rows.insert(insert_idx, InfoListEntry(payload))
 
             self["info_list"].setList(self.full_rows)
             self.update_page_info()
@@ -14940,7 +15535,8 @@ class FavoriteTeamLeagueSelector(Screen):
             slug = get_soccer_league_slug(url)
             if not slug:
                 continue
-            items.append(SelectionListEntry(name, False, mode="single"))
+            display_name = _league_name(name)
+            items.append(SelectionListEntry(display_name, False, mode="single"))
             self._entries.append((name, slug))
         self["list"].setList(items)
 
@@ -15516,6 +16112,24 @@ class LeagueSelector(Screen):
             league_name = DATA_SOURCES[orig_idx][0]
             self.heart_selections.append(league_name in saved_fav_names)
 
+        # Pre-seed bundled & cached logos before initial render for instant display
+        for sorted_idx, orig_idx in enumerate(self.sorted_indices):
+            url = DATA_SOURCES[orig_idx][1]
+            logo_id = "league_{}".format(orig_idx)
+            logo_file = self.logo_path + logo_id + ".png"
+            if is_epl_logo_request(url, None):
+                bundled_epl = get_bundled_epl_logo_path()
+                if bundled_epl:
+                    try:
+                        if not os.path.exists(self.logo_path): os.makedirs(self.logo_path)
+                        if not os.path.exists(logo_file) or os.path.getsize(logo_file) < 100:
+                            import shutil
+                            shutil.copyfile(bundled_epl, logo_file)
+                        self.league_logos[sorted_idx] = logo_file
+                    except Exception: pass
+            elif os.path.exists(logo_file) and os.path.getsize(logo_file) > 100:
+                self.league_logos[sorted_idx] = logo_file
+
         # Instant initial render (< 50ms)
         self.refresh_list()
 
@@ -15533,17 +16147,41 @@ class LeagueSelector(Screen):
             logo_id = "league_{}".format(original_idx)
             logo_file = self.logo_path + logo_id + ".png"
 
+            # -----------------------------------------------------------------
+            # CHOICE 1 (PRIMARY): Use bundled epl_logo.png for Egyptian Premier League
+            # -----------------------------------------------------------------
+            if is_epl_logo_request(url, None):
+                bundled_epl = get_bundled_epl_logo_path()
+                if bundled_epl:
+                    try:
+                        if not os.path.exists(self.logo_path): os.makedirs(self.logo_path)
+                        if not os.path.exists(logo_file) or os.path.getsize(logo_file) < 100:
+                            import shutil
+                            shutil.copyfile(bundled_epl, logo_file)
+                        if self.league_logos.get(sorted_idx) != logo_file:
+                            self.league_logos[sorted_idx] = logo_file
+                            needs_refresh = True
+                        continue
+                    except Exception:
+                        pass
+
+            # -----------------------------------------------------------------
+            # CHOICE 2 (FALLBACK): Existing valid disk cache
+            # -----------------------------------------------------------------
             if os.path.exists(logo_file) and os.path.getsize(logo_file) > 0:
                 if self.league_logos.get(sorted_idx) != logo_file:
                     self.league_logos[sorted_idx] = logo_file
                     needs_refresh = True
             else:
+                # -------------------------------------------------------------
+                # CHOICE 3 & 4 (FALLBACK): Network download & SSL fallback
+                # -------------------------------------------------------------
                 try:
                     logo_url = self.get_league_logo_url(url, original_idx)
                     if logo_url:
                         headers = {b'User-Agent': b'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
                         downloadPage(logo_url.encode('utf-8'), logo_file, headers=headers, timeout=10).addCallback(
-                            self.logo_downloaded, sorted_idx, logo_file).addErrback(self.logo_error)
+                            self.logo_downloaded, sorted_idx, logo_file).addErrback(self.logo_error, sorted_idx, logo_file, logo_url)
                 except: pass
 
         if needs_refresh:
@@ -15555,8 +16193,8 @@ class LeagueSelector(Screen):
         if api_url.startswith("euroleague://"):
             return None
         # Egyptian Premier League uses official portal logo
-        if api_url.startswith("epl://"):
-            return "https://library.egyptianproleague.com/Images/logo.png"
+        if api_url.startswith("epl://") or "epl.1" in api_url:
+            return "https://egyptianproleague.com/assets/images/logo.png"
         KNOWN_LOGOS = {
             '164205': ('rugby', '164205'),
             '242041': ('rugby', '242041'),
@@ -15722,8 +16360,25 @@ class LeagueSelector(Screen):
             safe_connect(self._batch_logo_timer, self.refresh_list)
         self._batch_logo_timer.start(350, True)
 
-    def logo_error(self, error):
-        pass
+    def logo_error(self, error, sorted_idx=None, logo_file=None, logo_url=None):
+        if logo_url and "egyptianproleague" in str(logo_url) and logo_file and sorted_idx is not None:
+            def _thread_fallback():
+                try:
+                    import urllib.request as _urllib, ssl as _ssl
+                    _ctx = _ssl.create_default_context()
+                    _ctx.check_hostname = False
+                    _ctx.verify_mode = _ssl.CERT_NONE
+                    _req = _urllib.Request(logo_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+                    with _urllib.urlopen(_req, context=_ctx, timeout=8) as _resp:
+                        _data = _resp.read()
+                        if _data and len(_data) > 100:
+                            with open(logo_file, 'wb') as _f: _f.write(_data)
+                            reactor.callFromThread(self.logo_downloaded, _data, sorted_idx, logo_file)
+                except Exception:
+                    pass
+            _t = threading.Thread(target=_thread_fallback)
+            _t.daemon = True
+            _t.start()
 
     # Display names for sport groups
     SPORT_DISPLAY_NAMES = {
@@ -21880,6 +22535,248 @@ def _init_team_translations_fast():
 _init_team_translations_fast()
 
 
+def _norm_ar(text):
+    if not text:
+        return ""
+    s = text.strip()
+    for c in (u'\u064b', u'\u064c', u'\u064d', u'\u064e', u'\u064f', u'\u0650', u'\u0651', u'\u0652', u'\u0640'):
+        s = s.replace(c, '')
+    for a in (u'أ', u'إ', u'آ', u'ٱ'):
+        s = s.replace(a, u'ا')
+    s = s.replace(u'ة', u'ه')
+    s = s.replace(u'ى', u'ي')
+    for p in ('-', '_', '.', ',', '(', ')', '/', '\\', '"', "'"):
+        s = s.replace(p, ' ')
+    return ' '.join(s.split()).lower()
+
+
+EGYPTIAN_TEAMS_AR_TO_EN = {
+    # ── Egyptian Premier League ──
+    u'الاهلي': 'Al Ahly',
+    u'الاهلي المصري': 'Al Ahly',
+    u'نادي الاهلي': 'Al Ahly',
+    u'النادي الاهلي': 'Al Ahly',
+    u'الزمالك': 'Zamalek',
+    u'نادي الزمالك': 'Zamalek',
+    u'نادي الزمالك للالعاب الرياضيه': 'Zamalek',
+    u'بيراميدز': 'Pyramids',
+    u'نادي بيراميدز': 'Pyramids',
+    u'بيراميدز اف سي': 'Pyramids',
+    u'المصري': 'Al Masry',
+    u'المصري البورسعيدي': 'Al Masry',
+    u'نادي المصري': 'Al Masry',
+    u'النادي المصري': 'Al Masry',
+    u'الاتحاد السكندري': 'Al Ittihad',
+    u'نادي الاتحاد السكندري': 'Al Ittihad',
+    u'الاتحاد': 'Al Ittihad',
+    u'سيراميكا كليوباترا': 'Ceramica Cleopatra',
+    u'سيراميكا': 'Ceramica Cleopatra',
+    u'سيراميكا كليوباترا اف سي': 'Ceramica Cleopatra',
+    u'سموحه': 'Smouha',
+    u'نادي سموحه': 'Smouha',
+    u'سموحه الرياضي': 'Smouha',
+    u'زد': 'ZED FC',
+    u'زد اف سي': 'ZED FC',
+    u'نادي زد': 'ZED FC',
+    u'نادي زد اف سي': 'ZED FC',
+    u'مودرن سبورت': 'Modern Sport',
+    u'مودرن فيوتشر': 'Modern Sport',
+    u'فيوتشر': 'Modern Sport',
+    u'مودرن سبورت اف سي': 'Modern Sport',
+    u'البنك الاهلي': 'National Bank of Egypt',
+    u'نادي البنك الاهلي': 'National Bank of Egypt',
+    u'البنك الاهلي المصري': 'National Bank of Egypt',
+    u'طلائع الجيش': 'Tala\'ea El Gaish',
+    u'نادي طلائع الجيش': 'Tala\'ea El Gaish',
+    u'الجيش': 'Tala\'ea El Gaish',
+    u'الاسماعيلي': 'Ismaily',
+    u'نادي الاسماعيلي': 'Ismaily',
+    u'النادي الاسماعيلي': 'Ismaily',
+    u'فاركو': 'Pharco',
+    u'نادي فاركو': 'Pharco',
+    u'فاركو للادويه': 'Pharco',
+    u'الجونه': 'El Gouna',
+    u'نادي الجونه': 'El Gouna',
+    u'بتروجت': 'Petrojet',
+    u'بتروجيت': 'Petrojet',
+    u'نادي بتروجت': 'Petrojet',
+    u'نادي بتروجيت': 'Petrojet',
+    u'غزل المحله': 'Ghazl El Mahalla',
+    u'نادي غزل المحله': 'Ghazl El Mahalla',
+    u'المحله': 'Ghazl El Mahalla',
+    u'حرس الحدود': 'Haras El Hodoud',
+    u'الحرس': 'Haras El Hodoud',
+    u'نادي حرس الحدود': 'Haras El Hodoud',
+    u'انبي': 'ENPPI',
+    u'نادي انبي': 'ENPPI',
+    u'المقاولون العرب': 'Arab Contractors',
+    u'المقاولون': 'Arab Contractors',
+    u'نادي المقاولون العرب': 'Arab Contractors',
+    u'بلديه المحله': 'Baladiyat El Mahalla',
+    u'نادي بلديه المحله': 'Baladiyat El Mahalla',
+    u'الداخليه': 'El Dakhleya',
+    u'نادي الداخليه': 'El Dakhleya',
+    u'اسوان': 'Aswan',
+    u'نادي اسوان': 'Aswan',
+    u'القناه': 'El Qanah',
+    u'نادي القناه': 'El Qanah',
+    u'وادي دجله': 'Wadi Degla',
+    u'دجله': 'Wadi Degla',
+    u'نادي وادي دجله': 'Wadi Degla',
+    u'الترسانه': 'Tersana',
+    u'نادي الترسانه': 'Tersana',
+    u'السكه الحديد': 'El Sekka El Hadid',
+    u'نادي السكه الحديد': 'El Sekka El Hadid',
+    u'طنطا': 'Tanta',
+    u'نادي طنطا': 'Tanta',
+    u'المنصوره': 'El Mansoura',
+    u'نادي المنصوره': 'El Mansoura',
+    u'جمهوريه شبين': 'Gomhoriat Shebin',
+    u'شبين': 'Gomhoriat Shebin',
+    u'لافيينا': 'La Viena',
+    u'لافيينا اف سي': 'La Viena',
+    u'بروكسي': 'Proxy',
+    u'نادي بروكسي': 'Proxy',
+    u'بترول اسيوط': 'Asyut Petroleum',
+    u'نادي بترول اسيوط': 'Asyut Petroleum',
+    u'مصر المقاصه': 'Misr El Makkasa',
+    u'المقاصه': 'Misr El Makkasa',
+    u'النجوم': 'Nogoom',
+    u'نادي النجوم': 'Nogoom',
+    u'ايسترن كومباني': 'Eastern Company',
+    u'الشرقيه للدخان': 'Eastern Company',
+    u'الشرقيه': 'El Sharkia',
+    u'الشرقيه انبي': 'El Sharkia',
+    u'دكرنس': 'Dekernes',
+    u'رايه': 'Raya',
+    u'رايه كفر الدوار': 'Raya',
+    u'ابو قير للاسمده': 'Abu Qir Fertilizers',
+    u'ابو قير': 'Abu Qir Fertilizers',
+    u'مكادي': 'Makadi',
+    u'النصر للتعدين': 'Al Nasr Lel Taa\'den',
+    u'النصر': 'Al Nasr Cairo',
+    u'الاوليمبي': 'El Olympi',
+    u'النادي الاوليمبي': 'El Olympi',
+    u'المنيا': 'El Minya',
+    u'سوهاج': 'Sohag',
+    u'بني سويف': 'Beni Suef',
+    u'تليفونات بني سويف': 'Telephonat Beni Suef',
+    u'كفر الشيخ': 'Kafr El Sheikh',
+    u'سبورتنج': 'Sporting Alexandria',
+    u'سبورتنج السكندري': 'Sporting Alexandria',
+    u'الانتاج الحربي': 'El Entag El Harby',
+    u'الرجاء': 'El Raja Marsa Matruh',
+    u'الرجاء مطروح': 'El Raja Marsa Matruh',
+    u'دمنهور': 'Damanhour',
+    u'العاب دمنهور': 'Damanhour',
+    u'الالومنيوم': 'Aluminium Nag Hammadi',
+    u'الومنيوم نجع حمادي': 'Aluminium Nag Hammadi',
+    u'شبان قنا': 'Shoban Qena',
+    u'الفيوم': 'Fayoum',
+    u'اف سي مصر': 'FC Masr',
+    u'بورتو السويس': 'Porto Suez',
+    u'منتخب السويس': 'Montakhab El Suez',
+    u'العبور': 'El Obour',
+    u'كهرباء الاسماعيليه': 'Kahrabaa Ismailia',
+    u'المريخ': 'El Merreikh Port Said',
+    u'مريخ بورسعيد': 'El Merreikh Port Said',
+    u'بورفؤاد': 'Port Fouad'
+}
+
+_EGYPTIAN_KEYWORD_RULES = [
+    (u'سيراميكا', 'Ceramica Cleopatra'),
+    (u'بيراميدز', 'Pyramids'),
+    (u'الاهلي', 'Al Ahly'),
+    (u'الزمالك', 'Zamalek'),
+    (u'المصري', 'Al Masry'),
+    (u'الاتحاد السكندري', 'Al Ittihad'),
+    (u'سموحه', 'Smouha'),
+    (u'البنك الاهلي', 'National Bank of Egypt'),
+    (u'طلائع الجيش', 'Tala\'ea El Gaish'),
+    (u'الجيش', 'Tala\'ea El Gaish'),
+    (u'الاسماعيلي', 'Ismaily'),
+    (u'فاركو', 'Pharco'),
+    (u'الجونه', 'El Gouna'),
+    (u'بتروجت', 'Petrojet'),
+    (u'بتروجيت', 'Petrojet'),
+    (u'غزل المحله', 'Ghazl El Mahalla'),
+    (u'حرس الحدود', 'Haras El Hodoud'),
+    (u'انبي', 'ENPPI'),
+    (u'المقاولون', 'Arab Contractors'),
+    (u'بلديه المحله', 'Baladiyat El Mahalla'),
+    (u'الداخليه', 'El Dakhleya'),
+    (u'اسوان', 'Aswan'),
+    (u'القناه', 'El Qanah'),
+    (u'وادي دجله', 'Wadi Degla'),
+    (u'دجله', 'Wadi Degla'),
+    (u'الترسانه', 'Tersana'),
+    (u'السكه الحديد', 'El Sekka El Hadid'),
+    (u'طنطا', 'Tanta'),
+    (u'المنصوره', 'El Mansoura'),
+    (u'شبين', 'Gomhoriat Shebin'),
+    (u'لافيينا', 'La Viena'),
+    (u'بروكسي', 'Proxy'),
+    (u'بترول اسيوط', 'Asyut Petroleum'),
+    (u'المقاصه', 'Misr El Makkasa'),
+    (u'النجوم', 'Nogoom'),
+    (u'ايسترن كومباني', 'Eastern Company'),
+    (u'الشرقيه للدخان', 'Eastern Company'),
+    (u'الشرقيه', 'El Sharkia'),
+    (u'مودرن', 'Modern Sport'),
+    (u'فيوتشر', 'Modern Sport'),
+    (u'زد', 'ZED FC'),
+    (u'دكرنس', 'Dekernes'),
+    (u'رايه', 'Raya'),
+    (u'ابو قير', 'Abu Qir Fertilizers'),
+    (u'مكادي', 'Makadi'),
+    (u'النصر للتعدين', 'Al Nasr Lel Taa\'den'),
+    (u'الاوليمبي', 'El Olympi'),
+    (u'الانتاج الحربي', 'El Entag El Harby'),
+    (u'منتخب السويس', 'Montakhab El Suez'),
+    (u'كهرباء الاسماعيليه', 'Kahrabaa Ismailia'),
+    (u'بورفؤاد', 'Port Fouad')
+]
+
+_EGYPTIAN_TEAMS_AR_TO_EN_FAST = {}
+
+def _init_egyptian_translations_fast():
+    global _EGYPTIAN_TEAMS_AR_TO_EN_FAST, EGYPTIAN_TEAMS_AR_TO_EN
+    f_map = {}
+    for k, v in EGYPTIAN_TEAMS_AR_TO_EN.items():
+        f_map[_norm_ar(k)] = v
+    _EGYPTIAN_TEAMS_AR_TO_EN_FAST = f_map
+
+_init_egyptian_translations_fast()
+
+
+def _has_arabic(text):
+    if not text:
+        return False
+    return any(u'\u0600' <= ch <= u'\u06ff' for ch in text)
+
+
+def _translate_arabic_team_to_en(name):
+    """Translate an Arabic team name (Egyptian / Arab clubs) to English."""
+    if not name or not _has_arabic(name):
+        return name
+    norm = _norm_ar(name)
+    if norm in _EGYPTIAN_TEAMS_AR_TO_EN_FAST:
+        return _EGYPTIAN_TEAMS_AR_TO_EN_FAST[norm]
+    clean = norm
+    for pfx in (u'نادي ', u'نادى ', u'فريق '):
+        if clean.startswith(pfx):
+            clean = clean[len(pfx):].strip()
+    for sfx in (u' اف سي', u' اس سي', u' سبورت', u' الرياضي', u' للالعاب الرياضيه'):
+        if clean.endswith(sfx):
+            clean = clean[:-len(sfx)].strip()
+    if clean in _EGYPTIAN_TEAMS_AR_TO_EN_FAST:
+        return _EGYPTIAN_TEAMS_AR_TO_EN_FAST[clean]
+    for kw, target in _EGYPTIAN_KEYWORD_RULES:
+        if kw in norm or kw in clean:
+            return target
+    return name
+
+
 def _team_name(name):
     """Ultra-fast O(1) team name translation with pre-computed hash lookup and caching."""
     global PLUGIN_LANGUAGE, _TEAM_NAME_CACHE, _TEAM_TRANSLATIONS_FAST
@@ -21890,10 +22787,16 @@ def _team_name(name):
             name = name.get('displayName') or name.get('name') or str(name)
         elif not isinstance(name, (str, type(u""))):
             name = str(name)
-        if PLUGIN_LANGUAGE == "ar" and name:
-            cached = _TEAM_NAME_CACHE.get(name)
-            if cached is not None:
-                return cached
+
+        cached = _TEAM_NAME_CACHE.get(name)
+        if cached is not None:
+            return cached
+
+        if PLUGIN_LANGUAGE == "ar":
+            # If name is already in Arabic (e.g. from Egyptian API), preserve as-is
+            if _has_arabic(name):
+                _TEAM_NAME_CACHE[name] = name
+                return name
 
             # 1. Exact raw key match
             if name in TEAM_TRANSLATIONS_AR:
@@ -22013,6 +22916,16 @@ def _team_name(name):
 
             # If no exact translation match found, preserve the original name
             _TEAM_NAME_CACHE[name] = name
+            return name
+        else:
+            # English mode: translate Arabic team names (Egyptian / Arab clubs) to English
+            if _has_arabic(name):
+                en_name = _translate_arabic_team_to_en(name)
+                if en_name:
+                    _TEAM_NAME_CACHE[name] = en_name
+                    return en_name
+            _TEAM_NAME_CACHE[name] = name
+            return name
     except Exception:
         pass
     return name
@@ -25194,13 +26107,22 @@ class LiveScoreCZScreen(Screen):
         # does not attempt to write to destroyed widgets (Step 5.1 thread safety).
         self._is_closed = False
 
-        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "EPGSelectActions", "EventViewActions", "InfobarBouquetActions", "InfobarSeekActions", "NumberActions"],
+        # ColorActions is in its own ActionMap so that no other context's
+        # break-flag mapping for KEY_YELLOW (e.g. EPGSelectActions →
+        # input_date_time, InfobarSeekActions → seekFwdManual) can jam
+        # the key's internal "pressed" state in Enigma2's C++ ActionMap
+        # layer and block the second press of toggle_live_filter.
+        self["color_actions"] = ActionMap(["ColorActions"],
             {
-                "cancel": self.close,
                 "red": self.open_standings,
                 "green": self.open_minibar,
                 "yellow": self.toggle_live_filter,
                 "blue": self.toggle_follow_match,
+            }, -1)
+
+        self["actions"] = ActionMap(["OkCancelActions", "DirectionActions", "EPGSelectActions", "EventViewActions", "InfobarBouquetActions", "NumberActions"],
+            {
+                "cancel": self.close,
                 "ok": self.open_game_info,
                 "up": self["list"].up,
                 "down": self["list"].down,
@@ -25217,12 +26139,16 @@ class LiveScoreCZScreen(Screen):
                 "prevBouquet": self.ch_prev_day,
                 "bouquetUp":   self.ch_next_day,
                 "bouquetDown": self.ch_prev_day,
-                "fastForward": self.ch_next_day,
-                "rewind":      self.ch_prev_day,
                 "0":           self.switchToSoccer,
                 "1":           self.switchToBasketball,
                 "2":           self.switchToVolleyball,
             }, -1)
+
+        self["seek_actions"] = ActionMap(["InfobarSeekActions"],
+            {
+                "fastForward": self.ch_next_day,
+                "rewind":      self.ch_prev_day,
+            }, -2)
 
         self.onLayoutFinish.append(self.start_ui)
         self.onClose.append(self.cleanup)
@@ -27224,8 +28150,9 @@ class SimpleSportsScreen(Screen):
             # SimplySports vNext - modern TV sports broadcast dashboard
             # (see: SimplySports Enigma2 UI Renovation brief)
             # ==================================================================
-            c_bg_deep = "#" + self.current_alpha + "111418"
-            c_bg_navy = "#" + self.current_alpha + "0E1621"
+            _bg_preset = get_main_bg_preset(getattr(self.monitor, "main_bg_color", "default"))
+            c_bg_deep = "#" + self.current_alpha + _bg_preset["deep_hex"]
+            c_bg_navy = "#" + self.current_alpha + _bg_preset["navy_hex"]
             c_bar = c_bg_navy; c_top = c_bg_navy  # kept for compatibility with helper methods that reference these
 
             asset_root = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/icons/vnext/")
@@ -27752,14 +28679,21 @@ class SimpleSportsScreen(Screen):
             # per the "Background Design" section of the renovation brief. Falls back
             # to the flat charcoal eLabel underneath if the files aren't present.
             try:
-                bg_path = va("backgrounds", "bg_stadium_blur_1920x1080.png")
-                if os.path.exists(bg_path) and "main_bg_photo" in self and self["main_bg_photo"].instance:
-                    self["main_bg_photo"].instance.setPixmapFromFile(bg_path)
-                    self["main_bg_photo"].show()
-                tex_path = va("backgrounds", "bg_texture_lines_1920x1080.png")
-                if os.path.exists(tex_path) and "main_bg_texture" in self and self["main_bg_texture"].instance:
-                    self["main_bg_texture"].instance.setPixmapFromFile(tex_path)
-                    self["main_bg_texture"].show()
+                is_black_theme = (getattr(self.monitor, "main_bg_color", "default") == "black")
+                if not is_black_theme:
+                    bg_path = va("backgrounds", "bg_stadium_blur_1920x1080.png")
+                    if os.path.exists(bg_path) and "main_bg_photo" in self and self["main_bg_photo"].instance:
+                        self["main_bg_photo"].instance.setPixmapFromFile(bg_path)
+                        self["main_bg_photo"].show()
+                    tex_path = va("backgrounds", "bg_texture_lines_1920x1080.png")
+                    if os.path.exists(tex_path) and "main_bg_texture" in self and self["main_bg_texture"].instance:
+                        self["main_bg_texture"].instance.setPixmapFromFile(tex_path)
+                        self["main_bg_texture"].show()
+                else:
+                    if "main_bg_photo" in self:
+                        self["main_bg_photo"].hide()
+                    if "main_bg_texture" in self:
+                        self["main_bg_texture"].hide()
             except Exception:
                 pass
 
@@ -28047,7 +28981,27 @@ class SimpleSportsScreen(Screen):
 
         target_path = self.logo_path + str(team_id) + ".png"
 
-        # Fast Set / Memory Cache Bypass
+        # -----------------------------------------------------------------
+        # CHOICE 1 (PRIMARY): Use bundled epl_logo.png for Egyptian Premier League
+        # -----------------------------------------------------------------
+        if is_epl_logo_request(url, team_id):
+            bundled_epl = get_bundled_epl_logo_path()
+            if bundled_epl:
+                try:
+                    if not os.path.exists(self.logo_path): os.makedirs(self.logo_path)
+                    if not os.path.exists(target_path) or os.path.getsize(target_path) < 100:
+                        import shutil
+                        shutil.copyfile(bundled_epl, target_path)
+                    GLOBAL_VALID_LOGO_PATHS.add(target_path)
+                    self.monitor.logo_path_cache[team_id] = target_path
+                    self.monitor.missing_logo_cache.discard(team_id)
+                    return target_path
+                except Exception:
+                    pass
+
+        # -----------------------------------------------------------------
+        # CHOICE 2 (FALLBACK): Fast Set / Memory Cache / Disk Cache Bypass
+        # -----------------------------------------------------------------
         if target_path in GLOBAL_VALID_LOGO_PATHS:
             self.monitor.logo_path_cache[team_id] = target_path
             self.monitor.missing_logo_cache.discard(team_id)
@@ -28116,6 +29070,30 @@ class SimpleSportsScreen(Screen):
         # Use a short-lived cache or persistent set? Persistent for session is safest.
         if not hasattr(self, 'failed_downloads'): self.failed_downloads = set()
         self.failed_downloads.add(filename)
+
+        # -----------------------------------------------------------------
+        # CHOICE 4 (FALLBACK): Unverified SSL fallback thread for Egyptian Premier League
+        # -----------------------------------------------------------------
+        if is_epl_logo_request(None, filename):
+            target_path = self.logo_path + str(filename) + ".png"
+            def _thread_fallback():
+                try:
+                    import urllib.request as _urllib, ssl as _ssl
+                    _ctx = _ssl.create_default_context()
+                    _ctx.check_hostname = False
+                    _ctx.verify_mode = _ssl.CERT_NONE
+                    _epl_url = "https://egyptianproleague.com/assets/images/logo.png"
+                    _req = _urllib.Request(_epl_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+                    with _urllib.urlopen(_req, context=_ctx, timeout=8) as _resp:
+                        _data = _resp.read()
+                        if _data and len(_data) > 100:
+                            reactor.callFromThread(self.download_finished, _data, filename, target_path)
+                            return
+                except Exception:
+                    pass
+            _t = threading.Thread(target=_thread_fallback)
+            _t.daemon = True
+            _t.start()
 
         self._process_pending_downloads()
 
@@ -28620,7 +29598,8 @@ class SimpleSportsScreen(Screen):
 
                 has_epg = False
                 # Check for recent goals to create a 'heat' effect on the score box
-                c_score_bg = VN_BG_NAVY if self.monitor.theme_mode != "ucl" else 0x060e1c
+                _score_preset = get_main_bg_preset(getattr(self.monitor, "main_bg_color", "default"))
+                c_score_bg = _score_preset["navy_int"] if self.monitor.theme_mode != "ucl" else 0x060e1c
                 goal_glow_side = None  # brief (90s) gold edge tint on the scoring side's card border
                 # "Recently updated" pulse alpha (2s fade, separate from the 5-min heatmap)
                 pulse_alpha = 0.0
@@ -28652,7 +29631,11 @@ class SimpleSportsScreen(Screen):
                         progress = time_since_goal / 300.0
 
                         # Target base color (cool) - matches the theme's score-box background
-                        end_color = [14, 22, 33] if self.monitor.theme_mode != "ucl" else [5, 16, 48]
+                        if self.monitor.theme_mode != "ucl":
+                            _sn = _score_preset["navy_int"]
+                            end_color = [(_sn >> 16) & 0xFF, (_sn >> 8) & 0xFF, _sn & 0xFF]
+                        else:
+                            end_color = [5, 16, 48]
 
                         # Interpolate
                         r = int(start_color[0] + (end_color[0] - start_color[0]) * progress)
@@ -28899,10 +29882,12 @@ class SimpleSportsScreen(Screen):
         
         minibar1_style_lbl = _t("Default") if getattr(self.monitor, "minibar_1_style", "default") == "default" else _t("World Cup")
         toast_anim_txt = _t("ON") if getattr(self.monitor, "toast_animation", True) else _t("OFF")
+        cur_bg_color_lbl = get_main_bg_color_name(getattr(self.monitor, "main_bg_color", "default"))
         
         menu_options = [
             (_t("Check for Updates"), "update"),
             (_t("Change Interface Theme"), "theme"),
+            (_t("Background Color (Main Theme only): ") + cur_bg_color_lbl, "background_color"),
             (_t("Top Minibar Style: ") + minibar1_style_lbl, "minibar_1_style"),
             (_t("Bottom Minibar Style (Default Theme only)"), "minibar_color"),
             (_t("Main Screen Transparency (Default Theme only)"), "transparency"),
@@ -28922,6 +29907,7 @@ class SimpleSportsScreen(Screen):
             action = selection[1]
             if action == "update": self.check_for_updates()
             elif action == "theme": self.open_theme_selector()
+            elif action == "background_color": self.open_background_color_selector()
             elif action == "minibar_1_style": self.open_minibar_1_style_selector()
             elif action == "minibar_color": self.open_minibar_color_selector()
             elif action == "transparency": self.open_transparency_selector()
@@ -29305,6 +30291,30 @@ class SimpleSportsScreen(Screen):
             msg = _t("Bottom Minibar style saved.")
             self.session.open(MessageBox, msg, MessageBox.TYPE_INFO)
 
+    def open_background_color_selector(self):
+        color_options = [
+            (_t("Default (Dark Slate)"), "default"),
+            (_t("Pure Black (OLED)"), "black"),
+            (_t("Deep Navy"), "navy"),
+            (_t("Midnight Blue"), "midnight"),
+            (_t("Dark Emerald"), "emerald"),
+            (_t("Deep Purple"), "purple"),
+            (_t("Dark Maroon"), "maroon"),
+            (_t("Dark Graphite"), "graphite"),
+        ]
+        self.session.openWithCallback(self.background_color_selected, ChoiceBox, title=_t("Select Background Color (Main Theme Only)"), list=color_options)
+
+    def background_color_selected(self, selection):
+        if selection:
+            color_key = selection[1]
+            if getattr(self.monitor, "main_bg_color", "default") != color_key:
+                self.monitor.main_bg_color = color_key
+                self.monitor.save_config()
+                if self.monitor.theme_mode != "ucl":
+                    self.close(True)
+                else:
+                    self.session.open(MessageBox, _t("Background color saved."), MessageBox.TYPE_INFO, timeout=2)
+
     def open_transparency_selector(self):
         t_options = [
             (_t("Solid (0% Transparent)"), "00"),
@@ -29344,16 +30354,17 @@ class SimpleSportsScreen(Screen):
         self.session.openWithCallback(self.league_menu_callback, ChoiceBox, title=_t("League Options"), list=options)
 
     def league_menu_callback(self, selection):
-        if selection:
-            from twisted.internet import reactor
-            if selection[1] == "single": 
-                reactor.callLater(0.1, self.open_single_league_select)
-            elif selection[1] == "custom_leagues": 
-                reactor.callLater(0.1, lambda: self.session.openWithCallback(self.on_selector_closed, LeagueSelector))
-            elif selection[1] == "favorite_leagues": 
-                reactor.callLater(0.1, lambda: self.session.openWithCallback(self.on_selector_closed, FavoriteLeagueSelector))
-            elif selection[1] == "favorite_teams":
-                reactor.callLater(0.1, lambda: self.session.openWithCallback(self.on_favorite_teams_closed, FavoriteTeamsManagerScreen))
+        if not selection:
+            return
+        action = selection[1]
+        if action == "single":
+            self.session.openWithCallback(self.single_league_selected, LeagueSelector, mode="single")
+        elif action == "custom_leagues":
+            self.session.openWithCallback(self.on_selector_closed, LeagueSelector)
+        elif action == "favorite_leagues":
+            self.session.openWithCallback(self.on_selector_closed, FavoriteLeagueSelector)
+        elif action == "favorite_teams":
+            self.session.openWithCallback(self.on_favorite_teams_closed, FavoriteTeamsManagerScreen)
 
     def on_selector_closed(self, result=None):
         if result: self.update_header(); self.fetch_data()
@@ -29393,7 +30404,7 @@ class SimpleSportsScreen(Screen):
             4: 33,  # Serie A
             5: 37,  # Bundesliga
             6: 42,  # Ligue 1
-            7: 111, # NBA
+            7: 112, # NBA
         }
         if key_num in mapping:
             self.monitor.set_league(mapping[key_num])
@@ -34420,14 +35431,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.8 by reali22",
+            description="Live Sports Scores, v6.9 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.8 by reali22",
+            description="Live Sports Scores, v6.9 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -34442,7 +35453,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.8 by reali22",
+            description="Live Sports Scores, v6.9 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
