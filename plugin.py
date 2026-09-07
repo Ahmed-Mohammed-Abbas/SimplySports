@@ -1492,7 +1492,7 @@ except ImportError:
 # CONFIGURATION
 # ==============================================================================
 CURRENT_VERSION = "6.9"
-# v6.9 introduces Main Theme Background Color customization (8 curated TV palettes including OLED Pure Black), full Egyptian Premier League official video highlights & clips direct playback in Game Info, official EPL league logo integration, instant league switching, and EPL favorite teams support, main UI background color, Arena screen live filter fix, and basketball sound notifications fix.
+# v6.9 introduces Main Theme Background Color customization (8 curated TV palettes including OLED Pure Black), full Egyptian Premier League official video highlights & clips direct playback in Game Info, official EPL league logo integration, instant league switching, and EPL favorite teams support.
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
 # ==============================================================================
@@ -6174,6 +6174,8 @@ class SportsMonitor:
                                 self.ledger["resolved_bets"][eid_str] = {"legacy": True}
                     self.save_ledger()
                 except: pass
+            if hasattr(self, 'repair_epl_resolved_bets'):
+                self.repair_epl_resolved_bets()
         except:
             self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
 
@@ -6341,9 +6343,13 @@ class SportsMonitor:
                 comp['status'] = status_dict
                 state = status_dict.get('type', {}).get('state', 'pre')
                 if state == 'post':
-                    fake_body = json.dumps({'header': {'competitions': [comp]}}).encode('utf-8')
-                    self._on_summary_resolved(fake_body, eid, bet)
-                    return
+                    comps = comp.get('competitors', [])
+                    h_sc = comps[0].get('score') if len(comps) > 0 else None
+                    a_sc = comps[1].get('score') if len(comps) > 1 else None
+                    if h_sc not in (None, '') and a_sc not in (None, ''):
+                        fake_body = json.dumps({'header': {'competitions': [comp]}}).encode('utf-8')
+                        self._on_summary_resolved(fake_body, eid, bet)
+                        return
             except Exception as e:
                 log_dbg("EPL bet eval error for {}: {}".format(eid, e))
 
@@ -6399,9 +6405,9 @@ class SportsMonitor:
                             a_score = m.get('awayScore')
                             status_obj = m.get('currentMatchStatus') or {}
                             status_id = status_obj.get('matchStatusId') or status_obj.get('status', 0)
-                            status_name = status_obj.get('matchStatusName') or m.get('statusDescription') or ''
-                            is_post = (status_id == 9 or status_name in ('انتهت', 'FT', 'Finished') or 
-                                       (h_score is not None and a_score is not None and status_id != 1))
+                            status_name = (status_obj.get('matchStatusName') or m.get('statusDescription') or '').strip()
+                            is_live = (status_id in (3, 4, 5, 6, 7, 8) or any(k in status_name for k in ['شوط', 'مباشر', 'استراحة', 'إضافي', 'ترجيح']))
+                            is_post = (not is_live and (status_id == 9 or any(k in status_name for k in ['انتهت', 'FT', 'Finished', 'Final'])))
                             if is_post and h_score is not None and a_score is not None:
                                 comp = {
                                     'status': {'type': {'state': 'post', 'completed': True}},
@@ -6420,7 +6426,122 @@ class SportsMonitor:
         t.daemon = True
         t.start()
 
+    def repair_epl_resolved_bets(self):
+        """Repair any EPL resolved bets that were prematurely settled as 0-0 draw due to pre-match/live status flags."""
+        if not hasattr(self, 'ledger') or not self.ledger:
+            return
+        resolved = self.ledger.get("resolved_bets", {})
+        if not isinstance(resolved, dict):
+            return
+
+        epl_candidates = []
+        for eid, bet_info in list(resolved.items()):
+            score = bet_info.get("score", "")
+            res = bet_info.get("result", "")
+            h_nm = bet_info.get("h_name", "")
+            a_nm = bet_info.get("a_name", "")
+            is_epl = (str(eid).startswith("epl_") or str(eid).isdigit() or
+                      any(k in h_nm for k in ['الأهلي', 'الزمالك', 'بيراميدز', 'البنك', 'المحلة', 'الإسماعيلي', 'المصري', 'الاتحاد', 'سيراميكا', 'سموحة', 'زد', 'مودرن', 'فاركو', 'إنبي', 'طلائع', 'الجونة', 'حرس', 'بتروجت']))
+            if is_epl and score == "0-0" and res == "draw":
+                epl_candidates.append((eid, bet_info))
+
+        if not epl_candidates:
+            return
+
+        def _run_repair():
+            try:
+                import urllib.request as _urllib
+                import ssl as _ssl
+                ctx = _ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = _ssl.CERT_NONE
+                hdrs = {'User-Agent': 'Mozilla/5.0'}
+
+                dates_to_check = []
+                today_dt = datetime.date.today()
+                for d_off in range(0, -10, -1):
+                    dates_to_check.append((today_dt + datetime.timedelta(days=d_off)).strftime('%Y-%m-%d'))
+
+                matches_by_id = {}
+                matches_by_teams = []
+
+                for d_str in dates_to_check:
+                    u = f"https://egypl-api.azurewebsites.net/Auth/1667/matches/{d_str}"
+                    try:
+                        req = _urllib.Request(u, headers=hdrs)
+                        resp = _urllib.urlopen(req, timeout=6, context=ctx).read().decode('utf-8', errors='ignore')
+                        data = json.loads(resp)
+                        if isinstance(data, list):
+                            for m in data:
+                                m_id = str(m.get('id', ''))
+                                matches_by_id[m_id] = m
+                                matches_by_teams.append(m)
+                    except Exception:
+                        continue
+
+                needs_save = False
+                for eid, bet_info in epl_candidates:
+                    m = matches_by_id.get(str(eid))
+                    if not m:
+                        h_bet = (bet_info.get("h_name") or "").strip().lower()
+                        a_bet = (bet_info.get("a_name") or "").strip().lower()
+                        for cand in matches_by_teams:
+                            h_name = (cand.get('homeTeamName') or '').strip().lower()
+                            a_name = (cand.get('awayTeamName') or '').strip().lower()
+                            if h_bet and a_bet and (h_bet in h_name or h_name in h_bet) and (a_bet in a_name or a_name in a_bet):
+                                m = cand
+                                break
+
+                    if m:
+                        status_obj = m.get('currentMatchStatus') or {}
+                        status_id = status_obj.get('matchStatusId') or status_obj.get('status', 0)
+                        status_name = (status_obj.get('matchStatusName') or m.get('statusDescription') or '').strip()
+                        is_post = (status_id == 9 or any(k in status_name for k in ['انتهت', 'FT', 'Finished', 'Final']))
+                        h_score = m.get('homeScore')
+                        a_score = m.get('awayScore')
+
+                        if is_post and h_score is not None and a_score is not None:
+                            h_sc = int(h_score)
+                            a_sc = int(a_score)
+                            if h_sc != 0 or a_sc != 0:
+                                actual_winner = 'home' if h_sc > a_sc else ('away' if a_sc > h_sc else 'draw')
+                                prediction = bet_info.get("prediction")
+                                was_won = (prediction == bet_info.get("result"))
+                                is_won = (prediction == actual_winner)
+
+                                old_pts = bet_info.get("points", -1)
+                                new_pts = 1 if is_won else -1
+                                pts_diff = new_pts - old_pts
+
+                                bet_info["result"] = actual_winner
+                                bet_info["score"] = f"{h_sc}-{a_sc}"
+                                bet_info["points"] = new_pts
+
+                                self.ledger["total_score"] = int(self.ledger.get("total_score", 0)) + pts_diff
+                                if is_won and not was_won:
+                                    self.ledger["correct_predictions"] = int(self.ledger.get("correct_predictions", 0)) + 1
+                                    if "sport_stats" in self.ledger and "soccer" in self.ledger["sport_stats"]:
+                                        self.ledger["sport_stats"]["soccer"]["score"] = int(self.ledger["sport_stats"]["soccer"].get("score", 0)) + pts_diff
+                                        self.ledger["sport_stats"]["soccer"]["correct"] = int(self.ledger["sport_stats"]["soccer"].get("correct", 0)) + 1
+                                    if "sport_stats" in self.ledger and "Egyptian League" in self.ledger["sport_stats"]:
+                                        self.ledger["sport_stats"]["Egyptian League"]["score"] = int(self.ledger["sport_stats"]["Egyptian League"].get("score", 0)) + pts_diff
+                                        self.ledger["sport_stats"]["Egyptian League"]["correct"] = int(self.ledger["sport_stats"]["Egyptian League"].get("correct", 0)) + 1
+                                needs_save = True
+                                log_diag(f"REPAIR: Corrected EPL bet {eid} from 0-0 to {h_sc}-{a_sc} (Winner: {actual_winner})")
+
+                if needs_save:
+                    reactor.callFromThread(self.save_ledger)
+                    reactor.callFromThread(self.sync_leaderboard)
+            except Exception as e:
+                log_diag(f"REPAIR: error {e}")
+
+        t = threading.Thread(target=_run_repair)
+        t.daemon = True
+        t.start()
+
     def evaluate_pending_bets(self):
+        if hasattr(self, 'repair_epl_resolved_bets'):
+            self.repair_epl_resolved_bets()
         if not self.ledger.get("pending_bets"): return
 
         log_diag("REFREE: Evaluating {} pending bets...".format(len(self.ledger["pending_bets"])))
@@ -8371,7 +8492,7 @@ class SportsMonitor:
                             status_short = 'SCH'
                             completed = False
 
-                            if status_id in (3, 4, 5) or 'شوط' in status_name or 'مباشر' in status_name or status_name == 'استراحة':
+                            if status_id in (3, 4, 5, 6, 7, 8) or any(k in status_name for k in ['شوط', 'مباشر', 'استراحة', 'إضافي', 'ترجيح']):
                                 state = 'in'
                                 if status_name == 'استراحة' or status_id == 4:
                                     status_short = 'HT'
@@ -8385,7 +8506,11 @@ class SportsMonitor:
                                     status_short = f"{mins}'" if mins > 0 else "1H"
                                 else:
                                     status_short = 'LIVE'
-                            elif status_id == 9 or status_name in ('انتهت', 'FT', 'Finished') or (h_score != '' and a_score != '' and status_id != 1):
+                            elif status_id in (1, 2) or any(k in status_name for k in ['لم تبدأ', 'بعد قليل']):
+                                state = 'pre'
+                                status_short = 'SCH'
+                                completed = False
+                            elif status_id == 9 or any(k in status_name for k in ['انتهت', 'FT', 'Finished', 'Final']):
                                 state = 'post'
                                 status_short = 'FT'
                                 completed = True
@@ -8501,10 +8626,14 @@ class SportsMonitor:
                                     status_short = 'SCH'
                                     completed = False
 
-                                    if status_id in (3, 4, 5) or 'شوط' in status_name or 'مباشر' in status_name or status_name == 'استراحة':
+                                    if status_id in (3, 4, 5, 6, 7, 8) or any(k in status_name for k in ['شوط', 'مباشر', 'استراحة', 'إضافي', 'ترجيح']):
                                         state = 'in'
-                                        status_short = 'HT' if status_name == 'استراحة' else 'LIVE'
-                                    elif status_id == 9 or status_name == 'انتهت' or (h_score != '' and a_score != '' and status_id != 1):
+                                        status_short = 'HT' if (status_name == 'استراحة' or status_id == 4) else 'LIVE'
+                                    elif status_id in (1, 2) or any(k in status_name for k in ['لم تبدأ', 'بعد قليل']):
+                                        state = 'pre'
+                                        status_short = 'SCH'
+                                        completed = False
+                                    elif status_id == 9 or any(k in status_name for k in ['انتهت', 'FT', 'Finished', 'Final']):
                                         state = 'post'
                                         status_short = 'FT'
                                         completed = True
