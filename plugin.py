@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 import os
+import sys
 import threading
 import time
 import ssl
@@ -114,7 +115,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "6.9"
+VERSION = "7.0"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -243,11 +244,43 @@ TRANSLATIONS = {
     "Mini Bar":                   {"ar": u"\u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631"},
     "Driver Position":            {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0633\u0627\u0626\u0642\u064a\u0646"},
     "Info/EPG: Channels":         {"ar": u"\u0645\u0639\u0644\u0648\u0645\u0627\u062a / \u0627\u0644\u0642\u0646\u0648\u0627\u062a"},
+    "Highlights":                 {"ar": u"\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Match Highlights":           {"ar": u"\u0645\u0644\u062e\u0635\u0627\u062a \u0648\u0623\u0647\u062f\u0627\u0641 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Searching for match highlights...": {"ar": u"\u062c\u0627\u0631\u064a \u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629..."},
+    "No highlights found for this match.": {"ar": u"\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0645\u0644\u062e\u0635\u0627\u062a \u0644\u0647\u0630\u0647 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629."},
+    "Play Selected Highlight":    {"ar": u"\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u062d\u062f\u062f"},
+    "Play All Highlights":        {"ar": u"\u062a\u0634\u063a\u064a\u0644 \u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0644\u062e\u0635\u0627\u062a"},
+    "Play":                       {"ar": u"\u062a\u0634\u063a\u064a\u0644"},
+    "Play All":                   {"ar": u"\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0643\u0644"},
+    "Close":                      {"ar": u"\u0625\u063a\u0644\u0627\u0642"},
+    "OK: Play | Yellow: Play All | Exit: Back": {"ar": u"OK: \u062a\u0634\u063a\u064a\u0644 | \u0623\u0635\u0641\u0631: \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0643\u0644 | Exit: \u0631\u062c\u0648\u0639"},
+    "OK: Play | Yellow/Menu: Resolution | Blue: Refresh | Exit: Back": {"ar": u"OK: \u062a\u0634\u063a\u064a\u0644 | \u0623\u0635\u0641\u0631/Menu: \u0627\u0644\u062c\u0648\u062f\u0629 | \u0623\u0632\u0631\u0642: \u062a\u062d\u062f\u064a\u062b | Exit: \u0631\u062c\u0648\u0639"},
+    "OK/Green: Play | Yellow: Play All | Blue: Refresh | MENU: Resolution | Exit: Back": {"ar": u"OK/\u0623\u062e\u0636\u0631: \u062a\u0634\u063a\u064a\u0644 | \u0623\u0635\u0641\u0631: \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0643\u0644 | \u0623\u0632\u0631\u0642: \u062a\u062d\u062f\u064a\u062b | MENU: \u0627\u0644\u062c\u0648\u062f\u0629 | Exit: \u0631\u062c\u0648\u0639"},
+    "Resolving highlight video stream...": {"ar": u"\u062c\u0627\u0631\u064a \u0627\u0633\u062a\u062e\u0631\u0627\u062c \u0631\u0627\u0628\u0637 \u0627\u0644\u0641\u064a\u062f\u064a\u0648..."},
+    "Duration: ":                 {"ar": u"\u0627\u0644\u0645\u062f\u0629: "},
+    "Resolution: ":               {"ar": u"\u0627\u0644\u062c\u0648\u062f\u0629: "},
+    "Select Video Resolution":    {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u062c\u0648\u062f\u0629 \u0627\u0644\u0641\u064a\u062f\u064a\u0648"},
+    "Match Highlights Resolution: ": {"ar": u"\u062c\u0648\u062f\u0629 \u0645\u0644\u062e\u0635\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u062a: "},
+    "Match Highlights Resolution set to: ": {"ar": u"\u062a\u0645 \u0636\u0628\u0637 \u062c\u0648\u062f\u0629 \u0627\u0644\u0641\u064a\u062f\u064a\u0648 \u0639\u0644\u0649: "},
+    "MENU: Resolution":           {"ar": u"MENU: \u0627\u0644\u062c\u0648\u062f\u0629"},
+    "MENU: Res":                  {"ar": u"MENU: \u0627\u0644\u062c\u0648\u062f\u0629"},
+    "Refresh":                    {"ar": u"\u062a\u062d\u062f\u064a\u062b"},
+    "Watch Live":                 {"ar": u"\u0628\u062b \u0645\u0628\u0627\u0634\u0631"},
+    "Live Streams & Highlights":  {"ar": u"\u0627\u0644\u0628\u062b \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u0648\u0627\u0644\u0645\u0644\u062e\u0635\u0627\u062a"},
+    "Searching for live streams and highlights...": {"ar": u"\u062c\u0627\u0631\u064a \u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u0627\u0644\u0628\u062b \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u0648\u0627\u0644\u0645\u0644\u062e\u0635\u0627\u062a..."},
+    "No live streams or highlights found.": {"ar": u"\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0628\u062b \u0645\u0628\u0627\u0634\u0631 \u0623\u0648 \u0645\u0644\u062e\u0635\u0627\u062a."},
+    "Live Match Search Source: ": {"ar": u"\u0645\u0635\u062f\u0631 \u0627\u0644\u0628\u062d\u062b \u0644\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u0629: "},
+    "Select Live Match Search Source": {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0645\u0635\u062f\u0631 \u0627\u0644\u0628\u062d\u062b \u0644\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u0629"},
+    "YouTube + Web Streams (Recommended)": {"ar": u"\u064a\u0648\u062a\u064a\u0648\u0628 + \u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0628\u062b (\u0645\u0648\u0635\u0649 \u0628\u0647)"},
+    "YouTube Only":               {"ar": u"\u064a\u0648\u062a\u064a\u0648\u0628 \u0641\u0642\u0637"},
+    "Web Streams Only":           {"ar": u"\u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0628\u062b \u0641\u0642\u0637"},
+    "Live Stream":                {"ar": u"\u0628\u062b \u0645\u0628\u0627\u0634\u0631"},
+    "Web Stream":                 {"ar": u"\u0628\u062b \u0645\u0646 \u0627\u0644\u0648\u064a\u0628"},
     # ── Yellow (filter) button ─────────────────────────────────────────────────
-    "Live Only":                  {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
-    "Show Today":                 {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
-    "Show Tomorrow":              {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u063a\u062f"},
-    "Show All":                   {"ar": u"\u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    "Live Only":                  {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u0627\u062a \u0627\u0644\u062d\u064a\u0629"},
+    "Show Today":                 {"ar": u"\u0645\u0628\u0627\u0631\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
+    "Show Tomorrow":              {"ar": u"\u0645\u0628\u0627\u0631\u0627\u062a \u0627\u0644\u063a\u062f"},
+    "Show All":                   {"ar": u"\u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u062a"},
     "Yesterday":                  {"ar": u"\u0623\u0645\u0633"},
     # ── Blue (alert) button ────────────────────────────────────────────────────
     "Goal Alert: OFF":            {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u0623\u0647\u062f\u0627\u0641: \u0645\u063a\u0644\u0642"},
@@ -1015,8 +1048,8 @@ def is_loading_status(status_str):
 # AI MODE — API HELPERS
 # ==============================================================================
 AI_PROVIDERS = [
-    ("gemini", "Google Gemini Flash"),
-    ("groq", "Groq (Llama 3)"),
+    ("gemini", "Google Gemini Flash (3.6)"),
+    ("groq", "Groq (Llama 3.3 70B)"),
 ]
 AI_LANGUAGES = ["English", "Arabic", "عربي (مصري)", "عربي (عراقي)", "عربي (خليجي)", "دارجة (مغربية)", "عربي (شامي)", "French", "Spanish", "German", "Italian", "Portuguese", "Turkish", "Dutch", "Russian", "Greek", "Croatian", "Serbian", "Bosnian"]
 AI_FREQUENCIES = [5, 10, 15, 30, 60]
@@ -1215,6 +1248,104 @@ def resolve_team_ref_threaded(ref_url, on_result):
     threading.Thread(target=_run, daemon=True).start()
 
 
+def clean_ai_text(text):
+    """
+    Cleans raw AI response by removing:
+    - Thinking tags (<think>...</think>, <thought>...</thought>, <thinking>...</thinking>)
+    - Unclosed thinking blocks when tokens ran out mid-thought (<think>...)
+    - Prompt analysis / scratchpad blocks ('**Analyze User Input:**', "here's a thinking process:", 'Role:', etc.)
+    - Preamble/intro lines ('Here are 2 short messages:', etc.)
+    """
+    if not text:
+        return ""
+
+    import re
+    # 1. Remove closed XML-style thought tags
+    text = re.sub(r'<think(?:ing)?>.*?</think(?:ing)?>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r'<thought>.*?</thought>', '', text, flags=re.DOTALL | re.IGNORECASE)
+
+    # 2. If unclosed <think> exists (cut off before closing tag):
+    if re.search(r'<think(?:ing)?>', text, flags=re.IGNORECASE):
+        parts = re.split(r'<think(?:ing)?>', text, flags=re.IGNORECASE)
+        prefix = parts[0].strip()
+        rest = parts[1] if len(parts) > 1 else ''
+        sub_lines = rest.split('\n')
+        message_lines = []
+        is_past_thinking = False
+        for sl in sub_lines:
+            sl_s = sl.strip()
+            if not sl_s:
+                continue
+            sl_low = sl_s.lower()
+            if any(sl_low.startswith(m) for m in ['message 1', 'message 2', 'headline:', 'notification:']) or any(c in sl_s for c in [u'فوز', u'مباراة', u'أهداف', u'الدوري', u'ديربي']):
+                is_past_thinking = True
+            elif not is_past_thinking and any(th in sl_low for th in [
+                'thinking process', 'how i', 'analyze user', 'user wants', "let's",
+                'we need to', 'role:', 'task:', 'constraints:', 'rules:', 'step 1', 'step 2'
+            ]):
+                continue
+            if is_past_thinking:
+                message_lines.append(sl_s)
+        text = prefix + ('\n\n' + '\n'.join(message_lines) if message_lines else '')
+
+    # 3. Clean any leftover tag remnants
+    text = re.sub(r'</?think(?:ing)?>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'</?thought>', '', text, flags=re.IGNORECASE)
+
+    # 4. Split into paragraphs/blocks
+    raw_blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
+    cleaned_blocks = []
+
+    thought_indicators = [
+        r'^\s*here(?:\'s|\s+is)\s+(?:a\s+)?thinking\s+process',
+        r'^\s*here(?:\'s|\s+is)\s+how\s+i',
+        r'^\d+\.\s*\*{0,2}Analyze\s+User\s+Input',
+        r'^\*{0,2}Analyze\s+User\s+Input',
+        r'^\*{0,2}Thought\s+Process',
+        r'^\*{0,2}Thinking\s+Process',
+        r'^\*{0,2}Internal\s+Reasoning',
+        r'^\*{0,2}My\s+Plan',
+        r'^\*{0,2}Step\s+1[:.]',
+        r'^\*{0,2}Analysis[:.]',
+        r'^\s*-\s*\*{0,2}Role[:.]',
+        r'^\s*-\s*\*{0,2}Task[:.]',
+        r'^\s*-\s*\*{0,2}Constraints[:.]',
+        r'^\s*-\s*\*{0,2}Rules[:.]',
+    ]
+    thought_regex = re.compile('|'.join(thought_indicators), re.IGNORECASE)
+
+    instruction_keywords = [
+        'energetic sports broadcaster',
+        'write exactly 2 short',
+        'write exactly 1 short',
+        'thrilling notification messages'
+    ]
+
+    for block in raw_blocks:
+        lines = [l.strip() for l in block.split('\n') if l.strip()]
+        if not lines:
+            continue
+        first_line = lines[0]
+        # Skip blocks starting with thought indicators
+        if thought_regex.search(first_line):
+            continue
+        # Skip blocks that echo instruction keywords
+        block_low = block.lower()
+        if sum(1 for kw in instruction_keywords if kw in block_low) >= 2:
+            continue
+        # Strip conversational AI filler like "Here are two thrilling messages:"
+        if re.match(r'^(here (is|are)|sure,|certainly,|as an? energetic).*?:\s*$', first_line, re.IGNORECASE):
+            remaining = "\n".join(lines[1:]).strip()
+            if remaining:
+                cleaned_blocks.append(remaining)
+            continue
+
+        cleaned_blocks.append(block)
+
+    result = "\n\n".join(cleaned_blocks).strip()
+    return result
+
+
 def call_ai_api_threaded(api_key, provider, prompt, on_result):
     """
     Calls the chosen AI provider in a background thread.
@@ -1237,38 +1368,122 @@ def call_ai_api_threaded(api_key, provider, prompt, on_result):
 
             text = ""
             if provider == "gemini":
-                url = (
-                    "https://generativelanguage.googleapis.com"
-                    "/v1beta/models/gemini-2.0-flash:generateContent"
-                    "?key=" + api_key
-                )
-                payload = json.dumps({
-                    "contents": [{"parts": [{"text": full_prompt}]}]
-                })
-                req = Request(url, data=payload.encode("utf-8"))
-                req.add_header("Content-Type", "application/json")
-                req.add_header("User-Agent", "Mozilla/5.0")
-                resp = urlopen(req, timeout=15)
-                data = json.loads(resp.read().decode("utf-8"))
-                text = (data["candidates"][0]["content"]["parts"][0]["text"])
+                # Primary: gemini-3.6-flash (recommended by Google API) with fallbacks
+                gemini_models = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+                last_exc = None
+                for g_model in gemini_models:
+                    try:
+                        url = (
+                            "https://generativelanguage.googleapis.com"
+                            "/v1beta/models/{}:generateContent"
+                            "?key={}".format(g_model, api_key)
+                        )
+                        # Attempt request with thinkingBudget: 0 to disable thinking for fast sports notifications
+                        payload_data = {
+                            "contents": [{"parts": [{"text": full_prompt}]}],
+                            "generationConfig": {
+                                "thinkingConfig": {
+                                    "thinkingBudget": 0
+                                }
+                            }
+                        }
+                        payload = json.dumps(payload_data)
+                        req = Request(url, data=payload.encode("utf-8"))
+                        req.add_header("Content-Type", "application/json")
+                        req.add_header("User-Agent", "Mozilla/5.0")
+                        try:
+                            resp = urlopen(req, timeout=15)
+                        except Exception as ge_cfg:
+                            # If thinkingConfig causes 400 Bad Request on older models, retry without it
+                            cfg_code = getattr(ge_cfg, 'code', 0)
+                            if cfg_code == 400:
+                                payload_data = {"contents": [{"parts": [{"text": full_prompt}]}]}
+                                payload = json.dumps(payload_data)
+                                req = Request(url, data=payload.encode("utf-8"))
+                                req.add_header("Content-Type", "application/json")
+                                req.add_header("User-Agent", "Mozilla/5.0")
+                                resp = urlopen(req, timeout=15)
+                            else:
+                                raise ge_cfg
+
+                        data = json.loads(resp.read().decode("utf-8"))
+                        # Filter out thought parts (where p.get("thought") is True)
+                        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                        answer_parts = [p.get("text", "") for p in parts if not p.get("thought") and p.get("text")]
+                        raw_gem = "".join(answer_parts).strip() if answer_parts else (parts[-1].get("text", "").strip() if parts else "")
+                        cleaned = clean_ai_text(raw_gem)
+                        if cleaned:
+                            text = cleaned
+                            break
+                        log_dbg("[AI Mode] Gemini model {} returned only thinking/scratchpad, trying next fallback...".format(g_model))
+                    except Exception as ge:
+                        last_exc = ge
+                        err_code = getattr(ge, 'code', 0)
+                        err_body = ""
+                        if hasattr(ge, 'read'):
+                            try:
+                                err_body = ge.read().decode("utf-8", errors="ignore")
+                            except Exception:
+                                pass
+                        is_model_err = (err_code == 404) or ("not found" in err_body.lower()) or ("no longer available" in err_body.lower())
+                        if is_model_err and g_model != gemini_models[-1]:
+                            log_dbg("[AI Mode] Gemini model {} unavailable ({}), trying next fallback...".format(g_model, err_code))
+                            continue
+                        if err_body:
+                            setattr(ge, '_saved_body', err_body)
+                        raise ge
+                if not text and last_exc:
+                    raise last_exc
 
             elif provider == "groq":
+                # Primary: llama-3.3-70b-versatile with fallbacks
+                groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3.6-27b", "openai/gpt-oss-120b"]
                 url = "https://api.groq.com/openai/v1/chat/completions"
-                payload = json.dumps({
-                    "model": "llama-3.1-8b-instant",
-                    "messages": [{"role": "user", "content": full_prompt}],
-                    "max_tokens": 300
-                })
-                req = Request(url, data=payload.encode("utf-8"))
-                req.add_header("Content-Type", "application/json")
-                req.add_header("Authorization", "Bearer " + api_key)
-                req.add_header("User-Agent", "Mozilla/5.0")
-                resp = urlopen(req, timeout=15)
-                data = json.loads(resp.read().decode("utf-8"))
-                text = data["choices"][0]["message"]["content"]
+                last_exc = None
+                for gr_model in groq_models:
+                    try:
+                        payload = json.dumps({
+                            "model": gr_model,
+                            "messages": [{"role": "user", "content": full_prompt}],
+                            "max_tokens": 1024
+                        })
+                        req = Request(url, data=payload.encode("utf-8"))
+                        req.add_header("Content-Type", "application/json")
+                        req.add_header("Authorization", "Bearer " + api_key)
+                        req.add_header("User-Agent", "Mozilla/5.0")
+                        resp = urlopen(req, timeout=15)
+                        data = json.loads(resp.read().decode("utf-8"))
+                        msg_obj = data.get("choices", [{}])[0].get("message", {})
+                        raw_groq = msg_obj.get("content", "").strip()
+                        cleaned = clean_ai_text(raw_groq)
+                        if cleaned:
+                            text = cleaned
+                            break
+                        log_dbg("[AI Mode] Groq model {} returned only thinking/scratchpad, trying next fallback...".format(gr_model))
+                    except Exception as gre:
+                        last_exc = gre
+                        err_code = getattr(gre, 'code', 0)
+                        err_body = ""
+                        if hasattr(gre, 'read'):
+                            try:
+                                err_body = gre.read().decode("utf-8", errors="ignore")
+                            except Exception:
+                                pass
+                        is_model_err = (err_code == 404) or ("model_not_found" in err_body) or ("does not exist" in err_body) or ("decommissioned" in err_body)
+                        if is_model_err and gr_model != groq_models[-1]:
+                            log_dbg("[AI Mode] Groq model {} unavailable ({}), trying next fallback...".format(gr_model, err_code))
+                            continue
+                        if err_body:
+                            setattr(gre, '_saved_body', err_body)
+                        raise gre
+                if not text and last_exc:
+                    raise last_exc
 
             else:
                 text = ""
+
+            if text:
+                text = clean_ai_text(text)
 
             # Schedule callback on main thread via reactor
             if on_result:
@@ -1304,11 +1519,13 @@ def call_ai_api_threaded(api_key, provider, prompt, on_result):
                     reactor.callFromThread(
                         on_result,
                         "ERROR: Rate limited by AI provider. "
-                        "Please wait a few minutes or switch to Groq provider.")
+                        "Please wait a few minutes or switch to another provider.")
                 return
 
             err_msg = str(e)
-            if hasattr(e, 'read'):
+            if hasattr(e, '_saved_body') and getattr(e, '_saved_body'):
+                err_msg += " | " + getattr(e, '_saved_body')
+            elif hasattr(e, 'read'):
                 try:
                     err_msg += " | " + e.read().decode("utf-8")
                 except:
@@ -1434,7 +1651,11 @@ def build_ai_prompt(language, cached_events, match_snapshots, ledger=None):
         "4. {language_instruction}.\n"
         "5. Keep each message under 25 words.\n"
         "6. Separate them with a blank line.\n"
-        "7. No markdown, no asterisks, no numbering, no emojis."
+        "7. No markdown, no asterisks, no numbering, no emojis.\n"
+        "8. CRITICAL: Output ONLY the 2 notification messages. Do NOT include any analysis, "
+        "planning, step-by-step thinking, role definitions, or intro text. "
+        "Do NOT output <think> tags. Do NOT write 'here is a thinking process'. "
+        "Start directly with Message 1."
     ).format(
         language_instruction=get_ai_language_instruction(language),
         ledger_rule=(
@@ -1491,8 +1712,8 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "6.9"
-# v6.9 introduces Main Theme Background Color customization (8 curated TV palettes including OLED Pure Black), full Egyptian Premier League official video highlights & clips direct playback in Game Info, official EPL league logo integration, instant league switching, and EPL favorite teams support.
+CURRENT_VERSION = "7.0"
+# v7.0 introduces new "watch live" and  "Match highlights" videos from YouTube  using the blue button. The user can select the player, streaming type, and resolution.
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
 # ==============================================================================
@@ -1654,7 +1875,7 @@ try:
     _diag_logger.setLevel(logging.DEBUG)
     _diag_logger.propagate = False
     if not _diag_logger.handlers:
-        _diag_handler = RotatingFileHandler(DIAG_LOG_FILE, maxBytes=50000, backupCount=1)
+        _diag_handler = RotatingFileHandler(DIAG_LOG_FILE, maxBytes=300000, backupCount=2)
         _diag_handler.setFormatter(logging.Formatter("[%(asctime)s.%(msecs)03d] %(message)s", "%H:%M:%S"))
         _diag_logger.addHandler(_diag_handler)
 except:
@@ -1664,7 +1885,10 @@ except:
 def log_diag(msg):
     """Verbose diagnostic log with millisecond timestamps for tracing API/UI flow."""
     try:
-        _diag_logger.debug(str(msg))
+        if isinstance(msg, unicode if str is bytes else str):
+            _diag_logger.debug(msg)
+        else:
+            _diag_logger.debug(str(msg))
     except:
         pass
 
@@ -3215,6 +3439,7 @@ def is_system_screen_active(session):
             "BroadcastingChannelsScreen",
             "AthleteProfileScreen",
             "WatchPartyScreen",
+            "MatchHighlightsScreen",
             "PersonalProfileScreen",
             "RacingDriverInfoScreen",
             "SimplePlayer",
@@ -5662,6 +5887,9 @@ class SportsMonitor:
                     self.session.open(MessageBox, "AI API Error: " + text[7:], MessageBox.TYPE_ERROR, timeout=10)
             except Exception:
                 pass
+        # Sanitize and strip any thoughts/analysis
+        text = clean_ai_text(text)
+        if not text:
             return
 
         # Split into individual messages (blank-line separated)
@@ -5834,6 +6062,7 @@ class SportsMonitor:
                 "without naming old scorers.\n"
                 "- Keep it under 20 words. One sentence only.\n"
                 "- No numbering, no emojis, no asterisks, no markdown.\n"
+                "- Output ONLY the final commentary sentence. Do not include analysis, preamble, or thoughts.\n"
                 "- {}.{}"
             ).format(
                 scorer_text, scoring_team_name, clock, score_display,
@@ -5947,6 +6176,7 @@ class SportsMonitor:
                     "Sound natural and excited, not robotic. "
                     "Mention both teams. Keep it under 20 words. "
                     "No emojis, no markdown, no numbering. "
+                    "Output ONLY the single sentence. No thoughts or analysis. "
                     "{}.{}"
                 ).format(h_name, a_name, league, get_ai_language_instruction(self.ai_language), personal_note)
 
@@ -5961,6 +6191,7 @@ class SportsMonitor:
                     "React to the final score. Sound natural, not robotic, not cliche. "
                     "Keep it under 20 words. "
                     "No emojis, no markdown, no numbering. "
+                    "Output ONLY the single sentence. No thoughts or analysis. "
                     "{}.{}{}"
                 ).format(
                     h_name, a_name, score_fmt, league,
@@ -6803,19 +7034,26 @@ class SportsMonitor:
         if url.startswith('euroleague://') or url.startswith('epl://'):
             return url
 
+        # When viewing today (ch_day_offset == 0), use the base URL without ?dates= parameter.
+        # ESPN's scoreboard defaults to the active matchday / gameweek and real-time live match updates.
+        # Appending ?dates= forces strict calendar filtering which returns 0 events for major soccer
+        # leagues (e.g. Champions League, Premier League) whose matchdays span adjacent dates.
+        if getattr(self, 'ch_day_offset', 0) == 0:
+            return url
+
         # Tennis, MMA/Boxing, and Racing APIs break with ?dates= parameter — skip them
         url_lower = url.lower()
         if '/tennis/' in url_lower or '/mma/' in url_lower or '/boxing/' in url_lower or '/racing/' in url_lower:
             return url
 
-        # Query target and target - 1 day to cover all possible local-day timezone shifts.
+        # Query exact target date (YYYYMMDD).
+        # Passing a two-day range (YYYYMMDD-YYYYMMDD) causes ESPN CDN to return stale cached
+        # snapshots where finished matches remain frozen in-progress (LIVE) or scheduled (SCH).
         offset = self.ch_day_offset
         target = datetime.date.today() + datetime.timedelta(days=offset)
-        t_prev = target - datetime.timedelta(days=1)
-        
-        date_range = "{}-{}".format(t_prev.strftime('%Y%m%d'), target.strftime('%Y%m%d'))
+        date_str = target.strftime('%Y%m%d')
         sep = '&' if '?' in url else '?'
-        return url + sep + 'dates=' + date_range
+        return url + sep + 'dates=' + date_str
 
 
     def navigate_day(self, delta):
@@ -7492,6 +7730,10 @@ class SportsMonitor:
             print("[SportsMonitor] Cache Save BG Error: ", e)
 
     def save_cache(self):
+        # Do not overwrite today's disk cache when viewing yesterday or future days
+        if getattr(self, 'ch_day_offset', 0) != 0:
+            return
+
         # Optimization: Write Coalescing (Max once every 2 mins)
         if time.time() - self.last_cache_save < 120 and self.cached_events:
             return
@@ -7651,7 +7893,7 @@ class SportsMonitor:
         if live_count > 0:
             reactor.callLater(0.5, self.fetch_live_summaries)  # small delay lets lazy processor finish first
 
-        reactor.callLater(0, self._trigger_callbacks, True)
+        reactor.callLater(0, self._trigger_callbacks, True, force_refresh=True, bypass_debounce=True)
 
     def fetch_live_summaries(self):
         """For each live non-soccer match, fetch the ESPN summary API directly
@@ -9880,8 +10122,10 @@ class SportsMonitor:
             self.lazy_processor = None
             self.processing_active = False
             
-            # Show the incremental results parsed so far to satisfy immediate main screen loading
-            self._trigger_callbacks(True, bypass_debounce=getattr(self, 'batch_is_active', False))
+            # Show incremental results with debouncing to prevent freezing the main thread
+            # Only bypass debounce if we had no cached events yet (initial launch) for immediate appearance
+            is_initial = not self.cached_events or len(self.cached_events) == 0
+            self._trigger_callbacks(True, bypass_debounce=is_initial)
             
             if not getattr(self, 'batch_is_active', False):
                 self.save_cache()
@@ -9971,14 +10215,25 @@ class SportsMonitor:
                                 old_type = old_status.get('type', {})
                                 new_type = new_status.get('type', {})
 
-                                # 1. Check basic state (pre, in, post)
-                                if old_type.get('state') != new_type.get('state'):
+                                # Live matches or matches transitioning in/out of live MUST always be marked changed
+                                if new_type.get('state') == 'in' or old_type.get('state') == 'in':
                                     is_changed = True
-                                # 2. Check Detailed status (PPD, Suspended, etc)
+                                # 1. Check basic state (pre, in, post)
+                                elif old_type.get('state') != new_type.get('state'):
+                                    is_changed = True
+                                # 2. Check Detailed status (PPD, Suspended, Halftime, etc)
                                 elif old_type.get('name') != new_type.get('name'):
+                                    is_changed = True
+                                elif old_type.get('shortDetail') != new_type.get('shortDetail'):
+                                    is_changed = True
+                                elif old_type.get('detail') != new_type.get('detail'):
+                                    is_changed = True
+                                elif old_type.get('description') != new_type.get('description'):
                                     is_changed = True
                                 # 3. Check Clock and Period (IMPORTANT for real-time updates)
                                 elif old_status.get('displayClock') != new_status.get('displayClock'):
+                                    is_changed = True
+                                elif old_status.get('clock') != new_status.get('clock'):
                                     is_changed = True
                                 elif old_status.get('period') != new_status.get('period'):
                                     is_changed = True
@@ -11255,6 +11510,194 @@ class TeamStandingScreen(Screen):
             log_dbg("parse_standings exception: " + str(e) + " | " + traceback.format_exc()[-300:])
             self["loading"].setText("Error: " + str(e))
 
+def get_best_streaming_service_type():
+    """
+    Returns the most reliable Enigma2 service type for HTTP/HTTPS streaming:
+    - 5002: exteplayer3 (FFmpeg) if ServiceApp is installed and exteplayer3 binary exists
+    - 5001: gstplayer if ServiceApp is installed and gstplayer binary exists
+    - 4097: default Enigma2 GStreamer (universal fallback)
+    """
+    try:
+        if os.path.exists("/usr/lib/enigma2/python/Plugins/SystemPlugins/ServiceApp"):
+            if os.path.exists("/usr/bin/exteplayer3"):
+                return "5002"
+            if os.path.exists("/usr/bin/gstplayer"):
+                return "5001"
+    except Exception:
+        pass
+    return "4097"
+
+
+def is_ytdlp_installed():
+    """Checks if yt-dlp or youtube-dl is installed as a Python module or executable binary."""
+    try:
+        import importlib
+        importlib.invalidate_caches()
+    except Exception:
+        pass
+    try:
+        import yt_dlp
+        return True
+    except Exception:
+        pass
+    try:
+        import youtube_dl
+        return True
+    except Exception:
+        pass
+    for p in ["/usr/bin/yt-dlp", "/usr/local/bin/yt-dlp", "/usr/bin/youtube-dl"]:
+        if os.path.exists(p):
+            return True
+    try:
+        import shutil
+        if hasattr(shutil, "which") and (shutil.which("yt-dlp") or shutil.which("youtube-dl")):
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def install_video_libraries(session, on_finish=None):
+    """
+    Installs/updates python3-yt-dlp using Screens.Console (if available for live terminal output)
+    or via a background thread with progress and status MessageBoxes.
+    """
+    import sys
+    import os
+    if not session:
+        return
+
+    is_deb = os.path.exists("/usr/bin/apt-get")
+    py_ver = sys.version_info[0]
+    pkg = "python3-yt-dlp" if py_ver >= 3 else "python-yt-dlp"
+
+    py_installer = (
+        'python3 -c "import urllib.request, ssl; '
+        "print('Downloading official yt-dlp standalone binary from GitHub...'); "
+        "ctx = ssl._create_unverified_context() if hasattr(ssl, '_create_unverified_context') else None; "
+        "req = urllib.request.Request('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp', headers={'User-Agent': 'Mozilla/5.0'}); "
+        "data = urllib.request.urlopen(req, context=ctx, timeout=30).read(); "
+        "open('/usr/bin/yt-dlp', 'wb').write(data); "
+        "print('yt-dlp binary installed successfully (%d bytes)!' % len(data))\" "
+        '&& chmod +x /usr/bin/yt-dlp && /usr/bin/yt-dlp --version'
+    )
+    if is_deb:
+        cmd = "apt-get update ; (apt-get install -y " + pkg + " || apt-get install -y yt-dlp || (" + py_installer + "))"
+    else:
+        fix_openbh_feed = "sed -i 's|openbh/6.0/cortexa15hf|openbh/6.0/vuzero4k/cortexa15hf|g' /etc/opkg/*.conf 2>/dev/null"
+        cmd = fix_openbh_feed + " ; (opkg install --force-overwrite " + pkg + " || (" + py_installer + "))"
+
+    title = (u"تثبيت وتحديث مكتبات الفيديو (yt-dlp)") if PLUGIN_LANGUAGE == "ar" else "Installing Video Libraries (yt-dlp)"
+
+    # 1. Try Screens.Console (interactive terminal on screen)
+    try:
+        from Screens.Console import Console
+        def _on_console_done(*args):
+            try:
+                import importlib
+                importlib.invalidate_caches()
+            except Exception:
+                pass
+            if on_finish:
+                try:
+                    on_finish()
+                except Exception:
+                    pass
+        try:
+            session.openWithCallback(_on_console_done, Console, title=title, cmdlist=[cmd], closeOnSuccess=False)
+        except TypeError:
+            session.openWithCallback(_on_console_done, Console, title=title, cmdlist=[cmd])
+        return
+    except Exception as e:
+        log_dbg("[VideoInstaller] Screens.Console not available: {}".format(e))
+
+    # 2. Fallback: background thread with MessageBox notifications
+    from Screens.MessageBox import MessageBox
+    wait_msg = (
+        u"جاري تحديث وتثبيت مكتبات الفيديو (yt-dlp) في الخلفية...\nيرجى الانتظار لحين اكتمال التثبيت."
+    ) if PLUGIN_LANGUAGE == "ar" else (
+        "Updating and installing video libraries (yt-dlp) in background...\nPlease wait."
+    )
+    session.open(MessageBox, wait_msg, MessageBox.TYPE_INFO, timeout=5)
+
+    def _bg_install():
+        try:
+            import subprocess
+            log_dbg("[VideoInstaller] Executing: " + cmd)
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p.communicate()
+            rc = p.returncode
+            log_dbg("[VideoInstaller] Return code: {}".format(rc))
+            try:
+                import importlib
+                importlib.invalidate_caches()
+            except Exception:
+                pass
+            if rc == 0:
+                fin_msg = (
+                    u"تم تثبيت وتحديث مكتبات الفيديو بنجاح!\nيمكنك الآن تشغيل الفيديوهات مباشرة."
+                ) if PLUGIN_LANGUAGE == "ar" else (
+                    "Video libraries installed/updated successfully!\nYou can now play videos."
+                )
+                mtype = MessageBox.TYPE_INFO
+            else:
+                fin_msg = (
+                    u"تعذر إكمال التثبيت التلقائي.\nيرجى محاولة التثبيت يدوياً عبر Telnet:\n" + cmd
+                ) if PLUGIN_LANGUAGE == "ar" else (
+                    "Automatic installation could not be completed.\nPlease install manually via Telnet:\n" + cmd
+                )
+                mtype = MessageBox.TYPE_WARNING
+
+            from twisted.internet import reactor
+            def _ui_done():
+                session.open(MessageBox, fin_msg, mtype, timeout=8)
+                if rc == 0 and on_finish:
+                    try:
+                        on_finish()
+                    except Exception:
+                        pass
+            reactor.callFromThread(_ui_done)
+        except Exception as ex:
+            log_dbg("[VideoInstaller] Error: {}".format(ex))
+
+    t = threading.Thread(target=_bg_install)
+    t.daemon = True
+    t.start()
+
+
+def prompt_install_video_libraries(session, on_finish=None, reason="fail"):
+    """
+    Shows a MessageBox.TYPE_YESNO prompt asking the user whether to install required libraries.
+    """
+    if not session:
+        return
+    from Screens.MessageBox import MessageBox
+    if reason == "missing":
+        prompt_text = (
+            u"المكتبات والأدوات اللازمة لتشغيل ملخصات وأهداف المباريات (yt-dlp) غير متوفرة على جهازك.\n\n"
+            u"هل ترغب في تثبيتها تلقائياً الآن من سيرفر الصورة؟"
+        ) if PLUGIN_LANGUAGE == "ar" else (
+            "The required tools and libraries to play match highlights (yt-dlp) are not installed on your device.\n\n"
+            "Would you like to install them automatically now?"
+        )
+    else:
+        prompt_text = (
+            u"عذراً، يتعذر استخراج رابط الفيديو المباشر وتشغيله.\n"
+            u"قد تكون أداة yt-dlp غير مثبتة أو تحتاج إلى تحديث لأحدث إصدار.\n\n"
+            u"هل ترغب في تثبيت وتحديث المكتبات المطلوبة (python3-yt-dlp) تلقائياً الآن؟"
+        ) if PLUGIN_LANGUAGE == "ar" else (
+            "Cannot resolve or play the direct video stream.\n"
+            "yt-dlp or video libraries may be missing or need an update to the latest version.\n\n"
+            "Would you like to install/update the required libraries (python3-yt-dlp) automatically now?"
+        )
+
+    def _on_answer(confirmed):
+        if confirmed:
+            install_video_libraries(session, on_finish=on_finish)
+
+    session.openWithCallback(_on_answer, MessageBox, prompt_text, MessageBox.TYPE_YESNO, timeout=25)
+
+
 # ==============================================================================
 # GAME INFO SCREEN (UPDATED: "Facebook Style" News Feed)
 # ==============================================================================
@@ -11289,16 +11732,29 @@ class SimplePlayer(Screen):
             # Don't delete buffer A if it's the one being used by active_prefetch
             print("[SimplySport] SimplePlayer: Inherited prefetch for " + self.current_prefetch_url)
 
+        # Hide any open screens in dialog_stack beneath this player to prevent occlusion
+        self._hidden_dialogs = []
+        try:
+            for dlg in self.session.dialog_stack:
+                if dlg != self and hasattr(dlg, 'shown') and dlg.shown:
+                    dlg.hide()
+                    self._hidden_dialogs.append(dlg)
+        except Exception:
+            pass
+
         # Transparent background for video overlay
-        self.skin = scale_skin_xml("""<screen position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#00000000">
-            <widget name="video_title" position="50,50" size="1000,60" font="Regular;40" foregroundColor="#ffffff" backgroundColor="#000000" transparent="1" zPosition="1" />
-            <widget name="progress" position="50,120" size="1000,30" font="Regular;24" foregroundColor="#00FF85" backgroundColor="#000000" transparent="1" zPosition="1" />
-            <widget name="hint" position="50,970" size="1820,60" font="Regular;28" foregroundColor="#aaaaaa" backgroundColor="#000000" transparent="1" halign="center" zPosition="1" />
+        self.skin = scale_skin_xml("""<screen position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#ff000000">
+            <widget name="video_title" position="50,50" size="1000,60" font="Regular;40" foregroundColor="#ffffff" backgroundColor="#ff000000" transparent="1" zPosition="1" />
+            <widget name="progress" position="50,120" size="1000,30" font="Regular;24" foregroundColor="#00FF85" backgroundColor="#ff000000" transparent="1" zPosition="1" />
+            <widget name="hint" position="50,970" size="1820,60" font="Regular;28" foregroundColor="#aaaaaa" backgroundColor="#ff000000" transparent="1" halign="center" zPosition="1" />
         </screen>""")
         self["video_title"] = Label("Loading Stream...")
         self["progress"] = Label("")
         self["hint"] = Label("◄► Skip | Exit: Stop")
         self.open_time = time.time()
+
+        self.osd_timer = eTimer()
+        safe_connect(self.osd_timer, self._hide_osd)
 
         self["actions"] = ActionMap(["OkCancelActions", "InfobarSeekActions", "DirectionActions"], {
             "cancel": self.close,
@@ -11307,16 +11763,36 @@ class SimplePlayer(Screen):
             "seekBack": self.prev_video,     # << button
             "right": self.next_video,
             "left": self.prev_video,
+            "up": self._show_osd_briefly,
+            "down": self._show_osd_briefly,
         }, -2)
 
         self.sref = sref
         self.onLayoutFinish.append(self.play)
 
+    def _hide_osd(self):
+        try:
+            self["video_title"].hide()
+            self["progress"].hide()
+            self["hint"].hide()
+        except Exception:
+            pass
+
+    def _show_osd(self, timeout_ms=4000):
+        try:
+            self["video_title"].show()
+            self["progress"].show()
+            self["hint"].show()
+            if timeout_ms > 0:
+                self.osd_timer.start(timeout_ms, True)
+        except Exception:
+            pass
+
+    def _show_osd_briefly(self):
+        self._show_osd(4000)
+
     def handle_ok(self):
-        # Prevent accidental closing from rapid OK presses on screen open
-        if (time.time() - getattr(self, 'open_time', 0)) < 1.5:
-            return
-        self.close()
+        self._show_osd_briefly()
 
     def prefetch_next(self, index):
         return # DISABLED for stability (user request: less aggressive)
@@ -11426,8 +11902,8 @@ class SimplePlayer(Screen):
                         # HLS streams use 4097
                         service_type = "4097"
                     else:
-                        # MP4/Progressive use 5001 or 4097
-                        service_type = "5001" if ".mp4" in url.lower() else "4097"
+                        # MP4/Progressive use best service type (5002 exteplayer3 / 5001 gstplayer / 4097)
+                        service_type = get_best_streaming_service_type()
 
                     # Construct SREF with proper service type
                     ref = "{}:0:1:0:0:0:0:0:0:0:{}:{}".format(
@@ -11438,6 +11914,7 @@ class SimplePlayer(Screen):
 
                     print("[SimplySport] Playing [{}]: {}".format(service_type, final_url))
                     self.session.nav.playService(eServiceReference(ref))
+                    self._show_osd(4000)
 
                     # Record start time for grace period
                     self.start_time = time.time()
@@ -11458,6 +11935,7 @@ class SimplePlayer(Screen):
                         self["video_title"].setText(s_name)
                 except Exception:
                     pass
+                self._show_osd(4000)
                 if not self.is_listening:
                     self.session.nav.event.append(self.on_event)
                     self.is_listening = True
@@ -11477,9 +11955,26 @@ class SimplePlayer(Screen):
         if event == 5:  # ONLY End-Of-File (evStopped is normal during stream connection/buffering)
             if self.is_advancing: return
 
-            # Grace period: Ignore EOF if within first 10 seconds (buffering)
-            if (time.time() - getattr(self, 'start_time', 0)) < 10:
+            # Grace period: Ignore EOF if within first 15 seconds (buffering)
+            if (time.time() - getattr(self, 'start_time', 0)) < 15:
                 return
+
+            # Check if video has truly reached end of content via position vs total length
+            try:
+                service = self.session.nav.getCurrentService()
+                seek = service and service.seek()
+                if seek:
+                    pos_res, pos_pts = seek.getPlayPosition()
+                    len_res, len_pts = seek.getLength()
+                    if len_res == 0 and len_pts > 0:
+                        pos_sec = pos_pts / 90000.0
+                        len_sec = len_pts / 90000.0
+                        # If more than 10 seconds remain, this is a buffer dip or transient network stall, NOT true EOF
+                        if pos_sec < (len_sec - 10.0):
+                            log_dbg("[SimplySport] SimplePlayer ignoring premature EOF at {:.1f}s / {:.1f}s".format(pos_sec, len_sec))
+                            return
+            except Exception as e:
+                log_dbg("[SimplySport] SimplePlayer EOF check error: {}".format(e))
 
             log_dbg("[SimplySport] Video Finished (EOF)")
 
@@ -11497,6 +11992,10 @@ class SimplePlayer(Screen):
                 self.close()
 
     def close(self, *args, **kwargs):
+        try:
+            self.osd_timer.stop()
+        except Exception:
+            pass
         try:
             if self.is_listening:
                 self.session.nav.event.remove(self.on_event)
@@ -11516,6 +12015,13 @@ class SimplePlayer(Screen):
             self.session.nav.playService(self.restore_service)
         else:
             self.session.nav.stopService()
+
+        # Restore hidden dialogs beneath player
+        try:
+            for dlg in getattr(self, '_hidden_dialogs', []):
+                dlg.show()
+        except Exception:
+            pass
 
         Screen.close(self, *args, **kwargs)
 
@@ -12201,6 +12707,9 @@ class GameInfoScreen(Screen):
         id_m = re.search(r'(?:embed/|v=|youtu\.be/)([a-zA-Z0-9_-]{11})', url)
         if id_m:
             yt_id = id_m.group(1)
+            if not is_ytdlp_installed():
+                prompt_install_video_libraries(self.session, reason="missing")
+                return
 
             # Direct Stream Resolver Engine
             def _resolve_and_play():
@@ -12216,9 +12725,10 @@ class GameInfoScreen(Screen):
                             'quiet': True,
                             'no_warnings': True,
                             'skip_download': True,
+                            'format': '22/18/best[vcodec^=avc1][acodec!=none]/best[acodec!=none]',
                             'extractor_args': {
                                 'youtube': {
-                                    'player_client': ['android', 'web']
+                                    'player_client': ['android']
                                 }
                             }
                         }
@@ -12348,8 +12858,9 @@ class GameInfoScreen(Screen):
                     log_dbg("[SimplySport] Launching direct stream playback: {}".format(ref[:80]))
                     reactor.callFromThread(self.session.open, SimplePlayer, eServiceReference(ref))
                 else:
-                    msg = (u"عذراً، يتعذر استخراج رابط الفيديو المباشر.\nيرجى التأكد من تثبيت وتحديث yt-dlp:\nopkg update && opkg install python3-yt-dlp") if PLUGIN_LANGUAGE == "ar" else ("Cannot resolve direct video stream.\nPlease ensure yt-dlp is updated:\nopkg update && opkg install python3-yt-dlp")
-                    reactor.callFromThread(self.session.open, MessageBox, msg, MessageBox.TYPE_WARNING, timeout=6)
+                    def _on_fail():
+                        prompt_install_video_libraries(self.session, reason="fail")
+                    reactor.callFromThread(_on_fail)
 
             wait_msg = u"جاري استخراج وتشغيل الفيديو..." if PLUGIN_LANGUAGE == "ar" else "Resolving and loading video stream..."
             self.session.open(MessageBox, wait_msg, MessageBox.TYPE_INFO, timeout=2)
@@ -28541,18 +29052,21 @@ class SimpleSportsScreen(Screen):
                 self["list"].moveToIndex(new_index)
             except ValueError:
                 pass
+        self.update_blue_button()
 
     def _nav_up(self):
         self._reset_idle_hint()
         old_idx = self["list"].getSelectedIndex()
         self["list"].up()
         self._update_selection_glow(old_idx, self["list"].getSelectedIndex())
+        self.update_blue_button()
 
     def _nav_down(self):
         self._reset_idle_hint()
         old_idx = self["list"].getSelectedIndex()
         self["list"].down()
         self._update_selection_glow(old_idx, self["list"].getSelectedIndex())
+        self.update_blue_button()
 
     # --- Sliding selection glow ---
     # eListboxPythonMultiContent has no notion of animating between two rows -
@@ -28855,7 +29369,10 @@ class SimpleSportsScreen(Screen):
             self.update_top_status()
             if now.second % 3 == 0:
                 try:
-                    self["list"].invalidate()
+                    if hasattr(self["list"], "instance") and self["list"].instance:
+                        self["list"].instance.invalidate()
+                    elif hasattr(self["list"], "l") and hasattr(self["list"].l, "invalidate"):
+                        self["list"].l.invalidate()
                 except Exception:
                     pass
         except Exception:
@@ -29087,8 +29604,33 @@ class SimpleSportsScreen(Screen):
             else:
                 self["key_green"].setText(_t("Mini Bar"))
         except: self["key_green"].setText(_t("Mini Bar"))
-        self["key_blue"].setText(_t("Watch Party"))
+        self.update_blue_button()
         self.update_top_status()
+
+    def update_blue_button(self):
+        try:
+            idx = self["list"].getSelectedIndex()
+            if idx is not None and 0 <= idx < len(self.current_match_ids):
+                match_id = self.current_match_ids[idx]
+                event = self.monitor.event_map.get(match_id)
+                if not event:
+                    for ev in self.monitor.cached_events:
+                        if ev.get('id') == match_id:
+                            event = ev
+                            break
+                if event:
+                    state = event.get('state') or event.get('status', {}).get('type', {}).get('state', 'pre')
+                    if not state and isinstance(event.get('status'), dict):
+                        state = event.get('status', {}).get('state', 'pre')
+                    if state in ('post', 'finished'):
+                        self["key_blue"].setText(_t("Highlights"))
+                        return
+                    elif state == 'in':
+                        self["key_blue"].setText(_t("Watch Live") if "Watch Live" in TRANSLATIONS else "Watch Live")
+                        return
+            self["key_blue"].setText(_t("Watch Party"))
+        except Exception:
+            self["key_blue"].setText(_t("Watch Party"))
 
     def update_filter_button(self):
         self["key_yellow"].setText(_t("SimplySports Arena"))
@@ -29970,28 +30512,42 @@ class SimpleSportsScreen(Screen):
             self._last_refreshed = datetime.datetime.now()
         else:
             self.update_header(len(list_content), count_live, count_fin, count_sch)
-            if getattr(self["list"], "list", None) is not None and self.current_match_ids == new_match_ids and len(self["list"].list) == len(list_content):
-                # Optimization: In-place update prevents cursor jumping and UI flickering
-                for i in range(len(list_content)):
-                    self["list"].list[i] = list_content[i]
-                self["list"].l.setList(self["list"].list)
-            else:
-                if hasattr(self, '_stagger_timer') and self._stagger_timer:
-                    try:
-                        self._stagger_timer.stop()
-                    except Exception:
-                        pass
+            if hasattr(self, '_stagger_timer') and self._stagger_timer:
+                try:
+                    self._stagger_timer.stop()
+                except Exception:
+                    pass
 
-                # Direct single setList update (bypasses stagger-reveal to prevent native listbox C++ crashes)
-                self["list"].setList(list_content)
-                self.current_match_ids = new_match_ids
+            old_idx = self["list"].getSelectedIndex()
+            # Direct setList with new content ensures Enigma2 C++ eListbox resets entry cache and repaints
+            self["list"].setList(list_content)
+            self.current_match_ids = new_match_ids
 
-                # --- CURSOR RESTORE ---
-                if selected_id:
-                    try:
-                        new_index = new_match_ids.index(selected_id)
-                        self["list"].moveToIndex(new_index)
-                    except ValueError: pass
+            # --- CURSOR RESTORE ---
+            # Restore selection to the same match or previous index so cursor NEVER jumps
+            target_idx = -1
+            if selected_id:
+                try:
+                    target_idx = new_match_ids.index(selected_id)
+                except ValueError:
+                    pass
+            if target_idx < 0 and 0 <= old_idx < len(list_content):
+                target_idx = old_idx
+
+            if target_idx >= 0:
+                try:
+                    self["list"].moveToIndex(target_idx)
+                except Exception:
+                    pass
+
+            # Explicitly invalidate widget so Enigma2 physically repaints the updated rows
+            try:
+                if hasattr(self["list"], "instance") and self["list"].instance:
+                    self["list"].instance.invalidate()
+                elif hasattr(self["list"], "l") and hasattr(self["list"].l, "invalidate"):
+                    self["list"].l.invalidate()
+            except Exception:
+                pass
 
             # Stamp the exact moment this render completed
             self._last_refreshed = datetime.datetime.now()
@@ -30026,6 +30582,10 @@ class SimpleSportsScreen(Screen):
             (_t("Goal Alert Mode: ") + alert_lbl, "toggle_goal_alert"),
             (_t("Toast Animation: ") + toast_anim_txt, "toggle_toast_animation"),
             (_t("AI Mode: ") + ai_status, "ai_mode"),
+            (_t("Match Highlights Resolution: ") + get_highlights_resolution_label(), "highlights_resolution"),
+            ((u"مشغل ملخصات المباريات: " if PLUGIN_LANGUAGE == "ar" else "Match Highlights Player: ") + get_highlights_player_label(), "highlights_player"),
+            ((u"نوع مشغل البث (Service Type): " if PLUGIN_LANGUAGE == "ar" else "Highlights Service Type: ") + get_highlights_service_type_label(), "highlights_service_type"),
+            (_t("Live Match Search Source: ") + get_highlights_live_source_label(), "highlights_live_source"),
             (_t("Notifications Test"), "notif_test"),
             (u"Language / \u0644\u063a\u0629: " + cur_lang_lbl, "change_language"),
         ]
@@ -30050,6 +30610,14 @@ class SimpleSportsScreen(Screen):
             elif action == "voter_name": self.open_voter_name_input()
             elif action == "goal_sound": self.open_goal_sound_selector()
             elif action == "ai_mode": self.open_ai_mode_menu()
+            elif action == "highlights_resolution":
+                self.open_highlights_resolution_selector()
+            elif action == "highlights_player":
+                self.open_highlights_player_selector()
+            elif action == "highlights_service_type":
+                self.open_highlights_service_type_selector()
+            elif action == "highlights_live_source":
+                self.open_highlights_live_source_selector()
             elif action == "toggle_goal_alert":
                 self.open_goal_alert_selector()
             elif action == "toggle_toast_animation":
@@ -30060,6 +30628,94 @@ class SimpleSportsScreen(Screen):
                 self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
             elif action == "notif_test": self.run_notification_test()
             elif action == "change_language": self.open_language_selector()
+
+    def open_highlights_resolution_selector(self):
+        cur = get_highlights_resolution()
+        def _item(rid, en_name, ar_name):
+            prefix = "* " if cur == rid else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, rid)
+
+        menu = [
+            _item("auto", "AUTO (Adaptive - Best for Internet Speed)", u"\u062a\u0644\u0642\u0627\u0626\u064a (\u062a\u0643\u064a\u0641\u064a - \u062d\u0633\u0628 \u0633\u0631\u0639\u0629 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a)"),
+            _item("1080", "1080p (Full HD - High Speed Internet)", u"1080p (Full HD - \u0625\u0646\u062a\u0631\u0646\u062a \u0633\u0631\u064a\u0639)"),
+            _item("720", "720p (HD - Standard Internet)", u"720p (HD - \u062c\u0648\u062f\u0629 \u0639\u0627\u0644\u064a\u0629)"),
+            _item("480", "480p (SD - Medium Speed)", u"480p (SD - \u0633\u0631\u0639\u0629 \u0645\u062a\u0648\u0633\u0637\u0629)"),
+            _item("360", "360p (Data Saver / Smooth Playback)", u"360p (\u062a\u0648\u0641\u064a\u0631 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a / \u062a\u0634\u063a\u064a\u0644 \u0633\u0644\u0633)"),
+        ]
+        title = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u062c\u0648\u062f\u0629 \u0627\u0644\u0641\u064a\u062f\u064a\u0648" if PLUGIN_LANGUAGE == "ar" else "Select Video Resolution"
+        self.session.openWithCallback(self._on_highlights_resolution_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_highlights_resolution_selected(self, choice):
+        if choice and len(choice) >= 2:
+            set_highlights_resolution(choice[1])
+            msg = (_t("Match Highlights Resolution set to: ") if "Match Highlights Resolution set to: " in TRANSLATIONS else "Resolution set to: ") + get_highlights_resolution_label()
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
+
+    def open_highlights_player_selector(self):
+        cur = get_highlights_player()
+        def _item(pid, en_name, ar_name):
+            prefix = "* " if cur == pid else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, pid)
+
+        menu = [
+            _item("auto", "Auto (YouTube Player / MoviePlayer)", u"\u062a\u0644\u0642\u0627\u0626\u064a (\u0645\u0634\u063a\u0644 \u064a\u0648\u062a\u064a\u0648\u0628 / \u0645\u0634\u063a\u0644 \u0627\u0644\u0623\u0641\u0644\u0627\u0645)"),
+            _item("youtube", "YouTube Player (Plugin)", u"\u0645\u0634\u063a\u0644 \u064a\u0648\u062a\u064a\u0648\u0628 (YouTube Player \u0627\u0644\u0625\u0636\u0627\u0641\u0629)"),
+            _item("movieplayer", "MoviePlayer (Enigma2 Standard Core)", u"\u0645\u0634\u063a\u0644 \u0627\u0644\u0623\u0641\u0644\u0627\u0645 (MoviePlayer \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"),
+            _item("simpleplayer", "SimplePlayer (Internal Player)", u"\u0627\u0644\u0645\u0634\u063a\u0644 \u0627\u0644\u062f\u0627\u062e\u0644\u064a (SimplePlayer)"),
+        ]
+        title = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0645\u0634\u063a\u0644 \u0627\u0644\u0641\u064a\u062f\u064a\u0648" if PLUGIN_LANGUAGE == "ar" else "Select Video Player"
+        self.session.openWithCallback(self._on_highlights_player_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_highlights_player_selected(self, choice):
+        if choice and len(choice) >= 2:
+            set_highlights_player(choice[1])
+            msg = (u"\u062a\u0645 \u062a\u0639\u064a\u064a\u0646 \u0645\u0634\u063a\u0644 \u0627\u0644\u0641\u064a\u062f\u064a\u0648 \u0625\u0644\u0649: " if PLUGIN_LANGUAGE == "ar" else "Video Player set to: ") + get_highlights_player_label()
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
+
+    def open_highlights_service_type_selector(self):
+        cur = get_highlights_service_type()
+        def _item(sid, en_name, ar_name):
+            prefix = "* " if cur == sid else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, sid)
+
+        menu = [
+            _item("auto", "Auto (Best Available for Stream)", u"\u062a\u0644\u0642\u0627\u0626\u064a (\u0627\u0644\u0623\u0641\u0636\u0644 \u0648\u0627\u0644\u0623\u0643\u062b\u0631 \u062a\u0648\u0627\u0641\u0642\u0627\u064b)"),
+            _item("4097", "4097 (GStreamer - Standard Enigma2)", u"4097 (GStreamer - \u0642\u064a\u0627\u0633\u064a \u0648\u0645\u062a\u0648\u0627\u0641\u0642 \u0645\u0639 \u0643\u0644 \u0627\u0644\u0635\u0648\u0631)"),
+            _item("5002", "5002 (exteplayer3 - FFmpeg / ServiceApp)", u"5002 (exteplayer3 - FFmpeg \u0639\u0628\u0631 ServiceApp)"),
+            _item("5001", "5001 (gstplayer - ServiceApp)", u"5001 (gstplayer \u0639\u0628\u0631 ServiceApp)"),
+        ]
+        title = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0648\u0639 \u0645\u0634\u063a\u0644 \u0627\u0644\u0628\u062b (Service Type)" if PLUGIN_LANGUAGE == "ar" else "Select Streaming Service Type"
+        self.session.openWithCallback(self._on_highlights_service_type_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_highlights_service_type_selected(self, choice):
+        if choice and len(choice) >= 2:
+            set_highlights_service_type(choice[1])
+            msg = (u"\u062a\u0645 \u062a\u0639\u064a\u064a\u0646 \u0646\u0648\u0639 \u0645\u0634\u063a\u0644 \u0627\u0644\u0628\u062b \u0625\u0644\u0649: " if PLUGIN_LANGUAGE == "ar" else "Service Type set to: ") + get_highlights_service_type_label()
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
+
+    def open_highlights_live_source_selector(self):
+        cur = get_highlights_live_source()
+        def _item(sid, en_name, ar_name):
+            prefix = "* " if cur == sid else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, sid)
+
+        menu = [
+            _item("both", "YouTube + Web Streams (Recommended)", u"\u064a\u0648\u062a\u064a\u0648\u0628 + \u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0628\u062b (\u0645\u0648\u0635\u0649 \u0628\u0647)"),
+            _item("youtube", "YouTube Only", u"\u064a\u0648\u062a\u064a\u0648\u0628 \u0641\u0642\u0637"),
+            _item("web", "Web Streams Only", u"\u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0628\u062b \u0641\u0642\u0637"),
+        ]
+        title = _t("Select Live Match Search Source") if "Select Live Match Search Source" in TRANSLATIONS else _t("Live Match Search Source: ").rstrip(': ')
+        self.session.openWithCallback(self._on_highlights_live_source_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_highlights_live_source_selected(self, choice):
+        if choice and len(choice) >= 2:
+            set_highlights_live_source(choice[1])
+            msg = _t("Live Match Search Source: ") + get_highlights_live_source_label()
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
 
     def on_favorite_teams_closed(self, result=None):
         # No reload needed; pinning is applied on next refresh_ui call
@@ -30862,10 +31518,14 @@ class SimpleSportsScreen(Screen):
 
         is_suspended = event.get('status', {}).get('type', {}).get('description', '').lower() in ('suspended', 'postponed')
 
-        if state not in ('in', 'pre') or not is_soccer or is_suspended:
+        if state in ('post', 'finished', 'in'):
+            self.open_match_highlights(event)
+            return
+
+        if state != 'pre' or not is_soccer or is_suspended:
             self.session.open(
                 MessageBox,
-                _t("Watch Party is only available for live or scheduled soccer matches."),
+                _t("Watch Party is only available for scheduled soccer matches."),
                 MessageBox.TYPE_INFO, timeout=5)
             return
 
@@ -30880,6 +31540,9 @@ class SimpleSportsScreen(Screen):
                 a_name = c.get('team', {}).get('shortDisplayName', c.get('team', {}).get('displayName', 'Away'))
 
         self.session.open(WatchPartyScreen, event.get('id', ''), h_name, a_name)
+
+    def open_match_highlights(self, event):
+        self.session.open(MatchHighlightsScreen, event)
 
     def toggle_filter(self):
         if time.time() - self.last_key_time < 0.5: return
@@ -35053,7 +35716,8 @@ class WatchPartyScreen(Screen):
             u"team records, player trivia, or interesting facts.\n"
             u"3. Reference real names and facts only — never invent scores or events.\n"
             u"4. {lang_inst}.\n"
-            u"5. No markdown, no asterisks, no emojis, no numbering.\n\n"
+            u"5. No markdown, no asterisks, no emojis, no numbering.\n"
+            u"6. Output ONLY the commentary line. No analysis, thoughts, or preamble.\n\n"
             u"=== MATCH ===\n{match_line}\n\n"
             u"=== LIVE STATS ===\n{stats_block}"
         ).format(lang_inst=lang_inst, match_line=match_line, stats_block=stats_block)
@@ -35070,6 +35734,9 @@ class WatchPartyScreen(Screen):
             return
         if not text or str(text).startswith("ERROR:"):
             return                              # Silent fail per spec
+        text = clean_ai_text(text)
+        if not text:
+            return
         import re
         clean = re.sub(r'\s+', u' ', text.strip())
         # Strip any AI-generated markdown artefacts
@@ -35548,6 +36215,2909 @@ class WatchPartyScreen(Screen):
 
 
 # ==============================================================================
+# MATCH HIGHLIGHTS (DIRECT YOUTUBE STREAMING WITH LANGUAGE PRIORITIZATION)
+# ==============================================================================
+OFFICIAL_HIGHLIGHT_BROADCASTERS = [
+    'bein sports', 'sky sports', 'ontime sports', 'on time sports', 'ssc',
+    'kora plus', 'sports united', 'chelsea football club', 'arsenal',
+    'real madrid', 'fc barcelona', 'manchester united', 'liverpool fc',
+    'premier league', 'laliga', 'serie a', 'bundesliga', 'ligue 1',
+    'tnt sports', 'nbc sports', 'espn fc', 'cbs sports golazo', 'al ahly tv', 'zamalek tv',
+    'tod', 'tod by bein', 'dazn', 'supersport',
+    'sport tv', 'vsports', 'liga portugal', 'canal 11', 'sport lisboa e benfica',
+    'sporting clube de portugal', 'fc porto', 'canal+', 'optus sport', 'viaplay', 'prime video sport'
+]
+
+
+OFFICIAL_BROADCAST_FEEDS = [
+    ('Sky Sports', 'UCNAf1k0yIjyGu3k9BwAg3lg'),
+    ('Premier League', 'UCAvPWFgeV-642Ltz1-W3nBg'),
+    ('LaLiga', 'UC6_A3bWqgZ1c71Yw7E_q2XQ'),
+    ('Serie A', 'UCBJeMCIeLQos7wAcox4sxWg'),
+    ('Bundesliga', 'UCKlgbbF9wphTKATOWiG5jPQ'),
+    ('Ligue 1', 'UCnGOHN5JHRnKVMGhwEBn8RQ'),
+    ('TOD', 'UCvuPuKPukGd8S2qr4msLAuQ'),
+    ('VSPORTS Liga Portugal', 'UCuIlu5oGIj1RzHOYmeSV5Eg'),
+    ('sport tv', 'UCINrlkmrXi4a-kOl6unb51A'),
+    ('Sport Lisboa e Benfica', 'UC8zrah5cNf2c3jKKeD_Z3fw'),
+    ('Sporting Clube de Portugal', 'UCnJj6L93JX3Jrhzv81ayywA'),
+    ('beIN SPORTS', 'UCHp0I05lxhFCsFhqYSRAVNg'),
+    ('beIN SPORTS ar', 'UCK-FkzOsEP5PB0GqYyQFI7w'),
+    ('SuperSport', 'UCZH6G3Z5XINU6r92QN1l5Lw'),
+    ('TNT Sports', 'UCnWlLGpkJMEE0yjmAS8SqbQ'),
+    ('ESPN FC', 'UCcjhYlL1WRBjKaJsMH_h79g'),
+    ('CBS Sports Golazo', 'UCLAKgMhAjuEMQ_jWCwMGJLQ'),
+    ('DAZN Football', 'UCWV3obpZVGgJ3j9FVhEjhHw'),
+]
+
+
+def get_youtube_api_key():
+    """
+    Checks for user's configured YouTube Data API v3 key from standard Enigma2 key files:
+    - /etc/enigma2/YouTube.key
+    - /etc/enigma2/youtube.key
+    """
+    for p in ["/etc/enigma2/YouTube.key", "/etc/enigma2/youtube.key", "/etc/enigma2/YouTube_API.key"]:
+        if os.path.exists(p):
+            try:
+                with open(p, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            return line.split()[0]
+            except Exception:
+                pass
+    return None
+
+
+_FALLBACK_HIGHLIGHTS_RESOLUTION = "auto"
+_FALLBACK_HIGHLIGHTS_PLAYER = "auto"
+_FALLBACK_HIGHLIGHTS_SERVICE_TYPE = "auto"
+_FALLBACK_HIGHLIGHTS_LIVE_SOURCE = "all"
+
+try:
+    from Components.config import config, ConfigSubsection, ConfigSelection
+    if not hasattr(config.plugins, "SimplySport"):
+        config.plugins.SimplySport = ConfigSubsection()
+    if not hasattr(config.plugins.SimplySport, "highlights_resolution"):
+        config.plugins.SimplySport.highlights_resolution = ConfigSelection(
+            default="auto",
+            choices=[
+                ("auto", "AUTO (Adaptive)"),
+                ("1080", "1080p (Full HD)"),
+                ("720", "720p (HD)"),
+                ("480", "480p (SD)"),
+                ("360", "360p (Data Saver)")
+            ]
+        )
+    if not hasattr(config.plugins.SimplySport, "highlights_player"):
+        config.plugins.SimplySport.highlights_player = ConfigSelection(
+            default="auto",
+            choices=[
+                ("auto", "Auto (YouTubePlayer / MoviePlayer)"),
+                ("youtube", "YouTube Player (Plugin)"),
+                ("movieplayer", "MoviePlayer (Enigma2 Core)"),
+                ("simpleplayer", "SimplePlayer (Internal)")
+            ]
+        )
+    if not hasattr(config.plugins.SimplySport, "highlights_service_type"):
+        config.plugins.SimplySport.highlights_service_type = ConfigSelection(
+            default="auto",
+            choices=[
+                ("auto", "Auto (Best Available)"),
+                ("4097", "4097 (GStreamer - Standard)"),
+                ("5002", "5002 (exteplayer3 - ServiceApp)"),
+                ("5001", "5001 (gstplayer - ServiceApp)")
+            ]
+        )
+    if not hasattr(config.plugins.SimplySport, "highlights_live_source"):
+        config.plugins.SimplySport.highlights_live_source = ConfigSelection(
+            default="all",
+            choices=[
+                ("all", "All Sources (IPTV + Bouquets + YouTube)"),
+                ("iptv", "IPTV & Local Bouquets Only"),
+                ("youtube", "YouTube Only")
+            ]
+        )
+except Exception:
+    pass
+
+
+def get_highlights_resolution():
+    try:
+        from Components.config import config
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "highlights_resolution"):
+            return str(config.plugins.SimplySport.highlights_resolution.value)
+    except Exception:
+        pass
+    global _FALLBACK_HIGHLIGHTS_RESOLUTION
+    return _FALLBACK_HIGHLIGHTS_RESOLUTION
+
+
+def set_highlights_resolution(res_val):
+    global _FALLBACK_HIGHLIGHTS_RESOLUTION
+    _FALLBACK_HIGHLIGHTS_RESOLUTION = res_val
+    try:
+        from Components.config import config, configfile
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "highlights_resolution"):
+            config.plugins.SimplySport.highlights_resolution.value = res_val
+            config.plugins.SimplySport.highlights_resolution.save()
+            configfile.save()
+    except Exception:
+        pass
+
+
+def get_highlights_resolution_label():
+    res = get_highlights_resolution()
+    if res == "auto":
+        return u"\u062a\u0644\u0642\u0627\u0626\u064a" if PLUGIN_LANGUAGE == "ar" else "AUTO (Adaptive)"
+    return "{}p".format(res)
+
+
+def get_highlights_player():
+    try:
+        from Components.config import config
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "highlights_player"):
+            return str(config.plugins.SimplySport.highlights_player.value)
+    except Exception:
+        pass
+    global _FALLBACK_HIGHLIGHTS_PLAYER
+    return _FALLBACK_HIGHLIGHTS_PLAYER
+
+
+def set_highlights_player(val):
+    global _FALLBACK_HIGHLIGHTS_PLAYER
+    _FALLBACK_HIGHLIGHTS_PLAYER = val
+    try:
+        from Components.config import config, configfile
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "highlights_player"):
+            config.plugins.SimplySport.highlights_player.value = val
+            config.plugins.SimplySport.highlights_player.save()
+            configfile.save()
+    except Exception:
+        pass
+
+
+def get_highlights_player_label():
+    val = get_highlights_player()
+    labels = {
+        "auto": u"\u062a\u0644\u0642\u0627\u0626\u064a (\u0645\u0648\u0635\u0649 \u0628\u0647)" if PLUGIN_LANGUAGE == "ar" else "Auto (Recommended)",
+        "youtube": u"\u0645\u0634\u063a\u0644 \u064a\u0648\u062a\u064a\u0648\u0628 (YouTube Player)" if PLUGIN_LANGUAGE == "ar" else "YouTube Player (Plugin)",
+        "movieplayer": u"\u0645\u0634\u063a\u0644 \u0627\u0644\u0623\u0641\u0644\u0627\u0645 (MoviePlayer)" if PLUGIN_LANGUAGE == "ar" else "MoviePlayer (Enigma2 Core)",
+        "simpleplayer": u"\u0627\u0644\u0645\u0634\u063a\u0644 \u0627\u0644\u062f\u0627\u062e\u0644\u064a (SimplePlayer)" if PLUGIN_LANGUAGE == "ar" else "SimplePlayer (Internal)",
+    }
+    return labels.get(val, val)
+
+
+def get_highlights_service_type():
+    try:
+        from Components.config import config
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "highlights_service_type"):
+            return str(config.plugins.SimplySport.highlights_service_type.value)
+    except Exception:
+        pass
+    global _FALLBACK_HIGHLIGHTS_SERVICE_TYPE
+    return _FALLBACK_HIGHLIGHTS_SERVICE_TYPE
+
+
+def set_highlights_service_type(val):
+    global _FALLBACK_HIGHLIGHTS_SERVICE_TYPE
+    _FALLBACK_HIGHLIGHTS_SERVICE_TYPE = val
+    try:
+        from Components.config import config, configfile
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "highlights_service_type"):
+            config.plugins.SimplySport.highlights_service_type.value = val
+            config.plugins.SimplySport.highlights_service_type.save()
+            configfile.save()
+    except Exception:
+        pass
+
+
+def get_highlights_service_type_label():
+    val = get_highlights_service_type()
+    labels = {
+        "auto": u"\u062a\u0644\u0642\u0627\u0626\u064a (\u0627\u0644\u0623\u0641\u0636\u0644 \u0644\u0644\u062c\u0647\u0627\u0632)" if PLUGIN_LANGUAGE == "ar" else "Auto (Best Available)",
+        "4097": "4097 (GStreamer - Standard)",
+        "5002": "5002 (exteplayer3 - ServiceApp)",
+        "5001": "5001 (gstplayer - ServiceApp)",
+    }
+    return labels.get(val, val)
+
+
+def get_highlights_live_source():
+    try:
+        from Components.config import config
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "highlights_live_source"):
+            val = str(config.plugins.SimplySport.highlights_live_source.value)
+            if val in ("all", "both", "iptv", "youtube", "web"):
+                if val in ("both", "web"):
+                    return "all"
+                return val
+    except Exception:
+        pass
+    global _FALLBACK_HIGHLIGHTS_LIVE_SOURCE
+    return _FALLBACK_HIGHLIGHTS_LIVE_SOURCE
+
+
+def set_highlights_live_source(val):
+    global _FALLBACK_HIGHLIGHTS_LIVE_SOURCE
+    _FALLBACK_HIGHLIGHTS_LIVE_SOURCE = val
+    try:
+        from Components.config import config, configfile
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "highlights_live_source"):
+            config.plugins.SimplySport.highlights_live_source.value = val
+            config.plugins.SimplySport.highlights_live_source.save()
+            configfile.save()
+    except Exception:
+        pass
+
+
+def get_highlights_live_source_label():
+    val = get_highlights_live_source()
+    labels = {
+        "all": u"جميع المصادر (IPTV + باقات + يوتيوب)" if PLUGIN_LANGUAGE == "ar" else "All Sources (IPTV + Bouquets + YouTube)",
+        "both": u"جميع المصادر (IPTV + باقات + يوتيوب)" if PLUGIN_LANGUAGE == "ar" else "All Sources (IPTV + Bouquets + YouTube)",
+        "iptv": u"قنوات IPTV والباقات فقط" if PLUGIN_LANGUAGE == "ar" else "IPTV & Bouquets Only",
+        "youtube": u"يوتيوب فقط" if PLUGIN_LANGUAGE == "ar" else "YouTube Only",
+        "web": u"قنوات IPTV والباقات فقط" if PLUGIN_LANGUAGE == "ar" else "IPTV & Bouquets Only",
+    }
+    return labels.get(val, val)
+
+
+_SIMULATION_KEYWORDS = [
+    'fifa', 'ea sports fc', 'ea fc', 'fc 24', 'fc 25', 'fc24', 'fc25', 'pes',
+    'efootball', 'dls', 'dream league', 'gameplay', 'simulation', 'simulate',
+    'ps5', 'ps4', 'playstation', 'xbox', 'joystick', 'career mode',
+    'tournament simulation', 'gaming', 'walkthrough', 'game play', 'mod apk',
+    u'\u0641\u064a\u0641\u0627', u'\u0628\u0644\u0627\u064a\u0633\u062a\u064a\u0634\u0646', u'\u0628\u064a\u0633',
+    u'\u0644\u0639\u0628\u0629', u'\u0642\u064a\u0645 \u0628\u0644\u0627\u064a', u'\u0645\u062d\u0627\u0643\u0627\u0629',
+    u'\u0633\u0648\u0646\u064a', u'\u0625\u0641 \u0633\u064a'
+]
+
+
+def is_simulation_stream(title, desc=""):
+    """
+    Anti-simulation & Anti-gaming filter:
+    Identifies electronic video game matches (FIFA, EA FC 24/25, eFootball, PES, etc.)
+    and gameplay simulations to prevent them from cluttering real live match streams.
+    """
+    if not title:
+        return False
+    txt = (title + " " + (desc or "")).lower()
+    for kw in _SIMULATION_KEYWORDS:
+        if kw in txt:
+            if len(kw) <= 4:
+                pattern = r'(?:\b|_)' + re.escape(kw) + r'(?:\b|_)'
+                if re.search(pattern, txt):
+                    return True
+            else:
+                return True
+    return False
+
+
+def extract_match_broadcasters(event=None, home_en="", away_en=""):
+    """
+    Extracts official TV / streaming broadcasters for a match.
+    1. Extracts from ESPN match event dictionary:
+       - competitions[0].broadcasts (e.g. ESPN+, fuboTV, beIN Sports)
+       - competitions[0].geoBroadcasts (media.shortName, market.type/name)
+    2. Fallbacks to LiveSoccerTV if fewer than 2 channels found.
+    Returns list of dicts: [{'name': ch_name, 'country': country_code}, ...]
+    """
+    broadcasters = []
+    seen = set()
+
+    def _add(ch_name, country=""):
+        if not ch_name:
+            return
+        ch_clean = ch_name.strip()
+        if not ch_clean:
+            return
+        k = ch_clean.lower()
+        if k not in seen:
+            seen.add(k)
+            broadcasters.append({'name': ch_clean, 'country': country or ""})
+
+    # 1. ESPN event metadata (instant, 0 latency)
+    if event and isinstance(event, dict):
+        comps = event.get('competitions', [{}])
+        comp = comps[0] if comps else {}
+
+        # broadcasts
+        for b in comp.get('broadcasts', []):
+            if isinstance(b, dict):
+                mkt = b.get('market', '')
+                for n in b.get('names', []):
+                    _add(n, mkt)
+
+        # geoBroadcasts
+        for gb in comp.get('geoBroadcasts', []):
+            if isinstance(gb, dict):
+                media = gb.get('media', {})
+                name = media.get('shortName') or media.get('name') or ''
+                mkt_info = gb.get('market', {})
+                country = mkt_info.get('name') if isinstance(mkt_info, dict) else ''
+                _add(name, country)
+
+    # 2. If ESPN didn't provide broadcasters, scrape LiveSoccerTV
+    if len(broadcasters) < 2 and home_en and away_en:
+        try:
+            lstv_res = BroadcastingChannelsScreen._livesoccertv_worker(None, home_en, away_en)
+            lstv_channels = lstv_res[0] if lstv_res else []
+            for ch_name, country in lstv_channels:
+                _add(ch_name, country)
+        except Exception as e:
+            log_dbg("[MatchBroadcaster] LiveSoccerTV scrape error: {}".format(e))
+
+    log_dbg("[MatchBroadcaster] Extracted {} official broadcasters: {}".format(
+        len(broadcasters), [b['name'] for b in broadcasters[:8]]
+    ))
+    return broadcasters
+
+
+def match_broadcasters_to_bouquets(broadcasters):
+    """
+    Scans local Enigma2 user bouquets (/etc/enigma2/*.tv) for channels
+    broadcasting the current match using _scan_bouquet_for_name.
+    Returns list of stream/channel dicts for MatchHighlightsScreen.
+    """
+    results = []
+    seen_srefs = set()
+    for b in broadcasters:
+        ch_name = b.get('name', '')
+        country = b.get('country', '')
+        if not ch_name:
+            continue
+        try:
+            sref = _scan_bouquet_for_name(ch_name, country=country)
+            if sref and sref not in seen_srefs:
+                seen_srefs.add(sref)
+                sat_pos = get_sat_position(sref)
+                is_iptv = sref.startswith(("4097:", "5002:", "5001:"))
+                if is_iptv:
+                    tag = u"[باقة IPTV]" if PLUGIN_LANGUAGE == "ar" else "[Bouquet IPTV]"
+                else:
+                    pos_txt = u" ({})".format(sat_pos) if sat_pos else u""
+                    tag = (u"[باقة ستلايت]" if PLUGIN_LANGUAGE == "ar" else "[Satellite DVB]") + pos_txt
+
+                title = u"{} {}".format(tag, ch_name)
+                results.append({
+                    'id': 'bq_' + hashlib.md5(sref.encode('utf-8')).hexdigest()[:12],
+                    'title': title,
+                    'channel': ch_name,
+                    'duration': 'LIVE',
+                    'thumbnail': '',
+                    'url': sref,
+                    'sref': sref,
+                    'date': 'LIVE',
+                    'description': u"Official match broadcast from local bouquets: {}".format(ch_name),
+                    'is_live': True,
+                    'is_bouquet': True,
+                    'is_direct_stream': is_iptv,
+                    'source_type': 'bouquet'
+                })
+        except Exception as e:
+            log_dbg("[BouquetMatcher] Error matching {}: {}".format(ch_name, e))
+
+    log_dbg("[BouquetMatcher] Matched {} channels from local bouquets".format(len(results)))
+    return results
+
+
+def match_broadcasters_to_m3u(broadcasters, m3u_paths=None):
+    """
+    Parses local M3U playlists (e.g. /etc/enigma2/simplysport_iptv.m3u) and matches
+    channel names against target match broadcasters.
+    Returns list of stream dicts with direct .m3u8 URLs.
+    """
+    if m3u_paths is None:
+        m3u_paths = [
+            "/etc/enigma2/simplysport_iptv.m3u",
+            "/etc/enigma2/iptv.m3u",
+            "/tmp/simplysport_iptv.m3u"
+        ]
+
+    all_paths = []
+    for p in m3u_paths:
+        if os.path.exists(p):
+            all_paths.append(p)
+    if not all_paths and os.path.exists("/etc/enigma2"):
+        try:
+            for fn in os.listdir("/etc/enigma2"):
+                if fn.endswith(".m3u") or fn.endswith(".m3u8"):
+                    all_paths.append(os.path.join("/etc/enigma2", fn))
+        except Exception:
+            pass
+
+    if not all_paths:
+        return []
+
+    from difflib import SequenceMatcher
+    results = []
+    seen_urls = set()
+
+    for p in all_paths:
+        try:
+            with open(p, 'r') as f:
+                lines = f.readlines()
+        except Exception as e:
+            log_dbg("[M3UMatcher] Could not read {}: {}".format(p, e))
+            continue
+
+        curr_name = ""
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("#EXTINF:"):
+                parts = line.split(",", 1)
+                if len(parts) > 1:
+                    curr_name = parts[1].strip()
+                else:
+                    m = re.search(r'tvg-name="([^"]+)"', line)
+                    curr_name = m.group(1).strip() if m else ""
+            elif not line.startswith("#") and (line.startswith("http://") or line.startswith("https://") or line.startswith("rtmp://")):
+                url = line
+                if curr_name and url not in seen_urls:
+                    d_words, _ = _clean_for_scan(curr_name)
+                    d_core = _words_to_core(d_words)
+                    d_nums = frozenset(w for w in d_words if w.isdigit())
+                    for b in broadcasters:
+                        b_name = b.get('name', '')
+                        if not b_name:
+                            continue
+                        q_words, _ = _clean_for_scan(b_name)
+                        if not q_words:
+                            continue
+                        common = q_words & d_words
+                        if not common:
+                            continue
+                        q_nums = frozenset(w for w in q_words if w.isdigit())
+                        if q_nums and not q_nums.issubset(d_nums):
+                            continue
+                        if not q_nums and d_nums:
+                            continue
+                        q_core = _words_to_core(q_words)
+                        sm = SequenceMatcher(None, q_core, d_core, autojunk=False)
+                        ratio = sm.ratio()
+                        if ratio >= 0.65:
+                            seen_urls.add(url)
+                            tag = u"[IPTV خاص]" if PLUGIN_LANGUAGE == "ar" else "[Custom IPTV]"
+                            results.append({
+                                'id': 'm3u_' + hashlib.md5(url.encode('utf-8')).hexdigest()[:12],
+                                'title': u"{} {}".format(tag, curr_name),
+                                'channel': curr_name,
+                                'duration': 'LIVE',
+                                'thumbnail': '',
+                                'url': url,
+                                'date': 'LIVE',
+                                'description': u"Custom IPTV stream for {}: {}".format(b_name, curr_name),
+                                'is_live': True,
+                                'is_direct_stream': True,
+                                'source_type': 'custom_m3u'
+                            })
+                            break
+                curr_name = ""
+
+    log_dbg("[M3UMatcher] Matched {} streams from custom M3U playlists".format(len(results)))
+    return results
+
+
+def search_dailymotion_live(home_en, away_en, lang="en"):
+    """
+    Searches Dailymotion Live API for active match streams.
+    Returns normalized stream entries with instant .m3u8 extraction support via yt-dlp.
+    """
+    results = []
+    try:
+        import urllib.request as _urllib_req
+        import urllib.parse as _urllib_parse
+        _quote = _urllib_parse.quote
+    except ImportError:
+        import urllib2 as _urllib_req
+        import urllib as _urllib_parse
+        _quote = _urllib_parse.quote
+
+    try:
+        import ssl
+        ctx = ssl._create_unverified_context()
+    except Exception:
+        ctx = None
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    }
+
+    def _clean(name):
+        if not name: return ""
+        return re.sub(r'\b(FC|CF|SC|AC|Club|United|City|Town|Rovers|SL|CP|CD|UD|GD|\u0646\u0627\u062f\u064a|\u0646\u0627\u062f\u0649|\u0641\u0631\u064a\u0642)\b', '', name, flags=re.IGNORECASE).strip()
+
+    h_clean = _clean(home_en)
+    a_clean = _clean(away_en)
+    if not h_clean or not a_clean:
+        return results
+
+    queries = [
+        u"{} {}".format(h_clean, a_clean),
+        u"{} vs {}".format(h_clean, a_clean)
+    ]
+
+    seen = set()
+    for q in queries:
+        try:
+            q_enc = _quote(q.encode('utf-8') if isinstance(q, unicode) else str(q))
+            api_url = "https://api.dailymotion.com/videos?search={}&flags=live&limit=10&fields=id,title,owner.screenname,thumbnail_360_url,url".format(q_enc)
+            req = _urllib_req.Request(api_url, headers=headers)
+            resp = _urllib_req.urlopen(req, timeout=5, context=ctx) if ctx else _urllib_req.urlopen(req, timeout=5)
+            data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+            for item in data.get('list', []):
+                vid_id = item.get('id', '')
+                if not vid_id or vid_id in seen:
+                    continue
+                title = item.get('title', '')
+                if is_simulation_stream(title):
+                    continue
+                seen.add(vid_id)
+                tag = u"[بث ديلي موشن]" if PLUGIN_LANGUAGE == "ar" else "[Dailymotion Live]"
+                results.append({
+                    'id': 'dm_' + vid_id,
+                    'title': u"{} {}".format(tag, title),
+                    'channel': item.get('owner.screenname', 'Dailymotion'),
+                    'duration': 'LIVE',
+                    'thumbnail': item.get('thumbnail_360_url', ''),
+                    'url': "https://www.dailymotion.com/video/{}".format(vid_id),
+                    'date': 'LIVE',
+                    'description': u"Live stream on Dailymotion: {}".format(title),
+                    'is_live': True,
+                    'source_type': 'dailymotion'
+                })
+        except Exception as e:
+            log_dbg("[DailymotionLive] Search error for '{}': {}".format(q, e))
+
+    return results
+
+
+def _search_finished_match_highlights(home_en, away_en, home_ar=None, away_ar=None, league_name="", lang="en"):
+    """
+    Enhanced YouTube search for match highlights supporting:
+    1. YouTube Data API v3 (if /etc/enigma2/YouTube.key is present)
+    2. Official Broadcast Channel RSS Feeds (expanded: 12 channels)
+    3. Direct YouTube Search Engine (ytInitialData, zero auth)
+    Scoring uses: broadcaster reputation, team name relevance, date freshness,
+    highlight keywords, duration, language preference, and negative keyword penalties.
+    """
+    try:
+        import urllib.request as _urllib_req
+        import urllib.parse as _urllib_parse
+        _quote = _urllib_parse.quote
+    except ImportError:
+        import urllib2 as _urllib_req
+        import urllib as _urllib_parse
+        _quote = _urllib_parse.quote
+
+    try:
+        import ssl
+        ctx = ssl._create_unverified_context()
+    except Exception:
+        ctx = None
+
+    hdrs = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8' if lang == 'ar' else 'en-US,en;q=0.9,ar;q=0.8'
+    }
+
+    def clean_name(name):
+        if not name: return ""
+        return re.sub(r'\b(FC|CF|SC|AC|Club|United|City|Town|Rovers|SL|CP|CD|UD|GD|نادي|نادى|فريق)\b', '', name, flags=re.IGNORECASE).strip()
+
+    h_clean_en = clean_name(home_en)
+    a_clean_en = clean_name(away_en)
+    h_clean_ar = clean_name(home_ar) if home_ar else h_clean_en
+    a_clean_ar = clean_name(away_ar) if away_ar else a_clean_en
+
+    # Build richer query set based on language and league context
+    import datetime
+    current_year = str(datetime.datetime.now().year)
+
+    queries = []
+    is_mena_league = any(w in (league_name or '').lower() for w in [
+        'egypt', 'egyptian', 'saudi', 'morocco', 'qatar', 'uae', 'tunisia',
+        u'مصر', u'الدوري المصري', u'سعودي', u'مغرب', u'قطر'
+    ])
+
+    if lang == "ar":
+        queries.append(u"ملخص مباراة {} و {}".format(h_clean_ar, a_clean_ar))
+        # Always search the universal English highlights query in top 2 so non-MENA leagues
+        # (e.g. Portuguese, Dutch, etc. not covered by Arabic channels) fetch official highlights
+        queries.append(u"{} vs {} highlights".format(h_clean_en, a_clean_en))
+        queries.append(u"اهداف مباراة {} و {}".format(h_clean_ar, a_clean_ar))
+        queries.append(u"{} vs {} highlights {}".format(h_clean_en, a_clean_en, current_year))
+        if is_mena_league:
+            queries.append(u"ملخص مباراة {} و {} اون تايم سبورت".format(h_clean_ar, a_clean_ar))
+        else:
+            queries.append(u"ملخص مباراة {} و {} بي ان سبورت".format(h_clean_ar, a_clean_ar))
+    else:
+        queries.append(u"{} vs {} highlights".format(h_clean_en, a_clean_en))
+        queries.append(u"{} vs {} TOD highlights".format(h_clean_en, a_clean_en))
+        queries.append(u"{} vs {} full match highlights".format(h_clean_en, a_clean_en))
+        queries.append(u"{} vs {} goals {}".format(h_clean_en, a_clean_en, current_year))
+        if is_mena_league:
+            queries.append(u"ملخص مباراة {} و {}".format(h_clean_ar, a_clean_ar))
+            queries.append(u"اهداف مباراة {} و {}".format(h_clean_ar, a_clean_ar))
+
+    seen_ids = set()
+    videos = []
+
+    # --- Helper: parse relative time strings or ISO dates into hours for freshness scoring ---
+    def _parse_relative_hours(txt):
+        """Parse 'N hours/days/weeks/months ago', Arabic equivalents, or ISO dates into hours."""
+        if not txt:
+            return -1
+        t = txt.lower().strip()
+
+        # Check ISO date format (YYYY-MM-DD...)
+        if re.match(r'^\d{4}-\d{2}-\d{2}', t):
+            try:
+                pub_dt = datetime.datetime.strptime(t[:10], '%Y-%m-%d')
+                delta = datetime.datetime.utcnow() - pub_dt
+                return max(delta.total_seconds() / 3600.0, 0.1)
+            except Exception:
+                pass
+
+        # Keywords for yesterday/today
+        if 'yesterday' in t or u'أمس' in t or u'امس' in t:
+            return 24.0
+        if 'today' in t or u'اليوم' in t:
+            return 8.0
+
+        # Arabic dual forms without numbers
+        if u'ساعتين' in t:
+            return 2.0
+        if u'يومين' in t:
+            return 48.0
+        if u'أسبوعين' in t or u'اسبوعين' in t:
+            return 336.0
+        if u'شهرين' in t:
+            return 1440.0
+        if u'سنتين' in t:
+            return 17520.0
+
+        # English patterns
+        m = re.search(r'(\d+)\s*(second|minute|hour|day|week|month|year)', t)
+        if m:
+            val = int(m.group(1))
+            unit = m.group(2)
+            if 'second' in unit: return max(val / 3600.0, 0.01)
+            if 'minute' in unit: return max(val / 60.0, 0.01)
+            if 'hour' in unit: return val
+            if 'day' in unit: return val * 24
+            if 'week' in unit: return val * 24 * 7
+            if 'month' in unit: return val * 24 * 30
+            if 'year' in unit: return val * 24 * 365
+
+        # Arabic patterns: منذ ٣ ساعات / منذ يوم / منذ ٥ أيام
+        arabic_digits = {u'٠': '0', u'١': '1', u'٢': '2', u'٣': '3', u'٤': '4',
+                         u'٥': '5', u'٦': '6', u'٧': '7', u'٨': '8', u'٩': '9'}
+        norm = t
+        for ad, ed in arabic_digits.items():
+            norm = norm.replace(ad, ed)
+        m2 = re.search(r'(\d+)', norm)
+        val2 = int(m2.group(1)) if m2 else 1
+        if any(w in t for w in [u'ثاني', u'ثوان']): return max(val2 / 3600.0, 0.01)
+        if any(w in t for w in [u'دقيق', u'دقائق']): return max(val2 / 60.0, 0.01)
+        if any(w in t for w in [u'ساع', u'ساعات']): return val2
+        if any(w in t for w in [u'يوم', u'أيام', u'ايام']): return val2 * 24
+        if any(w in t for w in [u'أسبوع', u'اسبوع', u'أسابيع']): return val2 * 24 * 7
+        if any(w in t for w in [u'شهر', u'أشهر', u'اشهر']): return val2 * 24 * 30
+        if any(w in t for w in [u'سنة', u'سنوات', u'عام']): return val2 * 24 * 365
+        return -1
+
+
+    # 0. Check YouTube Data API v3 if user has /etc/enigma2/YouTube.key
+    api_key = get_youtube_api_key()
+    if api_key:
+        try:
+            # Use first 2 queries for API search to get broader coverage
+            for api_q in queries[:2]:
+                if not isinstance(api_q, str):
+                    api_q = api_q.encode('utf-8')
+                # Add date filter: published within last 7 days
+                try:
+                    seven_days_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=7)).strftime('%Y-%m-%dT00:00:00Z')
+                    date_filter = "&publishedAfter={}&order=relevance".format(seven_days_ago)
+                except Exception:
+                    date_filter = "&order=relevance"
+                api_url = "https://www.googleapis.com/youtube/v3/search?part=snippet&q={}&type=video&maxResults=15&key={}{}".format(
+                    _quote(api_q if isinstance(api_q, str) else api_q.decode('utf-8')), api_key, date_filter
+                )
+                req = _urllib_req.Request(api_url, headers=hdrs)
+                resp = _urllib_req.urlopen(req, timeout=5, context=ctx) if ctx else _urllib_req.urlopen(req, timeout=5)
+                api_data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+                for item in api_data.get('items', []):
+                    vid_id = item.get('id', {}).get('videoId')
+                    snip = item.get('snippet', {})
+                    if vid_id and vid_id not in seen_ids:
+                        seen_ids.add(vid_id)
+                        pub_date = snip.get('publishedAt', '')[:10]
+                        desc = snip.get('description', '')
+                        videos.append({
+                            'id': vid_id,
+                            'title': snip.get('title', ''),
+                            'channel': snip.get('channelTitle', ''),
+                            'duration': 'HD',
+                            'thumbnail': snip.get('thumbnails', {}).get('high', {}).get('url', ''),
+                            'url': "https://www.youtube.com/watch?v={}".format(vid_id),
+                            'date': pub_date,
+                            'description': desc
+                        })
+            log_dbg("[MatchHighlights] Found {} videos via YouTube Data API v3".format(len(videos)))
+        except Exception as e:
+            log_dbg("[MatchHighlights] YouTube Data API v3 error: {}".format(e))
+
+    # 1. Query Official Broadcaster RSS Feeds (Zero Auth, Instant)
+    try:
+        import xml.etree.ElementTree as _ET
+        rss_ns = {'atom': 'http://www.w3.org/2005/Atom', 'yt': 'http://www.youtube.com/xml/schemas/2015'}
+        h_low_en = h_clean_en.lower()
+        a_low_en = a_clean_en.lower()
+        h_low_ar = (home_ar or '').lower()
+        a_low_ar = (away_ar or '').lower()
+        # Also check original uncleaned names for broader matching
+        h_orig_low = (home_en or '').lower()
+        a_orig_low = (away_en or '').lower()
+
+        for feed_name, ch_id in OFFICIAL_BROADCAST_FEEDS:
+            try:
+                rss_url = "https://www.youtube.com/feeds/videos.xml?channel_id={}".format(ch_id)
+                req = _urllib_req.Request(rss_url, headers={'User-Agent': 'Mozilla/5.0'})
+                rdata = _urllib_req.urlopen(req, timeout=3, context=ctx).read() if ctx else _urllib_req.urlopen(req, timeout=3).read()
+                root = _ET.fromstring(rdata)
+                for e in root.findall('atom:entry', rss_ns):
+                    title_elem = e.find('atom:title', rss_ns)
+                    title_txt = title_elem.text if title_elem is not None else ''
+                    t_low = title_txt.lower()
+                    has_both_en = (h_low_en and h_low_en in t_low and a_low_en and a_low_en in t_low)
+                    has_both_orig = (h_orig_low and h_orig_low in t_low and a_orig_low and a_orig_low in t_low)
+                    has_both_ar = (h_low_ar and h_low_ar in t_low and a_low_ar and a_low_ar in t_low)
+                    is_hl_match = ('highlight' in t_low or 'extended' in t_low or u'ملخص' in t_low) and (h_low_en in t_low or a_low_en in t_low or h_orig_low in t_low or a_orig_low in t_low)
+                    if has_both_en or has_both_orig or has_both_ar or is_hl_match:
+                        v_elem = e.find('yt:videoId', rss_ns)
+                        vid_id = v_elem.text if v_elem is not None else ''
+                        if vid_id and vid_id not in seen_ids:
+                            seen_ids.add(vid_id)
+                            pub_elem = e.find('atom:published', rss_ns)
+                            pub_date = pub_elem.text[:10] if pub_elem is not None and pub_elem.text else ''
+                            desc_elem = e.find('{http://search.yahoo.com/mrss/}group/{http://search.yahoo.com/mrss/}description')
+                            desc = desc_elem.text if desc_elem is not None and desc_elem.text else ''
+                            videos.append({
+                                'id': vid_id,
+                                'title': title_txt,
+                                'channel': feed_name,
+                                'duration': 'Official',
+                                'thumbnail': "https://i.ytimg.com/vi/{}/hqdefault.jpg".format(vid_id),
+                                'url': "https://www.youtube.com/watch?v={}".format(vid_id),
+                                'date': pub_date,
+                                'description': desc
+                            })
+            except Exception:
+                pass
+    except Exception as e:
+        log_dbg("[MatchHighlights] RSS feed check: {}".format(e))
+
+    # 2. Direct YouTube web scraping (use top queries for broader coverage)
+    max_scrape = 4
+    for q in queries[:max_scrape]:
+        if isinstance(q, bytes):
+            q_str = q
+        else:
+            q_str = q.encode('utf-8')
+        url = 'https://www.youtube.com/results?search_query=' + _quote(q_str)
+        try:
+            req = _urllib_req.Request(url, headers=hdrs)
+            if ctx:
+                resp = _urllib_req.urlopen(req, timeout=8, context=ctx)
+            else:
+                resp = _urllib_req.urlopen(req, timeout=8)
+            html = resp.read()
+            if isinstance(html, bytes):
+                html = html.decode('utf-8', errors='ignore')
+        except Exception as e:
+            log_dbg("[MatchHighlights] Search error: {}".format(e))
+            continue
+
+        m = re.search(r'var ytInitialData = ({.*?});</script>', html)
+        if not m:
+            m = re.search(r'window\["ytInitialData"\] = ({.*?});</script>', html)
+        if not m:
+            continue
+
+        try:
+            data = json.loads(m.group(1))
+        except Exception:
+            continue
+
+        contents = data.get('contents', {}).get('twoColumnSearchResultsRenderer', {}).get('primaryContents', {}).get('sectionListRenderer', {}).get('contents', [])
+        for sec in contents:
+            for item in sec.get('itemSectionRenderer', {}).get('contents', []):
+                vr = item.get('videoRenderer')
+                if not vr: continue
+                vid_id = vr.get('videoId')
+                if not vid_id or vid_id in seen_ids: continue
+
+                title = vr.get('title', {}).get('runs', [{}])[0].get('text', '')
+                channel = vr.get('ownerText', {}).get('runs', [{}])[0].get('text', '')
+                duration = vr.get('lengthText', {}).get('simpleText', '')
+                thumbs = vr.get('thumbnail', {}).get('thumbnails', [])
+                thumb_url = thumbs[-1].get('url') if thumbs else ''
+
+                if not duration:
+                    continue
+
+                pub_date = vr.get('publishedTimeText', {}).get('simpleText', '')
+                desc_runs = vr.get('descriptionSnippet', {}).get('runs', [])
+                desc = ''.join(r.get('text', '') for r in desc_runs if isinstance(r, dict))
+                if not desc:
+                    for dms in vr.get('detailedMetadataSnippets', []):
+                        d_runs = dms.get('snippetText', {}).get('runs', [])
+                        if d_runs:
+                            desc = ''.join(r.get('text', '') for r in d_runs if isinstance(r, dict))
+                            break
+
+                seen_ids.add(vid_id)
+                videos.append({
+                    'id': vid_id,
+                    'title': title,
+                    'channel': channel,
+                    'duration': duration,
+                    'thumbnail': thumb_url,
+                    'url': "https://www.youtube.com/watch?v={}".format(vid_id),
+                    'date': pub_date,
+                    'description': desc
+                })
+
+    # --- Enhanced scoring function ---
+    # Negative keywords to penalize irrelevant/clickbait results
+    _NEGATIVE_KEYWORDS = [
+        'fifa', 'efootball', 'pes', 'prediction', 'preview', 'promo',
+        'reaction', 'live stream', 'gameplay', 'simulation', 'dream league',
+        u'توقع', u'بث مباشر', u'لعبة'
+    ]
+
+    def get_score(v):
+        score = 0
+        t_low = v['title'].lower()
+        c_low = v['channel'].lower()
+
+        # 1. Date freshness scoring (DOMINANT FACTOR - Highest Weight)
+        # Matches are recent events. Freshly uploaded videos from the matchday
+        # strongly dominate over older videos or language preference.
+        date_txt = v.get('date', '')
+        hours = _parse_relative_hours(date_txt)
+        if hours >= 0:
+            if hours <= 12:
+                score += 65     # Uploaded within 12 hours (breaking fresh / match just finished)
+            elif hours <= 24:
+                score += 55     # Uploaded today
+            elif hours <= 48:
+                score += 45     # Uploaded yesterday / within 2 days
+            elif hours <= 120:  # Within 5 days
+                score += 30
+            elif hours <= 168:  # Within 7 days (this match week)
+                score += 15
+            elif hours <= 336:  # Within 2 weeks
+                score += 5
+            elif hours <= 720:  # 2 to 4 weeks ago
+                score -= 20
+            elif hours <= 2160: # 1 to 3 months ago (past match / wrong fixture)
+                score -= 50
+            else:               # > 3 months ago (ancient / past season clickbait)
+                score -= 75
+
+        # 2. Team name relevance:
+        # Both teams in title = confirmed fixture.
+        # Neither team in title = unrelated match from another league/fixture.
+        h_low = h_clean_en.lower()
+        a_low = a_clean_en.lower()
+        h_ar_low = h_clean_ar.lower()
+        a_ar_low = a_clean_ar.lower()
+        has_home = (h_low and h_low in t_low) or (h_ar_low and h_ar_low in t_low) or (home_en and home_en.lower() in t_low) or (home_ar and home_ar.lower() in t_low)
+        has_away = (a_low and a_low in t_low) or (a_ar_low and a_ar_low in t_low) or (away_en and away_en.lower() in t_low) or (away_ar and away_ar.lower() in t_low)
+
+        if has_home and has_away:
+            score += 80
+        elif has_home or has_away:
+            score += 10
+        else:
+            # Neither team in title: severely penalize unrelated matches
+            score -= 80
+
+        # 3. Official broadcaster reputation (+40 when relevant)
+        is_broadcaster = False
+        for b in OFFICIAL_HIGHLIGHT_BROADCASTERS:
+            if b == 'tod':
+                if re.search(r'\btod\b', c_low):
+                    is_broadcaster = True
+                    break
+            elif b in c_low:
+                is_broadcaster = True
+                break
+
+        if is_broadcaster:
+            if has_home or has_away:
+                score += 40
+            else:
+                score += 10
+
+        # 4. Highlight/goals keywords (Universal across Arabic, English, Portuguese/Spanish/French)
+        is_hl = False
+        if any(w in t_low for w in [u'ملخص', u'اهداف', u'أهداف', u'هدف', u'لقطات']):
+            is_hl = True
+        elif any(w in t_low for w in ['highlight', 'highlights', 'extended', 'recap', 'all goals']):
+            is_hl = True
+        elif any(w in t_low for w in ['resumo', 'melhores momentos', 'resumen', 'goles', 'buts', 'resume']):
+            is_hl = True
+
+        if is_hl:
+            score += 25
+
+        # Bonus for goals keywords in any language (+10)
+        if any(w in t_low for w in ['goal', 'goals', u'اهداف', u'أهداف', 'goles', 'buts']):
+            score += 10
+
+        # 5. Duration quality (+15 / -15)
+        dur = v.get('duration', '')
+        if dur == 'Official':
+            score += 15
+        elif ':' in dur:
+            parts = dur.split(':')
+            if len(parts) == 2:
+                try:
+                    m_val = int(parts[0])
+                    if 2 <= m_val <= 20: score += 15
+                    elif m_val < 1: score -= 15
+                except: pass
+            elif len(parts) == 3:
+                # H:MM:SS format — full match
+                try:
+                    h_val = int(parts[0])
+                    if h_val >= 1: score -= 5
+                except: pass
+
+        # 6. Language preference (Gentle tie-breaker only; +5)
+        # Gives a slight nudge if a fresh Arabic video exists, but NEVER overrides freshness or fixture relevance!
+        has_arabic_chars = bool(re.search(u'[\u0600-\u06FF]', v['title']))
+        if lang == 'ar' and has_arabic_chars:
+            score += 5
+        elif lang != 'ar' and not has_arabic_chars:
+            score += 5
+
+        # 7. Negative keyword penalty (-60)
+        if any(nk in t_low for nk in _NEGATIVE_KEYWORDS):
+            score -= 60
+
+        return score
+
+    videos.sort(key=get_score, reverse=True)
+    return videos
+
+
+def _search_live_match_streams(home_en, away_en, home_ar=None, away_ar=None, league_name="", lang="en", event=None):
+    """
+    Search for active live match streams:
+    1. Extracts official match broadcasters (ESPN API + LiveSoccerTV)
+    2. Matches broadcasters against local bouquets (/etc/enigma2/*.tv) and custom M3U (/etc/enigma2/simplysport_iptv.m3u)
+    3. Searches Dailymotion Live and YouTube Live (with BADGE_STYLE_TYPE_LIVE_NOW / LIVE badges)
+    4. Anti-simulation filter (blocks FIFA, FC24/25, eFootball, PES, gameplay)
+    5. Hierarchical ranking: Local Bouquets & IPTV top, followed by Dailymotion & YouTube Live
+    """
+    try:
+        import urllib.request as _urllib_req
+        import urllib.parse as _urllib_parse
+        _quote = _urllib_parse.quote
+    except ImportError:
+        import urllib2 as _urllib_req
+        import urllib as _urllib_parse
+        _quote = _urllib_parse.quote
+
+    try:
+        import ssl
+        ctx = ssl._create_unverified_context()
+    except Exception:
+        ctx = None
+
+    hdrs = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8' if lang == 'ar' else 'en-US,en;q=0.9,ar;q=0.8'
+    }
+
+    def clean_name(name):
+        if not name: return ""
+        return re.sub(r'\b(FC|CF|SC|AC|Club|United|City|Town|Rovers|SL|CP|CD|UD|GD|نادي|نادى|فريق)\b', '', name, flags=re.IGNORECASE).strip()
+
+    h_clean_en = clean_name(home_en)
+    a_clean_en = clean_name(away_en)
+    h_clean_ar = clean_name(home_ar) if home_ar else h_clean_en
+    a_clean_ar = clean_name(away_ar) if away_ar else a_clean_en
+
+    live_source = get_highlights_live_source()
+    videos = []
+    seen_ids = set()
+
+    # 1. Official TV Broadcasters -> Local Bouquets & Custom M3U matching
+    if live_source in ('all', 'both', 'iptv'):
+        try:
+            broadcasters = extract_match_broadcasters(event=event, home_en=home_en, away_en=away_en)
+            bq_streams = match_broadcasters_to_bouquets(broadcasters)
+            for s in bq_streams:
+                s_id = s.get('id', '')
+                if s_id and s_id not in seen_ids:
+                    seen_ids.add(s_id)
+                    videos.append(s)
+            m3u_streams = match_broadcasters_to_m3u(broadcasters)
+            for s in m3u_streams:
+                s_id = s.get('id', '')
+                if s_id and s_id not in seen_ids:
+                    seen_ids.add(s_id)
+                    videos.append(s)
+            log_dbg("[MatchHighlights] Ingested {} bouquet/IPTV live channels".format(len(videos)))
+        except Exception as e:
+            log_dbg("[MatchHighlights] Error matching broadcasters to IPTV/bouquets: {}".format(e))
+
+    if live_source == 'iptv':
+        return videos
+
+    # 2. Dailymotion Live Streams
+    if live_source in ('all', 'both'):
+        try:
+            dm_streams = search_dailymotion_live(home_en, away_en, lang=lang)
+            for s in dm_streams:
+                s_id = s.get('id', '')
+                if s_id and s_id not in seen_ids:
+                    seen_ids.add(s_id)
+                    videos.append(s)
+            log_dbg("[MatchHighlights] Ingested {} Dailymotion live streams".format(len(dm_streams)))
+        except Exception as e:
+            log_dbg("[MatchHighlights] Dailymotion live search error: {}".format(e))
+
+    # 3. YouTube Live Streams
+    import datetime
+    queries = []
+    if lang == "ar":
+        queries.append(u"بث مباشر مباراة {} و {}".format(h_clean_ar, a_clean_ar))
+        queries.append(u"مباراة {} و {} مباشر الان".format(h_clean_ar, a_clean_ar))
+        queries.append(u"{} vs {} live stream".format(h_clean_en, a_clean_en))
+        queries.append(u"{} vs {} live".format(h_clean_en, a_clean_en))
+        queries.append(u"بث مباشر {} و {}".format(h_clean_ar, a_clean_ar))
+    else:
+        queries.append(u"{} vs {} live stream".format(h_clean_en, a_clean_en))
+        queries.append(u"{} vs {} live match today".format(h_clean_en, a_clean_en))
+        queries.append(u"{} vs {} live".format(h_clean_en, a_clean_en))
+        queries.append(u"بث مباشر مباراة {} و {}".format(h_clean_ar, a_clean_ar))
+
+    def _parse_relative_hours(txt):
+        if not txt:
+            return -1
+        t = txt.lower().strip()
+        if re.match(r'^\d{4}-\d{2}-\d{2}', t):
+            try:
+                pub_dt = datetime.datetime.strptime(t[:10], '%Y-%m-%d')
+                delta = datetime.datetime.utcnow() - pub_dt
+                return max(delta.total_seconds() / 3600.0, 0.1)
+            except Exception:
+                pass
+        if 'yesterday' in t or u'أمس' in t or u'امس' in t:
+            return 24.0
+        if 'today' in t or u'اليوم' in t:
+            return 8.0
+        if u'ساعتين' in t: return 2.0
+        if u'يومين' in t: return 48.0
+        m = re.search(r'(\d+)\s*(second|minute|hour|day|week|month|year)', t)
+        if m:
+            val = int(m.group(1))
+            unit = m.group(2)
+            if 'second' in unit: return max(val / 3600.0, 0.01)
+            if 'minute' in unit: return max(val / 60.0, 0.01)
+            if 'hour' in unit: return val
+            if 'day' in unit: return val * 24
+            if 'week' in unit: return val * 24 * 7
+            if 'month' in unit: return val * 24 * 30
+            if 'year' in unit: return val * 24 * 365
+        arabic_digits = {u'٠': '0', u'١': '1', u'٢': '2', u'٣': '3', u'٤': '4',
+                         u'٥': '5', u'٦': '6', u'٧': '7', u'٨': '8', u'٩': '9'}
+        norm = t
+        for ad, ed in arabic_digits.items():
+            norm = norm.replace(ad, ed)
+        m2 = re.search(r'(\d+)', norm)
+        val2 = int(m2.group(1)) if m2 else 1
+        if any(w in t for w in [u'ثاني', u'ثوان']): return max(val2 / 3600.0, 0.01)
+        if any(w in t for w in [u'دقيق', u'دقائق']): return max(val2 / 60.0, 0.01)
+        if any(w in t for w in [u'ساع', u'ساعات']): return val2
+        if any(w in t for w in [u'يوم', u'أيام', u'ايام']): return val2 * 24
+        return -1
+
+    # Check YouTube Data API v3
+    api_key = get_youtube_api_key()
+    if api_key:
+        try:
+            for api_q in queries[:2]:
+                if not isinstance(api_q, str):
+                    api_q = api_q.encode('utf-8')
+                try:
+                    today_iso = (datetime.datetime.utcnow() - datetime.timedelta(days=1)).strftime('%Y-%m-%dT00:00:00Z')
+                    date_filter = "&publishedAfter={}&order=relevance".format(today_iso)
+                except Exception:
+                    date_filter = "&order=relevance"
+                api_url = "https://www.googleapis.com/youtube/v3/search?part=snippet&q={}&type=video&maxResults=15&key={}{}".format(
+                    _quote(api_q if isinstance(api_q, str) else api_q.decode('utf-8')), api_key, date_filter
+                )
+                req = _urllib_req.Request(api_url, headers=hdrs)
+                resp = _urllib_req.urlopen(req, timeout=5, context=ctx) if ctx else _urllib_req.urlopen(req, timeout=5)
+                api_data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+                for item in api_data.get('items', []):
+                    vid_id = item.get('id', {}).get('videoId')
+                    snip = item.get('snippet', {})
+                    if vid_id and vid_id not in seen_ids:
+                        t_item = snip.get('title', '')
+                        d_item = snip.get('description', '')
+                        if is_simulation_stream(t_item, d_item):
+                            continue
+                        seen_ids.add(vid_id)
+                        pub_date = snip.get('publishedAt', '')[:10]
+                        desc = d_item
+                        videos.append({
+                            'id': vid_id,
+                            'title': t_item,
+                            'channel': snip.get('channelTitle', ''),
+                            'duration': 'LIVE',
+                            'thumbnail': snip.get('thumbnails', {}).get('high', {}).get('url', ''),
+                            'url': "https://www.youtube.com/watch?v={}".format(vid_id),
+                            'date': pub_date,
+                            'description': desc,
+                            'is_live': True
+                        })
+        except Exception as e:
+            log_dbg("[MatchHighlights] YouTube Data API v3 live search error: {}".format(e))
+
+    # Direct YouTube scraping for live broadcasts
+    max_scrape = 3
+    for q in queries[:max_scrape]:
+        if isinstance(q, bytes):
+            q_str = q
+        else:
+            q_str = q.encode('utf-8')
+        url = 'https://www.youtube.com/results?search_query=' + _quote(q_str)
+        try:
+            req = _urllib_req.Request(url, headers=hdrs)
+            resp = _urllib_req.urlopen(req, timeout=8, context=ctx) if ctx else _urllib_req.urlopen(req, timeout=8)
+            html = resp.read()
+            if isinstance(html, bytes):
+                html = html.decode('utf-8', errors='ignore')
+        except Exception as e:
+            log_dbg("[MatchHighlights] Live search error: {}".format(e))
+            continue
+
+        m = re.search(r'var ytInitialData = ({.*?});</script>', html)
+        if not m:
+            m = re.search(r'window\["ytInitialData"\] = ({.*?});</script>', html)
+        if not m:
+            continue
+
+        try:
+            data = json.loads(m.group(1))
+        except Exception:
+            continue
+
+        contents = data.get('contents', {}).get('twoColumnSearchResultsRenderer', {}).get('primaryContents', {}).get('sectionListRenderer', {}).get('contents', [])
+        for sec in contents:
+            for item in sec.get('itemSectionRenderer', {}).get('contents', []):
+                vr = item.get('videoRenderer')
+                if not vr: continue
+                vid_id = vr.get('videoId')
+                if not vid_id or vid_id in seen_ids: continue
+
+                title = vr.get('title', {}).get('runs', [{}])[0].get('text', '')
+                channel = vr.get('ownerText', {}).get('runs', [{}])[0].get('text', '')
+                duration = vr.get('lengthText', {}).get('simpleText', '')
+                thumbs = vr.get('thumbnail', {}).get('thumbnails', [])
+                thumb_url = thumbs[-1].get('url') if thumbs else ''
+
+                # Detect YouTube live status
+                is_yt_live = False
+                for b in vr.get('badges', []):
+                    mbr = b.get('metadataBadgeRenderer', {})
+                    b_style = mbr.get('style', '')
+                    b_label = mbr.get('label', '')
+                    if b_style == 'BADGE_STYLE_TYPE_LIVE_NOW' or 'LIVE' in b_label.upper() or u'مباشر' in b_label:
+                        is_yt_live = True
+                        break
+                if not is_yt_live:
+                    for to in vr.get('thumbnailOverlays', []):
+                        tsr = to.get('thumbnailOverlayTimeStatusRenderer', {})
+                        if tsr.get('style') == 'LIVE' or 'LIVE' in tsr.get('text', {}).get('simpleText', '').upper():
+                            is_yt_live = True
+                            break
+
+                if is_yt_live:
+                    duration = "LIVE"
+                elif not duration:
+                    continue
+
+                pub_date = vr.get('publishedTimeText', {}).get('simpleText', '')
+                if is_yt_live and not pub_date:
+                    pub_date = "LIVE NOW"
+                desc_runs = vr.get('descriptionSnippet', {}).get('runs', [])
+                desc = ''.join(r.get('text', '') for r in desc_runs if isinstance(r, dict))
+                if not desc:
+                    for dms in vr.get('detailedMetadataSnippets', []):
+                        d_runs = dms.get('snippetText', {}).get('runs', [])
+                        if d_runs:
+                            desc = ''.join(r.get('text', '') for r in d_runs if isinstance(r, dict))
+                            break
+
+                # Anti-simulation filter: block FIFA, FC24, eFootball, PES, gameplay, etc.
+                if is_simulation_stream(title, desc):
+                    continue
+
+                seen_ids.add(vid_id)
+                videos.append({
+                    'id': vid_id,
+                    'title': title,
+                    'channel': channel,
+                    'duration': duration,
+                    'thumbnail': thumb_url,
+                    'url': "https://www.youtube.com/watch?v={}".format(vid_id),
+                    'date': pub_date,
+                    'description': desc,
+                    'is_live': is_yt_live
+                })
+
+    _NEGATIVE_KEYWORDS_LIVE = [
+        'fifa', 'efootball', 'pes', 'prediction', 'preview', 'promo',
+        'reaction', 'gameplay', 'simulation', 'dream league',
+        u'توقع', u'لعبة', 'full match replay', 'extended highlights'
+    ]
+
+    def get_live_score(v):
+        score = 0
+        t_low = v.get('title', '').lower()
+        dur = v.get('duration', '')
+
+        if is_simulation_stream(v.get('title', ''), v.get('description', '')):
+            return -2000
+
+        # 1. Local Bouquet boost (direct verified satellite/IPTV broadcast)
+        if v.get('source_type') == 'bouquet' or v.get('is_bouquet'):
+            score += 500
+
+        # 2. Custom M3U IPTV boost (direct user stream)
+        elif v.get('source_type') == 'custom_m3u':
+            score += 450
+
+        # 3. Dailymotion Live boost (direct playable stream)
+        elif v.get('source_type') == 'dailymotion':
+            score += 300
+
+        # 4. YouTube LIVE broadcast boost
+        elif dur == 'LIVE' or v.get('is_live'):
+            score += 200
+
+        # 5. Live stream keywords in title/desc (+40)
+        if any(w in t_low for w in ['live stream', 'live match', 'live broadcast', u'بث مباشر', u'مباشر الان', u'مباشر الآن', u'مباشرة']):
+            score += 40
+        elif 'live' in t_low:
+            score += 20
+
+        # 6. Date freshness for live matches (Live match is happening RIGHT NOW)
+        date_txt = v.get('date', '')
+        hours = _parse_relative_hours(date_txt)
+        if hours >= 0:
+            if hours <= 2:
+                score += 60    # Uploaded/started within 2 hours
+            elif hours <= 6:
+                score += 30    # Uploaded within 6 hours
+            elif hours <= 12:
+                score += 10
+            elif hours <= 24:
+                score -= 40    # Yesterday's stream
+            else:
+                score -= 150   # Older video - cannot be current live match!
+        elif dur == 'LIVE' or date_txt == 'LIVE':
+            score += 50
+
+        # 7. Team name relevance for live matches
+        h_low = h_clean_en.lower()
+        a_low = a_clean_en.lower()
+        h_ar_low = h_clean_ar.lower()
+        a_ar_low = a_clean_ar.lower()
+        has_home = (h_low and h_low in t_low) or (h_ar_low and h_ar_low in t_low) or (home_en and home_en.lower() in t_low) or (home_ar and home_ar.lower() in t_low)
+        has_away = (a_low and a_low in t_low) or (a_ar_low and a_ar_low in t_low) or (away_en and away_en.lower() in t_low) or (away_ar and away_ar.lower() in t_low)
+
+        if has_home and has_away:
+            score += 100
+        elif has_home or has_away:
+            score += 20
+        else:
+            score -= 120
+
+        # 8. Negative keywords for live matches
+        if any(nk in t_low for nk in _NEGATIVE_KEYWORDS_LIVE):
+            score -= 80
+
+        # Language gentle nudge (+5)
+        has_arabic_chars = bool(re.search(u'[؀-ۿ]', v.get('title', '')))
+        if lang == 'ar' and has_arabic_chars:
+            score += 5
+        elif lang != 'ar' and not has_arabic_chars:
+            score += 5
+
+        return score
+
+    videos.sort(key=get_live_score, reverse=True)
+    videos = [v for v in videos if get_live_score(v) > -500]
+    return videos
+
+
+def search_match_highlights(home_en, away_en, home_ar=None, away_ar=None, league_name="", lang="en", is_live=False, event=None):
+    """
+    Search entry point:
+    - If is_live=False (finished match): strictly uses the 100% original, untouched YouTube search & scoring engine from v6.9.9.7.
+    - If is_live=True (active live match): uses the live match search engine with official broadcasters, local bouquets, custom M3U, Dailymotion Live, and YouTube Live.
+    """
+    if is_live:
+        return _search_live_match_streams(home_en, away_en, home_ar=home_ar, away_ar=away_ar, league_name=league_name, lang=lang, event=event)
+    else:
+        return _search_finished_match_highlights(home_en, away_en, home_ar=home_ar, away_ar=away_ar, league_name=league_name, lang=lang)
+
+_HLS_SERVER = None
+_HLS_SERVER_PORT = None
+_HLS_MANIFEST_CACHE = {}
+
+def get_hls_server_port():
+    global _HLS_SERVER, _HLS_SERVER_PORT
+    if _HLS_SERVER_PORT:
+        return _HLS_SERVER_PORT
+    try:
+        try:
+            from http.server import HTTPServer, BaseHTTPRequestHandler
+        except ImportError:
+            from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+        import threading
+
+        class HLSHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                try:
+                    path = self.path.split('?')[0].lstrip('/')
+                    vid_id = path.replace('hls_', '').replace('.m3u8', '')
+                    manifest = _HLS_MANIFEST_CACHE.get(vid_id) or _HLS_MANIFEST_CACHE.get('latest')
+                    if not manifest:
+                        fpath = "/tmp/ss_hls_{}.m3u8".format(vid_id)
+                        if os.path.exists(fpath):
+                            try:
+                                with open(fpath, 'r') as f:
+                                    manifest = f.read()
+                            except Exception:
+                                pass
+                    if manifest:
+                        data = manifest.encode('utf-8') if isinstance(manifest, str) else manifest
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/vnd.apple.mpegurl')
+                        self.send_header('Content-Length', str(len(data)))
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(data)
+                    else:
+                        self.send_response(404)
+                        self.end_headers()
+                except Exception:
+                    pass
+
+            def do_HEAD(self):
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/vnd.apple.mpegurl')
+                self.end_headers()
+
+            def log_message(self, format, *args):
+                pass
+
+        server = HTTPServer(('127.0.0.1', 0), HLSHandler)
+        _HLS_SERVER_PORT = server.server_address[1]
+        _HLS_SERVER = server
+        t = threading.Thread(target=server.serve_forever)
+        t.daemon = True
+        t.start()
+        log_dbg("[MatchHighlights] Local HLS streaming server started on 127.0.0.1:{}".format(_HLS_SERVER_PORT))
+        return _HLS_SERVER_PORT
+    except Exception as e:
+        log_dbg("[MatchHighlights] Failed to start local HLS server: {}".format(e))
+        return None
+
+
+class MatchHighlightsScreen(Screen):
+    """
+    Dedicated screen displaying match highlights and goals for finished matches.
+    Launched via the Blue button on SimpleSportsScreen for matches in 'post' state.
+    """
+    _install_prompted = False
+
+    def __init__(self, session, event):
+        Screen.__init__(self, session)
+        self.session = session
+        self.event = event
+        self.theme = getattr(global_sports_monitor, 'theme_mode', 'standard') if global_sports_monitor else 'standard'
+
+        # Match metadata extraction
+        comp = event.get('competitions', [{}])[0] if event else {}
+        competitors = comp.get('competitors', [])
+        h_team, a_team = None, None
+        for c in competitors:
+            ha = c.get('homeAway')
+            if ha == 'home':
+                h_team = c.get('team', {})
+            elif ha == 'away':
+                a_team = c.get('team', {})
+        if not h_team and len(competitors) > 0:
+            h_team = competitors[0].get('team', {})
+        if not a_team and len(competitors) > 1:
+            a_team = competitors[1].get('team', {})
+
+        raw_h = (h_team.get('displayName') or h_team.get('name') or h_team.get('shortDisplayName') or "Home") if h_team else "Home"
+        raw_a = (a_team.get('displayName') or a_team.get('name') or a_team.get('shortDisplayName') or "Away") if a_team else "Away"
+
+        if _has_arabic(raw_h):
+            self.h_ar = raw_h
+            self.h_en = _translate_arabic_team_to_en(raw_h)
+        else:
+            self.h_en = raw_h
+            self.h_ar = TEAM_TRANSLATIONS_AR.get(raw_h) or _team_name(raw_h) or raw_h
+
+        if _has_arabic(raw_a):
+            self.a_ar = raw_a
+            self.a_en = _translate_arabic_team_to_en(raw_a)
+        else:
+            self.a_en = raw_a
+            self.a_ar = TEAM_TRANSLATIONS_AR.get(raw_a) or _team_name(raw_a) or raw_a
+
+        self.league_name = event.get('league_name', '') or comp.get('league', {}).get('name', '') or ''
+
+        # Determine if this match is currently LIVE
+        status_type = event.get('status', {}).get('type', {}) if event else {}
+        self.is_live = (status_type.get('state') == 'in')
+
+        # Dynamic title based on match state
+        if self.is_live:
+            prefix = _t("Live Streams & Highlights")
+        else:
+            prefix = _t("Match Highlights")
+
+        if PLUGIN_LANGUAGE == "ar":
+            title_text = u"{} ({} ضد {})".format(prefix, self.h_ar, self.a_ar)
+        else:
+            title_text = u"{} ({} vs {})".format(prefix, self.h_en, self.a_en)
+
+        # XML Skin definition (Wide Broadcast Layout: 1560x880 with 980px list column)
+        if self.theme == "ucl":
+            self.skin = scale_skin_xml("""
+            <screen position="center,center" size="1560,880" title="Match Highlights" backgroundColor="#00000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="1560,880" backgroundColor="#0d1b2e" zPosition="-1" />
+                <eLabel position="0,0" size="1560,4" backgroundColor="#c9a020" zPosition="1" />
+                <eLabel position="0,876" size="1560,4" backgroundColor="#c9a020" zPosition="1" />
+                <eLabel position="0,0" size="4,880" backgroundColor="#c9a020" zPosition="1" />
+                <eLabel position="1556,0" size="4,880" backgroundColor="#c9a020" zPosition="1" />
+                <widget name="title" position="30,18" size="1500,48" font="SimplySportFont;36" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" halign="center" />
+                <widget name="status" position="30,68" size="1500,30" font="SimplySportFont;22" foregroundColor="#8fa8cf" backgroundColor="#0d1b2e" transparent="1" halign="center" />
+                <eLabel position="30,102" size="1500,2" backgroundColor="#1a3a6b" />
+                <widget name="list" position="30,115" size="980,630" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="1030,115" size="2,630" backgroundColor="#1a3a6b" />
+                <eLabel position="1053,113" size="479,244" backgroundColor="#c9a020" zPosition="0" />
+                <eLabel position="1055,115" size="475,240" backgroundColor="#07101c" zPosition="1" />
+                <widget name="thumb_preview" position="1055,115" size="475,240" alphatest="blend" zPosition="2" />
+                <widget name="lbl_video_title" position="1055,362" size="475,64" font="SimplySportFont;23" foregroundColor="#FFFFFF" backgroundColor="#0d1b2e" transparent="1" valign="top" />
+                <widget name="lbl_channel" position="1055,430" size="475,23" font="SimplySportFont;20" foregroundColor="#c9a020" backgroundColor="#0d1b2e" transparent="1" />
+                <widget name="lbl_date" position="1055,455" size="475,21" font="SimplySportFont;19" foregroundColor="#8fa8cf" backgroundColor="#0d1b2e" transparent="1" />
+                <widget name="lbl_duration" position="1055,478" size="475,21" font="SimplySportFont;19" foregroundColor="#8fa8cf" backgroundColor="#0d1b2e" transparent="1" />
+                <eLabel position="1055,502" size="475,2" backgroundColor="#1a3a6b" />
+                <widget name="lbl_description" position="1055,508" size="475,246" font="SimplySportFont;19" foregroundColor="#8fa8cf" backgroundColor="#0d1b2e" transparent="1" valign="top" />
+                <eLabel position="30,760" size="1500,2" backgroundColor="#1a3a6b" />
+                <widget name="key_red" position="30,775" size="285,45" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="334,775" size="285,45" font="SimplySportFont;24" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_yellow" position="638,775" size="285,45" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#FFA000" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_blue" position="942,775" size="285,45" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#0055CC" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_menu" position="1245,775" size="285,45" font="SimplySportFont;22" foregroundColor="#FFFFFF" backgroundColor="#1a3a6b" transparent="0" zPosition="1" halign="center" valign="center" />
+            </screen>
+            """)
+        else:
+            self.skin = scale_skin_xml("""
+            <screen position="center,center" size="1560,880" title="Match Highlights" backgroundColor="#00000000" flags="wfNoBorder">
+                <eLabel position="0,0" size="1560,880" backgroundColor="#38003C" zPosition="-1" />
+                <eLabel position="0,0" size="1560,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,876" size="1560,4" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="0,0" size="4,880" backgroundColor="#00FF85" zPosition="1" />
+                <eLabel position="1556,0" size="4,880" backgroundColor="#00FF85" zPosition="1" />
+                <widget name="title" position="30,18" size="1500,48" font="SimplySportFont;36" foregroundColor="#00FF85" backgroundColor="#38003C" transparent="1" halign="center" />
+                <widget name="status" position="30,68" size="1500,30" font="SimplySportFont;22" foregroundColor="#aaaaaa" backgroundColor="#38003C" transparent="1" halign="center" />
+                <eLabel position="30,102" size="1500,2" backgroundColor="#505050" />
+                <widget name="list" position="30,115" size="980,630" scrollbarMode="showOnDemand" transparent="1" />
+                <eLabel position="1030,115" size="2,630" backgroundColor="#505050" />
+                <eLabel position="1053,113" size="479,244" backgroundColor="#00FF85" zPosition="0" />
+                <eLabel position="1055,115" size="475,240" backgroundColor="#1e0020" zPosition="1" />
+                <widget name="thumb_preview" position="1055,115" size="475,240" alphatest="blend" zPosition="2" />
+                <widget name="lbl_video_title" position="1055,362" size="475,64" font="SimplySportFont;23" foregroundColor="#FFFFFF" backgroundColor="#38003C" transparent="1" valign="top" />
+                <widget name="lbl_channel" position="1055,430" size="475,23" font="SimplySportFont;20" foregroundColor="#00FF85" backgroundColor="#38003C" transparent="1" />
+                <widget name="lbl_date" position="1055,455" size="475,21" font="SimplySportFont;19" foregroundColor="#aaaaaa" backgroundColor="#38003C" transparent="1" />
+                <widget name="lbl_duration" position="1055,478" size="475,21" font="SimplySportFont;19" foregroundColor="#aaaaaa" backgroundColor="#38003C" transparent="1" />
+                <eLabel position="1055,502" size="475,2" backgroundColor="#505050" />
+                <widget name="lbl_description" position="1055,508" size="475,246" font="SimplySportFont;19" foregroundColor="#aaaaaa" backgroundColor="#38003C" transparent="1" valign="top" />
+                <eLabel position="30,760" size="1500,2" backgroundColor="#505050" />
+                <widget name="key_red" position="30,775" size="285,45" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#F44336" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_green" position="334,775" size="285,45" font="SimplySportFont;24" foregroundColor="#000000" backgroundColor="#00FF85" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_yellow" position="638,775" size="285,45" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#FFA000" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_blue" position="942,775" size="285,45" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#0055CC" transparent="0" zPosition="1" halign="center" valign="center" />
+                <widget name="key_menu" position="1245,775" size="285,45" font="SimplySportFont;22" foregroundColor="#FFFFFF" backgroundColor="#4A154B" transparent="0" zPosition="1" halign="center" valign="center" />
+            </screen>
+            """)
+
+        self["title"] = Label(title_text)
+        initial_status = _t("Searching for live streams and highlights...") if self.is_live else _t("Searching for match highlights...")
+        self["status"] = Label(initial_status)
+        self["hint"] = Label("")
+        self["key_red"] = Label(_t("Close"))
+        self["key_green"] = Label(_t("Play"))
+        self["key_yellow"] = Label(_t("Play All"))
+        self["key_blue"] = Label(_t("Refresh") if "Refresh" in TRANSLATIONS else "Refresh")
+        self["key_menu"] = Label("")
+        self._update_menu_button_label()
+
+        self["thumb_preview"] = Pixmap()
+        self["lbl_video_title"] = Label("")
+        self["lbl_channel"] = Label("")
+        self["lbl_date"] = Label("")
+        self["lbl_duration"] = Label("")
+        self["lbl_description"] = Label("")
+
+        self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(26)))
+        self["list"].l.setFont(1, gFont("SimplySportFont", sf(20)))
+        self["list"].l.setItemHeight(sy(75))
+
+        self.videos = []
+        self._search_in_flight = False
+        self._stream_cache = {}      # (vid_id, res) -> (stream_url, headers)
+        self._pre_resolving = set()   # set of (vid_id, res) currently being resolved in background
+
+        self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions", "MenuActions"], {
+            "ok": self.play_selected,
+            "cancel": self.close,
+            "red": self.close,
+            "green": self.play_selected,
+            "yellow": self.play_all,
+            "blue": self.search_again,
+            "menu": self.select_resolution,
+            "up": self._nav_up,
+            "down": self._nav_down,
+            "left": self["list"].pageUp,
+            "right": self["list"].pageDown
+        }, -1)
+
+        self.onLayoutFinish.append(self._start_search)
+        self["list"].onSelectionChanged.append(self._on_selection_changed)
+
+
+    def _nav_up(self):
+        self["list"].up()
+        self._on_selection_changed()
+
+    def _nav_down(self):
+        self["list"].down()
+        self._on_selection_changed()
+
+    def search_again(self):
+        if self._search_in_flight:
+            return
+        self._start_search()
+
+    def _start_search(self):
+        self._search_in_flight = True
+        status_msg = _t("Searching for live streams and highlights...") if self.is_live else _t("Searching for match highlights...")
+        self["status"].setText(status_msg)
+        from twisted.internet import threads
+        threads.deferToThread(
+            search_match_highlights,
+            self.h_en, self.a_en, self.h_ar, self.a_ar, self.league_name, PLUGIN_LANGUAGE, self.is_live, self.event
+        ).addCallback(
+            self._on_search_done
+        ).addErrback(
+            self._on_search_err
+        )
+
+    def _on_search_done(self, videos):
+        self._search_in_flight = False
+        self.videos = videos or []
+        if not self.videos:
+            msg = _t("No live streams or highlights found.") if self.is_live else _t("No highlights found for this match.")
+            self["status"].setText(msg)
+            self["list"].setList([])
+            self["lbl_video_title"].setText("")
+            self["lbl_channel"].setText("")
+            self["lbl_date"].setText("")
+            self["lbl_duration"].setText("")
+            self["lbl_description"].setText("")
+            return
+
+        lbl_type = _t("Live Streams & Highlights") if self.is_live else _t("Highlights")
+        self["status"].setText(u"{} {}".format(len(self.videos), lbl_type))
+        items = [self.build_entry(v) for v in self.videos]
+        self["list"].setList(items)
+        self["list"].moveToIndex(0)
+        self._on_selection_changed()
+
+        # Proactively pre-resolve streams for top videos in background for instant playback
+        for top_v in self.videos[:2]:
+            self._pre_resolve_video(top_v)
+
+    def _on_search_err(self, err):
+        self._search_in_flight = False
+        log_dbg("[MatchHighlights] Search error: {}".format(err))
+        msg = _t("No live streams or highlights found.") if self.is_live else _t("No highlights found for this match.")
+        self["status"].setText(msg)
+
+    def _update_menu_button_label(self):
+        res = get_highlights_resolution()
+        plr = get_highlights_player()
+        if res == "auto":
+            res_val = u"\u062a\u0644\u0642\u0627\u0626\u064a" if PLUGIN_LANGUAGE == "ar" else "AUTO"
+        else:
+            res_val = "{}p".format(res)
+        plr_short = {
+            "auto": "Auto",
+            "youtube": "YT",
+            "movieplayer": "Movie",
+            "simpleplayer": "Simple"
+        }.get(plr, plr)
+
+        if getattr(self, 'is_live', False):
+            src = get_highlights_live_source()
+            src_short = {"all": "All", "iptv": "IPTV", "youtube": "YT", "both": "All", "web": "IPTV"}.get(src, src)
+            if PLUGIN_LANGUAGE == "ar":
+                txt = u"MENU: \u0625\u0639\u062f\u0627\u062f\u0627\u062a [{} | {}]".format(src_short, plr_short)
+            else:
+                txt = "MENU: Opts [{} | {}]".format(src_short, plr_short)
+        else:
+            if PLUGIN_LANGUAGE == "ar":
+                txt = u"MENU: \u0625\u0639\u062f\u0627\u062f\u0627\u062a [{} | {}]".format(res_val, plr_short)
+            else:
+                txt = "MENU: Opts [{} | {}]".format(res_val, plr_short)
+        try:
+            self["key_menu"].setText(txt)
+        except Exception:
+            pass
+
+    _update_resolution_button_label = _update_menu_button_label
+
+    def select_resolution(self):
+        self.open_options_menu()
+
+    def open_options_menu(self):
+        cur_res = get_highlights_resolution_label()
+        cur_plr = get_highlights_player_label()
+        cur_st = get_highlights_service_type_label()
+        menu = [
+            ((u"\u062c\u0648\u062f\u0629 \u0627\u0644\u0641\u064a\u062f\u064a\u0648: " if PLUGIN_LANGUAGE == "ar" else "Video Resolution: ") + cur_res, "resolution"),
+            ((u"\u0645\u0634\u063a\u0644 \u0627\u0644\u0641\u064a\u062f\u064a\u0648: " if PLUGIN_LANGUAGE == "ar" else "Video Player Engine: ") + cur_plr, "player"),
+            ((u"\u0646\u0648\u0639 \u0645\u0634\u063a\u0644 \u0627\u0644\u0628\u062b (Service Type): " if PLUGIN_LANGUAGE == "ar" else "Streaming Service Type: ") + cur_st, "service_type"),
+        ]
+        if self.is_live:
+            cur_src = get_highlights_live_source_label()
+            menu.insert(0, (_t("Live Match Search Source: ") + cur_src, "live_source"))
+        title = u"\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0645\u0634\u063a\u0644 \u0648\u0627\u0644\u062c\u0648\u062f\u0629" if PLUGIN_LANGUAGE == "ar" else "Player & Resolution Settings"
+        self.session.openWithCallback(self._on_options_menu_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_options_menu_selected(self, choice):
+        if not choice or len(choice) < 2:
+            return
+        action = choice[1]
+        if action == "live_source":
+            self.open_live_source_selector()
+        elif action == "resolution":
+            self.open_resolution_selector()
+        elif action == "player":
+            self.open_player_selector()
+        elif action == "service_type":
+            self.open_service_type_selector()
+
+    def open_live_source_selector(self):
+        cur = get_highlights_live_source()
+        def _item(sid, en_name, ar_name):
+            prefix = "* " if cur == sid else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, sid)
+
+        menu = [
+            _item("all", "All Sources (IPTV + Bouquets + YouTube)", u"\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 (IPTV + \u0628\u0627\u0642\u0627\u062a + \u064a\u0648\u062a\u064a\u0648\u0628)"),
+            _item("iptv", "IPTV & Local Bouquets Only", u"\u0642\u0646\u0648\u0627\u062a IPTV \u0648\u0627\u0644\u0628\u0627\u0642\u0627\u062a \u0627\u0644\u0645\u062d\u0644\u064a\u0629 \u0641\u0642\u0637"),
+            _item("youtube", "YouTube Only", u"\u064a\u0648\u062a\u064a\u0648\u0628 \u0641\u0642\u0637"),
+        ]
+        title = _t("Select Live Match Search Source") if "Select Live Match Search Source" in TRANSLATIONS else _t("Live Match Search Source: ").rstrip(': ')
+        self.session.openWithCallback(self._on_live_source_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_live_source_selected(self, choice):
+        if not choice or len(choice) < 2:
+            return
+        set_highlights_live_source(choice[1])
+        self._update_menu_button_label()
+        self._stream_cache.clear()
+        self._start_search()
+
+    def open_resolution_selector(self):
+        cur = get_highlights_resolution()
+        def _item(rid, en_name, ar_name):
+            prefix = "* " if cur == rid else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, rid)
+
+        menu = [
+            _item("auto", "AUTO (Adaptive - Best for Internet Speed)", u"\u062a\u0644\u0642\u0627\u0626\u064a (\u062a\u0643\u064a\u0641\u064a - \u062d\u0633\u0628 \u0633\u0631\u0639\u0629 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a)"),
+            _item("1080", "1080p (Full HD - High Speed Internet)", u"1080p (Full HD - \u0625\u0646\u062a\u0631\u0646\u062a \u0633\u0631\u064a\u0639)"),
+            _item("720", "720p (HD - Standard Internet)", u"720p (HD - \u062c\u0648\u062f\u0629 \u0639\u0627\u0644\u064a\u0629)"),
+            _item("480", "480p (SD - Medium Speed)", u"480p (SD - \u0633\u0631\u0639\u0629 \u0645\u062a\u0648\u0633\u0637\u0629)"),
+            _item("360", "360p (Data Saver / Smooth Playback)", u"360p (\u062a\u0648\u0641\u064a\u0631 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a / \u062a\u0634\u063a\u064a\u0644 \u0633\u0644\u0633)"),
+        ]
+        title = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u062c\u0648\u062f\u0629 \u0627\u0644\u0641\u064a\u062f\u064a\u0648" if PLUGIN_LANGUAGE == "ar" else "Select Video Resolution"
+        self.session.openWithCallback(self._on_resolution_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_resolution_selected(self, choice):
+        if not choice or len(choice) < 2:
+            return
+        new_res = choice[1]
+        set_highlights_resolution(new_res)
+        self._update_menu_button_label()
+        self._stream_cache.clear()
+        self._on_selection_changed()
+
+    def open_player_selector(self):
+        cur = get_highlights_player()
+        def _item(pid, en_name, ar_name):
+            prefix = "* " if cur == pid else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, pid)
+
+        menu = [
+            _item("auto", "Auto (YouTube Player / MoviePlayer)", u"\u062a\u0644\u0642\u0627\u0626\u064a (\u0645\u0634\u063a\u0644 \u064a\u0648\u062a\u064a\u0648\u0628 / \u0645\u0634\u063a\u0644 \u0627\u0644\u0623\u0641\u0644\u0627\u0645)"),
+            _item("youtube", "YouTube Player (Plugin)", u"\u0645\u0634\u063a\u0644 \u064a\u0648\u062a\u064a\u0648\u0628 (YouTube Player \u0627\u0644\u0625\u0636\u0627\u0641\u0629)"),
+            _item("movieplayer", "MoviePlayer (Enigma2 Standard Core)", u"\u0645\u0634\u063a\u0644 \u0627\u0644\u0623\u0641\u0644\u0627\u0645 (MoviePlayer \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"),
+            _item("simpleplayer", "SimplePlayer (Internal Player)", u"\u0627\u0644\u0645\u0634\u063a\u0644 \u0627\u0644\u062f\u0627\u062e\u0644\u064a (SimplePlayer)"),
+        ]
+        title = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0645\u0634\u063a\u0644 \u0627\u0644\u0641\u064a\u062f\u064a\u0648" if PLUGIN_LANGUAGE == "ar" else "Select Video Player"
+        self.session.openWithCallback(self._on_player_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_player_selected(self, choice):
+        if not choice or len(choice) < 2:
+            return
+        set_highlights_player(choice[1])
+        self._update_menu_button_label()
+        self._stream_cache.clear()
+
+    def open_service_type_selector(self):
+        cur = get_highlights_service_type()
+        def _item(sid, en_name, ar_name):
+            prefix = "* " if cur == sid else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, sid)
+
+        menu = [
+            _item("auto", "Auto (Best Available for Stream)", u"\u062a\u0644\u0642\u0627\u0626\u064a (\u0627\u0644\u0623\u0641\u0636\u0644 \u0648\u0627\u0644\u0623\u0643\u062b\u0631 \u062a\u0648\u0627\u0641\u0642\u0627\u064b)"),
+            _item("4097", "4097 (GStreamer - Standard Enigma2)", u"4097 (GStreamer - \u0642\u064a\u0627\u0633\u064a \u0648\u0645\u062a\u0648\u0627\u0641\u0642 \u0645\u0639 \u0643\u0644 \u0627\u0644\u0635\u0648\u0631)"),
+            _item("5002", "5002 (exteplayer3 - FFmpeg / ServiceApp)", u"5002 (exteplayer3 - FFmpeg \u0639\u0628\u0631 ServiceApp)"),
+            _item("5001", "5001 (gstplayer - ServiceApp)", u"5001 (gstplayer \u0639\u0628\u0631 ServiceApp)"),
+        ]
+        title = u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0648\u0639 \u0645\u0634\u063a\u0644 \u0627\u0644\u0628\u062b (Service Type)" if PLUGIN_LANGUAGE == "ar" else "Select Streaming Service Type"
+        self.session.openWithCallback(self._on_service_type_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_service_type_selected(self, choice):
+        if not choice or len(choice) < 2:
+            return
+        set_highlights_service_type(choice[1])
+        self._stream_cache.clear()
+
+    def _pre_resolve_video(self, video):
+        """Background pre-resolver to make playback instant when user presses Play and load full description."""
+        if not video:
+            return
+        vid_id = video.get('id', '')
+        if not vid_id or vid_id.startswith('web_'):
+            return
+        cur_res = get_highlights_resolution()
+        cache_key = (vid_id, cur_res)
+        if cache_key in self._stream_cache or cache_key in self._pre_resolving:
+            return
+        self._pre_resolving.add(cache_key)
+
+        def _bg_worker():
+            try:
+                res = self._extract_stream_url(vid_id, target_res=cur_res)
+                stream_url = res[0]
+                headers = res[1] if len(res) > 1 else {}
+                full_desc = res[2] if len(res) > 2 else ""
+                if stream_url:
+                    self._stream_cache[cache_key] = (stream_url, headers)
+                    log_dbg("[MatchHighlights] Pre-resolved stream for {} [{}]: ready for instant play".format(vid_id, cur_res))
+                if full_desc:
+                    lines = [l.strip() for l in full_desc.splitlines()]
+                    clean = []
+                    prev_blank = False
+                    for l in lines:
+                        if not l:
+                            if not prev_blank:
+                                clean.append("")
+                                prev_blank = True
+                        else:
+                            clean.append(l)
+                            prev_blank = False
+                    clean_desc = "\n".join(clean).strip()
+                    if clean_desc:
+                        video['description'] = clean_desc
+                        def _update_desc():
+                            try:
+                                c_idx = self["list"].getSelectedIndex()
+                                if c_idx is not None and 0 <= c_idx < len(self.videos):
+                                    if self.videos[c_idx].get('id') == vid_id:
+                                        self["lbl_description"].setText(clean_desc)
+                            except Exception:
+                                pass
+                        reactor.callFromThread(_update_desc)
+            except Exception as e:
+                log_dbg("[MatchHighlights] Pre-resolve error for {} [{}]: {}".format(vid_id, cur_res, e))
+            finally:
+                self._pre_resolving.discard(cache_key)
+
+        t = threading.Thread(target=_bg_worker)
+        t.daemon = True
+        t.start()
+
+    def build_entry(self, video):
+        is_ucl = (self.theme == "ucl")
+        c_text = 0xffffff
+        c_dim  = 0x8fa8cf if is_ucl else 0xaaaaaa
+        c_sel  = 0xc9a020 if is_ucl else 0x00FF85
+        c_badge_fg = 0xffffff
+        c_badge_bg = 0x1a3a6b if is_ucl else 0x220025
+
+        dur = video.get('duration', '')
+        if dur == 'LIVE' or video.get('is_live'):
+            c_badge_bg = 0xCC0000
+            c_badge_fg = 0xFFFFFF
+
+        res = [video]
+        # Duration badge (left column)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(10), sy(20), sx(100), sy(35), 1, RT_HALIGN_CENTER | RT_VALIGN_CENTER, dur, c_badge_fg, c_badge_fg, c_badge_bg, c_badge_bg))
+        # Video title (expanded width 835px)
+        title = video.get('title', '')
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(125), sy(8), sx(835), sy(34), 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, title, c_text, c_sel))
+        # Channel name (expanded width 835px)
+        channel = video.get('channel', '')
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(125), sy(42), sx(835), sy(24), 1, RT_HALIGN_LEFT | RT_VALIGN_CENTER, channel, c_dim, c_sel))
+        return res
+
+    def _on_selection_changed(self):
+        if not self.videos:
+            return
+        idx = self["list"].getSelectedIndex()
+        if idx is None or idx < 0 or idx >= len(self.videos):
+            return
+        video = self.videos[idx]
+        self["lbl_video_title"].setText(video.get('title', ''))
+        ch = video.get('channel', '')
+        self["lbl_channel"].setText(u"Channel: {}".format(ch) if ch else "")
+
+        date_txt = video.get('date', '')
+        if date_txt:
+            prefix = u"\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0646\u0634\u0631: " if PLUGIN_LANGUAGE == "ar" else "Published: "
+            self["lbl_date"].setText(u"{}{}".format(prefix, date_txt))
+        else:
+            self["lbl_date"].setText("")
+
+        dur = video.get('duration', '')
+        res_lbl = get_highlights_resolution_label()
+        res_tag = _t("Resolution: ").rstrip(': ') if "Resolution: " in TRANSLATIONS else "Quality"
+        if dur:
+            self["lbl_duration"].setText(u"{}{}  |  {}: {}".format(_t("Duration: "), dur, res_tag, res_lbl))
+        else:
+            self["lbl_duration"].setText(u"{}: {}".format(res_tag, res_lbl))
+
+        desc = video.get('description', '')
+        self["lbl_description"].setText(desc if desc else "")
+
+        # Trigger background pre-resolution of the currently focused video
+        self._pre_resolve_video(video)
+
+        thumb_url = video.get('thumbnail', '')
+        vid_id = video.get('id', '')
+        if vid_id and not vid_id.startswith('web_'):
+            png_path = "/tmp/ss_hl_{}.png".format(vid_id)
+            if os.path.exists(png_path) and os.path.getsize(png_path) > 100:
+                self._display_thumbnail(png_path)
+            else:
+                def _bg_fetch(v_id, t_url):
+                    saved = self._fetch_and_convert_thumbnail(v_id, t_url)
+                    if saved:
+                        def _show():
+                            try:
+                                c_idx = self["list"].getSelectedIndex()
+                                if c_idx is not None and 0 <= c_idx < len(self.videos):
+                                    if self.videos[c_idx].get('id') == v_id:
+                                        self._display_thumbnail(saved)
+                            except Exception:
+                                pass
+                        reactor.callFromThread(_show)
+
+                t = threading.Thread(target=_bg_fetch, args=(vid_id, thumb_url))
+                t.daemon = True
+                t.start()
+        elif thumb_url:
+            def _bg_fetch(v_id, t_url):
+                saved = self._fetch_and_convert_thumbnail(v_id, t_url)
+                if saved:
+                    def _show():
+                        try:
+                            c_idx = self["list"].getSelectedIndex()
+                            if c_idx is not None and 0 <= c_idx < len(self.videos):
+                                if self.videos[c_idx].get('id') == v_id:
+                                    self._display_thumbnail(saved)
+                        except Exception:
+                            pass
+                    reactor.callFromThread(_show)
+
+            t = threading.Thread(target=_bg_fetch, args=(vid_id, thumb_url))
+            t.daemon = True
+            t.start()
+        else:
+            try:
+                self["thumb_preview"].hide()
+            except Exception:
+                pass
+
+    def _display_thumbnail(self, path):
+        if not path or not os.path.exists(path) or os.path.getsize(path) < 100:
+            return
+        try:
+            if not self["thumb_preview"].instance:
+                return
+            ptr = None
+            if path.lower().endswith('.png') and LoadPixmap:
+                try:
+                    ptr = LoadPixmap(cached=True, path=path)
+                except Exception:
+                    ptr = None
+            if not ptr:
+                ptr = get_scaled_pixmap(path, sx(475), sy(240))
+            if ptr:
+                self["thumb_preview"].instance.setPixmap(ptr)
+            elif path.lower().endswith('.png'):
+                self["thumb_preview"].instance.setPixmapFromFile(path)
+            self["thumb_preview"].instance.setScale(1)
+            self["thumb_preview"].show()
+        except Exception as e:
+            log_dbg("[MatchHighlights] _display_thumbnail error: {}".format(e))
+
+    def _fetch_and_convert_thumbnail(self, vid_id, primary_url):
+        if vid_id.startswith('web_') and not primary_url:
+            return None
+        png_path = "/tmp/ss_hl_{}.png".format(vid_id)
+        if os.path.exists(png_path) and os.path.getsize(png_path) > 100:
+            return png_path
+
+        urls = []
+        if primary_url:
+            urls.append(primary_url)
+        if not vid_id.startswith('web_'):
+            urls.append("https://i.ytimg.com/vi/{}/hqdefault.jpg".format(vid_id))
+            urls.append("https://i.ytimg.com/vi/{}/mqdefault.jpg".format(vid_id))
+            urls.append("https://img.youtube.com/vi/{}/hqdefault.jpg".format(vid_id))
+
+        import ssl
+        ctx = None
+        try:
+            ctx = ssl._create_unverified_context()
+        except Exception:
+            pass
+
+        data = None
+        for u in urls:
+            try:
+                try:
+                    import urllib.request as _req
+                except ImportError:
+                    import urllib2 as _req
+                req = _req.Request(u, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+                resp = _req.urlopen(req, timeout=5, context=ctx) if ctx else _req.urlopen(req, timeout=5)
+                d = resp.read()
+                if d and len(d) > 500:
+                    data = d
+                    break
+            except Exception:
+                pass
+
+        if not data:
+            tmp_dl = "/tmp/.ss_dl_{}".format(vid_id)
+            for u in urls:
+                try:
+                    import subprocess
+                    subprocess.call(["curl", "-skL", "--connect-timeout", "4", "-m", "6", u, "-o", tmp_dl], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if os.path.exists(tmp_dl) and os.path.getsize(tmp_dl) > 500:
+                        with open(tmp_dl, "rb") as f:
+                            data = f.read()
+                        break
+                except Exception:
+                    pass
+                try:
+                    import subprocess
+                    subprocess.call(["wget", "-q", "-T", "5", "--no-check-certificate", u, "-O", tmp_dl], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if os.path.exists(tmp_dl) and os.path.getsize(tmp_dl) > 500:
+                        with open(tmp_dl, "rb") as f:
+                            data = f.read()
+                        break
+                except Exception:
+                    pass
+                finally:
+                    if os.path.exists(tmp_dl):
+                        try: os.remove(tmp_dl)
+                        except Exception: pass
+
+        if not data:
+            return None
+
+        # Check if already a PNG
+        if data[:4] == b'\x89PNG':
+            tmp_target = "/tmp/.tmp_{}.png".format(vid_id)
+            try:
+                with open(tmp_target, "wb") as f:
+                    f.write(data)
+                os.replace(tmp_target, png_path)
+                return png_path
+            except Exception:
+                pass
+
+        # Convert to PNG using PIL if available
+        tmp_target = "/tmp/.tmp_{}.png".format(vid_id)
+        converted = False
+        try:
+            from PIL import Image
+            import io
+            im = Image.open(io.BytesIO(data))
+            im.save(tmp_target, format="PNG")
+            if os.path.exists(tmp_target) and os.path.getsize(tmp_target) > 100:
+                with open(tmp_target, "rb") as f:
+                    if f.read(4) == b'\x89PNG':
+                        converted = True
+        except Exception:
+            converted = False
+
+        # Fallback to ffmpeg / gst-launch / convert
+        if not converted:
+            raw_tmp = "/tmp/.tmp_in_{}".format(vid_id)
+            try:
+                with open(raw_tmp, "wb") as f:
+                    f.write(data)
+                for cmd in [
+                    "ffmpeg -y -i '%s' -vframes 1 '%s' >/dev/null 2>&1" % (raw_tmp, tmp_target),
+                    "/usr/bin/ffmpeg -y -i '%s' -vframes 1 '%s' >/dev/null 2>&1" % (raw_tmp, tmp_target),
+                    "gst-launch-1.0 -q filesrc location='%s' ! jpegdec ! pngenc ! filesink location='%s' >/dev/null 2>&1" % (raw_tmp, tmp_target),
+                    "convert '%s' '%s' >/dev/null 2>&1" % (raw_tmp, tmp_target)
+                ]:
+                    ret = os.system(cmd)
+                    if ret == 0 and os.path.exists(tmp_target) and os.path.getsize(tmp_target) > 100:
+                        with open(tmp_target, "rb") as f:
+                            if f.read(4) == b'\x89PNG':
+                                converted = True
+                                break
+            except Exception:
+                pass
+            finally:
+                if os.path.exists(raw_tmp):
+                    try: os.remove(raw_tmp)
+                    except Exception: pass
+
+        if converted and os.path.exists(tmp_target):
+            try:
+                os.replace(tmp_target, png_path)
+                return png_path
+            except Exception:
+                pass
+
+        # Fallback: save as .jpg for get_scaled_pixmap (ePicLoad)
+        fallback_jpg = "/tmp/ss_hl_{}.jpg".format(vid_id)
+        try:
+            with open(fallback_jpg, "wb") as f:
+                f.write(data)
+            return fallback_jpg
+        except Exception:
+            return None
+
+    def play_selected(self):
+        if not self.videos:
+            log_diag("[PLAY_SELECTED_ABORT] No videos in list.")
+            return
+        idx = self["list"].getSelectedIndex()
+        if idx is None or idx < 0 or idx >= len(self.videos):
+            log_diag("[PLAY_SELECTED_ABORT] Invalid selected index: {}".format(idx))
+            return
+        video = self.videos[idx]
+        vid_id = video.get('id', '')
+        title = video.get('title', 'Highlights')
+        cur_res = get_highlights_resolution()
+        cache_key = (vid_id, cur_res)
+        log_diag("[PLAY_SELECTED] User pressed OK. Index={} TotalVideos={} ID='{}' Title='{}'".format(idx, len(self.videos), vid_id, title))
+
+        # 1. Bouquet channel (Satellite DVB or Bouquet IPTV) -> zap directly via session.nav
+        if video.get('is_bouquet') and video.get('sref'):
+            sref = video.get('sref')
+            log_diag("[PLAY_SELECTED_BOUQUET] Playing bouquet sref='{}'".format(sref))
+            try:
+                self.session.nav.playService(eServiceReference(sref))
+                msg = (u"تم الانتقال إلى: " if PLUGIN_LANGUAGE == "ar" else "Switched to: ") + title
+                self["status"].setText(msg)
+            except Exception as e:
+                log_diag("[PLAY_SELECTED_BOUQUET_ERR] {}".format(e))
+            return
+
+        # 2. Check instant pre-resolved cache
+        cached = self._stream_cache.get(cache_key)
+        if cached and cached[0]:
+            log_dbg("[MatchHighlights] Instant playback from pre-resolved cache for {} [{}]".format(vid_id, cur_res))
+            log_diag("[PLAY_SELECTED_CACHE_HIT] Instant playback for {} [{}] from cache".format(vid_id, cur_res))
+            self._launch_player(cached[0], cached[1], title, vid_id=vid_id)
+            return
+
+        # 3. Direct playable media container (.m3u8, .ts, etc.) -> instant launch
+        url = video.get('url', '')
+        is_direct_media = video.get('is_direct_stream') or any(url.lower().split('?')[0].endswith(ext) for ext in ('.m3u8', '.mpd', '.ts', '.mp4'))
+        if is_direct_media:
+            log_diag("[PLAY_SELECTED_DIRECT] Direct stream launch: '{}'".format(url[:120]))
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            self._launch_player(url, headers, title, vid_id=vid_id)
+            return
+
+        # 4. Fallback to threaded resolver if not cached yet
+        log_diag("[PLAY_SELECTED_RESOLVING] Passing to play_video: url='{}'".format(video.get('url', '')[:120]))
+        self.play_video(video.get('url', ''), title, vid_id=vid_id)
+
+    def play_all(self):
+        if not self.videos:
+            return
+        video = self.videos[0]
+        vid_id = video.get('id', '')
+        title = video.get('title', 'Highlights')
+        cur_res = get_highlights_resolution()
+        cache_key = (vid_id, cur_res)
+
+        if video.get('is_bouquet') and video.get('sref'):
+            try:
+                self.session.nav.playService(eServiceReference(video.get('sref')))
+            except Exception:
+                pass
+            return
+
+        cached = self._stream_cache.get(cache_key)
+        if cached and cached[0]:
+            log_dbg("[MatchHighlights] Play All: instant playback for {} [{}]".format(vid_id, cur_res))
+            self._launch_player(cached[0], cached[1], title, vid_id=vid_id)
+            return
+
+        url = video.get('url', '')
+        is_direct_media = video.get('is_direct_stream') or any(url.lower().split('?')[0].endswith(ext) for ext in ('.m3u8', '.mpd', '.ts', '.mp4'))
+        if is_direct_media:
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            self._launch_player(url, headers, title, vid_id=vid_id)
+            return
+
+        self.play_video(video.get('url', ''), title, vid_id=vid_id)
+
+    def _extract_stream_url(self, yt_id, target_res=None):
+        """
+        Extracts stream URL according to the selected resolution:
+        - '360': Native progressive MP4 with audio (format 18 via android client).
+                 Plays instantly with zero demuxing overhead.
+        - '720', '1080', '480', 'auto': Master HLS manifest (.m3u8) with synchronized AVC video
+                 and AAC audio, giving adaptive HD without video/audio desync.
+        - Returns (direct_stream, headers, full_desc).
+        """
+        if target_res is None:
+            target_res = get_highlights_resolution()
+
+        target_url = "https://www.youtube.com/watch?v={}".format(yt_id)
+        direct_stream = None
+        headers = {}
+        full_desc = ""
+
+        # Make sure standalone binary path is in sys.path for potential zipapp import
+        for p in ["/usr/bin/yt-dlp", "/usr/local/bin/yt-dlp", "/usr/bin/youtube-dl"]:
+            if os.path.exists(p) and p not in sys.path:
+                try:
+                    sys.path.insert(0, p)
+                except Exception:
+                    pass
+
+        # Strategy 1: If 360p is chosen, get native progressive MP4 (format 18) with audio
+        if target_res == '360':
+            for mod_name in ["yt_dlp", "youtube_dl"]:
+                try:
+                    mod = __import__(mod_name)
+                    ydl_opts_android = {
+                        'quiet': True,
+                        'no_warnings': True,
+                        'skip_download': True,
+                        'socket_timeout': 8,
+                        'extractor_args': {'youtube': {'player_client': ['android']}}
+                    }
+                    with mod.YoutubeDL(ydl_opts_android) as ydl:
+                        info = ydl.extract_info(target_url, download=False)
+                        if info:
+                            headers = info.get('http_headers', {})
+                            formats = info.get('formats', [])
+                            full_desc = info.get('description', '') or ""
+                            for f in formats:
+                                fid = str(f.get('format_id') or '')
+                                vc = f.get('vcodec')
+                                ac = f.get('acodec')
+                                u = f.get('url', '')
+                                if vc not in (None, 'none') and ac not in (None, 'none') and 'mime=audio' not in u:
+                                    if fid == '18' or f.get('height') == 360:
+                                        direct_stream = u
+                                        break
+                            if direct_stream:
+                                break
+                except Exception as e:
+                    log_dbg("[MatchHighlights] Android client 360p extractor error: {}".format(e))
+
+        # Strategy 2: For 720p, 1080p, 480p, auto: In-process module extraction for Master HLS manifest
+        if not direct_stream and target_res != '360':
+            for mod_name in ["yt_dlp", "youtube_dl"]:
+                try:
+                    mod = __import__(mod_name)
+                    ydl_opts_web = {
+                        'quiet': True,
+                        'no_warnings': True,
+                        'skip_download': True,
+                        'socket_timeout': 8,
+                    }
+                    with mod.YoutubeDL(ydl_opts_web) as ydl:
+                        info = ydl.extract_info(target_url, download=False)
+                        if info:
+                            headers = info.get('http_headers', {})
+                            formats = info.get('formats', [])
+                            if not full_desc:
+                                full_desc = info.get('description', '') or ""
+
+                            m_url = None
+                            for f in formats:
+                                if f.get('manifest_url') and 'hls' in f.get('manifest_url'):
+                                    m_url = f.get('manifest_url')
+                                    break
+
+                            prog_18 = None
+                            prog_22 = None
+                            for f in formats:
+                                fid = str(f.get('format_id') or '')
+                                vc = f.get('vcodec')
+                                ac = f.get('acodec')
+                                u = f.get('url', '')
+                                if vc not in (None, 'none') and ac not in (None, 'none') and 'mime=audio' not in u:
+                                    h = f.get('height') or 0
+                                    if fid == '18' or h == 360:
+                                        prog_18 = u
+                                    elif fid == '22' or h == 720:
+                                        prog_22 = u
+
+                            if m_url:
+                                direct_stream = m_url
+                            elif prog_22:
+                                direct_stream = prog_22
+                            elif prog_18:
+                                direct_stream = prog_18
+
+                            if direct_stream:
+                                break
+                except Exception as e:
+                    log_dbg("[MatchHighlights] In-process {} resolver: {}".format(mod_name, e))
+
+        # Strategy 3: CLI -j JSON dump (Robust fallback for OpenBH / images where yt-dlp is binary only)
+        if not direct_stream:
+            bin_candidates = ["yt-dlp", "/usr/bin/yt-dlp", "/usr/local/bin/yt-dlp", "youtube-dl", "/usr/bin/youtube-dl"]
+            for bin_path in bin_candidates:
+                try:
+                    import subprocess
+                    cmd = [bin_path, "--no-warnings", "--no-playlist", "-j", target_url]
+                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    out, err = p.communicate(timeout=15)
+                    if p.returncode == 0 and out.strip():
+                        import json
+                        info = json.loads(out.decode('utf-8', errors='ignore'))
+                        if info:
+                            if not headers:
+                                headers = info.get('http_headers', {})
+                            if not full_desc:
+                                full_desc = info.get('description', '') or ""
+                            formats = info.get('formats', [])
+                            m_url = None
+                            for f in formats:
+                                if f.get('manifest_url') and 'hls' in f.get('manifest_url'):
+                                    m_url = f.get('manifest_url')
+                                    break
+                            prog_18 = None
+                            for f in formats:
+                                fid = str(f.get('format_id') or '')
+                                vc = f.get('vcodec')
+                                ac = f.get('acodec')
+                                u = f.get('url', '')
+                                if vc not in (None, 'none') and ac not in (None, 'none') and 'mime=audio' not in u:
+                                    if fid == '18' or f.get('height') == 360:
+                                        prog_18 = u
+                                        break
+                            if target_res == '360' and prog_18:
+                                direct_stream = prog_18
+                            elif m_url:
+                                direct_stream = m_url
+                            elif prog_18:
+                                direct_stream = prog_18
+                            if direct_stream:
+                                log_dbg("[MatchHighlights] CLI -j extracted stream [{}]: {}".format(target_res, direct_stream[:80]))
+                                break
+                except Exception as e:
+                    log_dbg("[MatchHighlights] CLI -j resolver error ({}): {}".format(bin_path, e))
+
+        # Strategy 4: CLI Android client format 18 (Direct progressive MP4 fallback)
+        if not direct_stream:
+            bin_candidates = ["yt-dlp", "/usr/bin/yt-dlp", "/usr/local/bin/yt-dlp", "youtube-dl", "/usr/bin/youtube-dl"]
+            for bin_path in bin_candidates:
+                try:
+                    import subprocess
+                    cmd = [bin_path, "--no-warnings", "--extractor-args", "youtube:player_client=android", "-f", "18", "-g", target_url]
+                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    out, err = p.communicate(timeout=10)
+                    if p.returncode == 0 and out.strip():
+                        u = out.strip().decode('utf-8', errors='ignore').splitlines()[0].strip()
+                        if u.startswith("http"):
+                            direct_stream = u
+                            log_dbg("[MatchHighlights] CLI Android format 18 fallback extracted: {}".format(u[:80]))
+                            break
+                except Exception as e:
+                    log_dbg("[MatchHighlights] CLI Android format 18 error: {}".format(e))
+
+        if direct_stream and direct_stream.startswith("http") and "manifest.googlevideo.com" in direct_stream:
+            direct_stream = self._filter_hls_manifest(direct_stream, yt_id, target_res=target_res)
+
+        return direct_stream, headers, full_desc
+
+    def _filter_hls_manifest(self, m_url, vid_id="", target_res=None):
+        """
+        Filters the Master HLS manifest to:
+        1. Remove VP9 (vp09) streams which cause audio silence / desync on Enigma2/OpenBH.
+        2. Unify all variants to standard high-quality AAC audio group (GROUP-ID="234").
+           This allows the player to start at 240p for instant 0.5s playback and then
+           dynamically adapt up to 360p -> 480p -> 720p -> 1080p without audio group mismatch!
+        3. Sorts variants by bandwidth ascending so standard ABR works seamlessly.
+        4. Serves the filtered manifest over local HTTP (127.0.0.1) so Enigma2 media players
+           (MoviePlayer, SimplePlayer, exteplayer3, GStreamer) treat it as a valid network stream
+           and fetch remote HTTPS video/audio chunks without protocol whitelist restrictions.
+        """
+        if not m_url or not m_url.startswith("http"):
+            return m_url
+        try:
+            try:
+                import urllib.request as _req
+            except ImportError:
+                import urllib2 as _req
+            import ssl
+            ctx = ssl._create_unverified_context() if hasattr(ssl, '_create_unverified_context') else None
+            req = _req.Request(m_url, headers={'User-Agent': 'Mozilla/5.0'})
+            resp = _req.urlopen(req, context=ctx, timeout=8)
+            content = resp.read()
+            if isinstance(content, bytes):
+                content = content.decode('utf-8', errors='ignore')
+            if '#EXTM3U' not in content:
+                return m_url
+
+            lines = content.splitlines()
+            header_lines = []
+            audio_groups = {}
+
+            # 1. Parse header lines and map all available audio rendition groups
+            for line in lines:
+                if line.startswith('#EXTM3U') or line.startswith('#EXT-X-INDEPENDENT-SEGMENTS'):
+                    header_lines.append(line)
+                elif line.startswith('#EXT-X-MEDIA:') and 'TYPE=AUDIO' in line:
+                    m = re.search(r'GROUP-ID="([^"]+)"', line)
+                    if m:
+                        audio_groups[m.group(1)] = line
+
+            # Select unified audio group: group "234" is standard high-quality AAC-LC (itag 140)
+            selected_gid = "234" if "234" in audio_groups else (list(audio_groups.keys())[0] if audio_groups else None)
+
+            audio_lines = []
+            if selected_gid and selected_gid in audio_groups:
+                audio_lines.append(audio_groups[selected_gid])
+
+            # 2. Extract only AVC1 video variants (no vp09) that strictly match the selected audio group
+            variants = []
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                if line.startswith('#EXT-X-STREAM-INF:'):
+                    inf = line
+                    u = lines[i+1] if i+1 < len(lines) else ''
+                    if 'avc1' in inf and 'vp09' not in inf:
+                        has_matching_audio = False
+                        if selected_gid:
+                            if ('AUDIO="{}"'.format(selected_gid) in inf) or ('AUDIO=' not in inf):
+                                has_matching_audio = True
+                        else:
+                            has_matching_audio = True
+
+                        if has_matching_audio:
+                            bw_m = re.search(r'BANDWIDTH=(\d+)', inf)
+                            bw = int(bw_m.group(1)) if bw_m else 0
+                            res_m = re.search(r'RESOLUTION=(\d+)x(\d+)', inf)
+                            h = int(res_m.group(2)) if res_m else 0
+                            variants.append((bw, h, inf, u))
+                    i += 2
+                else:
+                    i += 1
+
+            if not variants:
+                # Fallback: if selected audio group not found, accept any non-VP9 stream
+                i = 0
+                while i < len(lines):
+                    line = lines[i]
+                    if line.startswith('#EXT-X-MEDIA:') and 'TYPE=AUDIO' in line:
+                        if not audio_lines:
+                            audio_lines.append(line)
+                        i += 1
+                    elif line.startswith('#EXT-X-STREAM-INF:'):
+                        inf = line
+                        u = lines[i+1] if i+1 < len(lines) else ''
+                        if 'vp09' not in inf:
+                            bw_m = re.search(r'BANDWIDTH=(\d+)', inf)
+                            bw = int(bw_m.group(1)) if bw_m else 0
+                            res_m = re.search(r'RESOLUTION=(\d+)x(\d+)', inf)
+                            h = int(res_m.group(2)) if res_m else 0
+                            variants.append((bw, h, inf, u))
+                        i += 2
+                    else:
+                        i += 1
+
+            # 3. Resolution handling & variant ordering
+            if target_res and target_res != "auto" and str(target_res).isdigit():
+                target_h = int(target_res)
+                exact_match = [v for v in variants if v[1] == target_h]
+                lower_or_equal = [v for v in variants if v[1] <= target_h]
+                if exact_match:
+                    # Put exact requested resolution first so non-ABR players play it immediately
+                    others = [v for v in lower_or_equal if v[1] != target_h]
+                    others.sort(key=lambda x: x[0])
+                    variants = exact_match + others
+                elif lower_or_equal:
+                    lower_or_equal.sort(key=lambda x: x[0], reverse=True)
+                    variants = lower_or_equal
+            else:
+                # "auto" (Adaptive): Sort descending by bandwidth (1080p -> 720p -> 480p -> 360p -> 240p).
+                # Enigma2 media players (exteplayer3/5002 and MoviePlayer/SimplePlayer) play the first variant
+                # in the master playlist because FFmpeg does not dynamically switch bitrates during playback.
+                # Placing the highest available quality (1080p Full HD or 720p HD) at index 0 ensures that
+                # the video immediately plays in crisp high definition without requiring manual menu switching.
+                # Adaptive demuxers (GStreamer/4097) also retain all lower variants to step down if bandwidth requires.
+                variants.sort(key=lambda x: x[0], reverse=True)
+
+            out_lines = []
+            out_lines.extend(header_lines)
+            out_lines.extend(audio_lines)
+            for v in variants:
+                out_lines.append(v[2])
+                out_lines.append(v[3])
+
+            manifest_text = '\n'.join(out_lines) + '\n'
+
+            # Backup to local /tmp file
+            try:
+                local_path = "/tmp/ss_hls_{}.m3u8".format(vid_id or "play")
+                with open(local_path, "w") as f:
+                    f.write(manifest_text)
+            except Exception:
+                pass
+
+            # Cache in memory and serve via localhost HTTP
+            v_key = vid_id or "play"
+            _HLS_MANIFEST_CACHE[v_key] = manifest_text
+            _HLS_MANIFEST_CACHE['latest'] = manifest_text
+            port = get_hls_server_port()
+            if port:
+                http_stream = "http://127.0.0.1:{}/hls_{}.m3u8".format(port, v_key)
+                min_h = variants[0][1] if variants else 0
+                max_h = variants[-1][1] if variants else 0
+                log_dbg("[MatchHighlights] Filtered HLS stream URL: {} ({} variants from {}p to {}p)".format(
+                    http_stream, len(variants), min_h, max_h
+                ))
+                log_diag("[FILTER_HLS_SUCCESS] Filtered manifest ({} AVC variants: {}p-{}p) served at '{}'".format(
+                    len(variants), min_h, max_h, http_stream
+                ))
+                return http_stream
+            else:
+                return m_url
+        except Exception as e:
+            log_dbg("[MatchHighlights] _filter_hls_manifest error: {}".format(e))
+            log_diag("[FILTER_HLS_ERROR] {}".format(e))
+            return m_url
+
+    def _launch_player(self, direct_stream, headers, title, vid_id=""):
+        """
+        Launches video playback.
+        Respects user-configured player (YouTubePlayer, MoviePlayer, SimplePlayer, or Auto)
+        and service type (4097, 5002, 5001, or Auto).
+        """
+        safe_title = (title or "Highlights").replace(":", " ")
+        log_diag("[PLAYER_LAUNCH_START] direct_stream='{}' vid_id='{}' title='{}'".format(
+            direct_stream[:120] if direct_stream else "", vid_id, safe_title
+        ))
+
+        if not direct_stream:
+            log_diag("[PLAYER_LAUNCH_ERROR] direct_stream is empty! Aborting launch.")
+            return
+
+        if direct_stream.startswith("/"):
+            play_url = direct_stream
+        elif "googlevideo.com" in direct_stream or "127.0.0.1" in direct_stream or "localhost" in direct_stream:
+            # Google Video URLs & Localhost streaming URLs: do not append #User-Agent with spaces as it breaks GStreamer/FFmpeg URI parsers
+            play_url = direct_stream
+        else:
+            hdr_parts = []
+            ua = (headers or {}).get('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+            hdr_parts.append("User-Agent=" + ua)
+            if headers and 'Referer' in headers:
+                hdr_parts.append("Referer=" + headers['Referer'])
+            elif any(k in direct_stream for k in ('streamed', 'strmd', 'embed.st', 'rockystream')):
+                hdr_parts.append("Referer=https://embed.st/")
+                hdr_parts.append("Origin=https://embed.st")
+            if headers and 'Origin' in headers:
+                hdr_parts.append("Origin=" + headers['Origin'])
+
+            if "#" not in direct_stream:
+                play_url = "{}#{}".format(direct_stream, "&".join(hdr_parts))
+            else:
+                play_url = direct_stream
+
+        # 1. Determine Service Type (User configured or Auto)
+        pref_stype = get_highlights_service_type()
+        if pref_stype and pref_stype != "auto":
+            stype = pref_stype
+        else:
+            stype = None
+            try:
+                from Components.config import config
+                if hasattr(config.plugins, 'YouTube') and hasattr(config.plugins.YouTube, 'player'):
+                    stype = str(config.plugins.YouTube.player.value)
+            except Exception:
+                pass
+            if not stype:
+                stype = get_best_streaming_service_type()
+
+        # Construct eServiceReference with canonical format
+        if play_url.startswith("/"):
+            # Local file playback
+            try:
+                service = eServiceReference(int(stype), 0, play_url)
+            except Exception:
+                service = eServiceReference(4097, 0, play_url)
+            ref_str = "{}:0:0:0:0:0:0:0:0:0:{}:{}".format(stype, play_url.replace(":", "%3a"), safe_title)
+        else:
+            # Network streaming URL (IPTV stream)
+            safe_url = play_url.replace(":", "%3a")
+            ref_str = "{}:0:1:0:0:0:0:0:0:0:{}:{}".format(stype, safe_url, safe_title)
+            try:
+                service = eServiceReference(ref_str)
+            except Exception:
+                try:
+                    service = eServiceReference(int(stype), 0, play_url)
+                except Exception:
+                    service = eServiceReference(ref_str)
+        try:
+            service.setName(safe_title)
+        except Exception:
+            pass
+
+        cur_res = get_highlights_resolution()
+        player_choice = get_highlights_player()
+        log_dbg("[MatchHighlights] Launching [Player {}] [Service {}] [Res {}]: {}".format(player_choice, stype, cur_res, play_url[:80]))
+        log_diag("[PLAYER_LAUNCH_CONFIG] Player='{}' ServiceType='{}' Res='{}' PrefSType='{}'".format(player_choice, stype, cur_res, pref_stype))
+        log_diag("[PLAYER_LAUNCH_URL] final_play_url='{}'".format(play_url[:150]))
+        log_diag("[PLAYER_LAUNCH_SREF] ref_str='{}'".format(ref_str[:160]))
+
+        # Track player launch timestamp and reference for bounce detection in _on_player_closed
+        self._player_launch_time = time.time()
+        self._last_played_service = service
+        self._last_played_player = player_choice
+
+        # Hide highlights screen so the player has 100% unobstructed screen control
+        try:
+            self.hide()
+        except Exception:
+            pass
+
+        # Full 12-element YouTube metadata tuple expected by Plugins.Extensions.YouTube.YouTubeUi.YouTubePlayer
+        yt_current = [
+            vid_id or '',   # 0: Id
+            '',             # 1: Thumbnail url
+            None,           # 2: Thumbnail pixmap
+            title or '',    # 3: Title
+            '',             # 4: Views
+            '',             # 5: Duration
+            play_url or '', # 6: Video url (REQUIRED to prevent IndexError on line 161 in YouTubePlayer!)
+            '',             # 7: Description
+            '',             # 8: Likes
+            '',             # 9: Big thumbnail url
+            '',             # 10: Channel Id
+            ''              # 11: Published
+        ]
+
+        # 2. Player Routing based on user configuration
+        if player_choice == "movieplayer":
+            try:
+                from Screens.InfoBar import MoviePlayer
+                log_diag("[PLAYER_LAUNCH_EXEC] Opening Screens.InfoBar.MoviePlayer")
+                self.session.openWithCallback(self._on_player_closed, MoviePlayer, service)
+                log_dbg("[MatchHighlights] Successfully launched Screens.InfoBar.MoviePlayer")
+                return
+            except Exception as e:
+                log_diag("[PLAYER_LAUNCH_FAIL] MoviePlayer error: {}. Falling back to SimplePlayer".format(e))
+                log_dbg("[MatchHighlights] MoviePlayer error: {}".format(e))
+                self.session.openWithCallback(self._on_player_closed, SimplePlayer, sref=service)
+                return
+
+        elif player_choice == "simpleplayer":
+            log_diag("[PLAYER_LAUNCH_EXEC] Opening SimplePlayer")
+            self.session.openWithCallback(self._on_player_closed, SimplePlayer, sref=service)
+            return
+
+        elif player_choice == "youtube":
+            try:
+                from Plugins.Extensions.YouTube.YouTubeUi import YouTubePlayer
+                log_diag("[PLAYER_LAUNCH_EXEC] Opening Plugins.Extensions.YouTube.YouTubeUi.YouTubePlayer")
+                self.session.openWithCallback(self._on_player_closed, YouTubePlayer, service=service, current=yt_current)
+                log_dbg("[MatchHighlights] Successfully launched Plugins.Extensions.YouTube.YouTubePlayer")
+                return
+            except Exception as e:
+                log_diag("[PLAYER_LAUNCH_FAIL] YouTubePlayer error: {}. Falling back to SimplePlayer".format(e))
+                log_dbg("[MatchHighlights] YouTubePlayer error: {}".format(e))
+                self.session.openWithCallback(self._on_player_closed, SimplePlayer, sref=service)
+                return
+
+        else:  # "auto"
+            try:
+                from Plugins.Extensions.YouTube.YouTubeUi import YouTubePlayer
+                log_diag("[PLAYER_LAUNCH_AUTO] Attempting YouTubePlayer")
+                self.session.openWithCallback(self._on_player_closed, YouTubePlayer, service=service, current=yt_current)
+                log_dbg("[MatchHighlights] Successfully launched Plugins.Extensions.YouTube.YouTubePlayer")
+                return
+            except Exception as e:
+                log_diag("[PLAYER_LAUNCH_AUTO] YouTubePlayer unavailable: {}".format(e))
+                log_dbg("[MatchHighlights] YouTubePlayer not available: {}".format(e))
+
+            try:
+                from Screens.InfoBar import MoviePlayer
+                log_diag("[PLAYER_LAUNCH_AUTO] Attempting Screens.InfoBar.MoviePlayer")
+                self.session.openWithCallback(self._on_player_closed, MoviePlayer, service)
+                log_dbg("[MatchHighlights] Successfully launched Screens.InfoBar.MoviePlayer")
+                return
+            except Exception as e:
+                log_diag("[PLAYER_LAUNCH_AUTO] MoviePlayer unavailable: {}".format(e))
+                log_dbg("[MatchHighlights] MoviePlayer not available: {}".format(e))
+
+            log_diag("[PLAYER_LAUNCH_AUTO] Priority 3: Fallback SimplePlayer")
+            self.session.openWithCallback(self._on_player_closed, SimplePlayer, sref=service)
+
+    def _on_player_closed(self, *args):
+        """Restores the Match Highlights screen when player closes, with automatic fallback if player bounced."""
+        elapsed = time.time() - getattr(self, '_player_launch_time', 0)
+        last_plr = getattr(self, '_last_played_player', '')
+        last_sref = getattr(self, '_last_played_service', None)
+        log_diag("[PLAYER_CLOSED] player='{}' elapsed={:.2f}s last_sref={}".format(last_plr, elapsed, last_sref))
+
+        # Detect immediate bounce: If MoviePlayer or YouTubePlayer closed in under 2.5 seconds,
+        # it was an image/player incompatibility bounce (e.g. OpenBH PVR cue-sheet abort).
+        # Seamlessly fallback to SimplePlayer so playback succeeds immediately without kicking user out.
+        if last_plr in ("movieplayer", "youtube", "auto") and elapsed < 2.5 and last_sref:
+            log_diag("[PLAYER_BOUNCE] Player '{}' bounced after {:.2f}s (< 2.5s)! Auto-falling back to SimplePlayer...".format(last_plr, elapsed))
+            log_dbg("[MatchHighlights] Player '{}' bounced after {:.2f}s! Auto-falling back to SimplePlayer...".format(last_plr, elapsed))
+            self._last_played_player = "simpleplayer_fallback"
+            self._player_launch_time = time.time()
+            self.session.openWithCallback(self._on_player_closed, SimplePlayer, sref=last_sref)
+            return
+
+        try:
+            self.show()
+            log_diag("[PLAYER_CLOSED_RESTORE] Match highlights screen restored successfully.")
+        except Exception:
+            pass
+        try:
+            if self.videos:
+                lbl_type = _t("Live Streams & Highlights") if getattr(self, 'is_live', False) else _t("Highlights")
+                self["status"].setText(u"{} {}".format(len(self.videos), lbl_type))
+            else:
+                self["status"].setText("")
+        except Exception:
+            pass
+
+    def play_video(self, url, title, vid_id=""):
+        log_diag("[PLAY_VIDEO_START] url='{}' vid_id='{}' title='{}'".format(url[:120] if url else "", vid_id, title))
+        if not url and not vid_id:
+            log_diag("[PLAY_VIDEO_ERROR] Neither URL nor vid_id was provided! Aborting.")
+            return
+
+        if not vid_id and url:
+            id_m = re.search(r'(?:embed/|v=|youtu\.be/)([a-zA-Z0-9_-]{11})', url)
+            if id_m:
+                vid_id = id_m.group(1)
+                log_diag("[PLAY_VIDEO_PARSED] Extracted YouTube ID: {}".format(vid_id))
+
+        is_yt = bool(vid_id and not str(vid_id).startswith(('web_', 'dm_', 'bq_', 'm3u_')))
+        log_diag("[PLAY_VIDEO_TYPE] is_youtube={}".format(is_yt))
+
+        if is_yt:
+            log_diag("[PLAY_VIDEO_YT] Routing to YouTube resolution pipeline")
+            if not is_ytdlp_installed():
+                log_diag("[PLAY_VIDEO_YT] yt-dlp is NOT installed! Prompting user installation.")
+                def _retry_after_install():
+                    if is_ytdlp_installed():
+                        self.play_video(url, title, vid_id)
+                prompt_install_video_libraries(self.session, on_finish=_retry_after_install, reason="missing")
+                return
+
+            def _resolve_and_play():
+                cur_res = get_highlights_resolution()
+                log_diag("[PLAY_VIDEO_YT_RESOLVE] Starting in-process stream resolution for vid_id='{}' res='{}'".format(vid_id, cur_res))
+                res = self._extract_stream_url(vid_id, target_res=cur_res)
+                direct_stream = res[0]
+                headers = res[1] if len(res) > 1 else {}
+                if direct_stream:
+                    log_diag("[PLAY_VIDEO_YT_SUCCESS] Direct stream resolved: '{}'".format(direct_stream[:100]))
+                    self._stream_cache[(vid_id, cur_res)] = (direct_stream, headers)
+                    reactor.callFromThread(self._launch_player, direct_stream, headers, title, vid_id)
+                else:
+                    log_diag("[PLAY_VIDEO_YT_FAIL] Stream resolution failed for vid_id='{}'".format(vid_id))
+                    def _on_resolve_failed():
+                        try:
+                            if self.videos:
+                                lbl_type = _t("Live Streams & Highlights") if getattr(self, 'is_live', False) else _t("Highlights")
+                                self["status"].setText(u"{} {}".format(len(self.videos), lbl_type))
+                            else:
+                                self["status"].setText("")
+                        except Exception:
+                            pass
+                        def _retry_after_install():
+                            if is_ytdlp_installed():
+                                self.play_video(url, title, vid_id)
+                        prompt_install_video_libraries(self.session, on_finish=_retry_after_install, reason="fail")
+                    reactor.callFromThread(_on_resolve_failed)
+
+            wait_msg = u"جاري استخراج وتشغيل الفيديو..." if PLUGIN_LANGUAGE == "ar" else "Resolving and loading video stream..."
+            try:
+                self["status"].setText(wait_msg)
+            except Exception:
+                pass
+            t = threading.Thread(target=_resolve_and_play)
+            t.daemon = True
+            t.start()
+            return
+
+        # Web Stream Playback via configured player & service type
+        log_diag("[PLAY_VIDEO_WEB] Web stream playback requested. Checking if URL is direct media container...")
+        is_direct_media = any(url.lower().endswith(ext) or (ext + '?') in url.lower() for ext in ('.m3u8', '.mpd', '.ts', '.mp4'))
+        if is_direct_media:
+            log_diag("[PLAY_VIDEO_WEB_DIRECT] URL is already a direct playable media container: '{}'".format(url[:120]))
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://embed.st/',
+                'Origin': 'https://embed.st'
+            }
+            self._launch_player(url, headers, title, vid_id=vid_id)
+            return
+
+        # For web page or embed URLs, attempt background stream resolution (yt-dlp or extractor) before launch
+        log_diag("[PLAY_VIDEO_WEB_RESOLVER] URL is a webpage/embed link ('{}'). Starting resolver worker thread...".format(url[:120]))
+        def _resolve_web_and_play():
+            direct_url = None
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://embed.st/',
+                'Origin': 'https://embed.st'
+            }
+            ytdlp_present = is_ytdlp_installed()
+            log_diag("[WEB_RESOLVER_WORKER] yt-dlp installed on system: {}".format(ytdlp_present))
+
+            if ytdlp_present:
+                bin_candidates = ["yt-dlp", "/usr/bin/yt-dlp", "/usr/local/bin/yt-dlp", "youtube-dl", "/usr/bin/youtube-dl"]
+                seen_bins = set()
+                for bin_path in bin_candidates:
+                    try:
+                        real_p = os.path.realpath(bin_path) if os.path.exists(bin_path) else bin_path
+                    except Exception:
+                        real_p = bin_path
+                    if real_p in seen_bins:
+                        continue
+                    seen_bins.add(real_p)
+
+                    try:
+                        import subprocess
+                        cmd = [bin_path, "--no-warnings", "--no-check-certificates", "-g", url]
+                        log_diag("[WEB_RESOLVER_EXEC] Executing: {}".format(" ".join(cmd)))
+                        t0 = time.time()
+                        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        try:
+                            out, err = p.communicate(timeout=6)
+                        except TypeError:
+                            out, err = p.communicate()
+                        dur_s = time.time() - t0
+                        rc = p.returncode
+                        out_str = out.strip().decode('utf-8', errors='ignore') if out else ""
+                        err_str = err.strip().decode('utf-8', errors='ignore') if err else ""
+                        log_diag("[WEB_RESOLVER_RESULT] Binary='{}' RC={} Elapsed={:.2f}s Out='{}' Err='{}'".format(
+                            bin_path, rc, dur_s, out_str[:140], err_str[:140]
+                        ))
+                        if rc == 0 and out_str:
+                            for line in out_str.splitlines():
+                                line = line.strip()
+                                if line.startswith("http"):
+                                    direct_url = line
+                                    log_diag("[WEB_RESOLVER_SUCCESS] Extracted direct stream: '{}'".format(direct_url[:120]))
+                                    break
+                            if direct_url:
+                                break
+                    except Exception as e:
+                        log_diag("[WEB_RESOLVER_EXC] Binary='{}' Exception: {}".format(bin_path, e))
+
+            if not direct_url:
+                log_diag("[WEB_RESOLVER_WARNING] No direct media stream (.m3u8) could be extracted by yt-dlp from '{}'".format(url[:120]))
+                log_diag("[WEB_RESOLVER_EXPLANATION] CAUSE: Website live stream URLs (streamed.st, embed.st, etc.) return text/html pages containing obfuscated client-side JavaScript. Enigma2 media decoders (servicemp3/gstreamer, exteplayer3/ffmpeg) require a direct media container (.m3u8, .ts, .mp4). Sending raw HTML causes a black screen.")
+                def _on_web_resolve_failed():
+                    try:
+                        if self.videos:
+                            lbl_type = _t("Live Streams & Highlights") if getattr(self, 'is_live', False) else _t("Highlights")
+                            self["status"].setText(u"{} {}".format(len(self.videos), lbl_type))
+                        else:
+                            self["status"].setText("")
+                    except Exception:
+                        pass
+                    msg = (
+                        u"تعذر تشغيل هذا الرابط على الرسيفر.\n\n"
+                        u"الموقع محمي بتشفير المتصفح (JavaScript DRM) ولا يوفر رابط فيديو مباشر (m3u8).\n\n"
+                        u"يرجى تجربة سيرفر آخر أو اختيار قنوات يوتيوب المباشرة."
+                        if PLUGIN_LANGUAGE == "ar" else
+                        "Unable to play this link on the receiver.\n\n"
+                        "This streaming website is protected by browser JavaScript DRM and does not provide a direct (.m3u8) video feed.\n\n"
+                        "Please try another streaming server or choose a YouTube live broadcast."
+                    )
+                    try:
+                        from Screens.MessageBox import MessageBox
+                        self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=7)
+                    except Exception:
+                        pass
+                reactor.callFromThread(_on_web_resolve_failed)
+                return
+
+            if vid_id and direct_url:
+                try:
+                    self._stream_cache[(vid_id, get_highlights_resolution())] = (direct_url, headers)
+                except Exception:
+                    pass
+            reactor.callFromThread(self._launch_player, direct_url, headers, title, vid_id)
+
+        wait_msg = u"جاري فحص وتشغيل البث المباشر..." if PLUGIN_LANGUAGE == "ar" else "Checking and loading live web stream..."
+        try:
+            self["status"].setText(wait_msg)
+        except Exception:
+            pass
+        t = threading.Thread(target=_resolve_web_and_play)
+        t.daemon = True
+        t.start()
+
+
+# ==============================================================================
 # PLUGIN REGISTRATION
 # ==============================================================================
 def menu(menuid, **kwargs):
@@ -35560,14 +39130,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.9 by reali22",
+            description="Live Sports Scores, v7.0 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.9 by reali22",
+            description="Live Sports Scores, v7.0 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -35582,7 +39152,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v6.9 by reali22",
+            description="Live Sports Scores, v7.0 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
