@@ -115,7 +115,7 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "7.0"
+VERSION = "7.1"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -227,6 +227,12 @@ TRANSLATIONS = {
     "Refreshing matches...":       {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a..."},
     "Fetching data from livescore.cz...": {"ar": u"\u062c\u0627\u0631\u064d \u062c\u0644\u0628 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0645\u0646 livescore.cz..."},
     "< > / << >> Browse Days":    {"ar": u"\u062a\u0635\u0641\u062d \u0627\u0644\u0623\u064a\u0627\u0645 < > / << >>"},
+    "DNS / Network Error: Please set Nameserver (8.8.8.8) in openVIX Network Menu": {"ar": u"\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0627\u062a\u0635\u0627\u0644 / DNS: \u064a\u0631\u062c\u0649 \u0636\u0628\u0637 Nameserver \u0641\u064a openVIX (\u0627\u0644\u0642\u0627\u0626\u0645\u0629 > \u0625\u0639\u062f\u0627\u062f\u0627\u062a > \u0627\u0644\u0634\u0628\u0643\u0629 > Nameserver: 8.8.8.8)"},
+    "DNS Error: Please set Nameserver (8.8.8.8) in openVIX Network Menu": {"ar": u"\u062e\u0637\u0623 \u0641\u064a \u062e\u0627\u062f\u0645 \u0627\u0644\u0623\u0633\u0645\u0627\u0621 (DNS): \u064a\u0631\u062c\u0649 \u0636\u0628\u0637 Nameserver \u0641\u064a \u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0634\u0628\u0643\u0629 openVIX"},
+    "Connection Timeout: Slow network or server response": {"ar": u"\u0627\u0646\u062a\u0647\u062a \u0645\u0647\u0644\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644: \u0627\u0633\u062a\u062c\u0627\u0628\u0629 \u0627\u0644\u0633\u064a\u0631\u0641\u0631 \u0628\u0637\u064a\u0626\u0629 \u0623\u0648 \u0627\u0644\u0634\u0628\u0643\u0629 \u0636\u0639\u064a\u0641\u0629"},
+    "Network Connection Error":   {"ar": u"\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u0634\u0628\u0643\u0629"},
+    "Connection Error":           {"ar": u"\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u0633\u064a\u0631\u0641\u0631"},
+    "No racing event selected!":   {"ar": u"\u0644\u0645 \u064a\u062a\u0645 \u062a\u062d\u062f\u064a\u062f \u0633\u0628\u0627\u0642!"},
     # ── Main screen static labels ──────────────────────────────────────────────
     "SIMPLY SPORTS":              {"ar": u"\u0633\u064a\u0645\u0628\u0644\u064a \u0633\u0628\u0648\u0631\u062a\u0633"},
     "MENU: Settings & Tools":     {"ar": u"\u0627\u0644\u0642\u0627\u0626\u0645\u0629: \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a"},
@@ -241,6 +247,34 @@ TRANSLATIONS = {
     "TIME":                       {"ar": u"\u0627\u0644\u0648\u0642\u062a"},
     # ── Coloured-button labels ─────────────────────────────────────────────────
     "League List":                {"ar": u"\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
+    "All Today's Matches (Global Soccer)": {"ar": u"\u062c\u0645\u064a\u0639 \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645 (\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0639\u0627\u0644\u0645\u064a\u0629)"},
+    "All Today's Matches":        {"ar": u"\u062c\u0645\u064a\u0639 \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
+    "Global Soccer Today":        {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0639\u0627\u0644\u0645\u064a\u0629 \u0627\u0644\u064a\u0648\u0645"},
+    "Return to Leagues":          {"ar": u"\u0627\u0644\u0639\u0648\u062f\u0629 \u0644\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
+    "Return to My Leagues":       {"ar": u"\u0627\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u062f\u0648\u0631\u064a\u0627\u062a\u064a"},
+    "Press OK to view matches across 50+ leagues worldwide": {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0639\u0631\u0636 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0639\u0628\u0631 \u0623\u0643\u062b\u0631 \u0645\u0646 50 \u062f\u0648\u0631\u064a\u0627\u064b \u0639\u0627\u0644\u0645\u064a\u0627\u064b"},
+    "Press OK to return to Single, Custom, or Favorite Leagues": {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0641\u0631\u062f\u064a\u0629 \u0623\u0648 \u0627\u0644\u0645\u062e\u0635\u0635\u0629 \u0623\u0648 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Switch back to your custom/favorite leagues": {"ar": u"\u0627\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u062f\u0648\u0631\u064a\u0627\u062a\u0643 \u0627\u0644\u0645\u062e\u0635\u0635\u0629 \u0623\u0648 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Browse worldwide soccer schedule across 50+ leagues": {"ar": u"\u062a\u0635\u0641\u062d \u062c\u062f\u0648\u0644 \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0639\u0628\u0631 \u0623\u0643\u062b\u0631 \u0645\u0646 50 \u062f\u0648\u0631\u064a\u0627\u064b \u0639\u0627\u0644\u0645\u064a\u0627\u064b"},
+    "LEAGUES":                    {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
+    "GLOBAL":                     {"ar": u"\u0639\u0627\u0644\u0645\u064a"},
+    "RETURN \u2794":               {"ar": u"\u0639\u0648\u062f\u0629 \u2794"},
+    "EXPLORE \u2794":              {"ar": u"\u0627\u0633\u062a\u0643\u0634\u0641 \u2794"},
+    "Loading all today's soccer matches worldwide (50+ leagues)...": {"ar": u"\u062c\u0627\u0631\u064d \u062c\u0644\u0628 \u062c\u0645\u064a\u0639 \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645 \u062d\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645 (\u0623\u0643\u062b\u0631 \u0645\u0646 50 \u062f\u0648\u0631\u064a)..."},
+    "Loading Custom Leagues (%d leagues)...": {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629 (%d \u062f\u0648\u0631\u064a\u0627\u062a)..."},
+    "Loading Favorite Leagues...": {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629..."},
+    "Loading matches for %s...":  {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0645\u0628\u0627\u0631\u064a\u0627\u062a %s..."},
+    "Loading %s...":              {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 %s..."},
+    "Global Soccer: Press OK to browse all matches worldwide across 50+ leagues": {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0639\u0627\u0644\u0645\u064a\u0629: \u0627\u0636\u063a\u0637 OK \u0644\u0639\u0631\u0636 \u062c\u0645\u064a\u0639 \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645 \u0639\u0628\u0631 50+ \u062f\u0648\u0631\u064a"},
+    "Press OK or RED to return to your Custom/Favorite leagues": {"ar": u"\u0627\u0636\u063a\u0637 OK \u0623\u0648 \u0627\u0644\u0632\u0631 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u062f\u0648\u0631\u064a\u0627\u062a\u0643 \u0627\u0644\u0645\u062e\u0635\u0635\u0629/\u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Global Soccer Today \u2022 50+ Leagues Worldwide \u2022 Press RED to Return": {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0639\u0627\u0644\u0645\u064a\u0629 \u0627\u0644\u064a\u0648\u0645 \u2022 \u0623\u0643\u062b\u0631 \u0645\u0646 50 \u062f\u0648\u0631\u064a \u062d\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645 \u2022 \u0627\u0636\u063a\u0637 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u0639\u0648\u062f\u0629"},
+    "Custom Leagues View \u2022 Press OK for Match Details \u2022 RED for Leagues": {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629 \u2022 \u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u2022 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
+    "Favorite Leagues View \u2022 Press OK for Match Details \u2022 RED for Leagues": {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629 \u2022 \u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u2022 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
+    "%s View \u2022 Press OK for Match Details \u2022 RED for Leagues": {"ar": u"\u0639\u0631\u0636 %s \u2022 \u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u2022 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
+    "Press OK for Match Details \u2022 RED for Leagues": {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u2022 \u0627\u0644\u0632\u0631 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
+    "Full Time":                   {"ar": u"\u0627\u0646\u062a\u0647\u062a"},
+    "Starts":                      {"ar": u"\u062a\u0628\u062f\u0623"},
+    "Scheduled":                   {"ar": u"\u0642\u0627\u062f\u0645\u0629"},
     "Mini Bar":                   {"ar": u"\u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631"},
     "Driver Position":            {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0633\u0627\u0626\u0642\u064a\u0646"},
     "Info/EPG: Channels":         {"ar": u"\u0645\u0639\u0644\u0648\u0645\u0627\u062a / \u0627\u0644\u0642\u0646\u0648\u0627\u062a"},
@@ -296,7 +330,8 @@ TRANSLATIONS = {
     "Today's Matches":            {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
     "Tomorrow's Matches":         {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u063a\u062f"},
     "All Matches":                {"ar": u"\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
-    "Matches":                    {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    "Matches":                    {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Match":                      {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Custom League View":         {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
     "Favorite League View":       {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     # ── Header breakdown labels ───────────────────────────────────────────────
@@ -992,6 +1027,27 @@ LEAGUE_NAMES_AR = {
     u"UEFA Women's Europa Cup":                               u"\u0643\u0623\u0633 \u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0648\u0631\u0648\u0628\u064a \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
     u"USL Cup":                                               u"\u0643\u0623\u0633 \u062f\u0648\u0631\u064a \u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0645\u062a\u062d\u062f\u0629 (USL)",
     u"Women's Africa Cup of Nations":                         u"\u0643\u0623\u0633 \u0623\u0645\u0645 \u0623\u0641\u0631\u064a\u0642\u064a\u0627 \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    # ── Global / Schedule Additions ─────────────────────────────────────────
+    u"Mexican Liga BBVA MX":                                  u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0643\u0633\u064a\u0643\u064a",
+    u"Liga BBVA MX":                                          u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0643\u0633\u064a\u0643\u064a",
+    u"Mexican Liga de Expansi\u00f3n MX":                     u"\u062f\u0648\u0631\u064a \u0627\u0644\u062a\u0648\u0633\u0639 \u0627\u0644\u0645\u0643\u0633\u064a\u0643\u064a",
+    u"Liga de Expansi\u00f3n MX":                             u"\u062f\u0648\u0631\u064a \u0627\u0644\u062a\u0648\u0633\u0639 \u0627\u0644\u0645\u0643\u0633\u064a\u0643\u064a",
+    u"Spanish LALIGA":                                        u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a",
+    u"Spanish LALIGA 2":                                      u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"Spanish LaLiga 2":                                      u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"LALIGA 2":                                              u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"Spanish Copa del Rey":                                  u"\u0643\u0623\u0633 \u0627\u0644\u0645\u0644\u0643 \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a",
+    u"Spanish Liga F":                                        u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    u"Liga F":                                                u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    u"Brazilian Serie B":                                     u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0631\u0627\u0632\u064a\u0644\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"Colombian Primera A":                                   u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0643\u0648\u0644\u0648\u0645\u0628\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Paraguayan Primera Divisi\u00f3n":                      u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0628\u0627\u0631\u0627\u063a\u0648\u0627\u064a\u0627\u0646\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632",
+    u"Scottish League Challenge Cup":                         u"\u0643\u0623\u0633 \u0627\u0644\u062a\u062d\u062f\u064a \u0627\u0644\u0627\u0633\u0643\u062a\u0644\u0646\u062f\u064a",
+    u"Dutch Keuken Kampioen Divisie":                         u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0647\u0648\u0644\u0646\u062f\u064a \u0627\u0644\u062f\u0631\u062c\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+    u"English Women's Super League":                          u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a \u0627\u0644\u0645\u0645\u062a\u0627\u0632 \u0644\u0644\u0633\u064a\u062f\u0627\u062a",
+    u"Women's International Friendly":                        u"\u0645\u0628\u0627\u0631\u0627\u0629 \u0648\u062f\u064a\u0629 \u062f\u0648\u0644\u064a\u0629 (\u0633\u064a\u062f\u0627\u062a)",
+    u"UEFA European Under-21 Championship Qualifying":        u"\u062a\u0635\u0641\u064a\u0627\u062a \u0628\u0637\u0648\u0644\u0629 \u0623\u0648\u0631\u0648\u0628\u0627 \u062a\u062d\u062a 21 \u0633\u0646\u0629",
+    u"Other Leagues":                                         u"\u062f\u0648\u0631\u064a\u0627\u062a \u0623\u062e\u0631\u0649",
 }
 
 
@@ -1007,7 +1063,22 @@ def _league_name(name):
         elif not isinstance(name, (str, type(u""))):
             name = str(name)
         if PLUGIN_LANGUAGE == "ar":
-            return LEAGUE_NAMES_AR.get(name, name)
+            if name in LEAGUE_NAMES_AR:
+                return LEAGUE_NAMES_AR[name]
+            # Normalization fallback (strip diacritics / accents)
+            norm = name.replace(u"\xf3", u"o").replace(u"\xe9", u"e").replace(u"\xe1", u"a").replace(u"\xed", u"i").replace(u"\xfa", u"u")
+            if norm in LEAGUE_NAMES_AR:
+                return LEAGUE_NAMES_AR[norm]
+            # LALIGA variant fallback
+            laliga_sub = name.replace("LALIGA", "La Liga").replace("LaLiga", "La Liga")
+            if laliga_sub in LEAGUE_NAMES_AR:
+                return LEAGUE_NAMES_AR[laliga_sub]
+            # Prefix strip fallback
+            for prefix in (u"Spanish ", u"English ", u"Italian ", u"German ", u"French ", u"Mexican ", u"Brazilian ", u"Argentine ", u"Dutch ", u"Portuguese "):
+                if name.startswith(prefix):
+                    bare = name[len(prefix):]
+                    if bare in LEAGUE_NAMES_AR:
+                        return LEAGUE_NAMES_AR[bare]
     except Exception:
         pass
     return name
@@ -1039,7 +1110,7 @@ def is_loading_status(status_str):
         return False
     try:
         s = str(status_str).lower()
-        return any(k in s for k in ["load", "fetch", "process", "download", "جاري", "تحميل", "انتظار"])
+        return any(k in s for k in ["load", "fetch", "process", "download", "updat", "wait", "جاري", "تحميل", "انتظار", "تحديث"])
     except Exception:
         return False
 
@@ -1712,8 +1783,8 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "7.0"
-# v7.0 introduces new "watch live" and  "Match highlights" videos from YouTube  using the blue button. The user can select the player, streaming type, and resolution.
+CURRENT_VERSION = "7.1"
+# v7.1 Introduces All Today's Matches (Global Soccer Mode). Global Soccer mode neatly organizes every fixture under its own official League Header Banner:
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
 # ==============================================================================
@@ -1891,6 +1962,78 @@ def log_diag(msg):
             _diag_logger.debug(str(msg))
     except:
         pass
+
+
+# ==============================================================================
+# NETWORK & DNS HEALTH CHECK / SELF-HEALING (OpenViX / Enigma2)
+# ==============================================================================
+_DNS_LAST_CHECK_TIME = 0
+_DNS_IS_HEALTHY = True
+
+def check_and_repair_dns(force=False):
+    """Verify internet DNS resolution. If failing (e.g. on fresh OpenViX images with
+    misconfigured or empty DNS), automatically append public nameservers (8.8.8.8, 1.1.1.1)
+    to /etc/resolv.conf and reload libc resolver."""
+    global _DNS_LAST_CHECK_TIME, _DNS_IS_HEALTHY
+    now = time.time()
+    if not force and (now - _DNS_LAST_CHECK_TIME < 60) and _DNS_IS_HEALTHY:
+        return True
+
+    _DNS_LAST_CHECK_TIME = now
+    import socket
+    test_hosts = ["site.api.espn.com", "cdn.espn.com", "google.com"]
+    for host in test_hosts:
+        try:
+            socket.getaddrinfo(host, 443)
+            _DNS_IS_HEALTHY = True
+            return True
+        except Exception:
+            pass
+
+    log_diag("[DNS] Resolution failed for test hosts. Checking /etc/resolv.conf...")
+    resolv_files = ["/etc/resolv.conf", "/run/resolv.conf", "/tmp/resolv.conf"]
+    repaired = False
+    for r_path in resolv_files:
+        try:
+            real_path = os.path.realpath(r_path) if os.path.exists(r_path) else r_path
+            target_dir = os.path.dirname(real_path)
+            if not os.path.exists(target_dir):
+                continue
+            content = ""
+            if os.path.exists(real_path):
+                with open(real_path, "r") as f:
+                    content = f.read()
+            if "8.8.8.8" not in content and "1.1.1.1" not in content:
+                with open(real_path, "a") as f:
+                    f.write("\n# Added by SimplySport DNS fallback\nnameserver 8.8.8.8\nnameserver 1.1.1.1\n")
+                repaired = True
+                log_diag("[DNS] Injected fallback nameservers (8.8.8.8, 1.1.1.1) into {}".format(real_path))
+        except Exception as e:
+            log_diag("[DNS] Could not write to {}: {}".format(r_path, e))
+
+    if repaired:
+        try:
+            import ctypes
+            libc = ctypes.CDLL(None)
+            if hasattr(libc, "__res_init"):
+                libc.__res_init()
+            elif hasattr(libc, "res_init"):
+                libc.res_init()
+        except Exception:
+            pass
+
+        for host in test_hosts:
+            try:
+                socket.getaddrinfo(host, 443)
+                log_diag("[DNS] Successfully recovered DNS after injecting nameservers!")
+                _DNS_IS_HEALTHY = True
+                return True
+            except Exception:
+                pass
+
+    log_diag("[DNS] DNS resolution is currently DOWN or offline.")
+    _DNS_IS_HEALTHY = False
+    return False
 
 
 # ==============================================================================
@@ -2520,6 +2663,80 @@ _COUNTRY_ISO2 = {
 }
 
 
+def parse_to_local_datetime(date_str):
+    """
+    Robustly convert any date/time representation into a local datetime object on the device.
+    Handles ISO 8601 strings with 'Z', timezone offsets (+03:00, -0400, etc.),
+    space-separated datetime strings, plain date strings, and integer/float timestamps.
+    """
+    if not date_str:
+        return None
+    if isinstance(date_str, (int, float)):
+        try:
+            return datetime.datetime.fromtimestamp(date_str)
+        except Exception:
+            return None
+    s = str(date_str).strip()
+    try:
+        if s.isdigit():
+            try:
+                return datetime.datetime.fromtimestamp(float(s))
+            except Exception:
+                pass
+        dp = None
+        tp = None
+        if 'T' in s:
+            parts = s.split('T')
+            dp, tp = parts[0], parts[1]
+        elif ' ' in s:
+            parts = s.split(' ')
+            dp, tp = parts[0], parts[1]
+        else:
+            dp = s
+            tp = '00:00:00'
+
+        y, m, d = [int(x) for x in dp.split('-')[:3]]
+        tz_offset_sec = 0
+        has_tz = False
+        if '+' in tp:
+            tp, offset_str = tp.split('+', 1)
+            has_tz = True
+            sign = 1
+        elif '-' in tp and len(tp.split('-')[0].split(':')) >= 2:
+            tp, offset_str = tp.rsplit('-', 1)
+            has_tz = True
+            sign = -1
+        elif tp.endswith('Z') or tp.endswith('z'):
+            tp = tp[:-1]
+            has_tz = True
+            offset_str = '00:00'
+            sign = 1
+        else:
+            offset_str = '00:00'
+            sign = 1
+
+        if has_tz and offset_str:
+            offset_parts = offset_str.replace(':', '')
+            if len(offset_parts) >= 2:
+                tz_h = int(offset_parts[:2])
+                tz_m = int(offset_parts[2:4]) if len(offset_parts) >= 4 else 0
+                tz_offset_sec = sign * (tz_h * 3600 + tz_m * 60)
+
+        t_parts = tp.split(':')
+        H = int(t_parts[0]) if len(t_parts) > 0 else 0
+        M = int(t_parts[1]) if len(t_parts) > 1 else 0
+        S = int(t_parts[2].split('.')[0]) if len(t_parts) > 2 else 0
+
+        dt_naive = datetime.datetime(y, m, d, H, M, S)
+        if has_tz:
+            utc_epoch = calendar.timegm(dt_naive.timetuple()) - tz_offset_sec
+            return datetime.datetime.fromtimestamp(utc_epoch)
+        else:
+            return dt_naive
+    except Exception:
+        return None
+
+
 # ==============================================================================
 # UNIFIED MATCH SNAPSHOT BUILDER
 # ==============================================================================
@@ -2811,6 +3028,8 @@ def build_match_snapshot(event):
         'league_url':    league_url,
         'sport_type':    sport_type,
         'date':          event.get('date', ''),
+        'local_date':    (parse_to_local_datetime(event.get('date', '')).strftime("%Y-%m-%d") if parse_to_local_datetime(event.get('date', '')) else (str(event.get('date', ''))[:10] if event.get('date') else '')),
+        'local_ts':      (calendar.timegm(parse_to_local_datetime(event.get('date', '')).timetuple()) if parse_to_local_datetime(event.get('date', '')) else 0),
 
         # State
         'state':         state,
@@ -2850,12 +3069,12 @@ def build_match_snapshot(event):
         'score_str':     score_str,     # "2 - 1" or "VS" or "P - P"
         'time_str':      time_str,      # "45'" or "FT" or "20:30"
 
-        # Logos (already set by process_events_data)
-        'h_logo_url':    event.get('h_logo_url', ''),
-        'a_logo_url':    event.get('a_logo_url', ''),
+        # Logos (already set by process_events_data, with robust fallback)
+        'h_logo_url':    event.get('h_logo_url') or (extract_team_logo(team_h.get('team', {}), 'soccer' if sport_type == SPORT_TYPE_SOCCER else 'default', h_team_id) if h_team_id else ''),
+        'a_logo_url':    event.get('a_logo_url') or (extract_team_logo(team_a.get('team', {}), 'soccer' if sport_type == SPORT_TYPE_SOCCER else 'default', a_team_id) if a_team_id else ''),
         'l_logo_url':    event.get('l_logo_url', ''),
-        'h_logo_id':     event.get('h_logo_id', ''),
-        'a_logo_id':     event.get('a_logo_id', ''),
+        'h_logo_id':     event.get('h_logo_id') or (('soc_' + h_team_id) if (h_team_id and sport_type == SPORT_TYPE_SOCCER) else (h_team_id or '')),
+        'a_logo_id':     event.get('a_logo_id') or (('soc_' + a_team_id) if (a_team_id and sport_type == SPORT_TYPE_SOCCER) else (a_team_id or '')),
         'l_logo_id':     event.get('l_logo_id', ''),
 
         # Red Cards
@@ -2878,23 +3097,25 @@ def build_match_snapshot(event):
 def snapshot_passes_filter(snap, filter_mode, today, tomorrow, yesterday):
     """Shared filter for all UI screens. filter_mode: 0=Yesterday, 1=Live, 2=Today, 3=Tomorrow, 4=All"""
     import datetime, calendar, time
-    state    = snap['state']
-    ev_date  = snap['date'][:10] if snap['date'] else ''
-    
-    # Convert UTC date string (e.g. "2026-06-13T01:00Z") to local date representation
-    utc_str = snap.get('date', '')
-    if utc_str and 'T' in utc_str:
-        try:
-            date_part, time_part = utc_str.split('T')
-            y, m, d = map(int, date_part.split('-'))
-            time_part = time_part.replace('Z', '')
-            H, M = map(int, time_part.split(':')[:2])
-            dt_utc = datetime.datetime(y, m, d, H, M)
-            timestamp = calendar.timegm(dt_utc.timetuple())
-            local_dt = datetime.datetime.fromtimestamp(timestamp)
-            ev_date = local_dt.strftime("%Y-%m-%d")
-        except:
-            pass
+    if filter_mode == 4:
+        return True
+    state = snap.get('state', '')
+    ev_date = snap.get('local_date', '')
+    if not ev_date:
+        ev_date = snap.get('date', '')[:10] if snap.get('date') else ''
+        utc_str = snap.get('date', '')
+        if utc_str and 'T' in utc_str:
+            try:
+                date_part, time_part = utc_str.split('T')
+                y, m, d = map(int, date_part.split('-'))
+                time_part = time_part.replace('Z', '')
+                H, M = map(int, time_part.split(':')[:2])
+                dt_utc = datetime.datetime(y, m, d, H, M)
+                timestamp = calendar.timegm(dt_utc.timetuple())
+                local_dt = datetime.datetime.fromtimestamp(timestamp)
+                ev_date = local_dt.strftime("%Y-%m-%d")
+            except Exception:
+                pass
 
     # For racing: check date range if endDate exists
     is_racing = snap.get('sport_type') == SPORT_TYPE_RACING
@@ -2912,22 +3133,33 @@ def snapshot_passes_filter(snap, filter_mode, today, tomorrow, yesterday):
                 timestamp = calendar.timegm(dt_utc.timetuple())
                 local_dt = datetime.datetime.fromtimestamp(timestamp)
                 ev_end_date = local_dt.strftime("%Y-%m-%d")
-            except:
+            except Exception:
                 ev_end_date = end_utc[:10]
         elif end_utc:
             ev_end_date = end_utc[:10]
 
+    actual_today = datetime.date.today().strftime("%Y-%m-%d")
     if is_racing:
         if filter_mode == 0 and not (ev_date <= yesterday <= ev_end_date): return False
         if filter_mode == 1 and state != 'in': return False
-        if filter_mode == 2 and not (ev_date <= today <= ev_end_date) and state != 'in': return False
+        if filter_mode == 2:
+            if not (ev_date <= today <= ev_end_date):
+                if state != 'in' or today != actual_today:
+                    return False
         if filter_mode == 3 and not (ev_date <= tomorrow <= ev_end_date): return False
     else:
         if filter_mode == 0 and ev_date != yesterday: return False
         if filter_mode == 1 and state != 'in':        return False
-        if filter_mode == 2 and ev_date != today and state != 'in': return False
+        if filter_mode == 2:
+            if ev_date != today:
+                # If viewing actual today, allow currently in-progress matches to remain visible
+                if state == 'in' and today == actual_today:
+                    pass
+                else:
+                    return False
         if filter_mode == 3 and ev_date != tomorrow:  return False
     return True
+
 
 
 # ==============================================================================
@@ -2973,6 +3205,183 @@ def is_epl_logo_request(url, img_id):
     if 'egyptianproleague' in s_url or s_url.startswith('epl://') or 'epl_logo.png' in s_url:
         return True
     return False
+
+
+# ==============================================================================
+# OFFICIAL ESPN SOCCER LEAGUE LOGOS MAPPING
+# ==============================================================================
+KNOWN_SOCCER_LEAGUES = {
+    # England
+    "eng.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/23.png",
+    "eng.2": "https://a.espncdn.com/i/leaguelogos/soccer/500/24.png",
+    "eng.3": "https://a.espncdn.com/i/leaguelogos/soccer/500/25.png",
+    "eng.4": "https://a.espncdn.com/i/leaguelogos/soccer/500/26.png",
+    "eng.fa": "https://a.espncdn.com/i/leaguelogos/soccer/500/40.png",
+    "eng.league_cup": "https://a.espncdn.com/i/leaguelogos/soccer/500/41.png",
+    "eng.trophy": "https://a.espncdn.com/i/leaguelogos/soccer/500/42.png",
+    # Spain
+    "esp.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/15.png",
+    "esp.2": "https://a.espncdn.com/i/leaguelogos/soccer/500/107.png",
+    "esp.copa_del_rey": "https://a.espncdn.com/i/leaguelogos/soccer/500/80.png",
+    "esp.super_cup": "https://a.espncdn.com/i/leaguelogos/soccer/500/431.png",
+    # Italy
+    "ita.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/12.png",
+    "ita.2": "https://a.espncdn.com/i/leaguelogos/soccer/500/99.png",
+    "ita.coppa_italia": "https://a.espncdn.com/i/leaguelogos/soccer/500/2192.png",
+    # Germany
+    "ger.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/10.png",
+    "ger.2": "https://a.espncdn.com/i/leaguelogos/soccer/500/97.png",
+    "ger.dfb_pokal": "https://a.espncdn.com/i/leaguelogos/soccer/500/2061.png",
+    # France
+    "fra.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/9.png",
+    "fra.2": "https://a.espncdn.com/i/leaguelogos/soccer/500/96.png",
+    "fra.coupe_de_france": "https://a.espncdn.com/i/leaguelogos/soccer/500/182.png",
+    # Netherlands & Portugal & Scotland
+    "ned.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/11.png",
+    "ned.2": "https://a.espncdn.com/i/leaguelogos/soccer/500/105.png",
+    "ned.cup": "https://a.espncdn.com/i/leaguelogos/soccer/500/2196.png",
+    "por.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/14.png",
+    "sco.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/45.png",
+    # Other Europe
+    "tur.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/18.png",
+    "bel.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/6.png",
+    "aut.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/5.png",
+    "sui.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/17.png",
+    "swe.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/16.png",
+    "gre.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/98.png",
+    "rus.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/106.png",
+    # Americas
+    "usa.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/19.png",
+    "usa.usl.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/2292.png",
+    "usa.open": "https://a.espncdn.com/i/leaguelogos/soccer/500/69.png",
+    "mex.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/22.png",
+    "bra.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/85.png",
+    "bra.2": "https://a.espncdn.com/i/leaguelogos/soccer/500/2299.png",
+    "arg.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/1.png",
+    "col.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/1543.png",
+    "chi.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/86.png",
+    "ecu.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/1944.png",
+    "par.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/1892.png",
+    "uru.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/1592.png",
+    "ven.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/1947.png",
+    # Asia & Middle East & Australia
+    "ksa.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/2488.png",
+    "qat.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/2299.png",
+    "uae.pro": "https://a.espncdn.com/i/leaguelogos/soccer/500/2292.png",
+    "jpn.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/2199.png",
+    "chn.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/2350.png",
+    "ind.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/2334.png",
+    "aus.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/1308.png",
+    # Gulf Cup: ESPN CDN ID 71 is the Olympics logo (wrong). Use AFC Champions fallback instead.
+    "global.gulf_cup": "https://a.espncdn.com/i/leaguelogos/soccer/500/2200.png",
+    # Olympics soccer
+    "global.olympic_soccer": "https://a.espncdn.com/i/leaguelogos/soccer/500/71.png",
+    "global.olympics": "https://a.espncdn.com/i/leaguelogos/soccer/500/71.png",
+    # North America - USA & NCAA
+    "usa.2": "https://a.espncdn.com/i/leaguelogos/soccer/500/1944.png",
+    "usa.ncaa.m.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/53.png",    # FIFA generic (no NCAA soccer CDN logo)
+    "usa.ncaa.w.1": "https://a.espncdn.com/i/leaguelogos/soccer/500/53.png",    # FIFA generic (no NCAA women CDN logo)
+    "usa.open_cup": "https://a.espncdn.com/i/leaguelogos/soccer/500/69.png",
+    # Club Friendlies & International Friendlies -> use FIFA Friendly (53), NOT World Cup (4)
+    "club.friendly": "https://a.espncdn.com/i/leaguelogos/soccer/500/53.png",
+    "global.friendly": "https://a.espncdn.com/i/leaguelogos/soccer/500/53.png",
+    "global.club_friendly": "https://a.espncdn.com/i/leaguelogos/soccer/500/53.png",
+    # UEFA Tournaments
+    "uefa.champions": "https://a.espncdn.com/i/leaguelogos/soccer/500/2.png",
+    "uefa.europa": "https://a.espncdn.com/i/leaguelogos/soccer/500/2310.png",
+    "uefa.europa.conf": "https://a.espncdn.com/i/leaguelogos/soccer/500/20296.png",
+    "uefa.super_cup": "https://a.espncdn.com/i/leaguelogos/soccer/500/1272.png",
+    "uefa.nations": "https://a.espncdn.com/i/leaguelogos/soccer/500/2395.png",
+    "uefa.euro": "https://a.espncdn.com/i/leaguelogos/soccer/500/74.png",
+    "uefa.euroq": "https://a.espncdn.com/i/leaguelogos/soccer/500/56.png",
+    # CONMEBOL Tournaments
+    "conmebol.libertadores": "https://a.espncdn.com/i/leaguelogos/soccer/500/58.png",
+    "conmebol.sudamericana": "https://a.espncdn.com/i/leaguelogos/soccer/500/1208.png",
+    "conmebol.america": "https://a.espncdn.com/i/leaguelogos/soccer/500/83.png",
+    # CONCACAF Tournaments
+    "concacaf.champions": "https://a.espncdn.com/i/leaguelogos/soccer/500/2298.png",
+    "concacaf.gold": "https://a.espncdn.com/i/leaguelogos/soccer/500/59.png",
+    "concacaf.nations.league": "https://a.espncdn.com/i/leaguelogos/soccer/500/2406.png",
+    "concacaf.leagues.cup": "https://a.espncdn.com/i/leaguelogos/soccer/500/2410.png",
+    # CAF Tournaments
+    "caf.nations": "https://a.espncdn.com/i/leaguelogos/soccer/500/76.png",
+    "caf.nations_qual": "https://a.espncdn.com/i/leaguelogos/soccer/500/76.png",
+    "caf.champions": "https://a.espncdn.com/i/leaguelogos/soccer/500/2391.png",
+    "caf.confed": "https://a.espncdn.com/i/leaguelogos/soccer/500/63.png",
+    # AFC Tournaments
+    "afc.champions": "https://a.espncdn.com/i/leaguelogos/soccer/500/2200.png",
+    "afc.asian.cup": "https://a.espncdn.com/i/leaguelogos/soccer/500/2243.png",
+    # FIFA Tournaments
+    "fifa.world": "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png",
+    "fifa.worldq.uefa": "https://a.espncdn.com/i/leaguelogos/soccer/500/67.png",
+    "fifa.worldq.caf": "https://a.espncdn.com/i/leaguelogos/soccer/500/63.png",
+    "fifa.worldq.afc": "https://a.espncdn.com/i/leaguelogos/soccer/500/62.png",
+    "fifa.worldq.conmebol": "https://a.espncdn.com/i/leaguelogos/soccer/500/65.png",
+    "fifa.friendly": "https://a.espncdn.com/i/leaguelogos/soccer/500/53.png"
+}
+
+VALID_ESPN_NUMERIC_LEAGUES = {
+    '1', '2', '4', '5', '6', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19',
+    '22', '23', '24', '25', '26', '40', '41', '42', '45', '53', '56', '58', '59', '62', '63',
+    '64', '65', '67', '69', '71', '74', '76', '80', '83', '85', '86', '96', '97', '98', '99',
+    '105', '106', '107', '182', '431', '1208', '1272', '1308', '1543', '1592', '1892', '1944',
+    '1947', '2061', '2192', '2196', '2199', '2200', '2243', '2292', '2298', '2299', '2310',
+    '2334', '2350', '2391', '2395', '2406', '2410', '2488', '20296'
+}
+
+
+def get_soccer_league_logo(league_slug, league_name='', uid=''):
+    """
+    Resolve official high-resolution logo URL and stable cache ID for any soccer league.
+    Supports known league slugs, name-based heuristics, UID-embedded numeric IDs,
+    and continental federation fallbacks.
+    """
+    slug = str(league_slug or '').lower().strip()
+    name = str(league_name or '').lower().strip()
+
+    # 1. Egyptian Premier League check
+    if slug in ('epl', 'epl://api', 'egy.1', 'egyptian') or 'egypt' in name or 'egypt' in slug or slug.startswith('egy.'):
+        return 'epl://logo', 'league_epl'
+
+    # 2. Exact match in KNOWN_SOCCER_LEAGUES
+    if slug in KNOWN_SOCCER_LEAGUES:
+        url = KNOWN_SOCCER_LEAGUES[slug]
+        return url, "league_" + slug.replace('.', '_')
+
+    # 3. Numeric ID extracted from UID (e.g. s:600~l:23~e:...)
+    num_id = ''
+    if uid and '~l:' in str(uid):
+        try:
+            num_id = str(uid).split('~l:')[1].split('~')[0]
+        except Exception:
+            num_id = ''
+
+    if num_id and num_id in VALID_ESPN_NUMERIC_LEAGUES:
+        return "https://a.espncdn.com/i/leaguelogos/soccer/500/{}.png".format(num_id), "league_" + num_id
+
+    # 4. Prefix fallbacks based on slug or name
+    if slug.startswith('caf.') or 'africa' in name or 'caf' in name:
+        return KNOWN_SOCCER_LEAGUES['caf.nations'], 'league_caf'
+    if slug.startswith('uefa.') or 'uefa' in name:
+        return KNOWN_SOCCER_LEAGUES['uefa.champions'], 'league_uefa'
+    if slug.startswith('conmebol.') or 'conmebol' in name:
+        return KNOWN_SOCCER_LEAGUES['conmebol.libertadores'], 'league_conmebol'
+    if slug.startswith('concacaf.') or 'concacaf' in name:
+        return KNOWN_SOCCER_LEAGUES['concacaf.gold'], 'league_concacaf'
+    if slug.startswith('afc.') or 'afc' in name or 'asian' in name:
+        return KNOWN_SOCCER_LEAGUES['afc.champions'], 'league_afc'
+    if 'gulf' in slug or 'gulf' in name or 'arabic gulf' in name or 'arabian gulf' in name:
+        return KNOWN_SOCCER_LEAGUES['global.gulf_cup'], 'league_gulf_cup'
+    # Friendly matches -> use FIFA Friendly logo (53), NOT World Cup (4)
+    if 'friendly' in slug or 'friendly' in name:
+        return KNOWN_SOCCER_LEAGUES['fifa.friendly'], 'league_friendly'
+    if slug.startswith('usa.') or 'nwsl' in slug or 'mls' in slug:
+        return KNOWN_SOCCER_LEAGUES['usa.1'], 'league_usa'
+    if slug.startswith('fifa.') or 'fifa' in name:
+        return KNOWN_SOCCER_LEAGUES['fifa.world'], 'league_fifa'
+
+    # 5. Generic fallback - use FIFA Friendly (soccer globe) rather than World Cup trophy
+    return KNOWN_SOCCER_LEAGUES['fifa.friendly'], 'league_soccer'
 
 
 # ==============================================================================
@@ -3363,20 +3772,9 @@ def parse_espn_date(date_str):
 
 
 def get_local_datetime(utc_date_str):
-    """Same parsing as get_local_time_str but returns a local datetime object
-    (or None). Used for the 'Next match in Xm' countdown."""
-    try:
-        if utc_date_str and 'T' in utc_date_str:
-            date_part, time_part = utc_date_str.split('T')
-            y, m, d = map(int, date_part.split('-'))
-            time_part = time_part.replace('Z', '')
-            H, M = map(int, time_part.split(':')[:2])
-            dt_utc = datetime.datetime(y, m, d, H, M)
-            timestamp = calendar.timegm(dt_utc.timetuple())
-            return datetime.datetime.fromtimestamp(timestamp)
-    except Exception:
-        pass
-    return None
+    """Returns local datetime object using robust parse_to_local_datetime.
+    Used for the 'Next match in Xm' countdown."""
+    return parse_to_local_datetime(utc_date_str)
 
 
 def format_countdown(delta_seconds):
@@ -3396,20 +3794,15 @@ def format_countdown(delta_seconds):
 
 def get_local_time_str(utc_date_str):
     try:
-        if 'T' in utc_date_str:
-            date_part, time_part = utc_date_str.split('T')
-            y, m, d = map(int, date_part.split('-'))
-            time_part = time_part.replace('Z', '')
-            H, M = map(int, time_part.split(':')[:2])
-            dt_utc = datetime.datetime(y, m, d, H, M)
-            timestamp = calendar.timegm(dt_utc.timetuple())
-            local_dt = datetime.datetime.fromtimestamp(timestamp)
+        local_dt = parse_to_local_datetime(utc_date_str)
+        if local_dt:
             now = datetime.datetime.now()
             time_str = "{:02d}:{:02d}".format(local_dt.hour, local_dt.minute)
             if local_dt.date() == now.date(): return str(time_str)
             else: return local_dt.strftime("%a %d/%m") + " " + time_str
-    except:
-        return "--:--"
+    except Exception:
+        pass
+    return "--:--"
 
 
 def get_league_abbr(full_name):
@@ -3432,6 +3825,7 @@ def is_system_screen_active(session):
         PLUGIN_SCREENS = {
             # Main screens
             "SimpleSportsScreen",
+            "AllSoccerMatchesScreen",
             "GameInfoScreen",
             "TeamStandingScreen",
             "TeamRostersScreen",
@@ -4074,6 +4468,33 @@ def VNextListEntry(entry):
         vn_bg_deep = _bg_preset["deep_int"]
         vn_bg_navy = _bg_preset["navy_int"]
 
+        if status == "NAV_CARD":
+            H = sy(136)
+            card_y = sy(3)
+            card_h = H - 2 * sy(3)
+            card_x = sx(22)
+            card_w = SCREEN_WIDTH - 2 * card_x
+            res = [entry]
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
+            draw_card(res, card_x, card_y, card_w, card_h, 18, VN_CARD, VN_CARD_SEL, 0x00AFFF, 0x00E5FF, border_w=2)
+            pill_w = sx(130)   # widened: "LEAGUES"/"GLOBAL" = 7/6 chars need more space
+            pill_h = sy(44)
+            pill_x = card_x + sx(20)
+            pill_y = card_y + (card_h - pill_h) // 2
+            draw_card(res, pill_x, pill_y, pill_w, pill_h, 8, 0x1A2736, 0x00334D, 0x00AFFF, 0x00E5FF, border_w=1)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, pill_x + sx(4), pill_y, pill_w - sx(8), pill_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(league_short or "ALL"), 0x00E5FF, 0x00E5FF))
+            text_x = pill_x + pill_w + sx(18)
+            text_w = card_w - pill_w - sx(390)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, card_y + sy(16), text_w, sy(52), 1, RT_HALIGN_LEFT | RT_VALIGN_CENTER, str(left_text), VN_TEXT_PRI, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, card_y + sy(68), text_w, sy(40), 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, str(right_text), VN_TEXT_SEC, VN_TEXT_SEC))
+            act_w = sx(180)
+            act_h = sy(50)
+            act_x = card_x + card_w - act_w - sx(20)
+            act_y = card_y + (card_h - act_h) // 2
+            draw_card(res, act_x, act_y, act_w, act_h, 10, 0x00AFFF, 0x00E5FF, 0x00AFFF, 0x00E5FF, border_w=1)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, act_x, act_y, act_w, act_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(score_text or "OPEN >"), 0x071020, 0x071020))
+            return res
+
         if status == "INFO":
             H = sy(136)
             card_y = sy(3)
@@ -4084,6 +4505,41 @@ def VNextListEntry(entry):
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
             draw_card(res, card_x, card_y, card_w, card_h, 18, VN_CARD, VN_CARD_SEL, VN_BORDER, 0x00E5FF, border_w=2)
             res.append((eListboxPythonMultiContent.TYPE_TEXT, card_x + sx(20), card_y, card_w - sx(40), card_h, 1, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(left_text), VN_TEXT_SEC, c_sel))
+            return res
+
+        if status == "LEAGUE_HEADER":
+            H = sy(136)
+            # Render a compact strip at the BOTTOM of the row so it sits flush
+            # against the match card that follows. The top portion is filled
+            # with the deep background colour and becomes invisible.
+            strip_h = sy(56)
+            strip_y = H - strip_h - sy(2)
+            strip_x = sx(22)
+            strip_w = SCREEN_WIDTH - 2 * strip_x
+            res = [entry]
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
+            draw_card(res, strip_x, strip_y, strip_w, strip_h, 10, 0x142030, 0x1A2E44, 0x243950, 0x00E5FF, border_w=1)
+            # Left accent vertical indicator bar
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, strip_x + sx(3), strip_y + sy(6), sx(5), strip_h - sy(12), 0, RT_HALIGN_CENTER, "", 0x00AFFF, 0x00E5FF, 0x00AFFF, 0x00E5FF))
+
+            cur_x = strip_x + sx(18)
+            if l_png:
+                logo_sz = sy(36)
+                logo_y = strip_y + (strip_h - logo_sz) // 2
+                res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, cur_x, logo_y, logo_sz, logo_sz, get_scaled_pixmap(l_png, logo_sz, logo_sz)))
+                cur_x += logo_sz + sx(10)
+
+            badge_w = sx(340)
+            badge_h = sy(32)
+            badge_x = strip_x + strip_w - badge_w - sx(18)
+            badge_y = strip_y + (strip_h - badge_h) // 2
+
+            name_w = badge_x - cur_x - sx(14)
+            disp_name = _league_name(left_text)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, cur_x, strip_y, name_w, strip_h, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, disp_name, VN_TEXT_PRI, c_sel))
+
+            draw_card(res, badge_x, badge_y, badge_w, badge_h, 8, 0x0E1A29, 0x00334D, 0x00AFFF, 0x00E5FF, border_w=1)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x, badge_y, badge_w, badge_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, score_text or "", 0x00E5FF, 0x00E5FF))
             return res
 
         c_h_score = c_text
@@ -5296,6 +5752,58 @@ def UCLListEntry(entry):
         if status == "LIVE": c_status = c_live
         if status == "FIN": c_status = c_accent
 
+        if status == "NAV_CARD":
+            res = [entry]
+            h = sy(90)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, h, 0, RT_HALIGN_CENTER, "", 0x071020, 0x071020))
+            draw_rounded_box(res, sx(25), sy(16), sx(130), sy(58), c_accent, c_box, True)   # widened: was sx(90)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(29), sy(16), sx(122), sy(58), 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(league_short or "ALL"), 0x000000, 0x000000))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(170), sy(10), sx(1410), sy(42), 1, RT_HALIGN_LEFT | RT_VALIGN_CENTER, str(left_text), c_text, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(170), sy(52), sx(1410), sy(28), 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, str(right_text), c_dim, c_dim))
+            draw_rounded_box(res, sx(1680), sy(20), sx(190), sy(50), c_accent, c_accent, True)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(1680), sy(20), sx(190), sy(50), 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(score_text or "OPEN >"), 0x000000, 0x000000))
+            return res
+
+        if status == "INFO":
+            res = [entry]
+            h = sy(90)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, h, 0, RT_HALIGN_CENTER, "", 0x071020, 0x071020))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(20), sy(10), SCREEN_WIDTH - sx(40), h - sy(20), 1, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(left_text), c_dim, c_sel))
+            return res
+
+        if status == "LEAGUE_HEADER":
+            res = [entry]
+            h = sy(90)
+            # Render compact strip at the BOTTOM of the row so it sits flush
+            # against the match row that follows.
+            strip_h = sy(44)
+            strip_y = h - strip_h - sy(2)
+            strip_x = sx(25)
+            strip_w = SCREEN_WIDTH - 2 * strip_x
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, h, 0, RT_HALIGN_CENTER, "", 0x071020, 0x071020))
+            draw_rounded_box(res, strip_x, strip_y, strip_w, strip_h, 0x3d3010, 0x0f1d33, True)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, strip_x + sx(3), strip_y + sy(4), sx(4), strip_h - sy(8), 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
+
+            cur_x = strip_x + sx(18)
+            if l_png:
+                logo_sz = sy(30)
+                logo_y = strip_y + (strip_h - logo_sz) // 2
+                res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, cur_x, logo_y, logo_sz, logo_sz, get_scaled_pixmap(l_png, logo_sz, logo_sz)))
+                cur_x += logo_sz + sx(10)
+
+            badge_w = sx(320)
+            badge_h = sy(28)
+            badge_x = strip_x + strip_w - badge_w - sx(14)
+            badge_y = strip_y + (strip_h - badge_h) // 2
+
+            name_w = badge_x - cur_x - sx(14)
+            disp_name = _league_name(left_text)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, cur_x, strip_y, name_w, strip_h, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, disp_name, c_accent, c_sel))
+
+            draw_rounded_box(res, badge_x, badge_y, badge_w, badge_h, c_accent, c_accent, True)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x, badge_y, badge_w, badge_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, score_text or "", 0x000000, 0x000000))
+            return res
+
         res = [entry]
         h = sy(90)
 
@@ -5667,6 +6175,9 @@ class SportsMonitor:
         self.saved_custom_league_indices = []
         self.favorite_league_indices = []
         self.is_favorite_mode = False
+        self.is_all_matches_mode = False
+        self._all_matches_mem_cache = {}
+        self._previous_mode_state = None
         self.last_scores = {}
         self.last_red_cards = {}
         self.goal_flags = {}
@@ -5736,18 +6247,22 @@ class SportsMonitor:
         self.batch_queue = []
         self.batch_remaining = 0
         self.batch_is_active = False
+        self._last_batch_error = None
         self.batch_timer = eTimer()
         safe_connect(self.batch_timer, self.finalize_batch)
         self.processing_queue = []
         self.processing_active = False
+        self.day_cache = {}  # Cache per day offset: {offset: {'events': [...], 'event_map': {...}, 'snapshots': {...}, 'ts': float}}
 
         self.logo_cache = LogoCacheManager()
         self.last_update = 0
         import os
         if os.path.exists("/etc/enigma2"):
             self.cache_file = "/etc/enigma2/simplysports_cache.json"
+            self.all_matches_cache_file = "/etc/enigma2/simplysports_all_matches_cache.json"
         else:
             self.cache_file = "/tmp/simplysports/cache.json"
+            self.all_matches_cache_file = "/tmp/simplysports/all_matches_cache.json"
 
         # Optimization: Persistent Agent with Connection Pool & Request Management & Redirect Handling
         self.pool = HTTPConnectionPool(reactor)
@@ -5790,6 +6305,14 @@ class SportsMonitor:
         try: self.boot_timer.callback.append(self.check_goals)
         except AttributeError: self.boot_timer.timeout.get().append(self.check_goals)
         self.boot_timer.start(5000, True)
+
+        try:
+            import threading
+            t_dns = threading.Thread(target=check_and_repair_dns)
+            t_dns.daemon = True
+            t_dns.start()
+        except Exception:
+            pass
 
         self._boot_initialized = True # Mark initialization complete
 
@@ -6319,6 +6842,7 @@ class SportsMonitor:
 
     def fetch_remote_config(self):
         try:
+            check_and_repair_dns()
             import ssl
             import json
             from urllib.request import Request, urlopen
@@ -6326,9 +6850,9 @@ class SportsMonitor:
             req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             try:
                 context = ssl._create_unverified_context()
-                response = urlopen(req, timeout=5, context=context)
+                response = urlopen(req, timeout=10, context=context)
             except AttributeError:
-                response = urlopen(req, timeout=5)
+                response = urlopen(req, timeout=10)
             data = response.read()
             if isinstance(data, bytes):
                 data = data.decode('utf-8', errors='ignore')
@@ -7024,21 +7548,15 @@ class SportsMonitor:
 
     def _build_dated_url(self, url):
         """
-        Append ?dates=YYYYMMDD-YYYYMMDD to an ESPN scoreboard URL when ch_day_offset != 0
-        to cover timezone-shifted matches (fetching 1 day before to the target day).
-        EuroLeague URLs (euroleague://) are passed through unchanged.
+        Append ?dates=YYYYMMDD to an ESPN scoreboard URL based on device local time.
+        ESPN single-league scoreboard endpoints only accept a single date (YYYYMMDD).
+        Passing a date range (YYYYMMDD-YYYYMMDD) causes ESPN to return HTTP 400 Bad Request,
+        which caused custom leagues to show 'No Matches Found' regardless of the day chosen.
+        EuroLeague/EPL URLs are passed through unchanged.
         Tennis, MMA, and Racing URLs are passed through unchanged because ESPN's API
         for those sports returns 0 events when the dates parameter is appended.
-        They use tournament-level/week-level date ranges and have their own internal filtering.
         """
         if url.startswith('euroleague://') or url.startswith('epl://'):
-            return url
-
-        # When viewing today (ch_day_offset == 0), use the base URL without ?dates= parameter.
-        # ESPN's scoreboard defaults to the active matchday / gameweek and real-time live match updates.
-        # Appending ?dates= forces strict calendar filtering which returns 0 events for major soccer
-        # leagues (e.g. Champions League, Premier League) whose matchdays span adjacent dates.
-        if getattr(self, 'ch_day_offset', 0) == 0:
             return url
 
         # Tennis, MMA/Boxing, and Racing APIs break with ?dates= parameter — skip them
@@ -7046,10 +7564,18 @@ class SportsMonitor:
         if '/tennis/' in url_lower or '/mma/' in url_lower or '/boxing/' in url_lower or '/racing/' in url_lower:
             return url
 
-        # Query exact target date (YYYYMMDD).
-        # Passing a two-day range (YYYYMMDD-YYYYMMDD) causes ESPN CDN to return stale cached
-        # snapshots where finished matches remain frozen in-progress (LIVE) or scheduled (SCH).
-        offset = self.ch_day_offset
+        # If user explicitly selected "All" filter mode in single league mode (viewing whole matchday/season), don't restrict by date
+        if getattr(self, 'filter_mode', 2) == 4 and not getattr(self, 'is_custom_mode', False) and not getattr(self, 'is_favorite_mode', False):
+            return url
+
+        # In single league mode when viewing today (offset == 0), use the base URL without dates=
+        # so single-league view can show the active round/matchday on off-days.
+        # But in custom/favorite leagues mode, ALWAYS query exact date to avoid stale cross-day caching.
+        offset = getattr(self, 'ch_day_offset', 0)
+        if offset == 0 and not getattr(self, 'is_custom_mode', False) and not getattr(self, 'is_favorite_mode', False):
+            return url
+
+        # Query exact target date (YYYYMMDD) based on local time
         target = datetime.date.today() + datetime.timedelta(days=offset)
         date_str = target.strftime('%Y%m%d')
         sep = '&' if '?' in url else '?'
@@ -7059,38 +7585,58 @@ class SportsMonitor:
     def navigate_day(self, delta):
         """
         Shift ch_day_offset by delta (+1 = CH+, -1 = CH-).
-        Clamps to [-7, +7]. Clears the event cache so a fresh fetch goes out
-        immediately for the target date.
+        Clamps to [-7, +7]. Saves and restores day-cache so switching back and forth
+        between days is instant and matches never disappear.
         Returns the new offset value (used by the screen for the hint label).
         """
         MAX_OFFSET = 7
-        self.cancel_active_requests()   # Stop any in-flight fetch & lazy processing for the day we're leaving
-        self.ch_day_offset = max(-MAX_OFFSET, min(MAX_OFFSET,
-                                                  self.ch_day_offset + delta))
-        # Flush stale cache — we're looking at a different day now
-        self.cached_events    = []
-        self.event_map        = {}
-        self.match_snapshots  = {}
-        self.status_message   = "Loading..."
-        self._trigger_callbacks(False, bypass_debounce=True, force_refresh=True)      # show loading state immediately
+        self.cancel_active_requests()   # Stop in-flight fetch for the day we're leaving
+
+        # Cache the day we are leaving so returning to it is instantaneous
+        if not hasattr(self, 'day_cache'):
+            self.day_cache = {}
+        if self.cached_events:
+            self.day_cache[self.ch_day_offset] = {
+                'events': list(self.cached_events),
+                'event_map': dict(self.event_map),
+                'snapshots': dict(self.match_snapshots),
+                'ts': time.time()
+            }
+
+        old_offset = self.ch_day_offset
+        self.ch_day_offset = max(-MAX_OFFSET, min(MAX_OFFSET, self.ch_day_offset + delta))
+        if self.ch_day_offset == old_offset:
+            return self.ch_day_offset
+
+        # Check if the target day's data is already cached
+        cached = self.day_cache.get(self.ch_day_offset)
+        if cached and cached.get('events'):
+            # Instant restore from memory cache!
+            self.cached_events   = list(cached['events'])
+            self.event_map       = dict(cached['event_map'])
+            self.match_snapshots = dict(cached['snapshots'])
+            self.status_message  = ""
+            self._trigger_callbacks(True, bypass_debounce=True, force_refresh=True)
+        elif self.ch_day_offset == 0 and os.path.exists(self.cache_file) and not getattr(self, 'is_all_matches_mode', False):
+            # Switching back to Today: reload from persistent disk cache
+            self.load_cache()
+            self._trigger_callbacks(True, bypass_debounce=True, force_refresh=True)
+        elif self.ch_day_offset == 0 and getattr(self, 'is_all_matches_mode', False):
+            # Switching back to Today in all matches mode: reload from all matches cache
+            if self.load_all_matches_cache():
+                self._trigger_callbacks(True, bypass_debounce=True, force_refresh=True)
+            else:
+                self.status_message = "Loading..."
+        else:
+            # First visit to this date: set status to Loading, but keep existing list
+            # so the UI remains stable without blanking until fresh data arrives
+            self.status_message  = "Loading..."
+
         self.check_goals(from_ui=True)      # fire the dated request right away
-
-        # Schedule a 2-second delayed forced secondary refresh pass to ensure UI renders
-        try:
-            from twisted.internet import reactor
-            reactor.callLater(2.0, self._force_day_navigation_refresh)
-        except Exception:
-            pass
-
         return self.ch_day_offset
 
     def _force_day_navigation_refresh(self):
-        """Forced secondary UI refresh pass 2 seconds after toggling days."""
-        try:
-            log_diag("[SportsMonitor] 2-second day navigation forced refresh pass (cached_events={})".format(len(self.cached_events)))
-            self._trigger_callbacks(True, bypass_debounce=True, force_refresh=True)
-        except Exception as e:
-            log_dbg("[SportsMonitor] Day nav forced refresh error: " + str(e))
+        pass
 
     def cancel_active_requests(self):
         """Cancel all in-flight Twisted Deferred requests."""
@@ -7170,9 +7716,9 @@ class SportsMonitor:
         d.addErrback(self.collect_batch_error, url)
         d.addBoth(self._on_batch_request_finished, url, d)
 
-        # 10-second per-request timeout
-        timeout_call = reactor.callLater(10, d.cancel)
-        d.addBoth(lambda x, tc=timeout_call: tc.cancel() if tc.active() else None)
+        # 25-second per-request timeout (allows slow DNS / network on OpenViX to complete)
+        timeout_call = reactor.callLater(25, d.cancel)
+        d.addBoth(lambda x, tc=timeout_call: (tc.cancel() if tc.active() else None, x)[1])
 
     def set_discovery_mode(self, mode):
         """Set discovery mode directly: 0=OFF, 1=VISUAL, 2=SOUND."""
@@ -7265,6 +7811,7 @@ class SportsMonitor:
     def set_league(self, index):
         self.is_custom_mode = False
         self.is_favorite_mode = False
+        self.is_all_matches_mode = False
 
         # FIX: Stop any running batch operations from previous custom mode
         self.batch_is_active = False
@@ -7280,11 +7827,13 @@ class SportsMonitor:
             # Restart timer with single-league interval (60s)
             if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
             self.check_goals()
+
     def set_custom_leagues(self, indices):
         self.custom_league_indices = indices
         self.saved_custom_league_indices = indices  # keep custom backup in sync
         self.is_custom_mode = True
         self.is_favorite_mode = False
+        self.is_all_matches_mode = False
         self.last_scores = {}; self.last_red_cards = {}; self.last_states = {}; self.last_periods = {}; self.last_details_seen = {}; self.notified_events = set()
 
         # FIX: Stop any running batch operations from previous custom mode
@@ -7299,12 +7848,14 @@ class SportsMonitor:
         # Restart timer with custom-mode interval (180s)
         if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
         self.check_goals()
+
     def set_favorite_leagues(self, indices):
         """Activate a Favourite Leagues selection without touching saved_custom_league_indices."""
         self.favorite_league_indices = indices
         self.custom_league_indices = indices  # feed the existing batch/fetch engine
         self.is_custom_mode = True
         self.is_favorite_mode = True
+        self.is_all_matches_mode = False
         self.last_scores = {}; self.last_red_cards = {}; self.last_states = {}
         self.last_periods = {}; self.last_details_seen = {}; self.notified_events = set()
 
@@ -7316,6 +7867,58 @@ class SportsMonitor:
         self.save_config()
         if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
         self.check_goals()
+
+    def save_mode_state(self):
+        """Save active league mode before entering alternative screens (e.g. All Matches)."""
+        self._previous_mode_state = {
+            'is_custom_mode': getattr(self, 'is_custom_mode', False),
+            'is_favorite_mode': getattr(self, 'is_favorite_mode', False),
+            'is_all_matches_mode': getattr(self, 'is_all_matches_mode', False),
+            'current_league_index': getattr(self, 'current_league_index', 0),
+            'custom_league_indices': list(getattr(self, 'custom_league_indices', [])),
+            'favorite_league_indices': list(getattr(self, 'favorite_league_indices', [])),
+            'ch_day_offset': getattr(self, 'ch_day_offset', 0)
+        }
+
+    def restore_mode_state(self):
+        """Restore previous league mode after leaving alternative screen."""
+        st = getattr(self, '_previous_mode_state', None)
+        if not st:
+            return
+        self._previous_mode_state = None
+        self.is_all_matches_mode = False
+        self._dead_summary_eids = set()
+        self._summary_fail_counts = {}
+        self.cancel_active_requests()
+        self.ch_day_offset = st.get('ch_day_offset', 0)
+        self.day_cache = {}
+        if st.get('is_favorite_mode'):
+            self.set_favorite_leagues(st.get('favorite_league_indices', self.favorite_league_indices))
+        elif st.get('is_custom_mode'):
+            self.set_custom_leagues(st.get('custom_league_indices', self.custom_league_indices))
+        else:
+            self.set_league(st.get('current_league_index', 0))
+
+    def set_all_matches_mode(self):
+        """Switch monitor to All Today's Matches feed (Global Soccer)."""
+        self.is_all_matches_mode = True
+        self.is_custom_mode = False
+        self.is_favorite_mode = False
+        self.ch_day_offset = 0
+        self.day_cache = {}
+        self.last_scores = {}; self.last_red_cards = {}; self.last_states = {}
+        self.last_periods = {}; self.last_details_seen = {}; self.notified_events = set()
+        self._dead_summary_eids = set()
+        self._summary_fail_counts = {}
+        self.cancel_active_requests()
+        has_cached = self.load_all_matches_cache()
+        if not has_cached:
+            self.event_map = {}; self.cached_events = []
+        if self.timer.isActive(): self.timer.start(self._get_timer_interval(), False)
+        # Start the network fetch IMMEDIATELY in background — before the skin/layout
+        # renders. By the time onLayoutFinish fires and start_ui() is called the data
+        # may already be arriving, giving a much faster first-paint.
+        self._fetch_all_matches_data()
     def add_reminder(self, match_name, trigger_time, league_name, h_logo, a_logo, label, sref=None, h_id=None, a_id=None):
         new_rem = {"match": match_name, "trigger": trigger_time, "league": league_name, "h_logo": h_logo, "a_logo": a_logo, "label": label, "sref": sref}
         for r in self.reminders:
@@ -7648,7 +8251,10 @@ class SportsMonitor:
         if not self.batch_is_active:
             if not self.cached_events:
                 self.status_message = "Loading Data..."
-                self._trigger_callbacks(False)
+        if getattr(self, 'is_all_matches_mode', False):
+            self._fetch_all_matches_data()
+            return
+
         # Use persistent agent
         if not self.is_custom_mode:
             try:
@@ -7695,12 +8301,14 @@ class SportsMonitor:
             # Mark batch as active
             self.batch_is_active = True
             self.batch_queue = []
+            self._last_batch_error = None
             selected_indices = [idx for idx in self.custom_league_indices if idx < len(DATA_SOURCES)]
             self.batch_remaining = len(selected_indices)
             log_diag("CHECK_GOALS: CUSTOM MODE - Starting batch for {} leagues".format(len(selected_indices)))
 
-            # 10-second safety timer
-            self.batch_timer.start(10000, True)
+            # Safety timer: 25s base + 1.2s per league (increased from 10s to prevent premature timeout on openVIX)
+            batch_timeout_ms = max(25000, 15000 + len(selected_indices) * 1200)
+            self.batch_timer.start(batch_timeout_ms, True)
             self.batch_first_response = None
 
             fired = 0
@@ -7708,9 +8316,9 @@ class SportsMonitor:
             for idx in selected_indices:
                 name, url = DATA_SOURCES[idx]
                 reactor.callLater(delay, self._fire_batch_request, name, url)
-                delay += 0.1  # Stagger requests by 100ms
+                delay += 0.15  # Stagger requests by 150ms
                 fired += 1
-            log_diag("CHECK_GOALS: CUSTOM MODE - Queued {} staggered requests (10s timeout), batch_remaining={}".format(fired, self.batch_remaining))
+            log_diag("CHECK_GOALS: CUSTOM MODE - Queued {} staggered requests ({}s timeout), batch_remaining={}".format(fired, batch_timeout_ms // 1000, self.batch_remaining))
 
     def _save_cache_bg(self):
         try:
@@ -7729,7 +8337,107 @@ class SportsMonitor:
         except Exception as e:
             print("[SportsMonitor] Cache Save BG Error: ", e)
 
+    def _save_all_matches_cache_bg(self, target_date_str, events_copy):
+        try:
+            cache_dir = os.path.dirname(self.all_matches_cache_file)
+            if not os.path.exists(cache_dir):
+                try: os.makedirs(cache_dir)
+                except Exception: pass
+            data = {
+                'timestamp': time.time(),
+                'date': target_date_str,
+                'events': events_copy
+            }
+            with open(self.all_matches_cache_file, 'w') as f:
+                json.dump(data, f)
+            log_diag("[AllMatches] Saved {} matches to disk cache {}".format(len(events_copy), self.all_matches_cache_file))
+        except Exception as e:
+            print("[SportsMonitor] All Matches Cache Save BG Error: ", e)
+
+    def save_all_matches_cache(self):
+        if not getattr(self, 'is_all_matches_mode', False) or not self.cached_events:
+            return
+        offset = getattr(self, 'ch_day_offset', 0)
+        target = datetime.date.today()
+        if offset != 0:
+            target = target + datetime.timedelta(days=offset)
+        target_str = target.strftime('%Y%m%d')
+
+        events_copy = list(self.cached_events)
+        self._all_matches_mem_cache[target_str] = {
+            'timestamp': time.time(),
+            'events': events_copy
+        }
+
+        # Save to disk for today's matches (offset == 0)
+        if offset == 0:
+            import threading
+            t = threading.Thread(target=self._save_all_matches_cache_bg, args=(target_str, events_copy))
+            t.daemon = True
+            t.start()
+
+    def load_all_matches_cache(self):
+        offset = getattr(self, 'ch_day_offset', 0)
+        target = datetime.date.today()
+        if offset != 0:
+            target = target + datetime.timedelta(days=offset)
+        target_str = target.strftime('%Y%m%d')
+
+        # 1. Check memory cache first
+        mem = self._all_matches_mem_cache.get(target_str)
+        if mem and mem.get('events'):
+            events = mem.get('events', [])
+            self.cached_events = list(events)
+            self.event_map = {}
+            self.match_snapshots = {}
+            for ev in self.cached_events:
+                eid = ev.get('id')
+                if eid:
+                    str_eid = str(eid)
+                    self.match_snapshots[str_eid] = build_match_snapshot(ev)
+                    self.event_map[str_eid] = ev
+            self.status_message = ""
+            log_diag("[AllMatches] Loaded {} matches from memory cache".format(len(self.cached_events)))
+            return True
+
+        # 2. Check disk cache for today (offset == 0)
+        if offset == 0 and os.path.exists(self.all_matches_cache_file):
+            try:
+                with open(self.all_matches_cache_file, 'r') as f:
+                    data = json.load(f)
+                cached_date = data.get('date', '')
+                cache_age = time.time() - data.get('timestamp', 0)
+                # Accept if exact date match OR recent (within 18 hours) as warm cache
+                if cached_date == target_str or (cache_age < 64800 and data.get('events')):
+                    events = data.get('events', [])
+                    if isinstance(events, list) and events:
+                        self.cached_events = list(events)
+                        self.event_map = {}
+                        self.match_snapshots = {}
+                        for ev in self.cached_events:
+                            eid = ev.get('id')
+                            if eid:
+                                str_eid = str(eid)
+                                self.match_snapshots[str_eid] = build_match_snapshot(ev)
+                                self.event_map[str_eid] = ev
+                        self.status_message = ""
+                        self._all_matches_mem_cache[target_str] = {
+                            'timestamp': data.get('timestamp', 0),
+                            'events': list(events)
+                        }
+                        log_diag("[AllMatches] Loaded {} matches from disk cache (date={}, age={:.0f}s)".format(
+                            len(self.cached_events), cached_date, cache_age))
+                        return True
+            except Exception as e:
+                print("[SportsMonitor] All Matches Cache Load Error: ", e)
+
+        return False
+
     def save_cache(self):
+        if getattr(self, 'is_all_matches_mode', False):
+            self.save_all_matches_cache()
+            return
+
         # Do not overwrite today's disk cache when viewing yesterday or future days
         if getattr(self, 'ch_day_offset', 0) != 0:
             return
@@ -7770,8 +8478,27 @@ class SportsMonitor:
 
     def collect_batch_error(self, failure, url=None):
         """Handle request errors - only fires for network/timeout failures"""
-        if not self.batch_is_active:
-            log_diag("BATCH_ERROR: DROPPED (batch not active) url={}".format(url))
+        fail_str = str(failure)
+        is_dns = any(err in fail_str for err in ("DNSLookupError", "gaierror", "Name or service not known"))
+        is_timeout = any(err in fail_str for err in ("Timeout", "UserTimeout", "TimeoutError"))
+        if is_dns:
+            self._last_batch_error = "DNS Error: Please set Nameserver (8.8.8.8) in openVIX Network Menu"
+            try:
+                import threading
+                t = threading.Thread(target=check_and_repair_dns, args=(True,))
+                t.daemon = True
+                t.start()
+            except Exception:
+                pass
+        elif is_timeout:
+            if not getattr(self, '_last_batch_error', None):
+                self._last_batch_error = "Connection Timeout: Slow network or server response"
+        else:
+            if not getattr(self, '_last_batch_error', None):
+                self._last_batch_error = "Connection Error"
+
+        if not self.batch_is_active or getattr(self, 'is_all_matches_mode', False):
+            log_diag("BATCH_ERROR: DROPPED (batch not active or all_matches_mode) url={}".format(url))
             if url: self.active_requests.discard(url)
             return
         # FIX: Ignore ghost requests
@@ -7787,8 +8514,22 @@ class SportsMonitor:
     def collect_batch_response_incremental(self, body, name, url):
         """Process each response immediately. MUST NEVER RAISE to prevent double-decrement."""
         try:
-            if not self.batch_is_active or not self.is_custom_mode:
+            if getattr(self, 'is_all_matches_mode', False) or not self.is_custom_mode:
                 self.active_requests.discard(url)
+                return
+
+            if not self.batch_is_active:
+                # Late-arriving response after safety timer expired - don't discard!
+                log_diag("BATCH_RESPONSE: LATE ARRIVAL for '{}' url={}".format(name, url))
+                self.active_requests.discard(url)
+                if body:
+                    try:
+                        self.process_events_data([(body, name, url)], append_mode=True)
+                        if self.cached_events:
+                            self.status_message = ""
+                            self._trigger_callbacks(True)
+                    except Exception as e:
+                        log_diag("LATE_BATCH_RESPONSE: ERROR processing '{}': {}".format(name, e))
                 return
 
             if url not in self.active_requests:
@@ -7837,7 +8578,11 @@ class SportsMonitor:
         # to prevent matches from disappearing if one league request fails.
         # Stability fix: Reaping is now handled during incremental processing.
 
-        self.status_message = ""
+        if not self.cached_events and getattr(self, '_last_batch_error', None):
+            self.status_message = self._last_batch_error
+        else:
+            self.status_message = ""
+            self._last_batch_error = None
         self.batch_queue = []
         self.batch_remaining = 0
         self.batch_first_response = None
@@ -7857,6 +8602,17 @@ class SportsMonitor:
             del self.match_snapshots[k]
 
         log_dbg("FINALIZE_BATCH: Final snapshot rebuild -- {} snapshots".format(len(self.match_snapshots)))
+
+        # Cache finalized batch for this day offset to enable instant switching
+        if not hasattr(self, 'day_cache'):
+            self.day_cache = {}
+        if self.cached_events:
+            self.day_cache[self.ch_day_offset] = {
+                'events': list(self.cached_events),
+                'event_map': dict(self.event_map),
+                'snapshots': dict(self.match_snapshots),
+                'ts': time.time()
+            }
 
         # Evaluate goals ONCE after all batch data is complete
         self.evaluate_goals()
@@ -7890,14 +8646,18 @@ class SportsMonitor:
             self.timer.start(new_interval, False)
 
         # Ensure direct summary fetches are active if live matches exist
-        if live_count > 0:
+        if live_count > 0 and not getattr(self, 'is_all_matches_mode', False):
             reactor.callLater(0.5, self.fetch_live_summaries)  # small delay lets lazy processor finish first
 
         reactor.callLater(0, self._trigger_callbacks, True, force_refresh=True, bypass_debounce=True)
 
     def fetch_live_summaries(self):
-        """For each live non-soccer match, fetch the ESPN summary API directly
-        (same endpoint GameInfo uses) and patch the score/status into event_map."""
+        """For each live match (soccer or other sports), fetch the ESPN match/boxscore API directly
+        (same endpoint GameInfo uses) and patch real-time score/status into event_map."""
+        if getattr(self, 'is_all_matches_mode', False):
+            # In all matches mode, the global schedule feed already contains live scores and clocks for all matches.
+            # Avoid firing 30-50 individual match summary requests that saturate network and CPU.
+            return
         live_found = 0
         try:
             for eid, ev in list(self.event_map.items()):
@@ -7907,18 +8667,27 @@ class SportsMonitor:
                     continue
                 league_url = ev.get('league_url', '')
 
-                # Build CDN boxscore URL (same structure as GameInfoScreen uses)
-                base_url = league_url.split('?')[0]
-                sport = ''; league_slug = ''
-                for i, part in enumerate(base_url.rstrip('/').split('/')):
-                    if part == 'sports' and i + 2 < len(base_url.rstrip('/').split('/')):
-                        parts = base_url.rstrip('/').split('/')
-                        sport = parts[i+1]; league_slug = parts[i+2]; break
-                if not sport or not league_slug or league_slug == 'scoreboard':
+                # Determine sport from league_url or monitor
+                sport = ''
+                if '/soccer/' in league_url or getattr(self, 'is_all_matches_mode', False):
+                    sport = 'soccer'
+                elif '/basketball/' in league_url:
+                    sport = 'basketball'
+                else:
+                    base_url = league_url.split('?')[0]
+                    for i, part in enumerate(base_url.rstrip('/').split('/')):
+                        if part == 'sports' and i + 1 < len(base_url.rstrip('/').split('/')):
+                            sport = base_url.rstrip('/').split('/')[i+1]
+                            break
+
+                if not sport:
                     continue
 
-                summary_url = "https://cdn.espn.com/core/{}/{}/boxscore?xhr=1&gameId={}".format(
-                    sport, league_slug, eid)
+                if sport in ['soccer', 'tennis']:
+                    summary_url = "https://cdn.espn.com/core/{}/match?xhr=1&gameId={}".format(sport, eid)
+                else:
+                    summary_url = "https://cdn.espn.com/core/{}/boxscore?xhr=1&gameId={}".format(sport, eid)
+
                 d = getPage(summary_url.encode('utf-8'), headers={b'User-Agent': b'curl/7.68.0'})
                 d.addCallback(self.on_live_summary, str(eid))
                 d.addErrback(self._on_summary_error, str(eid))
@@ -8013,7 +8782,30 @@ class SportsMonitor:
             log_diag("on_live_summary PARSE_ERR eid={} {}".format(eid, str(e)[:100]))
 
     def handle_error(self, failure):
-        self.status_message = "Connection Error"
+        try:
+            from twisted.internet import defer
+            if failure.check(defer.CancelledError):
+                return
+        except Exception:
+            pass
+        if getattr(self, 'is_all_matches_mode', False) or getattr(self, 'is_custom_mode', False):
+            return
+        fail_str = str(failure)
+        is_dns = any(err in fail_str for err in ("DNSLookupError", "gaierror", "Name or service not known"))
+        is_timeout = any(err in fail_str for err in ("Timeout", "UserTimeout", "TimeoutError"))
+        if is_dns:
+            self.status_message = "DNS Error: Please set Nameserver (8.8.8.8) in openVIX Network Menu"
+            try:
+                import threading
+                t = threading.Thread(target=check_and_repair_dns, args=(True,))
+                t.daemon = True
+                t.start()
+            except Exception:
+                pass
+        elif is_timeout:
+            self.status_message = "Connection Timeout: Slow network or server response"
+        else:
+            self.status_message = "Connection Error"
         self._trigger_callbacks(True)
     def handle_error_silent(self, failure): pass
 
@@ -8066,6 +8858,9 @@ class SportsMonitor:
 
     @profile_function("SportsMonitor")
     def parse_single_json(self, body, league_name_fixed="", league_url=""):
+        if getattr(self, 'is_all_matches_mode', False) or getattr(self, 'is_custom_mode', False):
+            log_diag("[parse_single_json] Ignored stale single JSON while in all_matches/custom mode")
+            return
         self.process_events_data([(body, league_name_fixed, league_url)], append_mode=False)
         reactor.callLater(0.5, self.fetch_live_summaries)
 
@@ -8330,17 +9125,17 @@ class SportsMonitor:
                 }).encode('utf-8')
 
                 reactor.callFromThread(
-                    self._on_euroleague_data, fake_body, league_name, sentinel)
+                    self._on_euroleague_data, fake_body, league_name, sentinel, offset)
 
             except Exception as e:
                 log_dbg("[EuroLeague] Fetch error: " + str(e))
-                reactor.callFromThread(self._on_euroleague_error, sentinel)
+                reactor.callFromThread(self._on_euroleague_error, sentinel, offset)
 
         t = threading.Thread(target=_run)
         t.daemon = True
         t.start()
 
-    def _on_euroleague_data(self, fake_body, league_name, sentinel):
+    def _on_euroleague_data(self, fake_body, league_name, sentinel, req_offset=None):
         # Stash the last played round number for the standings screen
         try:
             payload = json.loads(fake_body.decode('utf-8'))
@@ -8348,23 +9143,38 @@ class SportsMonitor:
             self._euroleague_last_round = lpr
         except Exception:
             pass
-        # In custom batch mode, use the batch pipeline so batch_remaining is decremented
-        # NOTE: Do NOT discard sentinel before collect_batch_response_incremental —
-        # it checks active_requests and would drop the response as a "ghost" request.
-        if self.is_custom_mode and self.batch_is_active:
-            self.collect_batch_response_incremental(fake_body, league_name, sentinel)
+
+        # Discard stale thread response if user navigated to another day
+        if req_offset is not None and req_offset != getattr(self, 'ch_day_offset', 0):
+            log_diag("[EuroLeague] Discarded response from stale day offset {}".format(req_offset))
+            self.active_requests.discard(sentinel)
+            return
+
+        if getattr(self, 'is_all_matches_mode', False):
+            self.active_requests.discard(sentinel)
+            return
+
+        if self.is_custom_mode:
+            if self.batch_is_active:
+                self.collect_batch_response_incremental(fake_body, league_name, sentinel)
+            else:
+                self.active_requests.discard(sentinel)
+                self.process_events_data([(fake_body, league_name, sentinel)], append_mode=True)
         else:
             self.active_requests.discard(sentinel)
             self.parse_single_json(fake_body, league_name, self.EUROLEAGUE_SENTINEL)
 
-    def _on_euroleague_error(self, sentinel):
-        # In custom batch mode, decrement batch_remaining so the batch can finalize
+    def _on_euroleague_error(self, sentinel, req_offset=None):
+        if req_offset is not None and req_offset != getattr(self, 'ch_day_offset', 0):
+            self.active_requests.discard(sentinel)
+            return
         if self.is_custom_mode and self.batch_is_active:
             self.collect_batch_error(None, sentinel)
         else:
             self.active_requests.discard(sentinel)
-            self.status_message = "EuroLeague data temporarily unavailable."
-            self._trigger_callbacks(True)
+            if not self.is_custom_mode:
+                self.status_message = "EuroLeague data temporarily unavailable."
+                self._trigger_callbacks(True)
 
     def _convert_euroleague_game(self, g, live_headers, league_name):
         """Convert one merged EuroLeague game dict into an ESPN-compatible event dict.
@@ -8967,34 +9777,47 @@ class SportsMonitor:
                     'events': events,
                     'leagues': [{'name': league_name, 'id': 'epl', 'logos': [{'href': 'https://egyptianproleague.com/assets/images/logo.png'}]}]
                 }).encode('utf-8')
-                reactor.callFromThread(self._on_epl_data, fake_body, league_name, sentinel)
+                reactor.callFromThread(self._on_epl_data, fake_body, league_name, sentinel, offset)
             except Exception as e:
                 log_dbg(f"[EPL] Fetch error: {e}")
-                reactor.callFromThread(self._on_epl_error, sentinel)
+                reactor.callFromThread(self._on_epl_error, sentinel, offset)
 
         t = threading.Thread(target=_run)
         t.daemon = True
         t.start()
 
-    def _on_epl_data(self, fake_body, league_name, sentinel):
-        # In custom batch mode, use the batch pipeline so batch_remaining is decremented
-        # and data is appended incrementally without wiping out other leagues.
-        # NOTE: Do NOT discard sentinel before collect_batch_response_incremental —
-        # it checks active_requests and would drop the response as a "ghost" request.
-        if self.is_custom_mode and self.batch_is_active:
-            self.collect_batch_response_incremental(fake_body, league_name, sentinel)
+    def _on_epl_data(self, fake_body, league_name, sentinel, req_offset=None):
+        # Discard stale thread response if user navigated to another day
+        if req_offset is not None and req_offset != getattr(self, 'ch_day_offset', 0):
+            log_diag("[EPL] Discarded response from stale day offset {} (current={})".format(req_offset, getattr(self, 'ch_day_offset', 0)))
+            self.active_requests.discard(sentinel)
+            return
+
+        if getattr(self, 'is_all_matches_mode', False):
+            self.active_requests.discard(sentinel)
+            return
+
+        if self.is_custom_mode:
+            if self.batch_is_active:
+                self.collect_batch_response_incremental(fake_body, league_name, sentinel)
+            else:
+                self.active_requests.discard(sentinel)
+                self.process_events_data([(fake_body, league_name, sentinel)], append_mode=True)
         else:
             self.active_requests.discard(sentinel)
             self.parse_single_json(fake_body, league_name, self.EPL_SENTINEL)
 
-    def _on_epl_error(self, sentinel):
-        # In custom batch mode, decrement batch_remaining so the batch can finalize
+    def _on_epl_error(self, sentinel, req_offset=None):
+        if req_offset is not None and req_offset != getattr(self, 'ch_day_offset', 0):
+            self.active_requests.discard(sentinel)
+            return
         if self.is_custom_mode and self.batch_is_active:
             self.collect_batch_error(None, sentinel)
         else:
             self.active_requests.discard(sentinel)
-            self.status_message = "Egyptian Pro League data temporarily unavailable."
-            self._trigger_callbacks(True)
+            if not self.is_custom_mode:
+                self.status_message = "Egyptian Pro League data temporarily unavailable."
+                self._trigger_callbacks(True)
 
     def _convert_epl_match(self, m, league_name):
         try:
@@ -9079,8 +9902,237 @@ class SportsMonitor:
                 'status': status_obj
             }
         except Exception as e:
-            log_dbg(f"[EPL] Convert match error: {e}")
+            log_dbg("[EPL] Convert match error: {}".format(e))
             return None
+
+    # ==========================================================================
+    # ALL TODAY'S MATCHES (GLOBAL SOCCER) - ESPN Core CDN Schedule Fetcher
+    # ==========================================================================
+    ALL_MATCHES_SENTINEL = "espn://soccer/all"
+
+    def _fetch_all_matches_data(self):
+        sentinel = self.ALL_MATCHES_SENTINEL
+        if sentinel in self.active_requests:
+            return
+        self.cancel_active_requests()
+        self.active_requests.add(sentinel)
+
+        offset = getattr(self, 'ch_day_offset', 0)
+        target = datetime.date.today()
+        if offset != 0:
+            target = target + datetime.timedelta(days=offset)
+        target_str = target.strftime('%Y%m%d')
+        # Fetch the previous ESPN/UTC day too, because matches that ESPN
+        # categorises as the prior UTC day may actually fall on `target` in the
+        # user's local timezone (e.g. Baghdad UTC+3: a 22:00 UTC match is 01:00
+        # local next day).  Also fetch the next day for the same bridging reason.
+        prev_target_str = (target - datetime.timedelta(days=1)).strftime('%Y%m%d')
+        next_target_str = (target + datetime.timedelta(days=1)).strftime('%Y%m%d')
+        # The local date string we want to keep (yyyy-mm-dd)
+        local_target_date = target.strftime('%Y-%m-%d')
+
+        req_offset = offset
+
+        def _run():
+            try:
+                try:
+                    import urllib.request as _urllib
+                except ImportError:
+                    import urllib2 as _urllib
+                import ssl, calendar as _cal
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                hdrs = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                    'Accept': '*/*',
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+
+                def _fetch_schedule(d_str):
+                    url = "https://cdn.espn.com/core/soccer/schedule?xhr=1&date=" + d_str
+                    try:
+                        req = _urllib.Request(url, headers=hdrs)
+                        raw_bytes = _urllib.urlopen(req, timeout=20, context=ctx).read()
+                        if raw_bytes[:2] == b'\x1f\x8b':
+                            import gzip, io
+                            try:
+                                raw_bytes = gzip.decompress(raw_bytes)
+                            except Exception:
+                                raw_bytes = gzip.GzipFile(fileobj=io.BytesIO(raw_bytes)).read()
+                        elif raw_bytes[:2] in (b'\x78\x9c', b'\x78\x01', b'\x78\xda'):
+                            import zlib
+                            try:
+                                raw_bytes = zlib.decompress(raw_bytes)
+                            except Exception:
+                                pass
+                        return json.loads(raw_bytes.decode('utf-8', errors='ignore')), None
+                    except Exception as e:
+                        err_str = str(e)
+                        is_dns = any(err in err_str for err in ("Name or service not known", "gaierror", "DNSLookupError"))
+                        if is_dns:
+                            try:
+                                import threading
+                                t_fix = threading.Thread(target=check_and_repair_dns, args=(True,))
+                                t_fix.daemon = True
+                                t_fix.start()
+                            except Exception:
+                                pass
+                            return None, "dns"
+                        return None, "net"
+
+                def _utc_to_local_date(utc_str):
+                    """Convert ESPN UTC date string to local date string (YYYY-MM-DD)."""
+                    if not utc_str or 'T' not in utc_str:
+                        return utc_str[:10] if utc_str else ''
+                    try:
+                        date_part, time_part = utc_str.split('T')
+                        y, mo, d = map(int, date_part.split('-'))
+                        time_part = time_part.replace('Z', '')
+                        H, M = map(int, time_part.split(':')[:2])
+                        dt_utc = datetime.datetime(y, mo, d, H, M)
+                        timestamp = _cal.timegm(dt_utc.timetuple())
+                        local_dt = datetime.datetime.fromtimestamp(timestamp)
+                        return local_dt.strftime('%Y-%m-%d')
+                    except Exception:
+                        return utc_str[:10] if utc_str else ''
+
+                all_events = []
+                seen_gids = set()
+                dns_error_count = 0
+                net_error_count = 0
+                fetch_success_count = 0
+
+                # Fetch previous day, target day, and next day to cover timezone bridging
+                for d_str in (prev_target_str, target_str, next_target_str):
+                    payload, err_type = _fetch_schedule(d_str)
+                    if err_type == "dns":
+                        dns_error_count += 1
+                    elif err_type == "net":
+                        net_error_count += 1
+                    if not payload:
+                        continue
+                    fetch_success_count += 1
+                    content = payload.get('content', {})
+                    schedule = content.get('schedule', {})
+                    for league_name, league_data in schedule.items():
+                        games = league_data.get('games', [])
+                        for g in games:
+                            gid = str(g.get('id', ''))
+                            if not gid or gid in seen_gids:
+                                continue
+                            seen_gids.add(gid)
+
+                            # Filter: only keep events whose LOCAL date matches the target
+                            ev_utc = g.get('date', '')
+                            ev_local_date = _utc_to_local_date(ev_utc)
+                            if ev_local_date != local_target_date:
+                                continue
+
+                            lid = str(g.get('leagueId', ''))
+                            uid = str(g.get('uid', ''))
+                            l_logo_url, l_logo_id = get_soccer_league_logo(lid, league_name, uid)
+                            g['league_name'] = league_name
+                            g['league_url'] = "https://site.api.espn.com/apis/site/v2/sports/soccer/{}/scoreboard".format(lid if lid else "soccer")
+                            g['l_logo_url'] = l_logo_url
+                            g['l_logo_id'] = l_logo_id
+
+                            # Extract team logos & IDs from competitors
+                            comps = g.get('competitions', [{}])[0].get('competitors', [])
+                            if len(comps) >= 2:
+                                t_h = next((c for c in comps if c.get('homeAway') == 'home'), comps[0])
+                                t_a = next((c for c in comps if c.get('homeAway') == 'away'), comps[1] if len(comps) > 1 else comps[0])
+                                team_h_obj = t_h.get('team', {})
+                                team_a_obj = t_a.get('team', {})
+                                h_id = str(team_h_obj.get('id', '') or t_h.get('id', ''))
+                                a_id = str(team_a_obj.get('id', '') or t_a.get('id', ''))
+                                g['h_logo_url'] = extract_team_logo(team_h_obj, 'soccer', h_id)
+                                g['a_logo_url'] = extract_team_logo(team_a_obj, 'soccer', a_id)
+                                g['h_logo_id'] = ('soc_' + h_id) if h_id else ''
+                                g['a_logo_id'] = ('soc_' + a_id) if a_id else ''
+                            all_events.append(g)
+
+                if fetch_success_count == 0:
+                    err_msg = "DNS Error: Please set Nameserver (8.8.8.8) in openVIX Network Menu" if dns_error_count > 0 else "Connection Error"
+                    reactor.callFromThread(self._on_all_matches_error, req_offset, err_msg)
+                    return
+
+                all_events.sort(key=lambda e: e.get('date', ''))
+                # Pre-build snapshots and event map in background thread to eliminate all main GUI thread freezing
+                snapshots = {}
+                ev_map = {}
+                for g in all_events:
+                    gid = str(g.get('id', ''))
+                    if gid:
+                        snapshots[gid] = build_match_snapshot(g)
+                        ev_map[gid] = g
+
+                pre_parsed = {
+                    'events': all_events,
+                    'snapshots': snapshots,
+                    'event_map': ev_map,
+                    'leagues': [{'name': "All Soccer Matches", 'id': 'all_soccer',
+                                 'logos': [{'href': 'https://a.espncdn.com/i/leaguelogos/soccer/500/4.png'}]}]
+                }
+
+                reactor.callFromThread(self._on_all_matches_data, pre_parsed, req_offset)
+            except Exception as e:
+                log_diag("[AllMatches] Fetch error: " + str(e))
+                err_str = str(e)
+                is_dns = any(err in err_str for err in ("Name or service not known", "gaierror", "DNSLookupError"))
+                err_msg = "DNS Error: Please set Nameserver (8.8.8.8) in openVIX Network Menu" if is_dns else "Connection Error"
+                reactor.callFromThread(self._on_all_matches_error, req_offset, err_msg)
+
+        t = threading.Thread(target=_run)
+        t.daemon = True
+        t.start()
+
+    def _on_all_matches_data(self, pre_parsed, req_offset=None):
+        sentinel = self.ALL_MATCHES_SENTINEL
+        self.active_requests.discard(sentinel)
+
+        if req_offset is not None and req_offset != getattr(self, 'ch_day_offset', 0):
+            log_diag("[AllMatches] Discarded response from stale day offset {}".format(req_offset))
+            return
+
+        try:
+            events = pre_parsed.get('events', [])
+            snapshots = pre_parsed.get('snapshots', {})
+            ev_map = pre_parsed.get('event_map', {})
+
+            if snapshots and events:
+                self.cached_events = events
+                self.event_map = ev_map
+                self.match_snapshots = snapshots
+                self.status_message = ""
+                self.save_all_matches_cache()
+                self._trigger_callbacks(True, bypass_debounce=True)
+                live_count = sum(1 for s in snapshots.values() if s.get('state') == 'in')
+                if self.timer.isActive():
+                    self.timer.start(self._get_timer_interval(live_count), False)
+            else:
+                self.cached_events = []
+                self.event_map = {}
+                self.match_snapshots = {}
+                self.status_message = "No Matches Found"
+                self.save_all_matches_cache()
+                self._trigger_callbacks(True, bypass_debounce=True)
+        except Exception as e:
+            log_diag("[AllMatches] Process error: " + str(e))
+            if not getattr(self, 'cached_events', None):
+                self.status_message = "Connection Error"
+                self._trigger_callbacks(True)
+
+    def _on_all_matches_error(self, req_offset=None, error_msg=None):
+        sentinel = self.ALL_MATCHES_SENTINEL
+        self.active_requests.discard(sentinel)
+        if req_offset is not None and req_offset != getattr(self, 'ch_day_offset', 0):
+            return
+        if not getattr(self, 'cached_events', None):
+            self.status_message = error_msg or "Connection Error"
+            self._trigger_callbacks(True)
+        else:
+            log_diag("[AllMatches] Fetch error, keeping cached matches on screen.")
 
     @profile_function("SportsMonitor")
     def parse_incremental_json(self, body, league_name_fixed, league_url):
@@ -10099,6 +11151,37 @@ class SportsMonitor:
             print("[SimplySport] Error in evaluate_goals: {}".format(e))
 
     def process_events_data(self, data_list, single_league_name="", append_mode=False):
+        if getattr(self, 'is_all_matches_mode', False):
+            # In all matches mode, strictly accept ONLY ALL_MATCHES_SENTINEL data!
+            filtered_data = []
+            for item in data_list:
+                if isinstance(item, tuple):
+                    b, ln, lu = item
+                    if lu == self.ALL_MATCHES_SENTINEL:
+                        filtered_data.append(item)
+                elif single_league_name == "All Soccer Matches":
+                    filtered_data.append(item)
+            if not filtered_data:
+                log_diag("[process_events_data] Dropped non-all-matches data while in all_matches_mode")
+                return
+            data_list = filtered_data
+            append_mode = False
+        elif getattr(self, 'is_custom_mode', False):
+            append_mode = True
+        else:
+            # Single league mode: drop ALL_MATCHES_SENTINEL if it arrives here
+            filtered_data = []
+            for item in data_list:
+                if isinstance(item, tuple):
+                    b, ln, lu = item
+                    if lu != self.ALL_MATCHES_SENTINEL:
+                        filtered_data.append(item)
+                else:
+                    filtered_data.append(item)
+            if not filtered_data:
+                return
+            data_list = filtered_data
+
         self.processing_queue.append((data_list, single_league_name, append_mode))
         self.ensure_processing_active()
 
@@ -10122,16 +11205,17 @@ class SportsMonitor:
             self.lazy_processor = None
             self.processing_active = False
             
-            # Show incremental results with debouncing to prevent freezing the main thread
-            # Only bypass debounce if we had no cached events yet (initial launch) for immediate appearance
+            # During an active batch, only trigger intermediate callbacks on initial launch (when nothing is shown yet).
+            # If matches are already on screen, wait for finalize_batch() to prevent list shrinking/disappearing.
             is_initial = not self.cached_events or len(self.cached_events) == 0
-            self._trigger_callbacks(True, bypass_debounce=is_initial)
+            if not getattr(self, 'batch_is_active', False) or is_initial:
+                self._trigger_callbacks(True, bypass_debounce=is_initial)
             
             if not getattr(self, 'batch_is_active', False):
                 self.save_cache()
                 try:
                     live_count = sum(1 for ev in self.cached_events if ev.get('status', {}).get('type', {}).get('state', '') == 'in')
-                    if live_count > 0:
+                    if live_count > 0 and not getattr(self, 'is_all_matches_mode', False):
                         from twisted.internet import reactor
                         reactor.callLater(0.5, self.fetch_live_summaries)
                 except:
@@ -10147,8 +11231,8 @@ class SportsMonitor:
     def _run_lazy_process_events_data(self, data_list, single_league_name="", append_mode=False):
         self.last_update = time.time()
 
-        # Optimization: Clear map if not appending (fresh load)
-        if not append_mode:
+        # Optimization: Clear map if not appending (fresh load in single league mode only)
+        if not append_mode and not getattr(self, 'is_custom_mode', False):
             self.event_map = {}
 
         changed_events = []
@@ -10159,16 +11243,21 @@ class SportsMonitor:
                 if isinstance(item, tuple): body, l_name, l_url = item
                 else: body, l_name, l_url = item, single_league_name, ""
                 try:
-                    # Decompress gzip if ESPN CDN returned compressed response
-                    if body[:2] == b'\x1f\x8b':
-                        import gzip
-                        try:
-                            body = gzip.decompress(body)
-                        except Exception:
-                            import io
-                            body = gzip.GzipFile(fileobj=io.BytesIO(body)).read()
-                    json_str = body.decode('utf-8', errors='ignore')
-                    data = json.loads(json_str)
+                    # Support pre-parsed dict (from _on_all_matches_data) to skip
+                    # the expensive 800KB json.dumps→json.loads round-trip
+                    if isinstance(body, dict):
+                        data = body
+                    else:
+                        # Decompress gzip if ESPN CDN returned compressed response
+                        if body[:2] == b'\x1f\x8b':
+                            import gzip
+                            try:
+                                body = gzip.decompress(body)
+                            except Exception:
+                                import io
+                                body = gzip.GzipFile(fileobj=io.BytesIO(body)).read()
+                        json_str = body.decode('utf-8', errors='ignore')
+                        data = json.loads(json_str)
                     _leagues_list = data.get('leagues') or [{}]
                     league_obj = _leagues_list[0]
                     _league_logos = league_obj.get('logos') or [{}]
@@ -10179,14 +11268,21 @@ class SportsMonitor:
                     events = data.get('events', [])
                     league_seen_ids = set()
 
+
                     sport_type = get_sport_type(l_url)
 
                     for i, ev in enumerate(events):
-                        # Yield Enigma2 processor control every 20 events
-                        if i > 0 and i % 20 == 0: yield
+                        # Yield Enigma2 processor control periodically to stay responsive.
+                        # In all-matches mode use a larger batch (50) to reduce callLater
+                        # round-trips on the slow ARM CPU — only ~3 yields for 133 matches.
+                        _yield_every = 50 if l_url == self.ALL_MATCHES_SENTINEL else 20
+                        if i > 0 and i % _yield_every == 0: yield
 
-                        ev['league_name'] = league_name
-                        ev['league_url'] = l_url
+
+                        if not ev.get('league_name'):
+                            ev['league_name'] = league_name
+                        if not ev.get('league_url'):
+                            ev['league_url'] = l_url
 
                         current_batch = []
                         if sport_type == SPORT_TYPE_TENNIS:
@@ -10351,17 +11447,21 @@ class SportsMonitor:
                                 processed_ev['a_logo_id'] = sport_prefix + str(a_id) if a_id else ''
 
                                 # Pre-fetch logos for all events (cache warmup)
-                                if h_logo and h_id: self.prefetch_logo(h_logo, processed_ev['h_logo_id'])
-                                if a_logo and a_id: self.prefetch_logo(a_logo, processed_ev['a_logo_id'])
+                                if not getattr(self, 'is_all_matches_mode', False):
+                                    if h_logo and h_id: self.prefetch_logo(h_logo, processed_ev['h_logo_id'])
+                                    if a_logo and a_id: self.prefetch_logo(a_logo, processed_ev['a_logo_id'])
 
                                 processed_ev['h_logo_url'] = h_logo
                                 processed_ev['a_logo_url'] = a_logo
 
                             # League Logo ALWAYS assigned (Fixes Racing/Individual sports missing logos)
-                            processed_ev['l_logo_url'] = cur_l_logo
-                            processed_ev['l_logo_id'] = "league_" + cur_l_id if cur_l_id else ''
-                            if cur_l_logo and cur_l_id:
-                                self.prefetch_logo(cur_l_logo, processed_ev['l_logo_id'])
+                            if not processed_ev.get('l_logo_url'):
+                                processed_ev['l_logo_url'] = cur_l_logo
+                            if not processed_ev.get('l_logo_id'):
+                                processed_ev['l_logo_id'] = "league_" + cur_l_id if cur_l_id else ''
+                            if processed_ev.get('l_logo_url') and processed_ev.get('l_logo_id'):
+                                if not getattr(self, 'is_all_matches_mode', False):
+                                    self.prefetch_logo(processed_ev['l_logo_url'], processed_ev['l_logo_id'])
 
                             self.event_map[str(eid)] = processed_ev
                             if is_changed:
@@ -10370,21 +11470,28 @@ class SportsMonitor:
 
                     # REAPING Stability Fix: Remove entries for THIS specific league that were not in this response.
                     # This prevents matches from appearing/disappearing if unrelated requests fail/timeout.
-                    now_date = datetime.datetime.now().strftime("%Y-%m-%d")
-                    reap_keys = []
-                    for mid, ex_ev in self.event_map.items():
-                        if ex_ev.get('league_name') != league_name: continue
-                        if ex_ev.get('league_url') != l_url: continue
-                        if mid in league_seen_ids: continue
+                    if getattr(self, 'is_all_matches_mode', False):
+                        if l_url == self.ALL_MATCHES_SENTINEL:
+                            reap_keys = [mid for mid in self.event_map if mid not in league_seen_ids]
+                            for rk in reap_keys:
+                                if rk in self.event_map: del self.event_map[rk]
+                            if reap_keys: has_changes = True
+                    else:
+                        now_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                        reap_keys = []
+                        for mid, ex_ev in self.event_map.items():
+                            if ex_ev.get('league_name') != league_name: continue
+                            if ex_ev.get('league_url') != l_url: continue
+                            if mid in league_seen_ids: continue
 
-                        ex_state = ex_ev.get('status', {}).get('type', {}).get('state', 'pre')
-                        ex_date  = ex_ev.get('date', '')[:10]
-                        if ex_state == 'pre' and ex_date > now_date:
-                            continue # Keep tomorrow's matches
-                        reap_keys.append(mid)
-                    for rk in reap_keys:
-                        if rk in self.event_map: del self.event_map[rk]
-                    if reap_keys: has_changes = True
+                            ex_state = ex_ev.get('status', {}).get('type', {}).get('state', 'pre')
+                            ex_date  = ex_ev.get('date', '')[:10]
+                            if ex_state == 'pre' and ex_date > now_date:
+                                continue # Keep tomorrow's matches
+                            reap_keys.append(mid)
+                        for rk in reap_keys:
+                            if rk in self.event_map: del self.event_map[rk]
+                        if reap_keys: has_changes = True
                 except Exception as _proc_e:
                     body_len = len(body) if body else 0
                     body_full = repr(body[:500]) if body else 'None'
@@ -10440,10 +11547,15 @@ class SportsMonitor:
                 # TRIGGER: Evaluate goals IMMEDIATELY after snapshots are built
                 self.evaluate_goals()
                 log_dbg("SNAPSHOTS: Full rebuild \u2014 {} snapshots".format(len(self.match_snapshots)))
+                if getattr(self, 'is_all_matches_mode', False):
+                    self.save_all_matches_cache()
 
             # Only set status message if there's an actual issue (no matches)
             if len(self.cached_events) == 0:
-                self.status_message = "No Matches Found"
+                if getattr(self, 'batch_is_active', False) or len(getattr(self, 'active_requests', set())) > 0:
+                    self.status_message = "Loading Data..."
+                else:
+                    self.status_message = "No Matches Found"
             else:
                 # Clear any stale error (e.g. "JSON Parse Error") from a previous failed fetch
                 # so it doesn't bleed through to the empty-filter-result display path in refresh_ui
@@ -10458,8 +11570,8 @@ class SportsMonitor:
                 live_count = 0
                 now = time.time()
                 for i, event in enumerate(unique_list):
-                    # Yield Enigma2 processor control every 10 parsed events
-                    if i > 0 and i % 10 == 0: yield
+                    # Yield Enigma2 processor control every 10 parsed events (only if not in all_matches_mode)
+                    if not getattr(self, 'is_all_matches_mode', False) and i > 0 and i % 10 == 0: yield
 
                     status = event.get('status', {})
                     state = status.get('type', {}).get('state', 'pre')
@@ -23112,6 +24224,260 @@ TEAM_TRANSLATIONS_AR = {
     "Lausanne Sports": u"لوزان سبورت",
     "Shelbourne": u"شيلبورن",
     "Red Bull New York": u"نيويورك ريد بولز",
+
+    # ── International & Nations League ─────────────────────────────────────
+    "Bosnia-Herz": u"البوسنة والهرسك",
+    "Rep Ireland": u"جمهورية أيرلندا",
+    "N Ireland": u"أيرلندا الشمالية",
+    "Bonaire": u"بونير",
+    "Martinique": u"مارتينيك",
+    "Guadeloupe": u"غوادلوب",
+    "St. Kitts and Nevis": u"سانت كيتس ونيفيس",
+    "St Kitts & Nevis": u"سانت كيتس ونيفيس",
+    "Saint Kitts and Nevis": u"سانت كيتس ونيفيس",
+    "St. Lucia": u"سانت لوسيا",
+    "St Lucia": u"سانت لوسيا",
+    "Saint Lucia": u"سانت لوسيا",
+    "French Guiana": u"غيانا الفرنسية",
+    "Sint Maarten": u"سينت مارتن",
+    "St. Martin": u"سانت مارتن",
+    "St. Vincent and the Grenadines": u"سانت فنسنت والغرينادين",
+    "Saint Vincent and the Grenadines": u"سانت فنسنت والغرينادين",
+
+    # ── Scottish & European Clubs ──────────────────────────────────────────
+    "Ayr": u"آير يونايتد",
+    "Ayr United": u"آير يونايتد",
+    "Raith": u"ريث روفرز",
+    "Raith Rovers": u"ريث روفرز",
+    "Stenhousem'r": u"ستينهاوسمور",
+    "Stenhousemuir": u"ستينهاوسمور",
+    "Spartans": u"سبارتانز",
+    "Spartans FC": u"سبارتانز",
+    "FK Gornji Rahic": u"غورنيي راهيتش",
+    "Gornji Rahic": u"غورنيي راهيتش",
+    "Neuchatel Xamax": u"نوشاتيل زاماكس",
+    "Xamax": u"نوشاتيل زاماكس",
+    "Oakleigh Cannons FC": u"أوكلي كانونز",
+    "Oakleigh Cannons": u"أوكلي كانونز",
+    "Oakleigh": u"أوكلي كانونز",
+
+    # ── South American & Mexican Clubs ────────────────────────────────────
+    "Ameliano": u"سبورتيفو أمليانو",
+    "Sportivo Ameliano": u"سبورتيفو أمليانو",
+    "Luqueño": u"سبورتيفو لوكينيو",
+    "Sportivo Luqueño": u"سبورتيفو لوكينيو",
+    "Pasto": u"ديبورتيفو باستو",
+    "Deportivo Pasto": u"ديبورتيفو باستو",
+    "Unión": u"يونيون",
+    "Unión Magdalena": u"يونيون ماغدالينا",
+    "Union Magdalena": u"يونيون ماغدالينا",
+    "N Potosí": u"ناسيونال بوتوسي",
+    "Nacional Potosí": u"ناسيونال بوتوسي",
+    "Real Potosí": u"ريال بوتوسي",
+    "Real Potosi": u"ريال بوتوسي",
+    "San Antonio Bulo Bulo": u"سان أنطونيو بولو بولو",
+    "Bulo Bulo": u"سان أنطونيو بولو بولو",
+    "São Bernardo": u"ساو برناردو",
+    "Sao Bernardo": u"ساو برناردو",
+    "Def. Unidos": u"ديفينسوريس أونيدوس",
+    "Defensores Unidos": u"ديفينسوريس أونيدوس",
+    "Excursionist": u"إكسكورسيونيستاس",
+    "Excursionistas": u"إكسكورسيونيستاس",
+    "Ituzaingó": u"إيتوزاينغو",
+    "Ituzaingo": u"إيتوزاينغو",
+    "Real Pilar": u"ريال بيلار",
+    "Boyacá Chicó FC": u"بوياكا تشيكو",
+    "Boyacá Chicó": u"بوياكا تشيكو",
+    "Chicó FC": u"بوياكا تشيكو",
+    "Chico FC": u"بوياكا تشيكو",
+    "Club Jaiba Brava": u"خايبا برافا",
+    "Jaiba Brava": u"خايبا برافا",
+    "Correcaminos UAT": u"كوريكامينوس",
+    "Correcaminos": u"كوريكامينوس",
+    "Alebrijes de Oaxaca": u"أليبريخيس دي أوخاكا",
+    "Alebrijes Oaxaca": u"أليبريخيس دي أوخاكا",
+    "Club Atlético La Paz": u"أتلتيكو لا باز",
+    "CA La Paz": u"أتلتيكو لا باز",
+    "Mineros de Zacatecas": u"مينيروس دي زاكاتيكاس",
+    "CD Mineros": u"مينيروس دي زاكاتيكاس",
+    "ABB": u"إيه بي بي",
+    "Deportes Santa Cruz": u"ديبورتيس سانتا كروز",
+    "Everton CD": u"إيفرتون دي فينيا",
+    "Suchitepequez": u"سوشيتيبيكيز",
+    "Suchitepeque": u"سوشيتيبيكيز",
+
+    # ── USL & NWSL ────────────────────────────────────────────────────────
+    "Boston Legacy FC": u"بوسطن ليغاسي",
+    "Boston": u"بوسطن",
+    "Chicago Stars FC": u"شيكاغو ستارز",
+    "Chicago": u"شيكاغو",
+    "Dallas Trinity FC": u"دالاس ترينيتي",
+    "Dallas": u"دالاس",
+    "El Paso Locomotive FC": u"إل باسو لوكوموتيف",
+    "El Paso Locomotive": u"إل باسو لوكوموتيف",
+    "El Paso": u"إل باسو لوكوموتيف",
+    "FC Tulsa": u"إف سي تولسا",
+    "Tulsa": u"إف سي تولسا",
+    "Gotham FC": u"غوثام إف سي",
+    "Gotham": u"غوثام إف سي",
+    "Hartford Athletic": u"هارتفورد أثلتيك",
+    "Hartford": u"هارتفورد أثلتيك",
+    "Lexington SC": u"ليكسينغتون",
+    "Lexington": u"ليكسينغتون",
+    "Loudoun United FC": u"لودون يونايتد",
+    "Loudoun United": u"لودون يونايتد",
+    "Loudoun": u"لودون يونايتد",
+    "Louisville City FC": u"لويفيل سيتي",
+    "Louisville City": u"لويفيل سيتي",
+    "Racing Louisville FC": u"ريسينغ لويفيل",
+    "Racing Louisville": u"ريسينغ لويفيل",
+    "San Diego Wave FC": u"سان دييغو ويف",
+    "San Diego Wave": u"سان دييغو ويف",
+    "Seattle Reign FC": u"سياتل رين",
+    "Seattle Reign": u"سياتل رين",
+    "Seattle": u"سياتل رين",
+    "Sporting JAX": u"سبورتينغ جاكس",
+    "Angel City FC": u"أنجل سيتي",
+    "Denver Summit FC": u"دنفر ساميت",
+    "Houston Dash": u"هيوستن داش",
+    "Kansas City Current": u"كانساس سيتي كارنت",
+    "Portland Thorns FC": u"بورتلاند ثورنز",
+    "Washington Spirit": u"واشنطن سبيريت",
+    "London City Lionesses": u"لندن سيتي لايونيسز",
+    "Madrid CFF": u"مدريد سي إف إف",
+    "Dux Logroño": u"دوكس لوغرونيو",
+    "Dux Logrono": u"دوكس لوغرونيو",
+
+    # ── NCAA Colleges ─────────────────────────────────────────────────────
+    "Akron Zips": u"أكرون",
+    "Akron": u"أكرون",
+    "Belmont Bruins": u"بيلمونت",
+    "Belmont": u"بيلمونت",
+    "Boise State Broncos": u"بويسي ستيت",
+    "Boise State": u"بويسي ستيت",
+    "Boise St": u"بويسي ستيت",
+    "Boston College Eagles": u"بوسطن كوليدج",
+    "Boston College": u"بوسطن كوليدج",
+    "Bowling Green Falcons": u"بولينغ غرين",
+    "Bowling Green": u"بولينغ غرين",
+    "Bradley Braves": u"برادلي",
+    "Bradley": u"برادلي",
+    "Cal Poly Mustangs": u"كال بولي",
+    "Cal Poly": u"كال بولي",
+    "California Golden Bears": u"كاليفورنيا",
+    "California": u"كاليفورنيا",
+    "Clemson Tigers": u"كليمسون",
+    "Clemson": u"كليمسون",
+    "Colorado State Rams": u"كولورادو ستيت",
+    "Colorado State": u"كولورادو ستيت",
+    "Colorado St": u"كولورادو ستيت",
+    "Duke Blue Devils": u"ديوك",
+    "Duke": u"ديوك",
+    "East Tennessee State Buccaneers": u"إيست تينيسي ستيت",
+    "East Tennessee State": u"إيست تينيسي ستيت",
+    "ETSU": u"إيست تينيسي ستيت",
+    "Eastern Washington Eagles": u"إيسترن واشنطن",
+    "Eastern Washington": u"إيسترن واشنطن",
+    "E Washington": u"إيسترن واشنطن",
+    "Elon Phoenix": u"إيلون",
+    "Elon": u"إيلون",
+    "Florida International Panthers": u"فلوريدا إنترناشيونال",
+    "Florida International": u"فلوريدا إنترناشيونال",
+    "FIU": u"فلوريدا إنترناشيونال",
+    "George Mason Patriots": u"جورج ميسون",
+    "George Mason": u"جورج ميسون",
+    "Georgetown Hoyas": u"جورج تاون",
+    "Georgetown": u"جورج تاون",
+    "Gonzaga Bulldogs": u"غونزاغا",
+    "Gonzaga": u"غونزاغا",
+    "Guilford": u"غيلفورد",
+    "High Point Panthers": u"هاي بوينت",
+    "High Point": u"هاي بوينت",
+    "Idaho Vandals": u"أيداهو",
+    "Idaho": u"أيداهو",
+    "Indiana Hoosiers": u"إنديانا",
+    "Indiana": u"إنديانا",
+    "Louisville Cardinals": u"لويفيل",
+    "Louisville": u"لويفيل",
+    "Maryland Terrapins": u"ماريلاند",
+    "Maryland": u"ماريلاند",
+    "Memphis Tigers": u"ممفيس",
+    "Memphis": u"ممفيس",
+    "Mercer Bears": u"ميرسر",
+    "Mercer": u"ميرسر",
+    "Michigan State Spartans": u"ميشيغان ستيت",
+    "Michigan State": u"ميشيغان ستيت",
+    "Michigan St": u"ميشيغان ستيت",
+    "Michigan Wolverines": u"ميشيغان",
+    "Michigan": u"ميشيغان",
+    "NC State Wolfpack": u"نورث كارولينا ستيت",
+    "NC State": u"نورث كارولينا ستيت",
+    "North Carolina Tar Heels": u"نورث كارولينا",
+    "North Carolina": u"نورث كارولينا",
+    "Northern Colorado Bears": u"نورثرن كولورادو",
+    "Northern Colorado": u"نورثرن كولورادو",
+    "N Colorado": u"نورثرن كولورادو",
+    "Northwestern Wildcats": u"نورث وسترن",
+    "Northwestern": u"نورث وسترن",
+    "Notre Dame Fighting Irish": u"نوتردام",
+    "Notre Dame": u"نوتردام",
+    "Ohio State Buckeyes": u"أوهايو ستيت",
+    "Ohio State": u"أوهايو ستيت",
+    "Oregon State Beavers": u"أوريغون ستيت",
+    "Oregon State": u"أوريغون ستيت",
+    "Oregon St": u"أوريغون ستيت",
+    "Pacific Tigers": u"باسيفيك",
+    "Penn State Nittany Lions": u"بن ستيت",
+    "Penn State": u"بن ستيت",
+    "Pittsburgh Panthers": u"بيتسبرغ",
+    "Pittsburgh": u"بيتسبرغ",
+    "Pitt": u"بيتسبرغ",
+    "Rutgers Scarlet Knights": u"روتجرز",
+    "Rutgers": u"روتجرز",
+    "SMU Mustangs": u"إس إم يو",
+    "SMU": u"إس إم يو",
+    "Samford Bulldogs": u"سامفورد",
+    "Samford": u"سامفورد",
+    "St. Thomas Tommies": u"سانت توماس",
+    "St. Thomas": u"سانت توماس",
+    "St Thomas": u"سانت توماس",
+    "Stanford Cardinal": u"ستانفورد",
+    "Stanford": u"ستانفورد",
+    "Syracuse Orange": u"سيراكيوز",
+    "Syracuse": u"سيراكيوز",
+    "Tennessee Tech Golden Eagles": u"تينيسي تيك",
+    "Tennessee Tech": u"تينيسي تيك",
+    "Toledo Rockets": u"توليدو",
+    "UC Santa Barbara Gauchos": u"سانتا باربرا",
+    "UC Santa Barbara": u"سانتا باربرا",
+    "Santa Barbara": u"سانتا باربرا",
+    "UCLA Bruins": u"يو سي إل إيه",
+    "UCLA": u"يو سي إل إيه",
+    "UConn Huskies": u"يوكون",
+    "UConn": u"يوكون",
+    "UIC Flames": u"يو آي سي",
+    "UIC": u"يو آي سي",
+    "Vermont Catamounts": u"فيرمونت",
+    "Vermont": u"فيرمونت",
+    "Virginia Cavaliers": u"فرجينيا",
+    "Virginia": u"فرجينيا",
+    "Wake Forest Demon Deacons": u"ويك فورست",
+    "Wake Forest": u"ويك فورست",
+    "Washington Huskies": u"واشنطن",
+    "Washington": u"واشنطن",
+    "Weber State Wildcats": u"ويبر ستيت",
+    "Weber State": u"ويبر ستيت",
+    "Weber St": u"ويبر ستيت",
+    "Western Carolina Catamounts": u"ويسترن كارولينا",
+    "Western Carolina": u"ويسترن كارولينا",
+    "W Carolina": u"ويسترن كارولينا",
+    "Western Michigan Broncos": u"ويسترن ميشيغان",
+    "Western Michigan": u"ويسترن ميشيغان",
+    "W Michigan": u"ويسترن ميشيغان",
+    "Wisconsin Badgers": u"ويسكونسن",
+    "Wisconsin": u"ويسكونسن",
+    "Wofford Terriers": u"ووفورد",
+    "Wofford": u"ووفورد",
 }
 
 _TEAM_NAME_CACHE = {}
@@ -24708,7 +26074,11 @@ class SimpleSportsMiniBar2(Screen):
         for event in events:
             snap = global_sports_monitor.match_snapshots.get(str(event.get('id', '')))
             if not snap: continue
-            if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
+            if getattr(global_sports_monitor, 'is_all_matches_mode', False):
+                if mode == 1 and snap.get('state') != 'in': continue
+            else:
+                if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
+
 
             # Racing events (>2 competitors) -- use event shortName
             comps = event.get('competitions', [{}])[0].get('competitors', [])
@@ -25452,7 +26822,11 @@ class SimpleSportsMiniBar(Screen):
         for event in events:
             snap = global_sports_monitor.match_snapshots.get(str(event.get('id', '')))
             if not snap: continue
-            if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
+            if getattr(global_sports_monitor, 'is_all_matches_mode', False):
+                if mode == 1 and snap.get('state') != 'in': continue
+            else:
+                if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
+
 
             # Racing events (>2 competitors) -- use event shortName
             comps = event.get('competitions', [{}])[0].get('competitors', [])
@@ -28767,6 +30141,7 @@ class SimpleSportsScreen(Screen):
                 {bar}
                 <widget name="league_title" position="50,75" size="500,35" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="{c_bar}" transparent="1" halign="left" zPosition="1" />
                 <widget name="list_title" position="0,75" size="1920,35" font="SimplySportFont;28" foregroundColor="{fg_ls}" backgroundColor="{c_bar}" transparent="1" halign="center" zPosition="1" />
+                <widget name="screen_info" position="400,105" size="1120,20" font="SimplySportFont;16" foregroundColor="#c9a020" backgroundColor="{c_bar}" transparent="1" halign="center" zPosition="2" />
                 {header}
                 <widget name="head_status" position="30,125" size="80,30" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="1" />
                 <widget name="head_home" position="110,125" size="660,30" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="1" />
@@ -28850,6 +30225,7 @@ class SimpleSportsScreen(Screen):
 
                 <widget name="list_title" position="620,20" size="680,36" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
                 <widget name="live_indicator" position="620,58" size="680,24" font="SimplySportFont;18" foregroundColor="#00C853" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
+                <widget name="screen_info" position="560,84" size="800,26" font="SimplySportFont;16" foregroundColor="#00D9FF" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
 
                 {badge_alert_bg}
                 {badge_bell_icon}
@@ -28902,6 +30278,7 @@ class SimpleSportsScreen(Screen):
         self["badge_bell_icon"] = Pixmap(); self["badge_ai_icon"] = Pixmap(); self["badge_refresh_icon"] = Pixmap()
         self["badge_alert"] = Label(""); self["badge_ai"] = Label(""); self["badge_updated"] = Label("")
         self["live_indicator"] = Label("")
+        self["screen_info"] = Label("")
         self["main_bg_photo"] = Pixmap(); self["main_bg_texture"] = Pixmap()
         self["nav_glow"] = Pixmap()
         self._glow_idx = None    # last known selected index the glow overlay is tracking
@@ -28923,6 +30300,7 @@ class SimpleSportsScreen(Screen):
         self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Livescore.cz")); self["key_blue"] = Label(_t("Watch Party"))
         self["key_epg"] = Label(_t("Info/EPG: Channels"))
         self["key_ch"] = Label(_t("< > / << >> Browse Days"))
+        self["list"].onSelectionChanged.append(self.on_selection_changed)
 
         if self.is_vnext_theme:
             # Load the static pixmap assets generated for the vNext theme. Missing
@@ -29008,10 +30386,13 @@ class SimpleSportsScreen(Screen):
         total = len(list_content)
         self.current_match_ids = new_match_ids
         self._reset_selection_glow()
-        if total <= 1:
+        # In all-matches mode the user already waited for the network — skip the
+        # stagger animation so all 130+ rows appear at once for the fastest first-paint.
+        if total <= 1 or getattr(self.monitor, 'is_all_matches_mode', False) or getattr(self, 'is_alternative_view', False):
             self["list"].setList(list_content)
             self._finish_stagger_cursor(new_match_ids, selected_id)
             return
+
 
         self._stagger_content = list_content
         self._stagger_ids = new_match_ids
@@ -29053,6 +30434,7 @@ class SimpleSportsScreen(Screen):
             except ValueError:
                 pass
         self.update_blue_button()
+        self.update_screen_info()
 
     def _nav_up(self):
         self._reset_idle_hint()
@@ -29060,6 +30442,7 @@ class SimpleSportsScreen(Screen):
         self["list"].up()
         self._update_selection_glow(old_idx, self["list"].getSelectedIndex())
         self.update_blue_button()
+        self.update_screen_info()
 
     def _nav_down(self):
         self._reset_idle_hint()
@@ -29067,6 +30450,14 @@ class SimpleSportsScreen(Screen):
         self["list"].down()
         self._update_selection_glow(old_idx, self["list"].getSelectedIndex())
         self.update_blue_button()
+        self.update_screen_info()
+
+    def on_selection_changed(self):
+        try:
+            self.update_blue_button()
+            self.update_screen_info()
+        except Exception:
+            pass
 
     # --- Sliding selection glow ---
     # eListboxPythonMultiContent has no notion of animating between two rows -
@@ -29384,9 +30775,12 @@ class SimpleSportsScreen(Screen):
         self.update_clock()  # Initial clock update
         # ENSURE: single_shot=False (2nd param) for repeating update
         self.clock_timer.start(1000, False)  # Update every second
-        # Clear list immediately to prevent stale cache flash from previous session
-        self["list"].setList([])
-        self["list_title"].setText("Loading...")
+        # Immediately render cached events so matches are visible from the first frame
+        if self.monitor.cached_events:
+            self.refresh_ui(True)
+        else:
+            self["list"].setList([])
+            self["list_title"].setText("Loading...")
         self.update_top_status()
         self.update_header(); self.update_filter_button(); self._update_ch_hint(); self.fetch_data()
         try:
@@ -29524,9 +30918,178 @@ class SimpleSportsScreen(Screen):
         except Exception:
             pass
 
+    def update_screen_info(self, override_msg=None):
+        """
+        Display dynamic operational and navigation status at the top of the UI
+        below live_indicator, showing what the plugin is doing when opening,
+        fetching, or navigating the main and alternative screens.
+        """
+        try:
+            if override_msg is not None:
+                self["screen_info"].setText(override_msg)
+                return
+
+            # 1. Operational status: Check if fetching / loading data
+            is_fetch_in_progress = (
+                getattr(self.monitor, 'batch_is_active', False) or
+                len(getattr(self.monitor, 'active_requests', set())) > 0 or
+                getattr(self.monitor, 'processing_active', False) or
+                is_loading_status(self.monitor.status_message)
+            )
+
+            is_alt = getattr(self, 'is_alternative_view', False) or getattr(self.monitor, 'is_all_matches_mode', False)
+
+            if is_fetch_in_progress:
+                if is_alt:
+                    msg = _t("Loading all today's soccer matches worldwide (50+ leagues)...")
+                elif getattr(self.monitor, 'ch_day_offset', 0) != 0:
+                    offset = self.monitor.ch_day_offset
+                    target = datetime.date.today() + datetime.timedelta(days=offset)
+                    day_name = _t(target.strftime("%A"))
+                    day_num = target.strftime("%d")
+                    month_name = _t(target.strftime("%B"))
+                    if PLUGIN_LANGUAGE == "ar":
+                        d_txt = u"{} {} {}".format(day_name, day_num, month_name)
+                    else:
+                        d_txt = u"{}, {} {}".format(day_name[:3], day_num, month_name[:3])
+                    tmpl = _t("Loading matches for %s...")
+                    msg = (tmpl % d_txt) if "%s" in tmpl else (tmpl + u" (" + d_txt + u")")
+                elif self.monitor.is_custom_mode:
+                    cnt = len(self.monitor.custom_league_indices)
+                    tmpl = _t("Loading Custom Leagues (%d leagues)...")
+                    msg = (tmpl % cnt) if "%d" in tmpl else tmpl
+                elif self.monitor.is_favorite_mode:
+                    msg = _t("Loading Favorite Leagues...")
+                else:
+                    try:
+                        item = DATA_SOURCES[self.monitor.current_league_index]
+                        lname = _league_name(item[0])
+                    except:
+                        lname = ""
+                    tmpl = _t("Loading %s...")
+                    msg = (tmpl % lname) if lname and "%s" in tmpl else _t("Loading matches...")
+                self["screen_info"].setText(msg)
+                return
+
+            # 2. Navigation status: check current selection in list
+            idx = self["list"].getSelectedIndex()
+            if idx is not None and 0 <= idx < len(self.current_match_ids):
+                mid = self.current_match_ids[idx]
+                if mid == "__nav_all_matches__":
+                    msg = _t("Global Soccer: Press OK to browse all matches worldwide across 50+ leagues")
+                    self["screen_info"].setText(msg)
+                    return
+                elif mid == "__nav_return_main__":
+                    msg = _t("Press OK or RED to return to your Custom/Favorite leagues")
+                    self["screen_info"].setText(msg)
+                    return
+                elif mid == "__info__":
+                    msg = self.monitor.status_message or _t("No Matches Found")
+                    self["screen_info"].setText(msg)
+                    return
+                elif str(mid).startswith("__league_header__"):
+                    header_league_name = str(mid).replace("__league_header__", "")
+                    msg = u"\u26bd {}".format(_league_name(header_league_name))
+                    self["screen_info"].setText(msg)
+                    return
+                else:
+                    snap = self.monitor.match_snapshots.get(mid)
+                    event = self.monitor.event_map.get(mid)
+                    if not snap and event:
+                        snap = build_match_snapshot(event)
+                    if snap:
+                        raw_league = snap.get('league_name', '')
+                        if not raw_league and event:
+                            raw_league = event.get('league_name', '')
+                        league_disp = _league_name(raw_league) if raw_league else ""
+
+                        stage = snap.get('stage_label', '')
+                        venue_name = ""
+                        tv_channel = ""
+                        if event:
+                            try:
+                                comp0 = event.get('competitions', [{}])[0]
+                                venue = comp0.get('venue', {})
+                                venue_name = venue.get('fullName', '')
+                                addr = venue.get('address', {})
+                                city = addr.get('city', '')
+                                if city and venue_name:
+                                    venue_name = u"{}, {}".format(venue_name, city)
+                                broadcasts = comp0.get('broadcasts', [])
+                                if broadcasts and isinstance(broadcasts, list):
+                                    b_names = [b.get('names', [''])[0] for b in broadcasts if b.get('names')]
+                                    if b_names and b_names[0]:
+                                        tv_channel = b_names[0]
+                            except:
+                                pass
+
+                        state = snap.get('state', '')
+                        clock = snap.get('clock', '')
+                        if state == 'in':
+                            status_desc = u"{} {}".format(_t("LIVE"), clock) if clock else _t("LIVE")
+                        elif state == 'post':
+                            status_desc = _t("Full Time")
+                        else:
+                            time_s = snap.get('time_str', '')
+                            status_desc = u"{} {}".format(_t("Starts"), time_s) if time_s else _t("Scheduled")
+
+                        parts = []
+                        if league_disp:
+                            parts.append(league_disp)
+                        if stage and stage != league_disp and stage != 'FIFA WORLD CUP':
+                            parts.append(_t(stage))
+                        if status_desc:
+                            parts.append(status_desc)
+                        if venue_name:
+                            parts.append(venue_name)
+                        if tv_channel:
+                            parts.append(tv_channel)
+
+                        if parts:
+                            msg = u"  \u2022  ".join(parts)
+                        else:
+                            msg = u"{} vs {}".format(snap.get('h_name_disp', ''), snap.get('a_name_disp', ''))
+                        self["screen_info"].setText(msg)
+                        return
+
+            # 3. Idle / fallback status
+            if is_alt:
+                msg = _t("Global Soccer Today \u2022 50+ Leagues Worldwide \u2022 Press RED to Return")
+            elif self.monitor.is_custom_mode:
+                msg = _t("Custom Leagues View \u2022 Press OK for Match Details \u2022 RED for Leagues")
+            elif self.monitor.is_favorite_mode:
+                msg = _t("Favorite Leagues View \u2022 Press OK for Match Details \u2022 RED for Leagues")
+            else:
+                try:
+                    item = DATA_SOURCES[self.monitor.current_league_index]
+                    lname = _league_name(item[0])
+                except:
+                    lname = ""
+                tmpl = _t("%s View \u2022 Press OK for Match Details \u2022 RED for Leagues")
+                msg = (tmpl % lname) if lname and "%s" in tmpl else _t("Press OK for Match Details \u2022 RED for Leagues")
+            self["screen_info"].setText(msg)
+        except Exception:
+            pass
+
+    def is_racing_mode(self):
+        """Returns True ONLY when single-league mode is active for a racing competition (e.g. F1, MotoGP)."""
+        if getattr(self, 'is_alternative_view', False) or getattr(self.monitor, 'is_all_matches_mode', False):
+            return False
+        if getattr(self.monitor, 'is_custom_mode', False) or getattr(self.monitor, 'is_favorite_mode', False):
+            return False
+        try:
+            c_idx = getattr(self.monitor, 'current_league_index', -1)
+            if 0 <= c_idx < len(DATA_SOURCES):
+                return get_sport_type(DATA_SOURCES[c_idx][1]) == SPORT_TYPE_RACING
+        except Exception:
+            pass
+        return False
+
     # ... (Keep Header, Filter, Download helpers unchanged) ...
     def update_header(self, count=None, count_live=0, count_fin=0, count_sch=0):
-        if self.monitor.is_favorite_mode: self["league_title"].setText(_t("Favorite League View"))
+        if getattr(self, 'is_alternative_view', False) or getattr(self.monitor, 'is_all_matches_mode', False):
+            self["league_title"].setText(_t("Global Soccer Today"))
+        elif self.monitor.is_favorite_mode: self["league_title"].setText(_t("Favorite League View"))
         elif self.monitor.is_custom_mode: self["league_title"].setText(_t("Custom League View"))
         else:
             try: item = DATA_SOURCES[self.monitor.current_league_index]; self["league_title"].setText(_league_name(item[0]))
@@ -29593,19 +31156,17 @@ class SimpleSportsScreen(Screen):
                 self["live_indicator"].setText("")
         except Exception:
             pass
-        # Green button: show 'Driver Position' for racing, 'Mini Bar' otherwise
+        # Green button: show 'Driver Position' for racing in single-league mode, 'Mini Bar' otherwise
         try:
-            if not self.monitor.is_custom_mode:
-                url = DATA_SOURCES[self.monitor.current_league_index][1]
-                if get_sport_type(url) == SPORT_TYPE_RACING:
-                    self["key_green"].setText(_t("Driver Position"))
-                else:
-                    self["key_green"].setText(_t("Mini Bar"))
+            if self.is_racing_mode():
+                self["key_green"].setText(_t("Driver Position"))
             else:
                 self["key_green"].setText(_t("Mini Bar"))
-        except: self["key_green"].setText(_t("Mini Bar"))
+        except Exception:
+            self["key_green"].setText(_t("Mini Bar"))
         self.update_blue_button()
         self.update_top_status()
+        self.update_screen_info()
 
     def update_blue_button(self):
         try:
@@ -29637,6 +31198,7 @@ class SimpleSportsScreen(Screen):
         self.update_header()
 
     def fetch_data(self):
+        self.update_screen_info()
         self.monitor.check_goals(from_ui=True)
 
     @profile_function("SimpleSportsScreen")
@@ -30155,17 +31717,54 @@ class SimpleSportsScreen(Screen):
         new_match_ids = []
         # ----------------------------------------
 
+        is_fetch_in_progress = (
+            getattr(self.monitor, 'batch_is_active', False) or
+            len(getattr(self.monitor, 'active_requests', set())) > 0 or
+            getattr(self.monitor, 'processing_active', False) or
+            is_loading_status(self.monitor.status_message)
+        )
+
+        is_all_mode = getattr(self.monitor, 'is_all_matches_mode', False) or getattr(self, 'is_alternative_view', False)
+        if is_all_mode:
+            nav_entry = (
+                "NAV_CARD",
+                _t("LEAGUES"),
+                _t("Return to My Leagues"),
+                _t("RETURN ➔"),
+                _t("Switch back to your custom/favorite leagues"),
+                "", False, False, None, None, 0, 0
+            )
+            nav_id = "__nav_return_main__"
+        else:
+            nav_entry = (
+                "NAV_CARD",
+                _t("GLOBAL"),
+                _t("All Today's Matches (Global Soccer)"),
+                _t("EXPLORE ➔"),
+                _t("Browse worldwide soccer schedule across 50+ leagues"),
+                "", False, False, None, None, 0, 0
+            )
+            nav_id = "__nav_all_matches__"
+
         if not events:
             # If we already have matches and loading is in progress, keep old list to avoid flicker
-            if self.current_match_ids and is_loading_status(self.monitor.status_message):
+            if self.current_match_ids and is_fetch_in_progress:
                 log_diag("REFRESH_UI: SKIPPED (loading in progress, keeping old data)")
                 return
             log_diag("REFRESH_UI: No events - showing '{}'".format(self.monitor.status_message or 'No Matches Found'))
-            msg = self.monitor.status_message or "No Matches Found"
+            _raw_status = self.monitor.status_message or ""
+            msg = _t(_raw_status) if _raw_status else _t("No Matches Found")
             dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0, False, 0x202020, "")
-            if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
-            else: self["list"].setList([VNextListEntry(dummy_entry)])
-            self.current_match_ids = []
+            empty_list = []
+            if self.monitor.theme_mode == "ucl":
+                empty_list.append(UCLListEntry(nav_entry))
+                empty_list.append(UCLListEntry(dummy_entry))
+            else:
+                empty_list.append(VNextListEntry(nav_entry))
+                empty_list.append(VNextListEntry(dummy_entry))
+            self["list"].setList(empty_list)
+            self.current_match_ids = [nav_id, "__info__"]
+            self.update_screen_info()
             return
 
         mode = 2 if self.monitor.ch_day_offset != 0 else self.monitor.filter_mode
@@ -30183,11 +31782,16 @@ class SimpleSportsScreen(Screen):
         for event in events:
             try:
                 snap = self.monitor.match_snapshots.get(str(event.get('id', '')))
-                if not snap: continue
-                if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
+                if not snap:
+                    continue
+                if getattr(self.monitor, 'is_all_matches_mode', False):
+                    if mode == 1 and snap.get('state') != 'in': continue
+                else:
+                    if not snapshot_passes_filter(snap, mode, today_str, tomorrow_str, yesterday_str): continue
 
-                # Racing: Only show in single-league mode, skip in custom/multi-league
-                if snap['sport_type'] == SPORT_TYPE_RACING and self.monitor.is_custom_mode: continue
+
+                # Racing: Only show in single-league mode, skip in custom/multi-league/all-matches
+                if snap['sport_type'] == SPORT_TYPE_RACING and (self.monitor.is_custom_mode or getattr(self.monitor, 'is_all_matches_mode', False) or getattr(self, 'is_alternative_view', False)): continue
 
                 # Logo paths from shared cache
                 h_png = self.get_logo_path(snap['h_logo_url'], snap['h_logo_id'])
@@ -30316,9 +31920,9 @@ class SimpleSportsScreen(Screen):
                         # Convert back to hex
                         c_score_bg = (r << 16) | (g << 8) | b
 
-                # --- ESPN game-prediction lookup (scheduled matches only) ---
+                # --- ESPN game-prediction lookup (scheduled matches only, skip in All Matches mode) ---
                 h_pred_pct = 0.0; a_pred_pct = 0.0; pred_is_estimate = 0
-                if status_short not in ("LIVE", "FIN", "PPD", "SUS", "CAN"):
+                if status_short not in ("LIVE", "FIN", "PPD", "SUS", "CAN") and not is_all_mode:
                     # 1. Extract directly from event object (instant & complete)
                     h_pred_pct, a_pred_pct = extract_win_prediction_from_event(event)
 
@@ -30334,8 +31938,8 @@ class SimpleSportsScreen(Screen):
                             predictor_fetches_started += 1
                             self.monitor.fetch_predictor_async(match_id, snap.get('league_url', ''), snap.get('event_id', match_id))
 
-                # Only extract key moments / match news for Today's matches (ch_day_offset == 0)
-                if getattr(self.monitor, 'ch_day_offset', 0) == 0:
+                # Only extract key moments / match news for Today's matches (ch_day_offset == 0) and not in All Matches mode
+                if getattr(self.monitor, 'ch_day_offset', 0) == 0 and not is_all_mode:
                     km_text = extract_key_moments_summary(event)
                 else:
                     km_text = []
@@ -30402,63 +32006,164 @@ class SimpleSportsScreen(Screen):
         # Convert to list entries after sorting
         list_content = []
         new_match_ids = []
-        for i, (entry_data, match_id, is_live, event) in enumerate(raw_entries):
-            # Use RacingListEntry for racing events
-            ev_url = event.get('league_url', '')
-            if get_sport_type(ev_url) == SPORT_TYPE_RACING:
-                # Header row (event name + circuit + overall status)
-                list_content.append(RacingListEntry(entry_data + (i,), self.monitor.theme_mode))
-                new_match_ids.append(match_id)
 
-                # Iterate ALL sessions (FP1, FP2, FP3, Qual, Race, Sprint etc.)
-                all_competitions = event.get('competitions', [])
-                for comp_idx, comp in enumerate(all_competitions):
-                    sess_type = comp.get('type', {}).get('abbreviation', 'Session {}'.format(comp_idx + 1))
-                    sess_state = comp.get('status', {}).get('type', {}).get('state', 'pre')
-                    sess_broadcast = comp.get('broadcast', '')
-                    sess_start = comp.get('startDate', '')
+        if is_all_mode:
+            # Group matches by their leagues with a thin strip header above each league group
+            leagues_map = {}
+            for item in raw_entries:
+                entry_data, match_id, is_live, event = item
+                snap = self.monitor.match_snapshots.get(str(event.get('id', ''))) or {}
+                lname = snap.get('league_name') or event.get('league_name') or "Other Leagues"
+                if lname not in leagues_map:
+                    leagues_map[lname] = []
+                leagues_map[lname].append(item)
 
-                    # Status label for session
-                    if sess_state == 'in': sess_status = 'LIVE'
-                    elif sess_state == 'post': sess_status = 'FIN'
-                    else: sess_status = 'SCH'
+            MAJOR_LEAGUES_PRIO = [
+                "uefa champions league", "champions league",
+                "english premier league", "premier league",
+                "spanish laliga", "laliga", "spanish primera",
+                "italian serie a", "serie a",
+                "german bundesliga", "bundesliga",
+                "french ligue 1", "ligue 1",
+                "uefa europa league", "europa league",
+                "uefa conference league", "conference league",
+                "saudi pro league",
+                "egyptian premier league", "egyptian",
+                "caf champions league",
+                "caf confederation cup",
+                "fifa world cup", "copa america", "uefa european championship",
+                "fa cup", "copa del rey", "coppa italia", "dfb-pokal"
+            ]
 
-                    # Time display
-                    sess_time = get_local_time_str(sess_start) if sess_start else ''
+            def _league_prio(name):
+                n = (name or "").lower()
+                for idx, pat in enumerate(MAJOR_LEAGUES_PRIO):
+                    if pat in n:
+                        return idx
+                return 999
 
-                    # Session sub-header row
-                    sess_row = RacingSessionRow(sess_type, sess_status, sess_broadcast, sess_time, self.monitor.theme_mode)
-                    if sess_row:
-                        list_content.append(sess_row)
-                        new_match_ids.append(match_id + '_ses_' + str(comp_idx))
+            def _league_sort_key(kv):
+                lname, items = kv
+                has_live = any((it[0][0] == "LIVE" or it[2]) for it in items)
+                live_rank = 0 if has_live else 1
+                prio = _league_prio(lname)
+                return (live_rank, prio, lname.lower())
 
-                    # For LIVE/FINISHED sessions: expand driver result rows
-                    if sess_state in ('in', 'post'):
-                        comps_list = comp.get('competitors', [])
-                        for drv in comps_list:
-                            athlete = drv.get('athlete', {})
-                            d_name = athlete.get('displayName', '') or athlete.get('shortName', 'Driver')
-                            d_country = athlete.get('flag', {}).get('alt', '')
-                            d_winner = drv.get('winner', False)
-                            d_rank = drv.get('order', 0)
-                            # Get team logo path (cached via get_logo_path mechanism)
-                            d_team_logo = None
-                            team_obj = drv.get('team', {})
-                            team_id = team_obj.get('id', '')
-                            team_logo_url = extract_team_logo(team_obj, 'racing', team_id)
-                            if team_logo_url and team_id:
-                                sport_prefix = get_sport_id_prefix(ev_url)
-                                d_team_logo = self.get_logo_path(team_logo_url, sport_prefix + str(team_id))
-                            row = RacingDriverRow(d_rank, d_name, d_country, d_winner, d_team_logo, self.monitor.theme_mode)
-                            if row:
-                                list_content.append(row)
-                                new_match_ids.append(match_id + '_ses_' + str(comp_idx) + '_drv_' + str(d_rank))
-            elif self.monitor.theme_mode == "ucl":
-                list_content.append(UCLListEntry(entry_data))
-                new_match_ids.append(match_id)
-            else:
-                list_content.append(VNextListEntry(entry_data))
-                new_match_ids.append(match_id)
+            sorted_leagues = sorted(leagues_map.items(), key=_league_sort_key)
+
+            def _within_league_sort(item):
+                entry_data, match_id, is_live, event = item
+                st = entry_data[0]
+                date_str = event.get('date', '')
+                if st == "LIVE":
+                    excitement = self.monitor.calculate_excitement(event)
+                    return (0, -excitement, date_str)
+                elif st == "SCH" or st not in ("FIN", "PPD", "SUS", "CAN"):
+                    return (1, 0, date_str)
+                elif st == "FIN":
+                    return (2, 0, date_str)
+                else:
+                    return (3, 0, date_str)
+
+            for lname, items in sorted_leagues:
+                items.sort(key=_within_league_sort)
+                first_snap = self.monitor.match_snapshots.get(str(items[0][3].get('id', ''))) or {}
+                l_png = self.get_logo_path(first_snap.get('l_logo_url', ''), first_snap.get('l_logo_id', ''))
+
+                m_count = len(items)
+                live_in_league = sum(1 for it in items if it[0][0] == "LIVE" or it[2])
+                if live_in_league > 0:
+                    badge_lbl = "{} LIVE  \u2022  {} {}".format(live_in_league, m_count, _t("Matches") if m_count > 1 else _t("Match"))
+                else:
+                    badge_lbl = "{} {}".format(m_count, _t("Matches") if m_count > 1 else _t("Match"))
+
+                header_entry = (
+                    "LEAGUE_HEADER",
+                    get_league_abbr(lname),
+                    _league_name(lname),
+                    badge_lbl,
+                    "",
+                    "",
+                    None,
+                    False,
+                    None,
+                    None,
+                    0, 0,
+                    False,
+                    0x162235,
+                    l_png
+                )
+
+                if self.monitor.theme_mode == "ucl":
+                    list_content.append(UCLListEntry(header_entry))
+                else:
+                    list_content.append(VNextListEntry(header_entry))
+                new_match_ids.append("__league_header__" + lname)
+
+                for entry_data, match_id, is_live, event in items:
+                    if self.monitor.theme_mode == "ucl":
+                        list_content.append(UCLListEntry(entry_data))
+                    else:
+                        list_content.append(VNextListEntry(entry_data))
+                    new_match_ids.append(match_id)
+        else:
+            for i, (entry_data, match_id, is_live, event) in enumerate(raw_entries):
+                # Use RacingListEntry for racing events
+                ev_url = event.get('league_url', '')
+                if get_sport_type(ev_url) == SPORT_TYPE_RACING:
+                    # Header row (event name + circuit + overall status)
+                    list_content.append(RacingListEntry(entry_data + (i,), self.monitor.theme_mode))
+                    new_match_ids.append(match_id)
+
+                    # Iterate ALL sessions (FP1, FP2, FP3, Qual, Race, Sprint etc.)
+                    all_competitions = event.get('competitions', [])
+                    for comp_idx, comp in enumerate(all_competitions):
+                        sess_type = comp.get('type', {}).get('abbreviation', 'Session {}'.format(comp_idx + 1))
+                        sess_state = comp.get('status', {}).get('type', {}).get('state', 'pre')
+                        sess_broadcast = comp.get('broadcast', '')
+                        sess_start = comp.get('startDate', '')
+
+                        # Status label for session
+                        if sess_state == 'in': sess_status = 'LIVE'
+                        elif sess_state == 'post': sess_status = 'FIN'
+                        else: sess_status = 'SCH'
+
+                        # Time display
+                        sess_time = get_local_time_str(sess_start) if sess_start else ''
+
+                        # Session sub-header row
+                        sess_row = RacingSessionRow(sess_type, sess_status, sess_broadcast, sess_time, self.monitor.theme_mode)
+                        if sess_row:
+                            list_content.append(sess_row)
+                            new_match_ids.append(match_id + '_ses_' + str(comp_idx))
+
+                        # For LIVE/FINISHED sessions: expand driver result rows
+                        if sess_state in ('in', 'post'):
+                            comps_list = comp.get('competitors', [])
+                            for drv in comps_list:
+                                athlete = drv.get('athlete', {})
+                                d_name = athlete.get('displayName', '') or athlete.get('shortName', 'Driver')
+                                d_country = athlete.get('flag', {}).get('alt', '')
+                                d_winner = drv.get('winner', False)
+                                d_rank = drv.get('order', 0)
+                                # Get team logo path (cached via get_logo_path mechanism)
+                                d_team_logo = None
+                                team_obj = drv.get('team', {})
+                                team_id = team_obj.get('id', '')
+                                team_logo_url = extract_team_logo(team_obj, 'racing', team_id)
+                                if team_logo_url and team_id:
+                                    sport_prefix = get_sport_id_prefix(ev_url)
+                                    d_team_logo = self.get_logo_path(team_logo_url, sport_prefix + str(team_id))
+                                row = RacingDriverRow(d_rank, d_name, d_country, d_winner, d_team_logo, self.monitor.theme_mode)
+                                if row:
+                                    list_content.append(row)
+                                    new_match_ids.append(match_id + '_ses_' + str(comp_idx) + '_drv_' + str(d_rank))
+                elif self.monitor.theme_mode == "ucl":
+                    list_content.append(UCLListEntry(entry_data))
+                    new_match_ids.append(match_id)
+                else:
+                    list_content.append(VNextListEntry(entry_data))
+                    new_match_ids.append(match_id)
 
         # Count match states for header breakdown
         count_live = 0; count_fin = 0; count_sch = 0
@@ -30498,20 +32203,43 @@ class SimpleSportsScreen(Screen):
             pass
 
         if not list_content:
+            # If we already have matches displayed and a fetch/batch is in progress,
+            # KEEP them visible instead of blanking the screen while waiting for other leagues!
+            if self.current_match_ids and is_fetch_in_progress:
+                log_diag("REFRESH_UI: SKIPPED (empty list_content but fetch in progress, keeping old data)")
+                return
+
             self.update_header(0, count_live, count_fin, count_sch)
             # Guard: internal error strings must not be shown when cached_events exist
             # but the active filter produced no rows — that is a normal no-matches state.
-            _INTERNAL_ERRORS = ("JSON Parse Error", "Connection Error")
             _raw_status = self.monitor.status_message or ""
-            msg = _t("No Matches Found") if (_raw_status in _INTERNAL_ERRORS or not _raw_status) else _raw_status
+            if self.monitor.cached_events:
+                msg = _t("No Matches Found")
+            elif _raw_status:
+                msg = _t(_raw_status)
+            else:
+                msg = _t("No Matches Found")
             dummy_entry = ("INFO", "", msg, "", "", "", False, "", None, None, 0, 0)
-            if self.monitor.theme_mode == "ucl": self["list"].setList([UCLListEntry(dummy_entry)])
-            else: self["list"].setList([VNextListEntry(dummy_entry)])
-            self.current_match_ids = []
+            empty_list = []
+            if self.monitor.theme_mode == "ucl":
+                empty_list.append(UCLListEntry(nav_entry))
+                empty_list.append(UCLListEntry(dummy_entry))
+            else:
+                empty_list.append(VNextListEntry(nav_entry))
+                empty_list.append(VNextListEntry(dummy_entry))
+            self["list"].setList(empty_list)
+            self.current_match_ids = [nav_id, "__info__"]
             # Still stamp the refresh time — the fetch itself succeeded, just no matches
             self._last_refreshed = datetime.datetime.now()
         else:
-            self.update_header(len(list_content), count_live, count_fin, count_sch)
+            # Prepend navigation card as index 0
+            if self.monitor.theme_mode == "ucl":
+                list_content.insert(0, UCLListEntry(nav_entry))
+            else:
+                list_content.insert(0, VNextListEntry(nav_entry))
+            new_match_ids.insert(0, nav_id)
+
+            self.update_header(len(raw_entries), count_live, count_fin, count_sch)
             if hasattr(self, '_stagger_timer') and self._stagger_timer:
                 try:
                     self._stagger_timer.stop()
@@ -30531,14 +32259,23 @@ class SimpleSportsScreen(Screen):
                     target_idx = new_match_ids.index(selected_id)
                 except ValueError:
                     pass
-            if target_idx < 0 and 0 <= old_idx < len(list_content):
-                target_idx = old_idx
+                if target_idx < 0 and 0 <= old_idx < len(list_content):
+                    target_idx = old_idx
+            else:
+                # First load when no item was selected yet: default to first real match if available
+                if len(list_content) > 1:
+                    target_idx = 1
+                elif len(list_content) > 0:
+                    target_idx = 0
 
             if target_idx >= 0:
                 try:
                     self["list"].moveToIndex(target_idx)
                 except Exception:
                     pass
+
+            self.update_blue_button()
+            self.update_screen_info()
 
             # Explicitly invalidate widget so Enigma2 physically repaints the updated rows
             try:
@@ -31131,6 +32868,7 @@ class SimpleSportsScreen(Screen):
 
     def _open_league_menu_impl(self):
         options = [
+            (_t("All Today's Matches (Global Soccer)"), "all_matches"),
             (_t("Select Single League"), "single"),
             (_t("Custom Leagues (View/Edit)"), "custom_leagues"),
             (_t("Favorite Leagues"), "favorite_leagues"),
@@ -31142,7 +32880,9 @@ class SimpleSportsScreen(Screen):
         if not selection:
             return
         action = selection[1]
-        if action == "single":
+        if action == "all_matches":
+            self.open_all_matches_screen()
+        elif action == "single":
             self.session.openWithCallback(self.single_league_selected, LeagueSelector, mode="single")
         elif action == "custom_leagues":
             self.session.openWithCallback(self.on_selector_closed, LeagueSelector)
@@ -31150,6 +32890,16 @@ class SimpleSportsScreen(Screen):
             self.session.openWithCallback(self.on_selector_closed, FavoriteLeagueSelector)
         elif action == "favorite_teams":
             self.session.openWithCallback(self.on_favorite_teams_closed, FavoriteTeamsManagerScreen)
+
+    def open_all_matches_screen(self):
+        self.session.openWithCallback(self.on_all_matches_closed, AllSoccerMatchesScreen)
+
+    def on_all_matches_closed(self, result=None):
+        self.update_header()
+        self.fetch_data()
+
+    def return_to_main_screen(self):
+        pass
 
     def on_selector_closed(self, result=None):
         if result: self.update_header(); self.fetch_data()
@@ -31212,27 +32962,34 @@ class SimpleSportsScreen(Screen):
 
     def _open_mini_bar_impl(self):
         # Racing mode: open RacingMiniBar with selected event
-        if not self.monitor.is_custom_mode:
+        if self.is_racing_mode():
             try:
-                url = DATA_SOURCES[self.monitor.current_league_index][1]
-                if get_sport_type(url) == SPORT_TYPE_RACING:
-                    # Get selected event from main screen list
-                    idx = self["list"].getSelectedIndex()
-                    event = None
-                    if idx is not None and 0 <= idx < len(self.current_match_ids):
-                        match_id = self.current_match_ids[idx]
-                        event = self.monitor.event_map.get(match_id)
-                        if not event:
-                            for ev in self.monitor.cached_events:
-                                if ev.get('id') == match_id:
-                                    event = ev
-                                    break
-                    if event:
+                # Get selected event from main screen list
+                idx = self["list"].getSelectedIndex()
+                event = None
+                if idx is not None and 0 <= idx < len(self.current_match_ids):
+                    match_id = self.current_match_ids[idx]
+                    event = self.monitor.event_map.get(match_id)
+                    if not event:
+                        for ev in self.monitor.cached_events:
+                            if str(ev.get('id', '')) == str(match_id):
+                                event = ev
+                                break
+                if event:
+                    snap = self.monitor.match_snapshots.get(str(event.get('id', '')))
+                    ev_sport = (snap.get('sport_type') if snap else None) or event.get('sport_type') or get_sport_type(event.get('league_url', ''))
+                    comps = event.get('competitions', [{}])[0].get('competitors', [])
+                    if ev_sport == SPORT_TYPE_RACING or len(comps) > 2 or event.get('circuit'):
                         self.session.open(RacingMiniBar, event)
+                        return
                     else:
-                        self.session.open(MessageBox, "No racing event selected!", MessageBox.TYPE_INFO, timeout=5)
+                        self.session.openWithCallback(self.mini_bar_callback, SimpleSportsMiniBar)
+                        return
+                else:
+                    self.session.open(MessageBox, _t("No racing event selected!"), MessageBox.TYPE_INFO, timeout=5)
                     return
-            except: pass
+            except Exception as e:
+                log_diag("_open_mini_bar_impl error: {}".format(e))
         self.session.openWithCallback(self.mini_bar_callback, SimpleSportsMiniBar)
 
     def mini_bar_callback(self, result=None):
@@ -31256,6 +33013,17 @@ class SimpleSportsScreen(Screen):
         event = None
         if 0 <= idx < len(self.current_match_ids):
             match_id = self.current_match_ids[idx]
+
+            if match_id == "__nav_all_matches__":
+                self.open_all_matches_screen()
+                return
+            elif match_id == "__nav_return_main__":
+                self.return_to_main_screen()
+                return
+            elif match_id == "__info__":
+                return
+            elif str(match_id).startswith("__league_header__"):
+                return
 
             # Find the event object
             # First check event_map (fastest)
@@ -31592,6 +33360,7 @@ class SimpleSportsScreen(Screen):
         self.update_header()
         self.update_filter_button()
         self._update_ch_hint()
+        self.update_screen_info()
 
     def ch_prev_day(self):
         """CH- : fetch and display the previous day's matches."""
@@ -31605,6 +33374,7 @@ class SimpleSportsScreen(Screen):
         self.update_header()
         self.update_filter_button()
         self._update_ch_hint()
+        self.update_screen_info()
 
     def _update_ch_hint(self):
         """
@@ -31737,6 +33507,39 @@ class SimpleSportsScreen(Screen):
         self.update_header()
 
 
+# ==============================================================================
+# ALL SOCCER MATCHES SCREEN (ALTERNATIVE MAIN SCREEN)
+# ==============================================================================
+class AllSoccerMatchesScreen(SimpleSportsScreen):
+    """
+    Alternative main screen showing all soccer matches worldwide for the day.
+    Inherits from SimpleSportsScreen to ensure identical UI, layout, skin support
+    (Default vNext and World Cup/UCL themes), font rendering, remote control bindings,
+    and timers. In All Matches mode, SportsMonitor dynamically switches to ESPN global
+    schedule data and reverts to regular user leagues when this screen is closed.
+    """
+    def __init__(self, session):
+        self.is_alternative_view = True
+        global_sports_monitor.save_mode_state()
+        global_sports_monitor.set_all_matches_mode()
+        SimpleSportsScreen.__init__(self, session)
+        self["key_red"].setText(_t("Return to Leagues"))
+        self["key_green"].setText(_t("Mini Bar"))
+        # Use a shorter title to prevent overflow in UCL/World Cup theme's large 46px full-width centered font
+        self["top_title"].setText(_t("All Matches"))
+
+    def open_league_menu(self):
+        self.return_to_main_screen()
+
+    def return_to_main_screen(self):
+        self.close()
+
+    def jump_to_league(self, key_num):
+        self.return_to_main_screen()
+
+    def cleanup(self):
+        global_sports_monitor.restore_mode_state()
+        SimpleSportsScreen.cleanup(self)
 
 
 def get_git_sha1(file_path):
@@ -39130,14 +40933,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.0 by reali22",
+            description="Live Sports Scores, v7.1 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.0 by reali22",
+            description="Live Sports Scores, v7.1 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -39152,7 +40955,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.0 by reali22",
+            description="Live Sports Scores, v7.1 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
