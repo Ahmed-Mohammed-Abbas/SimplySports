@@ -77,11 +77,129 @@ def get_device_id():
     return hashlib.sha256(str(mac).encode('utf-8')).hexdigest()[:16]
 
 
-def push_to_firebase_threaded(url, payload_string):
+class _FirebaseAuth(object):
+    """Anonymous Firebase sign-in for the REST writes (votes, leaderboard, installs,
+    watch party). Off while FIREBASE_WEB_API_KEY is empty. token() blocks on the
+    network, so it is only called from worker threads; the signed-in account
+    (uid + refresh token) is kept in FIREBASE_AUTH_FILE so the box keeps the same
+    Firebase user id across restarts."""
+
+    SIGNUP_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="
+    REFRESH_URL = "https://securetoken.googleapis.com/v1/token?key="
+    RETRY_AFTER_FAILURE_S = 300
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._state = None          # {'uid', 'id_token', 'refresh_token', 'expires_at'}
+        self._loaded = False
+        self._fail_until = 0
+
+    @staticmethod
+    def enabled():
+        return bool(FIREBASE_WEB_API_KEY)
+
+    def _load(self):
+        if not self._loaded:
+            self._loaded = True
+            try:
+                with open(FIREBASE_AUTH_FILE) as f:
+                    st = json.load(f)
+                if isinstance(st, dict) and st.get('uid') and st.get('refresh_token'):
+                    self._state = st
+            except Exception:
+                pass
+        return self._state
+
+    def cached_uid(self):
+        """Firebase user id from an earlier sign-in (no network), or None."""
+        if not self.enabled():
+            return None
+        return (self._load() or {}).get('uid')
+
+    @staticmethod
+    def _post(url, payload, form=False):
+        try:
+            from urllib.parse import urlencode
+        except ImportError:
+            from urllib import urlencode
+        data = urlencode(payload) if form else json.dumps(payload)
+        req = Request(url, data=data.encode('utf-8'))
+        req.add_header('Content-Type', 'application/x-www-form-urlencoded' if form else 'application/json')
+        return json.loads(urlopen(req, timeout=10).read().decode('utf-8'))
+
+    def token(self):
+        """A valid ID token (signing in or refreshing when needed), or None."""
+        if not self.enabled():
+            return None
+        with self._lock:
+            now = time.time()
+            st = self._load()
+            if st and st.get('id_token') and now < float(st.get('expires_at', 0)) - 300:
+                return st['id_token']
+            if now < self._fail_until:
+                return None
+            key = FIREBASE_WEB_API_KEY
+            new = None
+            if st and st.get('refresh_token'):
+                try:
+                    r = self._post(self.REFRESH_URL + key,
+                                   {'grant_type': 'refresh_token', 'refresh_token': st['refresh_token']}, form=True)
+                    new = {'uid': r.get('user_id') or st.get('uid'), 'id_token': r['id_token'],
+                           'refresh_token': r.get('refresh_token') or st['refresh_token'],
+                           'expires_at': now + int(r.get('expires_in', 3600))}
+                except Exception as e:
+                    code = getattr(e, 'code', None)
+                    print("[SimplySports] Firebase token refresh failed:", e)
+                    if code not in (400, 401, 403):
+                        self._fail_until = now + self.RETRY_AFTER_FAILURE_S
+                        return None
+                    # Refresh token rejected (account removed): sign up again below
+            if new is None:
+                try:
+                    r = self._post(self.SIGNUP_URL + key, {'returnSecureToken': True})
+                    new = {'uid': r['localId'], 'id_token': r['idToken'], 'refresh_token': r['refreshToken'],
+                           'expires_at': now + int(r.get('expiresIn', 3600))}
+                except Exception as e:
+                    print("[SimplySports] Firebase anonymous sign-in failed:", e)
+                    self._fail_until = now + self.RETRY_AFTER_FAILURE_S
+                    return None
+            self._state = new
+            try:
+                _atomic_write_json(FIREBASE_AUTH_FILE, new)
+            except Exception as e:
+                print("[SimplySports] Could not save Firebase sign-in:", e)
+            return new['id_token']
+
+
+FIREBASE_AUTH = _FirebaseAuth()
+
+
+def firebase_uid():
+    """This box's Firebase user id when signed in before, else None (no network)."""
+    return FIREBASE_AUTH.cached_uid()
+
+
+def firebase_auth_url(url):
+    """Append ?auth=<ID token> when signed in. Blocking: worker threads only."""
+    tok = FIREBASE_AUTH.token()
+    if not tok:
+        return url
+    return url + ('&' if '?' in url else '?') + 'auth=' + tok
+
+
+def push_to_firebase_threaded(url, payload_string, method="PATCH", on_done=None):
     """Sends a standard POST request but tells Firebase to treat it as a PATCH.
     This is a bulletproof workaround for older Enigma2 systems that may corrupt
-    native PATCH/PUT headers."""
+    native PATCH/PUT headers.
+
+    With FIREBASE_WEB_API_KEY set the write carries this box's ID token (?auth=),
+    and '{uid}' in the URL is replaced by its Firebase user id (by the legacy
+    device id when not signed in). payload_string may also be a function
+    (key, signed_in) -> JSON string or object, built once the key is known.
+    on_done(ok, uid) runs in the worker thread afterwards."""
     def _send():
+        ok = False
+        uid = None
         try:
             # Handle Python 2 (urllib2) vs Python 3 (urllib.request)
             try:
@@ -89,22 +207,38 @@ def push_to_firebase_threaded(url, payload_string):
             except ImportError:
                 import urllib.request as request_module
 
+            token = FIREBASE_AUTH.token()
+            uid = FIREBASE_AUTH.cached_uid() if token else None
+            key = uid or get_device_id()
+            body = payload_string(key, bool(token)) if callable(payload_string) else payload_string
+            if not isinstance(body, str):
+                body = json.dumps(body)
+            full_url = url.replace('{uid}', key)
+            if token:
+                full_url += ('&' if '?' in full_url else '?') + 'auth=' + token
+
             # 1. Build a standard POST request with the payload
             # (In standard urllib, adding data= makes it a POST automatically)
-            req = request_module.Request(url, data=payload_string.encode('utf-8'))
+            req = request_module.Request(full_url, data=body.encode('utf-8'))
 
             # 2. Strictly enforce the JSON Content-Type
             req.add_header('Content-Type', 'application/json')
 
             # 3. FIREBASE MAGIC: Tell Firebase this POST is actually a PATCH
             # This allows us to merge data without worrying about native PATCH support.
-            req.add_header('X-HTTP-Method-Override', 'PATCH')
+            req.add_header('X-HTTP-Method-Override', method)
 
             # 4. Send the request natively (Python won't corrupt the headers now)
             request_module.urlopen(req, timeout=10)
+            ok = True
 
         except Exception as e:
             print("[SimplySports] Firebase upload failed:", str(e))
+        if on_done:
+            try:
+                on_done(ok, uid)
+            except Exception:
+                pass
 
     # Fire and forget in a background thread so the UI never freezes
     import threading
@@ -115,7 +249,16 @@ def push_to_firebase_threaded(url, payload_string):
 
 # Define your new Firebase Base URL
 FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedatabase.app"
-VERSION = "7.1"
+# Firebase sign-in for writes (leaderboard protection). This is the project's Web
+# API key: it only identifies the project and is meant to ship in apps; the database
+# rules are what protect the data. Each box signs in anonymously, which needs
+# Authentication > Sign-in method > Anonymous enabled; until then (or with the key
+# empty) writes stay unauthenticated as before. Publish database.rules.transition.json
+# before enabling Anonymous sign-in, and database.rules.json once most users run
+# this version (it rejects writes from older ones). See FIREBASE_SETUP.md.
+FIREBASE_WEB_API_KEY = "AIzaSyDTo90doEeXZvHcyB2w71cAKo92Eiq7HZs"   # project simplysports-votes
+FIREBASE_AUTH_FILE = "/etc/enigma2/simplysports_auth.json"
+VERSION = "7.2"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -221,6 +364,11 @@ TRANSLATIONS = {
     "0: Soccer, 1: Basketball, 2: Volleyball": {"ar": u"0: \u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645\u060c 1: \u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629\u060c 2: \u0627\u0644\u0643\u0631\u0629 \u0627\u0644\u0637\u0627\u0626\u0631\u0629"},
     "League Standings":           {"ar": u"\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062f\u0648\u0631\u064a"},
     "Follow Match":               {"ar": u"\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Arena View Preference":      {"ar": u"\u062a\u0641\u0636\u064a\u0644 \u0639\u0631\u0636 \u0627\u0644\u0633\u0627\u062d\u0629"},
+    "Arena View Preference: ":    {"ar": u"\u062a\u0641\u0636\u064a\u0644 \u0639\u0631\u0636 \u0627\u0644\u0633\u0627\u062d\u0629: "},
+    "League Heading only":        {"ar": u"\u0639\u0646\u0627\u0648\u064a\u0646 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0641\u0642\u0637"},
+    "League Heading with Matches":{"ar": u"\u0639\u0646\u0627\u0648\u064a\u0646 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0645\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    "Arena View Preference set to: ": {"ar": u"\u062a\u0645 \u0636\u0628\u0637 \u062a\u0641\u0636\u064a\u0644 \u0639\u0631\u0636 \u0627\u0644\u0633\u0627\u062d\u0629 \u0625\u0644\u0649: "},
     "Today":                      {"ar": u"\u0627\u0644\u064a\u0648\u0645"},
     "Failed to fetch data":       {"ar": u"\u0641\u0634\u0644 \u062c\u0644\u0628 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a"},
     "Failed to fetch data from Livescore.cz": {"ar": u"\u0641\u0634\u0644 \u062c\u0644\u0628 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0645\u0646 Livescore.cz"},
@@ -272,7 +420,7 @@ TRANSLATIONS = {
     "Favorite Leagues View \u2022 Press OK for Match Details \u2022 RED for Leagues": {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629 \u2022 \u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u2022 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
     "%s View \u2022 Press OK for Match Details \u2022 RED for Leagues": {"ar": u"\u0639\u0631\u0636 %s \u2022 \u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u2022 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
     "Press OK for Match Details \u2022 RED for Leagues": {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u2022 \u0627\u0644\u0632\u0631 \u0627\u0644\u0623\u062d\u0645\u0631 \u0644\u0644\u062f\u0648\u0631\u064a\u0627\u062a"},
-    "Full Time":                   {"ar": u"\u0627\u0646\u062a\u0647\u062a"},
+    "Full Time":                  {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Starts":                      {"ar": u"\u062a\u0628\u062f\u0623"},
     "Scheduled":                   {"ar": u"\u0642\u0627\u062f\u0645\u0629"},
     "Mini Bar":                   {"ar": u"\u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0635\u063a\u064a\u0631"},
@@ -331,7 +479,7 @@ TRANSLATIONS = {
     "Tomorrow's Matches":         {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u063a\u062f"},
     "All Matches":                {"ar": u"\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
     "Matches":                    {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629"},
-    "Match":                      {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Match":                          {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Custom League View":         {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
     "Favorite League View":       {"ar": u"\u0639\u0631\u0636 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     # ── Header breakdown labels ───────────────────────────────────────────────
@@ -460,11 +608,9 @@ TRANSLATIONS = {
     "Cancel":                     {"ar": u"\u0625\u0644\u063a\u0627\u0621"},
     # ── Profile / betting history screen ──────────────────────────────────────
     "Result":                     {"ar": u"\u0627\u0644\u0646\u062a\u064a\u062c\u0629"},
-    "Match":                      {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Your Pick":                  {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631\u0643"},
     "Final Score":                {"ar": u"\u0627\u0644\u0646\u062a\u064a\u062c\u0629 \u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0629"},
     "Date":                       {"ar": u"\u0627\u0644\u062a\u0627\u0631\u064a\u062e"},
-    "Close":                      {"ar": u"\u0625\u063a\u0644\u0627\u0642"},
     u"\u25b2 \u25bc  Navigate":   {"ar": u"\u25b2 \u25bc  \u062a\u0646\u0642\u0644"},
     # ── Leaderboard screen ────────────────────────────────────────────────────
     "GLOBAL LEADERBOARD":         {"ar": u"\u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u062a\u0635\u062f\u0631\u064a\u0646 \u0627\u0644\u0639\u0627\u0644\u0645\u064a\u0629"},
@@ -489,15 +635,14 @@ TRANSLATIONS = {
     "Bundesliga":                 {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0644\u0645\u0627\u0646\u064a (Bundesliga)"},
     "Ligue 1":                    {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0631\u0646\u0633\u064a (Ligue 1)"},
     "Champions League":           {"ar": u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0623\u0648\u0631\u0648\u0628\u0627"},
-    "World Cup":                  {"ar": u"\u0643\u0623\u0633 \u0627\u0644\u0639\u0627\u0644\u0645"},
     "Score:":                     {"ar": u"\u0627\u0644\u0646\u0642\u0627\u0637:"},
     "Accuracy:":                  {"ar": u"\u0627\u0644\u062f\u0642\u0629:"},
     "Total Bets:":                {"ar": u"\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0631\u0647\u0627\u0646\u0627\u062a:"},
     "Correct:":                   {"ar": u"\u0627\u0644\u0635\u062d\u064a\u062d\u0629:"},
     "No resolved bets yet":       {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0631\u0647\u0627\u0646\u0627\u062a \u0645\u062d\u0633\u0648\u0645\u0629 \u0628\u0639\u062f"},
-    "vote on a match to start!":  {"ar": u"\u0635\u0648\u062a \u0639\u0644\u0649 \u0645\u0628\u0627\u0631\u0627\u0629 \u0644\u0644\u0628\u062f\u0621!"},
-    "Awaiting results":           {"ar": u"\u0628\u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0646\u062a\u0627\u0626\u062c"},
-    "pending":                    {"ar": u"\u0645\u0639\u0644\u0642"},
+    "vote on a match to start!":  {"ar": u"\u0635\u0648\u0651\u062a \u0639\u0644\u0649 \u0645\u0628\u0627\u0631\u0627\u0629 \u0644\u0644\u0628\u062f\u0621!"},
+    "Awaiting results":           {"ar": u"\u0641\u064a \u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0646\u062a\u0627\u0626\u062c"},
+    "pending":                    {"ar": u"\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631"},
     # ── Broadcasting channels screen ──────────────────────────────────────────
     "MATCH BROADCASTS":           {"ar": u"\u0628\u062b \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Select Channel to Zap":      {"ar": u"\u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631 \u0644\u0644\u062a\u0628\u062f\u064a\u0644"},
@@ -545,16 +690,15 @@ TRANSLATIONS = {
     "FULL TIME":                  {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     "HALF TIME":                  {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0634\u0648\u0637 \u0627\u0644\u0623\u0648\u0644"},
     "RACE STARTING":              {"ar": u"\u0628\u062f\u0623 \u0627\u0644\u0633\u0628\u0627\u0642"},
-    "RACE FINISHED":              {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0633\u0628\u0627\u0642"},
+    "RACE FINISHED":                  {"ar": u"\u0627\u0646\u062a\u0647\u0649 \u0627\u0644\u0633\u0628\u0627\u0642"},
     "2ND HALF STARTED":           {"ar": u"\u0628\u062f\u0627\u064a\u0629 \u0627\u0644\u0634\u0648\u0637 \u0627\u0644\u062b\u0627\u0646\u064a"},
     "Match Start":                {"ar": u"\u0628\u062f\u0627\u064a\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
-    "Full Time":                  {"ar": u"\u0646\u0647\u0627\u064a\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     # ── League selector screen ────────────────────────────────────────────────
     "Select Custom Leagues":      {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0635\u0635\u0629"},
     "Select League":              {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0648\u0631\u064a"},
     "Save":                       {"ar": u"\u062d\u0641\u0638"},
     "Press OK to Toggle":         {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u062a\u0628\u062f\u064a\u0644"},
-    "Press OK to Select":         {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u0627\u062e\u062a\u064a\u0627\u0631"},
+    "Press OK to Select":             {"ar": u"\u0627\u0636\u063a\u0637 \u0645\u0648\u0627\u0641\u0642 \u0644\u0644\u0627\u062e\u062a\u064a\u0627\u0631"},
     # ── Athlete / player profile screen ───────────────────────────────────────
     "PLAYER PROFILE":             {"ar": u"\u0645\u0644\u0641 \u0627\u0644\u0644\u0627\u0639\u0628"},
     "Loading profile...":         {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a..."},
@@ -565,16 +709,9 @@ TRANSLATIONS = {
     # ── Personal profile / bet history ────────────────────────────────────────
     "WON":                        {"ar": u"\u0641\u0627\u0632"},
     "LOST":                       {"ar": u"\u062e\u0633\u0631"},
+    "VOID":                       {"ar": u"\u0645\u0644\u063a\u0627\u0629"},
     "Draw":                       {"ar": u"\u062a\u0639\u0627\u062f\u0644"},
-    "Score:":                     {"ar": u"\u0627\u0644\u0646\u0642\u0627\u0637:"},
-    "Accuracy:":                  {"ar": u"\u0627\u0644\u062f\u0642\u0629:"},
-    "Total Bets:":                {"ar": u"\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0631\u0647\u0627\u0646\u0627\u062a:"},
-    "Correct:":                   {"ar": u"\u0627\u0644\u0635\u062d\u064a\u062d\u0629:"},
-    "No resolved bets yet":       {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0631\u0647\u0627\u0646\u0627\u062a \u0645\u062d\u0633\u0648\u0645\u0629 \u0628\u0639\u062f"},
-    "vote on a match to start!":  {"ar": u"\u0635\u0648\u0651\u062a \u0639\u0644\u0649 \u0645\u0628\u0627\u0631\u0627\u0629 \u0644\u0644\u0628\u062f\u0621!"},
     "PENDING":                    {"ar": u"\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631"},
-    "Awaiting results":           {"ar": u"\u0641\u064a \u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0646\u062a\u0627\u0626\u062c"},
-    "pending":                    {"ar": u"\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631"},
     # ── Update system ─────────────────────────────────────────────────────────
     "CHECKING FOR UPDATES...":    {"ar": u"\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u062a\u062d\u062f\u064a\u062b\u0627\u062a..."},
     "FETCHING FILE LIST...":      {"ar": u"\u062c\u0644\u0628 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0644\u0641\u0627\u062a..."},
@@ -614,7 +751,6 @@ TRANSLATIONS = {
     "MENU: My Favorite Teams":        {"ar": u"\u0627\u0644\u0642\u0627\u0626\u0645\u0629: \u0641\u0631\u0642\u064a \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
     "No teams added yet.":            {"ar": u"\u0644\u0645 \u064a\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0641\u0631\u0642 \u0628\u0639\u062f."},
     "teams":                          {"ar": u"\u0641\u0631\u0642"},
-    "Press OK to Select":             {"ar": u"\u0627\u0636\u063a\u0637 \u0645\u0648\u0627\u0641\u0642 \u0644\u0644\u0627\u062e\u062a\u064a\u0627\u0631"},
     "Tomorrow":                       {"ar": u"\u063a\u062f\u0627\u064b"},
     "in":                             {"ar": u"\u062e\u0644\u0627\u0644"},
     "Starting now!":                  {"ar": u"\u064a\u0628\u062f\u0623 \u0627\u0644\u0622\u0646!"},
@@ -640,7 +776,6 @@ TRANSLATIONS = {
     "Attack":                         {"ar": u"\u0647\u062c\u0648\u0645"},
     "Defend":                         {"ar": u"\u062f\u0641\u0627\u0639"},
     "Unlucky":                        {"ar": u"\u062d\u0638 \u0633\u064a\u0621"},
-    "Match":                          {"ar": u"\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Save_wp":                        {"ar": u"\u0625\u0646\u0642\u0627\u0630"},
     "Intense":                        {"ar": u"\u062d\u0645\u0627\u0633"},
     "Boring":                         {"ar": u"\u0645\u0644\u0644"},
@@ -680,7 +815,60 @@ TRANSLATIONS = {
     "POSTPONED":                      {"ar": u"\u0645\u0624\u062c\u0644"},
     "LIVE NOW":                       {"ar": u"\u0645\u0628\u0627\u0634\u0631 \u0627\u0644\u0622\u0646"},
     "MATCH FINISHED":                 {"ar": u"\u0627\u0646\u062a\u0647ت \u0627\u0644م\u0628\u0627\u0631\u0627\u0629"},
-    "RACE FINISHED":                  {"ar": u"\u0627\u0646\u062a\u0647\u0649 \u0627\u0644\u0633\u0628\u0627\u0642"},
+    # ── Alert options / reminders / line-ups (notifications update) ───────────
+    "Alert Options":                 {"ar": u"\u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u062a\u0646\u0628\u064a\u0647\u0627\u062a"},
+    "Alerts for: ":                  {"ar": u"\u0627\u0644\u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0644\u0640: "},
+    "All matches":                   {"ar": u"\u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"},
+    "Favourite teams only":          {"ar": u"\u0627\u0644\u0641\u0631\u0642 \u0627\u0644\u0645\u0641\u0636\u0644\u0629 \u0641\u0642\u0637"},
+    "Favourite + followed matches":  {"ar": u"\u0627\u0644\u0645\u0641\u0636\u0644\u0629 + \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u0628\u064e\u0639\u0629"},
+    "Goals: ":                       {"ar": u"\u0627\u0644\u0623\u0647\u062f\u0627\u0641: "},
+    "Red cards: ":                   {"ar": u"\u0627\u0644\u0628\u0637\u0627\u0642\u0627\u062a \u0627\u0644\u062d\u0645\u0631\u0627\u0621: "},
+    "Kick-off / half-time / full-time: ": {"ar": u"\u0627\u0644\u0628\u062f\u0627\u064a\u0629 / \u0627\u0644\u0627\u0633\u062a\u0631\u0627\u062d\u0629 / \u0627\u0644\u0646\u0647\u0627\u064a\u0629: "},
+    "VAR decisions: ":               {"ar": u"\u0642\u0631\u0627\u0631\u0627\u062a \u0627\u0644\u0641\u0627\u0631: "},
+    "Exciting games only: ":         {"ar": u"\u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u0645\u062b\u064a\u0631\u0629 \u0641\u0642\u0637: "},
+    "Quiet hours: ":                 {"ar": u"\u0633\u0627\u0639\u0627\u062a \u0627\u0644\u0647\u062f\u0648\u0621: "},
+    "Spoiler guard (channel you are watching): ": {"ar": u"\u0645\u0646\u0639 \u062d\u0631\u0642 \u0627\u0644\u0646\u062a\u064a\u062c\u0629 (\u0627\u0644\u0642\u0646\u0627\u0629 \u0627\u0644\u062a\u064a \u062a\u0634\u0627\u0647\u062f\u0647\u0627): "},
+    "Mute alerts":                   {"ar": u"\u0643\u062a\u0645 \u0627\u0644\u062a\u0646\u0628\u064a\u0647\u0627\u062a"},
+    "Delay {} s":                    {"ar": u"\u062a\u0623\u062e\u064a\u0631 {} \u062b\u0627\u0646\u064a\u0629"},
+    "Toast style: ":                 {"ar": u"\u0646\u0645\u0637 \u0627\u0644\u0625\u0634\u0639\u0627\u0631: "},
+    "Overlay (keeps the remote)":    {"ar": u"\u0639\u0627\u0626\u0645 (\u0644\u0627 \u064a\u062d\u062c\u0632 \u0627\u0644\u0631\u064a\u0645\u0648\u062a)"},
+    "Classic popup":                 {"ar": u"\u0646\u0627\u0641\u0630\u0629 \u062a\u0642\u0644\u064a\u062f\u064a\u0629"},
+    "Line-up alerts (favourite teams): ": {"ar": u"\u062a\u0646\u0628\u064a\u0647 \u0627\u0644\u062a\u0634\u0643\u064a\u0644\u0627\u062a (\u0627\u0644\u0641\u0631\u0642 \u0627\u0644\u0645\u0641\u0636\u0644\u0629): "},
+    "Reminder":                      {"ar": u"\u062a\u0630\u0643\u064a\u0631"},
+    "Line-ups announced":            {"ar": u"\u062a\u0645 \u0625\u0639\u0644\u0627\u0646 \u0627\u0644\u062a\u0634\u0643\u064a\u0644\u0627\u062a"},
+    "Follow this match (always alert)": {"ar": u"\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629 (\u062a\u0646\u0628\u064a\u0647 \u062f\u0627\u0626\u0645)"},
+    "Unfollow this match":           {"ar": u"\u0625\u0644\u063a\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Following this match: its alerts always show.": {"ar": u"\u062a\u062a\u0645 \u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629: \u0633\u062a\u0638\u0647\u0631 \u062a\u0646\u0628\u064a\u0647\u0627\u062a\u0647\u0627 \u062f\u0627\u0626\u0645\u0627\u064b."},
+    "Match unfollowed.":             {"ar": u"\u062a\u0645 \u0625\u0644\u063a\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629."},
+    # ── Predictions: referee / model estimate ─────────────────────────────────
+    "Expired":                       {"ar": u"\u0645\u0646\u062a\u0647\u064a\u0629"},
+    "Cancelled":                     {"ar": u"\u0645\u0644\u063a\u0627\u0629"},
+    "MODEL ESTIMATE (league table)": {"ar": u"\u062a\u0642\u062f\u064a\u0631 \u0645\u0646 \u062c\u062f\u0648\u0644 \u0627\u0644\u062a\u0631\u062a\u064a\u0628"},
+    "Most likely score:":            {"ar": u"\u0627\u0644\u0646\u062a\u064a\u062c\u0629 \u0627\u0644\u0623\u0631\u062c\u062d:"},
+    # ── Leaders Arena ─────────────────────────────────────────────────────────
+    "Leaders Arena":                 {"ar": u"\u0633\u0627\u062d\u0629 \u0627\u0644\u0623\u0628\u0637\u0627\u0644"},
+    "LEADERS ARENA":                 {"ar": u"\u0633\u0627\u062d\u0629 \u0627\u0644\u0623\u0628\u0637\u0627\u0644"},
+    "The #1 of every league":        {"ar": u"\u0635\u0627\u062d\u0628 \u0627\u0644\u0645\u0631\u0643\u0632 \u0627\u0644\u0623\u0648\u0644 \u0641\u064a \u0643\u0644 \u062f\u0648\u0631\u064a"},
+    "Page {} of {}":                 {"ar": u"\u0635\u0641\u062d\u0629 {} \u0645\u0646 {}"},
+    "OVERALL LEADER":                {"ar": u"\u0627\u0644\u0645\u062a\u0635\u062f\u0651\u0631 \u0627\u0644\u0639\u0627\u0645"},
+    "The throne is empty":           {"ar": u"\u0627\u0644\u0639\u0631\u0634 \u0634\u0627\u063a\u0631"},
+    "Top this league to claim it!":  {"ar": u"\u062a\u0635\u062f\u0651\u0631 \u0647\u0630\u0627 \u0627\u0644\u062f\u0648\u0631\u064a \u0644\u062a\u0641\u0648\u0632 \u0628\u0647!"},
+    "OK: full ranking    \u25c4 \u25ba \u25b2 \u25bc: move    CH +/-: page": {"ar": u"\u0627\u0644\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0643\u0627\u0645\u0644: OK    \u0627\u0644\u062a\u0646\u0642\u0651\u0644: \u25c4 \u25ba \u25b2 \u25bc    \u0627\u0644\u0635\u0641\u062d\u0629: CH +/-"},
+    "(You)":                         {"ar": u"(\u0623\u0646\u062a)"},
+    "Back":                          {"ar": u"\u0631\u062c\u0648\u0639"},
+    "The leaderboard is still loading...": {"ar": u"\u0644\u0627 \u062a\u0632\u0627\u0644 \u0644\u0648\u062d\u0629 \u0627\u0644\u0635\u062f\u0627\u0631\u0629 \u0642\u064a\u062f \u0627\u0644\u062a\u062d\u0645\u064a\u0644..."},
+    "Egyptian League":               {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0645\u0635\u0631\u064a"},
+    "Football (all leagues)":        {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 (\u0643\u0644 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a)"},
+    "Basketball":                    {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0633\u0644\u0629"},
+    "American Football":             {"ar": u"\u0643\u0631\u0629 \u0627\u0644\u0642\u062f\u0645 \u0627\u0644\u0623\u0645\u0631\u064a\u0643\u064a\u0629"},
+    "Ice Hockey":                    {"ar": u"\u0647\u0648\u0643\u064a \u0627\u0644\u062c\u0644\u064a\u062f"},
+    "Baseball":                      {"ar": u"\u0627\u0644\u0628\u064a\u0633\u0628\u0648\u0644"},
+    "Rugby":                         {"ar": u"\u0627\u0644\u0631\u063a\u0628\u064a"},
+    "Cricket":                       {"ar": u"\u0627\u0644\u0643\u0631\u064a\u0643\u064a\u062a"},
+    "Tennis":                        {"ar": u"\u0627\u0644\u062a\u0646\u0633"},
+    # ── Channel guide: XMLTV download ─────────────────────────────────────────
+    "Downloading guide... {} MB":    {"ar": u"\u062c\u0627\u0631\u064d \u062a\u0646\u0632\u064a\u0644 \u0627\u0644\u062f\u0644\u064a\u0644... {} \u0645\u064a\u063a\u0627\u0628\u0627\u064a\u062a"},
+    "(guide only partly read)":      {"ar": u"(\u062a\u0645\u062a \u0642\u0631\u0627\u0621\u0629 \u062c\u0632\u0621 \u0645\u0646 \u0627\u0644\u062f\u0644\u064a\u0644 \u0641\u0642\u0637)"},
 }
 
 
@@ -1126,25 +1314,36 @@ AI_LANGUAGES = ["English", "Arabic", "عربي (مصري)", "عربي (عراق�
 AI_FREQUENCIES = [5, 10, 15, 30, 60]
 
 
-def get_ai_language_instruction(language):
-    """Format the language instruction, supporting dialect specifics."""
-    dialect_map = {
-        "عربي (مصري)": "Egyptian Arabic",
-        "عربي (عراقي)": "Iraqi Arabic",
-        "عربي (خليجي)": "Gulf Arabic",
-        "دارجة (مغربية)": "Moroccan Darija",
-        "عربي (شامي)": "Levantine Arabic"
-    }
-    if language in dialect_map:
-        return "Respond ONLY in {} dialect USING NATIVE ARABIC SCRIPT, casual football fan tone".format(dialect_map[language])
+_AI_DIALECTS = {
+    "عربي (مصري)": "Egyptian Arabic",
+    "عربي (عراقي)": "Iraqi Arabic",
+    "عربي (خليجي)": "Gulf Arabic",
+    "دارجة (مغربية)": "Moroccan Darija",
+    "عربي (شامي)": "Levantine Arabic",
+}
 
+
+def get_ai_language_instruction(language):
+    """Language and voice instruction for AI Mode prompts (dialects included).
+    Arabic options also ask for names in Arabic script, as Arab sports media
+    write them, so the toast is not a mix of scripts."""
+    language = language or "English"
+    if language in _AI_DIALECTS:
+        return ("Write ONLY in {} dialect, in Arabic script, the way a passionate local fan "
+                "talks while watching the game. Write team and player names in Arabic script "
+                "as local sports media spell them").format(_AI_DIALECTS[language])
+    if language == "Arabic":
+        return ("Write ONLY in Modern Standard Arabic (Arabic script), in the eloquent, passionate "
+                "style of Arab TV sports commentators. Write team and player names in Arabic "
+                "script as Arab sports media spell them")
     if "(" in language and ")" in language:
         base_lang = language.split("(")[0].strip()
         dialect = language.split("(")[1].replace(")", "").strip()
-        return "Respond ONLY in {} {} dialect USING NATIVE SCRIPT, casual football fan tone".format(dialect, base_lang)
-
-    return "Respond ONLY in {}".format(language)
-
+        return "Write ONLY in {} {} dialect, in its native script, with a casual football fan tone".format(dialect, base_lang)
+    if language == "English":
+        return "Write ONLY in English, in the style of a live British TV sports commentator"
+    return ("Write ONLY in {0}, in the style of a live {0}-language TV sports commentator. "
+            "Spell team and player names the way {0} sports media do").format(language)
 
 def fetch_sports_headlines(max_items=6):
     """Fetch latest sports headlines from BBC Sport RSS (no API key needed)."""
@@ -1389,7 +1588,12 @@ def clean_ai_text(text):
         'energetic sports broadcaster',
         'write exactly 2 short',
         'write exactly 1 short',
-        'thrilling notification messages'
+        'thrilling notification messages',
+        'live tv football commentator',
+        'use only the facts given',
+        'live sports news ticker',
+        'output only the sentence',
+        'output only the 2 lines',
     ]
 
     for block in raw_blocks:
@@ -1417,331 +1621,856 @@ def clean_ai_text(text):
     return result
 
 
-def call_ai_api_threaded(api_key, provider, prompt, on_result):
-    """
-    Calls the chosen AI provider in a background thread.
-    Calls on_result(text) on the main thread when done.
-    Calls on_result(None) on error so the in-flight flag can be cleared.
-    """
-    def _run():
-        req = None
-        try:
-            # Fetch real-time sports news and inject into prompt
-            full_prompt = prompt
-            try:
-                news = fetch_sports_headlines(6)
-                if news:
-                    news_block = "\n\n=== LATEST SPORTS NEWS (from BBC Sport) ===\n"
-                    news_block += "\n".join("- " + h for h in news)
-                    full_prompt = prompt + news_block
-            except Exception:
-                pass  # News fetch is optional, don't block AI call
+# ------------------------------------------------------------------------------
+# AI MODE — PROMPTS AND REQUESTS
+# ------------------------------------------------------------------------------
+# Every AI Mode prompt is a dict {"system", "user", "kind"}: the system part holds
+# the voice and the rules, the user part only facts worked out in code (who leads,
+# equaliser or winner, comeback, red cards, form, odds). The model is never asked
+# to work the match situation out from raw data itself.
+#   kind "news"       — periodic ticker / toast lines (BBC headlines added)
+#   kind "commentary" — one line after a goal, kick-off or full time (no headlines,
+#                       no 30 s rate-limit retry: a late line is worse than none)
+AI_GEN_SETTINGS = {
+    "news":       {"temperature": 0.85, "max_tokens": 300, "timeout": 15},
+    "commentary": {"temperature": 0.95, "max_tokens": 160, "timeout": 12},
+}
+AI_NEWS_MAX_WORDS = 20
+AI_NEWS_MAX_CHARS = 140           # one ticker line in the main screen title bar
+AI_COMMENTARY_MAX_WORDS = 22
+AI_COMMENTARY_MAX_CHARS = 170     # two lines in the AI toast (1560 px, font 30)
+AI_COMMENTARY_STALE_S = 75        # a goal line arriving later than this is dropped
+AI_RECENT_LINES_MAX = 6           # last lines shown, so the model can avoid repeating them
 
-            text = ""
-            if provider == "gemini":
-                # Primary: gemini-3.6-flash (recommended by Google API) with fallbacks
-                gemini_models = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-                last_exc = None
-                for g_model in gemini_models:
-                    try:
-                        url = (
-                            "https://generativelanguage.googleapis.com"
-                            "/v1beta/models/{}:generateContent"
-                            "?key={}".format(g_model, api_key)
-                        )
-                        # Attempt request with thinkingBudget: 0 to disable thinking for fast sports notifications
-                        payload_data = {
-                            "contents": [{"parts": [{"text": full_prompt}]}],
-                            "generationConfig": {
-                                "thinkingConfig": {
-                                    "thinkingBudget": 0
-                                }
-                            }
-                        }
-                        payload = json.dumps(payload_data)
-                        req = Request(url, data=payload.encode("utf-8"))
-                        req.add_header("Content-Type", "application/json")
-                        req.add_header("User-Agent", "Mozilla/5.0")
-                        try:
-                            resp = urlopen(req, timeout=15)
-                        except Exception as ge_cfg:
-                            # If thinkingConfig causes 400 Bad Request on older models, retry without it
-                            cfg_code = getattr(ge_cfg, 'code', 0)
-                            if cfg_code == 400:
-                                payload_data = {"contents": [{"parts": [{"text": full_prompt}]}]}
-                                payload = json.dumps(payload_data)
-                                req = Request(url, data=payload.encode("utf-8"))
-                                req.add_header("Content-Type", "application/json")
-                                req.add_header("User-Agent", "Mozilla/5.0")
-                                resp = urlopen(req, timeout=15)
-                            else:
-                                raise ge_cfg
+_AI_HEADLINE_CACHE = {"ts": 0, "items": []}
+_AI_HEADLINE_LOCK = threading.Lock()
 
-                        data = json.loads(resp.read().decode("utf-8"))
-                        # Filter out thought parts (where p.get("thought") is True)
-                        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-                        answer_parts = [p.get("text", "") for p in parts if not p.get("thought") and p.get("text")]
-                        raw_gem = "".join(answer_parts).strip() if answer_parts else (parts[-1].get("text", "").strip() if parts else "")
-                        cleaned = clean_ai_text(raw_gem)
-                        if cleaned:
-                            text = cleaned
-                            break
-                        log_dbg("[AI Mode] Gemini model {} returned only thinking/scratchpad, trying next fallback...".format(g_model))
-                    except Exception as ge:
-                        last_exc = ge
-                        err_code = getattr(ge, 'code', 0)
-                        err_body = ""
-                        if hasattr(ge, 'read'):
-                            try:
-                                err_body = ge.read().decode("utf-8", errors="ignore")
-                            except Exception:
-                                pass
-                        is_model_err = (err_code == 404) or ("not found" in err_body.lower()) or ("no longer available" in err_body.lower())
-                        if is_model_err and g_model != gemini_models[-1]:
-                            log_dbg("[AI Mode] Gemini model {} unavailable ({}), trying next fallback...".format(g_model, err_code))
-                            continue
-                        if err_body:
-                            setattr(ge, '_saved_body', err_body)
-                        raise ge
-                if not text and last_exc:
-                    raise last_exc
 
-            elif provider == "groq":
-                # Primary: llama-3.3-70b-versatile with fallbacks
-                groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3.6-27b", "openai/gpt-oss-120b"]
-                url = "https://api.groq.com/openai/v1/chat/completions"
-                last_exc = None
-                for gr_model in groq_models:
-                    try:
-                        payload = json.dumps({
-                            "model": gr_model,
-                            "messages": [{"role": "user", "content": full_prompt}],
-                            "max_tokens": 1024
-                        })
-                        req = Request(url, data=payload.encode("utf-8"))
-                        req.add_header("Content-Type", "application/json")
-                        req.add_header("Authorization", "Bearer " + api_key)
-                        req.add_header("User-Agent", "Mozilla/5.0")
-                        resp = urlopen(req, timeout=15)
-                        data = json.loads(resp.read().decode("utf-8"))
-                        msg_obj = data.get("choices", [{}])[0].get("message", {})
-                        raw_groq = msg_obj.get("content", "").strip()
-                        cleaned = clean_ai_text(raw_groq)
-                        if cleaned:
-                            text = cleaned
-                            break
-                        log_dbg("[AI Mode] Groq model {} returned only thinking/scratchpad, trying next fallback...".format(gr_model))
-                    except Exception as gre:
-                        last_exc = gre
-                        err_code = getattr(gre, 'code', 0)
-                        err_body = ""
-                        if hasattr(gre, 'read'):
-                            try:
-                                err_body = gre.read().decode("utf-8", errors="ignore")
-                            except Exception:
-                                pass
-                        is_model_err = (err_code == 404) or ("model_not_found" in err_body) or ("does not exist" in err_body) or ("decommissioned" in err_body)
-                        if is_model_err and gr_model != groq_models[-1]:
-                            log_dbg("[AI Mode] Groq model {} unavailable ({}), trying next fallback...".format(gr_model, err_code))
-                            continue
-                        if err_body:
-                            setattr(gre, '_saved_body', err_body)
-                        raise gre
-                if not text and last_exc:
-                    raise last_exc
+def fetch_sports_headlines_cached(max_items=6, ttl=600):
+    """BBC headlines, kept for 10 minutes (worker threads only)."""
+    with _AI_HEADLINE_LOCK:
+        if _AI_HEADLINE_CACHE["items"] and time.time() - _AI_HEADLINE_CACHE["ts"] < ttl:
+            return list(_AI_HEADLINE_CACHE["items"][:max_items])
+    items = fetch_sports_headlines(max_items)
+    if items:
+        with _AI_HEADLINE_LOCK:
+            _AI_HEADLINE_CACHE["ts"] = time.time()
+            _AI_HEADLINE_CACHE["items"] = list(items)
+    return items
 
+
+def ai_minute(clock):
+    """Match minute from a clock string: "67'" -> 67, "90'+3'" -> 93, "HT"/"" -> None."""
+    m = re.search(r"(\d+)\s*'?\s*(?:\+\s*(\d+))?", clock or "")
+    if not m:
+        return None
+    return int(m.group(1)) + int(m.group(2) or 0)
+
+
+def parse_scorer_text(text):
+    """Split the goal-toast scorer text into (player, kind, clock).
+    "Haaland (G) 45'" -> ("Haaland", "goal", "45'"); "(P)" penalty, "(O)" own goal;
+    "Goal!" / "Goal 45'" -> ("", "goal", "45'")."""
+    t = (text or "").strip()
+    m = re.match(r"^(.*?)\s*\(([GPO])\)\s*(.*)$", t)
+    if m:
+        kind = {"G": "goal", "P": "penalty", "O": "own_goal"}[m.group(2)]
+        return m.group(1).strip(), kind, m.group(3).strip()
+    m = re.match(r"^goal\b!?\s*(.*)$", t, re.IGNORECASE)
+    if m:
+        return "", "goal", m.group(1).strip()
+    m = re.match(r"^(.*?)\s*\((\d+[^)]*)\)\s*$", t)
+    if m:
+        return m.group(1).strip(), "goal", m.group(2).strip()
+    return t, "goal", ""
+
+
+def ai_match_events(event, h_score=None, a_score=None):
+    """Goals and red cards from an ESPN scoreboard event, oldest first.
+    Items: {'min', 'clock', 'side' ('home'/'away'), 'kind' ('goal', 'penalty',
+    'own_goal', 'red'), 'player'}. For goals 'side' is the team the goal counts for.
+    ESPN is not consistent about which team an own goal is filed under, so own
+    goals are flipped when that is what makes the goals add up to the score."""
+    goals, reds = [], []
+    try:
+        comp = (event.get('competitions') or [{}])[0]
+        h_id = ""
+        for c in comp.get('competitors', []):
+            if c.get('homeAway') == 'home':
+                h_id = str(c.get('id', '') or (c.get('team') or {}).get('id', ''))
+                break
+        for play in comp.get('details', []) or []:
+            text_desc = ((play.get('type') or {}).get('text') or '').lower()
+            is_og = bool(play.get('ownGoal')) or 'own goal' in text_desc
+            is_pk = bool(play.get('penaltyKick')) or ('penalty' in text_desc and 'goal' in text_desc)
+            is_red = bool(play.get('redCard')) or ('card' in text_desc and 'red' in text_desc)
+            is_goal = bool(play.get('scoringPlay')) or is_og or is_pk or 'goal' in text_desc
+            if 'miss' in text_desc or 'saved' in text_desc:
+                is_goal = False
+            if not (is_goal or is_red):
+                continue
+            clock = ((play.get('clock') or {}).get('displayValue') or '')
+            athletes = play.get('athletesInvolved') or [p.get('athlete', p) for p in play.get('participants', []) or []]
+            player = ''
+            if athletes:
+                player = athletes[0].get('displayName') or athletes[0].get('shortName') or ''
+            side = 'home' if str((play.get('team') or {}).get('id', '')) == h_id else 'away'
+            item = {'min': ai_minute(clock), 'clock': clock, 'side': side, 'player': player}
+            if is_red:
+                item['kind'] = 'red'
+                reds.append(item)
             else:
-                text = ""
+                item['kind'] = 'own_goal' if is_og else ('penalty' if is_pk else 'goal')
+                goals.append(item)
+    except Exception as e:
+        log_dbg("[AI Mode] match events: {}".format(e))
 
-            if text:
-                text = clean_ai_text(text)
+    if h_score is not None and a_score is not None and any(g['kind'] == 'own_goal' for g in goals):
+        def _count(gs):
+            return (sum(1 for g in gs if g['side'] == 'home'), sum(1 for g in gs if g['side'] == 'away'))
+        if _count(goals) != (h_score, a_score):
+            flipped = [dict(g, side=('away' if g['side'] == 'home' else 'home')) if g['kind'] == 'own_goal' else g
+                       for g in goals]
+            if _count(flipped) == (h_score, a_score):
+                goals = flipped
+    return goals, reds
 
-            # Schedule callback on main thread via reactor
-            if on_result:
-                reactor.callFromThread(on_result, text.strip() if text else None)
 
+def _ai_running_scores(goals):
+    """[(h, a) after each goal]."""
+    h = a = 0
+    out = []
+    for g in goals:
+        if g['side'] == 'home':
+            h += 1
+        else:
+            a += 1
+        out.append((h, a))
+    return out
+
+
+def _ai_max_deficit(goals, side):
+    worst = 0
+    for h, a in _ai_running_scores(goals):
+        own, other = (h, a) if side == 'home' else (a, h)
+        worst = max(worst, other - own)
+    return worst
+
+
+def _ai_player_goal_count(goals, player):
+    if not player:
+        return 0
+    p = player.strip().lower()
+    return sum(1 for g in goals if g['kind'] != 'own_goal' and (g.get('player') or '').strip().lower() == p)
+
+
+def _ai_ordinal(n):
+    return {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth"}.get(n, "{}th".format(n))
+
+
+def _ai_reds_line(reds, h_name, a_name):
+    parts = []
+    for side, name in (('home', h_name), ('away', a_name)):
+        n = sum(1 for r in reds if r['side'] == side)
+        if n:
+            parts.append("{} down to {} men".format(name, 11 - n))
+    return "; ".join(parts)
+
+
+def _ai_flow_line(goals, h_name, a_name, limit=8):
+    """Earlier goals, team level only (old scorers' names are left out on purpose,
+    so the model cannot credit this goal to the wrong player)."""
+    out = []
+    for g in goals[-limit:]:
+        tag = {"penalty": " (pen)", "own_goal": " (own goal)"}.get(g['kind'], "")
+        out.append("{} {}{}".format(g['clock'] or '?', h_name if g['side'] == 'home' else a_name, tag))
+    return ", ".join(out)
+
+
+def _ai_recent_block(recent_lines):
+    if not recent_lines:
+        return ""
+    return ("\nLines already shown to the viewer (do not reuse their openings or phrases):\n"
+            + "\n".join("- " + l for l in recent_lines[-3:]))
+
+
+def _ai_viewer_lines(ctx, focus_side=None):
+    """Viewer stake: their prediction and the teams they follow."""
+    out = []
+    pick = ctx.get('pick')
+    h_name, a_name = ctx.get('h_name', 'Home'), ctx.get('a_name', 'Away')
+    if pick in ('home', 'away', 'draw'):
+        pick_name = h_name if pick == 'home' else a_name if pick == 'away' else "a draw"
+        line = "Viewer's prediction: {}".format(pick_name)
+        if focus_side in ('home', 'away'):
+            if pick == focus_side:
+                line += " (this helps their prediction)"
+            else:
+                line += " (this hurts their prediction)"
+        out.append(line)
+    fans = ctx.get('fan_of') or []
+    if fans:
+        out.append("Viewer supports: {}".format(", ".join(fans)))
+    return out
+
+
+AI_COMMENTARY_SYSTEM = (
+    "You are a live TV football commentator. You write the single line that appears "
+    "on the viewer's screen a few seconds after something happens in a match they follow.\n"
+    "Rules:\n"
+    "- Exactly ONE sentence of at most {words} words.\n"
+    "- Use only the facts given. Never invent players, minutes, scores, records, "
+    "history or quotes.\n"
+    "- Name a player only if that player is named in the facts.\n"
+    "- Scores are always given home team first; keep them correct.\n"
+    "- Build the line on the most dramatic fact given (equaliser, late winner, comeback, "
+    "red card, brace, upset, title stakes), not on a generic 'What a goal!'.\n"
+    "- If the viewer's prediction or team is given, you may speak to the viewer about it.\n"
+    "- Sound like a human on air: vivid, natural, varied rhythm, no clichés stacked together.\n"
+    "- No hashtags, emojis, quotation marks, markdown, labels, translations or explanations.\n"
+    "- {language}.\n"
+    "Output only the sentence."
+)
+
+
+def _ai_commentary_request(user, language):
+    return {
+        "kind": "commentary",
+        "system": AI_COMMENTARY_SYSTEM.format(words=AI_COMMENTARY_MAX_WORDS,
+                                              language=get_ai_language_instruction(language)),
+        "user": user,
+    }
+
+
+def ai_goal_facts(ctx, side, player, kind):
+    """What this goal means, in plain words, worked out from the score and events."""
+    h_name, a_name = ctx.get('h_name', 'Home'), ctx.get('a_name', 'Away')
+    h, a = ctx.get('h', 0), ctx.get('a', 0)
+    team = h_name if side == 'home' else a_name
+    opp = a_name if side == 'home' else h_name
+    own, other = (h, a) if side == 'home' else (a, h)
+    goals = ctx.get('goals_with_current') or []
+    before = goals[:-1]
+    minute = ctx.get('minute')
+    facts = []
+
+    if own + other == 1:
+        facts.append("opening goal of the match, {} lead".format(team))
+    elif own == other:
+        facts.append("{} equalise, it is level again".format(team))
+    elif own == other + 1:
+        facts.append("{} take the lead".format(team))
+    elif own > other + 1:
+        facts.append("{} lead by {} now".format(team, own - other))
+    else:
+        facts.append("{} pull one back, still {} behind".format(team, other - own))
+
+    deficit = _ai_max_deficit(before, side)
+    if deficit >= 2 and own >= other:
+        facts.append("comeback: {} were {} goals down".format(team, deficit))
+    elif deficit == 1 and own > other:
+        facts.append("{} have turned it around after going behind".format(team))
+
+    if minute is not None:
+        if minute >= 90:
+            facts.append("stoppage-time goal")
+        elif minute >= 85:
+            facts.append("very late goal")
+        elif minute <= 5:
+            facts.append("goal inside the first five minutes")
+
+    if kind == 'own_goal':
+        facts.append("own goal by {} of {}".format(player, opp) if player else "own goal by {}".format(opp))
+    elif kind == 'penalty':
+        facts.append("scored from the penalty spot")
+    if player and kind != 'own_goal':
+        n = _ai_player_goal_count(goals, player)
+        if n == 3:
+            facts.append("hat-trick for {}".format(player))
+        elif n >= 2:
+            facts.append("{} goal of the match for {}".format(_ai_ordinal(n), player))
+
+    reds = ctx.get('reds') or []
+    opp_side = 'away' if side == 'home' else 'home'
+    own_reds = sum(1 for r in reds if r['side'] == side)
+    opp_reds = sum(1 for r in reds if r['side'] == opp_side)
+    if own_reds and not opp_reds:
+        facts.append("{} scored with {} men".format(team, 11 - own_reds))
+    elif opp_reds and not own_reds:
+        facts.append("{} are down to {} men".format(opp, 11 - opp_reds))
+
+    if own + other >= 5:
+        facts.append("goal number {} in an open game".format(own + other))
+    return facts
+
+
+def build_ai_goal_request(ctx, scorer_text, side, language, recent_lines=None):
+    """Prompt for the line after a soccer goal."""
+    h_name, a_name = ctx.get('h_name', 'Home'), ctx.get('a_name', 'Away')
+    player, kind, s_clock = parse_scorer_text(scorer_text)
+    team = h_name if side == 'home' else a_name
+    # The goal's own minute beats the snapshot clock (that is the poll time)
+    if s_clock and ai_minute(s_clock) is not None:
+        ctx['minute'], ctx['clock'] = ai_minute(s_clock), s_clock
+
+    goals = list(ctx.get('goals') or [])
+    if len(goals) < ctx.get('h', 0) + ctx.get('a', 0) or not goals or goals[-1]['side'] != side:
+        goals.append({'min': ctx.get('minute'), 'clock': s_clock or ctx.get('clock', ''), 'side': side,
+                      'kind': kind, 'player': player})
+    ctx['goals_with_current'] = goals
+
+    if kind == 'own_goal':
+        scored_by = "own goal{} (counts for {})".format(" by " + player if player else "", team)
+    elif player:
+        scored_by = "{} ({}){}".format(player, team, ", penalty" if kind == 'penalty' else "")
+    else:
+        scored_by = "{} (scorer not known yet: do not name anyone)".format(team)
+
+    lines = [
+        "EVENT: GOAL",
+        "Match: {} vs {}{}".format(h_name, a_name, " ({})".format(ctx['league']) if ctx.get('league') else ""),
+    ]
+    if ctx.get('note'):
+        lines.append("Stage: {}".format(ctx['note']))
+    if ctx.get('minute'):
+        lines.append("Minute: {}".format(ctx.get('clock') or ctx['minute']))
+    lines.append("Score now: {} {}-{} {}".format(h_name, ctx.get('h', 0), ctx.get('a', 0), a_name))
+    lines.append("Scored by: {}".format(scored_by))
+    lines.append("What it means: {}".format("; ".join(ai_goal_facts(ctx, side, player, kind))))
+    flow = _ai_flow_line(goals[:-1], h_name, a_name)
+    if flow:
+        lines.append("Earlier goals: {}".format(flow))
+    lines.extend(_ai_viewer_lines(ctx, side))
+    user = "\n".join(lines) + _ai_recent_block(recent_lines)
+    user += "\n\nWrite the commentator's line for this goal now."
+    return _ai_commentary_request(user, language)
+
+
+def build_ai_kickoff_request(ctx, language, recent_lines=None):
+    """Prompt for the line at kick-off: set up the storyline of the game."""
+    h_name, a_name = ctx.get('h_name', 'Home'), ctx.get('a_name', 'Away')
+    lines = [
+        "EVENT: KICK-OFF",
+        "Match: {} (home) vs {} (away)".format(h_name, a_name),
+    ]
+    if ctx.get('league'):
+        lines.append("Competition: {}".format(ctx['league']))
+    if ctx.get('note'):
+        lines.append("Stage: {}".format(ctx['note']))
+    if ctx.get('venue'):
+        lines.append("Venue: {}".format(ctx['venue']))
+    if ctx.get('h_form') or ctx.get('a_form'):
+        lines.append("Recent form (W win, D draw, L loss): {} {}, {} {}".format(
+            h_name, ctx.get('h_form') or "?", a_name, ctx.get('a_form') or "?"))
+    odds = ctx.get('odds')
+    if odds:
+        fav = ""
+        if odds['h'] - odds['a'] >= 15:
+            fav = ", {} are favourites".format(h_name)
+        elif odds['a'] - odds['h'] >= 15:
+            fav = ", {} are favourites".format(a_name)
+        else:
+            fav = ", evenly matched"
+        draw = ", draw {}%".format(odds['d']) if odds.get('d') else ""
+        lines.append("Pre-match chances ({}): {} {}%{}, {} {}%{}".format(
+            odds['source'], h_name, odds['h'], draw, a_name, odds['a'], fav))
+    lines.extend(_ai_viewer_lines(ctx))
+    user = "\n".join(lines) + _ai_recent_block(recent_lines)
+    user += ("\n\nThe referee has just started the game. Write the commentator's kick-off line: "
+             "welcome the viewer in and set up the main storyline from the facts above "
+             "(stakes, form, favourite or underdog). Mention both teams.")
+    return _ai_commentary_request(user, language)
+
+
+def ai_full_time_facts(ctx):
+    h_name, a_name = ctx.get('h_name', 'Home'), ctx.get('a_name', 'Away')
+    h, a = ctx.get('h', 0), ctx.get('a', 0)
+    goals = ctx.get('goals') or []
+    facts = []
+    if h == a:
+        facts.append("goalless draw" if h == 0 else "draw, the points are shared")
+        if goals and goals[-1].get('min') and goals[-1]['min'] >= 85:
+            facts.append("late equaliser by {} in minute {}".format(
+                h_name if goals[-1]['side'] == 'home' else a_name, goals[-1]['clock'] or goals[-1]['min']))
+    else:
+        w_side = 'home' if h > a else 'away'
+        winner, loser = (h_name, a_name) if w_side == 'home' else (a_name, h_name)
+        margin = abs(h - a)
+        facts.append("{} win{}".format(winner, " by {} goals".format(margin) if margin >= 3 else ""))
+        if h == 0 or a == 0:
+            facts.append("{} kept a clean sheet".format(winner))
+        deficit = _ai_max_deficit(goals, w_side)
+        if deficit:
+            facts.append("{} came from {} down to win".format(winner, "{} goals".format(deficit) if deficit > 1 else "a goal"))
+        scores = _ai_running_scores(goals)
+        if len(goals) == h + a and len(scores) >= 2:
+            ph, pa = scores[-2]
+            last = goals[-1]
+            if ph == pa and last['side'] == w_side and last.get('min') and last['min'] >= 80:
+                facts.append("winner came late, minute {}".format(last['clock'] or last['min']))
+        elif len(goals) == 1 and goals[0].get('min') and goals[0]['min'] >= 80:
+            facts.append("the only goal came late, minute {}".format(goals[0]['clock'] or goals[0]['min']))
+        odds = ctx.get('odds')
+        if odds:
+            w_pct = odds['h'] if w_side == 'home' else odds['a']
+            l_pct = odds['a'] if w_side == 'home' else odds['h']
+            if l_pct - w_pct >= 20:
+                facts.append("an upset: {} were the favourites".format(loser))
+    for p in sorted(set(g['player'] for g in goals if g.get('player') and g['kind'] != 'own_goal')):
+        n = _ai_player_goal_count(goals, p)
+        if n >= 2:
+            facts.append("{} scored {}".format(p, "a hat-trick" if n == 3 else "{} goals".format(n)))
+    if h + a >= 5:
+        facts.append("{} goals in total".format(h + a))
+    reds = _ai_reds_line(ctx.get('reds') or [], h_name, a_name)
+    if reds:
+        facts.append("red cards: " + reds.replace("down to", "finished with"))
+    return facts
+
+
+def build_ai_fulltime_request(ctx, language, recent_lines=None):
+    """Prompt for the line at the final whistle."""
+    h_name, a_name = ctx.get('h_name', 'Home'), ctx.get('a_name', 'Away')
+    h, a = ctx.get('h', 0), ctx.get('a', 0)
+    lines = [
+        "EVENT: FULL TIME",
+        "Match: {} vs {}{}".format(h_name, a_name, " ({})".format(ctx['league']) if ctx.get('league') else ""),
+    ]
+    if ctx.get('note'):
+        lines.append("Stage: {}".format(ctx['note']))
+    lines.append("Final score: {} {}-{} {}".format(h_name, h, a, a_name))
+    lines.append("What it means: {}".format("; ".join(ai_full_time_facts(ctx))))
+    flow = _ai_flow_line(ctx.get('goals') or [], h_name, a_name, limit=10)
+    if flow:
+        lines.append("Goals: {}".format(flow))
+    pick = ctx.get('pick')
+    if pick in ('home', 'away', 'draw'):
+        result = 'home' if h > a else 'away' if a > h else 'draw'
+        pick_name = h_name if pick == 'home' else a_name if pick == 'away' else "a draw"
+        lines.append("Viewer's prediction: {} ({})".format(pick_name, "correct" if pick == result else "wrong"))
+    fans = ctx.get('fan_of') or []
+    if fans:
+        lines.append("Viewer supports: {}".format(", ".join(fans)))
+    user = "\n".join(lines) + _ai_recent_block(recent_lines)
+    user += "\n\nWrite the commentator's line at the final whistle, built on what the result means."
+    return _ai_commentary_request(user, language)
+
+
+AI_NEWS_SYSTEM = (
+    "You are the live sports news ticker of a TV sports app. Each update shows two short "
+    "lines on the viewer's screen.\n"
+    "Rules:\n"
+    "- Write EXACTLY 2 lines, separated by one blank line. Each line is one sentence of at "
+    "most {words} words.\n"
+    "- Line 1: the biggest story in MATCH DATA (the line marked TOP STORY if there is one), "
+    "with real team names and the score.\n"
+    "- Line 2: a different story from line 1, using the suggested angle when it fits: "
+    "an upcoming match to look forward to, another result, the viewer's prediction, or a "
+    "headline from LATEST SPORTS NEWS rewritten in your own words.\n"
+    "- If there are no matches, use two different headlines from LATEST SPORTS NEWS.\n"
+    "- Use only the facts given. Never invent matches, scores, minutes, players or quotes. "
+    "Scores are given home team first.\n"
+    "- Punchy, specific and varied, like a breaking-news ticker, not a generic hype line.\n"
+    "- No hashtags, emojis, quotation marks, numbering, labels, markdown or explanations.\n"
+    "- {language}.\n"
+    "Output only the 2 lines."
+)
+
+
+def _ai_news_snapshot_score(snap, fav_ids):
+    """Priority of a match for the ticker (higher first)."""
+    score = 0
+    state = snap.get('state', 'pre')
+    if str(snap.get('h_team_id', '')) in fav_ids or str(snap.get('a_team_id', '')) in fav_ids:
+        score += 100
+    if state == 'in':
+        score += 50
+        try:
+            diff = abs(int(snap.get('h_score_int', 0)) - int(snap.get('a_score_int', 0)))
+            score += max(0, 20 - diff * 8)
+        except Exception:
+            pass
+        m = ai_minute(snap.get('clock', '')) or 0
+        if m >= 75:
+            score += 10
+        if snap.get('h_red_cards') or snap.get('a_red_cards'):
+            score += 5
+    elif state == 'post':
+        score += 20
+    return score
+
+
+def _ai_news_line(snap, fav_ids):
+    h_name = snap.get("h_name", "Home")
+    a_name = snap.get("a_name", "Away")
+    score = (snap.get("score_str", "") or "").replace(" ", "")
+    league = snap.get("league_name", "")
+    state = snap.get("state", "pre")
+    fav = ""
+    for side, name in (('h', h_name), ('a', a_name)):
+        if str(snap.get(side + '_team_id', '')) in fav_ids:
+            fav = " | viewer's team: " + name
+    if state == "in":
+        extra = []
+        reds = []
+        if snap.get('h_red_cards'):
+            reds.append("{} {}".format(h_name, snap['h_red_cards']))
+        if snap.get('a_red_cards'):
+            reds.append("{} {}".format(a_name, snap['a_red_cards']))
+        if reds:
+            extra.append("red cards: " + ", ".join(reds))
+        return "LIVE {}: {} {} {} | {}{}{}".format(
+            snap.get("clock", "") or snap.get("time_str", ""), h_name, score, a_name, league,
+            (" | " + "; ".join(extra)) if extra else "", fav)
+    if state == "post":
+        return "FINISHED: {} {} {} | {}{}".format(h_name, score, a_name, league, fav)
+    return "UPCOMING at {}: {} vs {} | {}{}".format(snap.get("time_str", ""), h_name, a_name, league, fav)
+
+
+def build_ai_news_request(language, cached_events, match_snapshots, ledger=None,
+                          favorite_ids=None, recent_lines=None, call_index=0):
+    """Prompt for the periodic AI Mode update (toast + ticker)."""
+    fav_ids = set(str(x) for x in (favorite_ids or []) if x)
+    snaps = []
+    seen = set()
+    for event in cached_events or []:
+        eid = str(event.get("id", ""))
+        snap = match_snapshots.get(eid)
+        if snap and eid not in seen:
+            seen.add(eid)
+            snaps.append(snap)
+    if not snaps and match_snapshots:
+        snaps = list(match_snapshots.values())
+    snaps = [s for s in snaps if not s.get('is_postponed')]
+
+    live = sorted([s for s in snaps if s.get('state') == 'in'],
+                  key=lambda s: -_ai_news_snapshot_score(s, fav_ids))[:6]
+    done = sorted([s for s in snaps if s.get('state') == 'post'],
+                  key=lambda s: (-_ai_news_snapshot_score(s, fav_ids), -(s.get('local_ts') or 0)))[:3]
+    upcoming = sorted([s for s in snaps if s.get('state') == 'pre'],
+                      key=lambda s: (-_ai_news_snapshot_score(s, fav_ids), s.get('local_ts') or 0))[:4]
+
+    lines = []
+    ordered = live + done + upcoming
+    top = live[0] if live else (done[0] if done else None)
+    for s in ordered:
+        line = _ai_news_line(s, fav_ids)
+        if s is top:
+            line = "TOP STORY | " + line
+        lines.append(line)
+    match_summary = "\n".join(lines) if lines else "No matches available."
+    log_dbg("[AI Mode] Prompt match data ({} lines): {}".format(len(lines), match_summary[:300]))
+
+    ledger_lines = []
+    bet_live = False
+    if ledger:
+        for eid, bet in list((ledger.get("pending_bets") or {}).items())[:6]:
+            snap = match_snapshots.get(str(eid))
+            prediction = bet.get("prediction", "")
+            h_name = bet.get("h_name", "Home")
+            a_name = bet.get("a_name", "Away")
+            pred_label = h_name if prediction == "home" else a_name if prediction == "away" else "Draw"
+            if snap:
+                state = snap.get("state", "pre")
+                if state == "in":
+                    bet_live = True
+                    ledger_lines.append("USER BET: {} vs {} (LIVE {}, {}) - user picked: {}".format(
+                        h_name, a_name, (snap.get("score_str", "") or "").replace(" ", ""),
+                        snap.get("clock", ""), pred_label))
+                elif state == "pre":
+                    ledger_lines.append("USER BET: {} vs {} (upcoming) - user picked: {}".format(
+                        h_name, a_name, pred_label))
+            else:
+                ledger_lines.append("USER BET (pending): {} vs {} - user picked: {}".format(
+                    h_name, a_name, pred_label))
+        total_preds = int(ledger.get("total_predictions", 0) or 0)
+        correct = int(ledger.get("correct_predictions", 0) or 0)
+        if total_preds > 0:
+            ledger_lines.append("USER RECORD: {}/{} correct ({}%), points: {}".format(
+                correct, total_preds, int(correct * 100.0 / total_preds), int(ledger.get("total_score", 0) or 0)))
+
+    # Angle for line 2: rotate so consecutive updates do not read alike
+    angles = []
+    if bet_live:
+        angles.append("the viewer's live prediction (their pick and the current score)")
+    if upcoming:
+        angles.append("an upcoming match worth looking forward to")
+    angles.append("the most interesting LATEST SPORTS NEWS headline")
+    if len(live) > 1 or done:
+        angles.append("another live match or a result from MATCH DATA")
+    angle = angles[call_index % len(angles)]
+
+    system = AI_NEWS_SYSTEM.format(words=AI_NEWS_MAX_WORDS, language=get_ai_language_instruction(language))
+    user = "=== MATCH DATA ===\n" + match_summary
+    if ledger_lines:
+        user += "\n\n=== USER PREDICTIONS ===\n" + "\n".join(ledger_lines)
+    user += "\n\nSuggested angle for line 2: " + angle
+    user += _ai_recent_block(recent_lines)
+    log_dbg("[AI Mode] Prompt built: {} match lines, {} ledger lines, angle: {}".format(
+        len(lines), len(ledger_lines), angle))
+    return {"kind": "news", "system": system, "user": user}
+
+
+def build_ai_prompt(language, cached_events, match_snapshots, ledger=None):
+    """Single-string version of build_ai_news_request (kept for older callers)."""
+    req = build_ai_news_request(language, cached_events, match_snapshots, ledger)
+    return req["system"] + "\n\n" + req["user"]
+
+
+_AI_EMOJI_RE = re.compile(u"[\U0001F000-\U0001FAFF☀-➿⬀-⯿️‍⃣]")
+_AI_LABEL_RE = re.compile(
+    u"^\\s*(?:(?:message|line|headline|notification|commentary|update|ticker|"
+    u"رسالة|السطر|تعليق)"
+    u"\\s*\\d*\\s*[:：\\-–]\\s*|[1-3]\\s*[.)]\\s+|[-*•·]\\s+)",
+    re.IGNORECASE)
+_AI_FILLER_RE = re.compile(r"^(here(?:'s| is| are)|sure|certainly|okay|ok)\b.*:\s*$", re.IGNORECASE)
+_AI_QUOTES = u"\"'“”‘’«»`"
+
+
+def _ai_tidy_line(line, max_chars):
+    s = _AI_EMOJI_RE.sub(u"", line)
+    s = re.sub(u"[*_`]+", u"", s)
+    s = re.sub(r"#(\w)", r"\1", s, flags=re.UNICODE)
+    for _ in range(2):
+        s = _AI_LABEL_RE.sub(u"", s).strip()
+    s = re.sub(r"\s+", u" ", s).strip().strip(_AI_QUOTES).strip()
+    if len(s) > max_chars:
+        cut = s[:max_chars]
+        ends = [cut.rfind(c) for c in u".!?؟"]
+        end = max(ends)
+        if end >= int(max_chars * 0.6):
+            s = cut[:end + 1]
+        else:
+            sp = cut.rfind(u" ")
+            s = (cut[:sp] if sp > max_chars * 0.5 else cut).rstrip(u",;:-، ") + u"…"
+    return s
+
+
+def finalize_ai_lines(text, max_lines, max_chars):
+    """Turn a cleaned model reply into at most max_lines display lines: labels,
+    numbering, quotes, emojis and markdown removed, over-long lines shortened."""
+    if not text:
+        return []
+    text = text.replace(u"\r", u"")
+    blocks = [b.strip() for b in re.split(r"\n\s*\n", text) if b.strip()]
+    if max_lines == 1:
+        rows = [l for b in blocks for l in b.split(u"\n")]
+    else:
+        rows = [l for b in blocks for l in b.split(u"\n")] if len(blocks) < max_lines else \
+               [u" ".join(b.split(u"\n")) for b in blocks]
+    out = []
+    for row in rows:
+        if not row.strip() or _AI_FILLER_RE.match(row.strip()):
+            continue
+        s = _ai_tidy_line(row, max_chars)
+        if len(s) < 3 or s in out:
+            continue
+        out.append(s)
+        if len(out) >= max_lines:
+            break
+    return out
+
+
+def _ai_http_post(url, body, headers, timeout):
+    req = Request(url, data=json.dumps(body).encode("utf-8"))
+    req.add_header("Content-Type", "application/json")
+    req.add_header("User-Agent", "Mozilla/5.0")
+    for k, v in headers.items():
+        req.add_header(k, v)
+    resp = urlopen(req, timeout=timeout)
+    return json.loads(resp.read().decode("utf-8"))
+
+
+def _ai_http_error_body(e):
+    body = getattr(e, '_saved_body', '') or ''
+    if not body and hasattr(e, 'read'):
+        try:
+            body = e.read().decode("utf-8", errors="ignore")
+        except Exception:
+            body = ''
+        try:
+            setattr(e, '_saved_body', body)
+        except Exception:
+            pass
+    return body
+
+
+def _gemini_body(model, system, user, settings, tuned=True):
+    """Gemini request. 'tuned' adds thinking off / minimal, the temperature and an
+    output cap; the plain form is the fallback for models that refuse those."""
+    body = {"contents": [{"role": "user", "parts": [{"text": user}]}]}
+    if system:
+        body["systemInstruction"] = {"parts": [{"text": system}]}
+    gen = {"candidateCount": 1}
+    if tuned:
+        if model.startswith("gemini-3"):
+            # Gemini 3 cannot switch thinking off and is tuned for temperature 1.0
+            gen["thinkingConfig"] = {"thinkingLevel": "minimal"}
+            gen["maxOutputTokens"] = settings["max_tokens"] + 1024
+        else:
+            gen["thinkingConfig"] = {"thinkingBudget": 0}
+            gen["maxOutputTokens"] = settings["max_tokens"] * 2
+            gen["temperature"] = settings["temperature"]
+    elif not model.startswith("gemini-3"):
+        gen["temperature"] = settings["temperature"]
+    body["generationConfig"] = gen
+    return body
+
+
+def _gemini_text(data):
+    cands = data.get("candidates") or []
+    if not cands:
+        return ""
+    parts = (cands[0].get("content") or {}).get("parts") or []
+    return "".join(p.get("text", "") for p in parts if p.get("text") and not p.get("thought")).strip()
+
+
+_GROQ_REASONING_HINTS = ("gpt-oss", "qwen", "deepseek")
+
+
+def _groq_body(model, system, user, settings, tuned=True):
+    msgs = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    msgs.append({"role": "user", "content": user})
+    body = {"model": model, "messages": msgs, "temperature": settings["temperature"],
+            "max_tokens": settings["max_tokens"]}
+    if any(h in model for h in _GROQ_REASONING_HINTS):
+        body["max_tokens"] = settings["max_tokens"] + 1024   # room for hidden reasoning
+        if tuned:
+            if "gpt-oss" in model:
+                body["reasoning_effort"] = "low"
+                body["include_reasoning"] = False
+            else:
+                body["reasoning_format"] = "hidden"
+    return body
+
+
+def _groq_text(data):
+    return (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+
+
+GEMINI_MODELS = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3.6-27b", "openai/gpt-oss-120b"]
+
+
+def _ai_request(api_key, provider, system, user, settings):
+    """One pass over the provider's models (blocking). Returns cleaned text or "".
+    A missing model moves on to the next one; a 400 is retried once in the plain
+    form; other errors (429 included) are raised to the caller."""
+    if provider == "gemini":
+        models, make, read = GEMINI_MODELS, _gemini_body, _gemini_text
+    elif provider == "groq":
+        models, make, read = GROQ_MODELS, _groq_body, _groq_text
+    else:
+        return ""
+    last_exc = None
+    for model in models:
+        try:
+            if provider == "gemini":
+                url = ("https://generativelanguage.googleapis.com/v1beta/models/"
+                       "{}:generateContent?key={}".format(model, api_key))
+                headers = {}
+            else:
+                url = "https://api.groq.com/openai/v1/chat/completions"
+                headers = {"Authorization": "Bearer " + api_key}
+            try:
+                data = _ai_http_post(url, make(model, system, user, settings, True), headers, settings["timeout"])
+            except Exception as e_cfg:
+                if getattr(e_cfg, 'code', 0) != 400:
+                    raise
+                log_dbg("[AI Mode] {} refused the tuned request, retrying plain: {}".format(
+                    model, _ai_http_error_body(e_cfg)[:200]))
+                data = _ai_http_post(url, make(model, system, user, settings, False), headers, settings["timeout"])
+            cleaned = clean_ai_text(read(data))
+            if cleaned:
+                return cleaned
+            log_dbg("[AI Mode] {} model {} returned no usable text, trying next fallback...".format(provider, model))
         except Exception as e:
-            # Handle rate limiting with one automatic retry
-            err_code = getattr(e, 'code', 0)
-            if err_code == 429 and req is not None:
-                try:
-                    import time
-                    log_dbg("[AI Mode] Rate limited (429). Retrying in 30s...")
-                    time.sleep(30)
-                    # Rebuild request for retry
-                    req2 = Request(req.full_url, data=req.data)
-                    for hdr, val in req.header_items():
-                        if hdr.lower() not in ('host', 'content-length'):
-                            req2.add_header(hdr, val)
-                    resp = urlopen(req2, timeout=15)
-                    data = json.loads(resp.read().decode("utf-8"))
-                    if provider == "gemini":
-                        text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    elif provider == "groq":
-                        text = data["choices"][0]["message"]["content"]
-                    else:
-                        text = ""
-                    if on_result:
-                        reactor.callFromThread(on_result, text.strip() if text else None)
+            last_exc = e
+            code = getattr(e, 'code', 0)
+            body = _ai_http_error_body(e).lower()
+            missing = (code == 404 or "not found" in body or "no longer available" in body
+                       or "model_not_found" in body or "does not exist" in body or "decommissioned" in body)
+            if missing and model != models[-1]:
+                log_dbg("[AI Mode] {} model {} unavailable ({}), trying next fallback...".format(provider, model, code))
+                continue
+            raise
+    if last_exc:
+        raise last_exc
+    return ""
+
+
+def call_ai_api_threaded(api_key, provider, prompt, on_result, kind=None, include_news=None, retry_on_429=None):
+    """
+    Calls the chosen AI provider in a background thread and calls on_result(text)
+    on the main thread: the reply text, "ERROR: ..." on failure, or None.
+
+    prompt: a dict {"system", "user", "kind"} from the build_ai_* helpers, or a
+            plain string (sent as the user message).
+    kind:   "news" or "commentary" (sampling settings, see AI_GEN_SETTINGS).
+    include_news: add the latest BBC headlines (default: only for "news").
+    retry_on_429: wait 30 s and retry once when rate limited (default: only for "news").
+    """
+    if isinstance(prompt, dict):
+        system, user = prompt.get("system"), prompt.get("user", "")
+        kind = kind or prompt.get("kind")
+    else:
+        system, user = None, prompt
+    kind = kind if kind in AI_GEN_SETTINGS else "news"
+    if include_news is None:
+        include_news = (kind == "news")
+    if retry_on_429 is None:
+        retry_on_429 = (kind == "news")
+    settings = AI_GEN_SETTINGS[kind]
+
+    def _done(text):
+        if on_result:
+            reactor.callFromThread(on_result, text)
+
+    def _run():
+        full_user = user
+        if include_news:
+            try:
+                news = fetch_sports_headlines_cached(6)
+                if news:
+                    full_user += "\n\n=== LATEST SPORTS NEWS (from BBC Sport) ===\n" + "\n".join("- " + h for h in news)
+            except Exception:
+                pass  # headlines are optional
+        try:
+            try:
+                text = _ai_request(api_key, provider, system, full_user, settings)
+            except Exception as e:
+                if getattr(e, 'code', 0) != 429:
+                    raise
+                if not retry_on_429:
+                    log_dbg("[AI Mode] Rate limited (429); {} line skipped".format(kind))
+                    _done("ERROR: Rate limited by AI provider. "
+                          "Please wait a few minutes or switch to another provider.")
                     return
+                log_dbg("[AI Mode] Rate limited (429). Retrying in 30s...")
+                time.sleep(30)
+                try:
+                    text = _ai_request(api_key, provider, system, full_user, settings)
                 except Exception as retry_e:
                     log_dbg("[AI Mode] Retry also failed: " + str(retry_e))
-                if on_result:
-                    reactor.callFromThread(
-                        on_result,
-                        "ERROR: Rate limited by AI provider. "
-                        "Please wait a few minutes or switch to another provider.")
-                return
-
+                    if getattr(retry_e, 'code', 0) == 429:
+                        _done("ERROR: Rate limited by AI provider. "
+                              "Please wait a few minutes or switch to another provider.")
+                        return
+                    raise
+            _done(text.strip() if text else None)
+        except Exception as e:
             err_msg = str(e)
-            if hasattr(e, '_saved_body') and getattr(e, '_saved_body'):
-                err_msg += " | " + getattr(e, '_saved_body')
-            elif hasattr(e, 'read'):
-                try:
-                    err_msg += " | " + e.read().decode("utf-8")
-                except:
-                    pass
+            body = _ai_http_error_body(e)
+            if body:
+                err_msg += " | " + body
             log_dbg("[AI Mode] API call failed: " + err_msg)
-            if on_result:
-                reactor.callFromThread(on_result, "ERROR: " + err_msg)
+            _done("ERROR: " + err_msg)
 
     t = threading.Thread(target=_run)
     t.daemon = True
     t.start()
-
-
-def build_ai_prompt(language, cached_events, match_snapshots, ledger=None):
-    """Build a compact, structured prompt from live match data (~800 tokens max)."""
-    lines = []
-
-    for event in cached_events[:12]:   # cap to 12 events
-        snap = match_snapshots.get(str(event.get("id", "")))
-        if not snap:
-            continue
-        state  = snap.get("state", "pre")
-        h_name = snap.get("h_name", "Home")
-        a_name = snap.get("a_name", "Away")
-        score  = snap.get("score_str", "")
-        league = snap.get("league_name", "")
-        t_str  = snap.get("time_str", "")
-        clock  = snap.get("clock", "")
-
-        if state == "in":
-            lines.append(
-                "LIVE: {} vs {} | {} | {} {}".format(
-                    h_name, a_name, score, league, clock))
-        elif state == "pre":
-            lines.append(
-                "UPCOMING: {} vs {} at {} | {}".format(
-                    h_name, a_name, t_str, league))
-        elif state == "post":
-            lines.append(
-                "FINISHED: {} vs {} | {} | {}".format(
-                    h_name, a_name, score, league))
-
-    # Fallback: if cached_events didn't produce lines, iterate snapshots directly
-    if not lines and match_snapshots:
-        for mid, snap in list(match_snapshots.items())[:12]:
-            state  = snap.get("state", "pre")
-            h_name = snap.get("h_name", "Home")
-            a_name = snap.get("a_name", "Away")
-            score  = snap.get("score_str", "")
-            league = snap.get("league_name", "")
-            t_str  = snap.get("time_str", "")
-            clock  = snap.get("clock", "")
-            if state == "in":
-                lines.append("LIVE: {} vs {} | {} | {} {}".format(h_name, a_name, score, league, clock))
-            elif state == "pre":
-                lines.append("UPCOMING: {} vs {} at {} | {}".format(h_name, a_name, t_str, league))
-            elif state == "post":
-                lines.append("FINISHED: {} vs {} | {} | {}".format(h_name, a_name, score, league))
-
-    match_summary = "\n".join(lines) if lines else "No matches available."
-    log_dbg("[AI Mode] Prompt match data ({} lines): {}".format(len(lines), match_summary[:300]))
-
-    # --- Build ledger / user prediction context ---
-    ledger_lines = []
-    if ledger:
-        pending = ledger.get("pending_bets", {})
-        if pending and match_snapshots:
-            for eid, bet in list(pending.items())[:6]:  # cap to 6 bets
-                snap = match_snapshots.get(str(eid))
-                prediction = bet.get("prediction", "")
-                h_name = bet.get("h_name", "Home")
-                a_name = bet.get("a_name", "Away")
-
-                pred_label = (
-                    h_name if prediction == "home"
-                    else a_name if prediction == "away"
-                    else "Draw"
-                )
-                if snap:
-                    state = snap.get("state", "pre")
-                    score = snap.get("score_str", "")
-                    if state == "in":
-                        ledger_lines.append(
-                            "USER BET: {} vs {} (LIVE {}) — user picked: {}".format(
-                                h_name, a_name, score, pred_label))
-                    elif state == "pre":
-                        ledger_lines.append(
-                            "USER BET: {} vs {} (upcoming) — user picked: {}".format(
-                                h_name, a_name, pred_label))
-                    # skip 'post' matches — bet already resolved
-                else:
-                    # Match not in current snapshot window (different league/day)
-                    ledger_lines.append(
-                        "USER BET (pending): {} vs {} — user picked: {}".format(
-                            h_name, a_name, pred_label))
-
-        total_preds = int(ledger.get("total_predictions", 0))
-        correct     = int(ledger.get("correct_predictions", 0))
-        total_score = int(ledger.get("total_score", 0))
-        if total_preds > 0:
-            accuracy = int(correct * 100.0 / total_preds)
-            ledger_lines.append(
-                "USER RECORD: {}/{} correct ({}% accuracy), points: {}".format(
-                    correct, total_preds, accuracy, total_score))
-
-    has_ledger = bool(ledger_lines)
-
-    system_instruction = (
-        "You are an energetic sports broadcaster and commentator. "
-        "I will provide you with TWO data sources:\n"
-        "1. MATCH DATA: Live, Upcoming, and Finished matches from the user's watchlist.\n"
-        "2. LATEST SPORTS NEWS: Real breaking headlines from BBC Sport.\n\n"
-        "Your job is to write EXACTLY 2 short, thrilling notification messages.\n\n"
-        "RULES:\n"
-        "1. Message 1: A punchy headline about a match from the MATCH DATA "
-        "(mention actual team names and scores), OR if no matches exist, "
-        "pick the most exciting headline from LATEST SPORTS NEWS and rephrase it.\n"
-        "2. Message 2: An exciting question, hype reminder, or breaking news update. "
-        "Use MATCH DATA for upcoming matches, or LATEST SPORTS NEWS for transfer rumors, "
-        "injuries, or major events."
-        "{ledger_rule}"
-        "\n3. NEVER invent matches, scores, or facts not present in the provided data.\n"
-        "4. {language_instruction}.\n"
-        "5. Keep each message under 25 words.\n"
-        "6. Separate them with a blank line.\n"
-        "7. No markdown, no asterisks, no numbering, no emojis.\n"
-        "8. CRITICAL: Output ONLY the 2 notification messages. Do NOT include any analysis, "
-        "planning, step-by-step thinking, role definitions, or intro text. "
-        "Do NOT output <think> tags. Do NOT write 'here is a thinking process'. "
-        "Start directly with Message 1."
-    ).format(
-        language_instruction=get_ai_language_instruction(language),
-        ledger_rule=(
-            "\n   USER PREDICTIONS are provided below. If a USER BET matches a LIVE "
-            "match, make Message 2 personal: reference the user's pick and the current "
-            "score in an exciting way."
-        ) if has_ledger else ""
-    )
-
-    prompt = system_instruction + "\n\n=== MATCH DATA ===\n" + match_summary
-    if ledger_lines:
-        prompt += "\n\n=== USER PREDICTIONS ===\n" + "\n".join(ledger_lines)
-    log_dbg("[AI Mode] Prompt built: {} match lines, {} ledger lines".format(
-        len(lines), len(ledger_lines)))
-    return prompt
 
 
 XMLTV_EPG_URL = "https://epg.pw/xmltv/epg.xml"
@@ -1783,8 +2512,15 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "7.1"
-# v7.1 Introduces All Today's Matches (Global Soccer Mode). Global Soccer mode neatly organizes every fixture under its own official League Header Banner:
+CURRENT_VERSION = "7.2"
+# v7.2: Alert Options (which matches/events, quiet hours, exciting games only, spoiler guard, overlay toasts that keep
+# the remote), follow a match, no polling or alerts in standby, on-time reminders, favourite-team and line-ups alerts,
+# timezone-correct fixtures and live match details; result checking after full time, World Cup points by stage,
+# league-table estimates for games without odds; Firebase sign-in protecting votes and the leaderboard; Leaders Arena
+# (RED in the leaderboard); channel guide uses the box EPG search, an XMLTV time window and a cached guide download.
+# AI Mode: goal / kick-off / full-time lines built on worked-out facts (equaliser, comeback, late winner, red cards,
+# form, odds, the viewer's pick), separate system prompts and tuned settings for Gemini and Groq, varied news lines.
+# New Arena View Preference & Accordion Navigation.
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
 # ==============================================================================
@@ -1882,6 +2618,36 @@ LEDGER_FILE = "/etc/enigma2/simply_sports_ledger.json"
 FAVORITE_LEAGUES_FILE = "/etc/enigma2/simplysports_favoriteleagues.json"
 DISCOVERED_LEAGUES_FILE = "/etc/enigma2/simply_sports_discovered.json"
 LOGO_CACHE_DIR = "/tmp/simplysports/logos"
+
+# Prediction game: how a knockout match decided on penalties is scored.
+# False (default, unchanged behaviour): the 90/120-minute result counts, so a
+#   level game is a draw and a "draw" pick wins.
+# True: score by who advanced (ESPN's competitor 'winner' flag).
+SHOOTOUT_COUNTS_AS_WIN = False
+
+
+def _atomic_write_json(path, data, fsync=True):
+    """Write JSON to `path` atomically: serialise first, write a temp file in the
+    same directory, then os.replace() it over the target. A power cut or error
+    mid-save leaves the previous file intact instead of a truncated one.
+    fsync=False for large, frequently rewritten caches where losing the very
+    last write is harmless."""
+    payload = json.dumps(data)
+    tmp_path = "{}.tmp.{}.{}".format(path, os.getpid(), threading.current_thread().ident)
+    try:
+        with open(tmp_path, "w") as f:
+            f.write(payload)
+            if fsync:
+                f.flush()
+                os.fsync(f.fileno())
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
+        raise
 
 
 # ==============================================================================
@@ -2737,6 +3503,39 @@ def parse_to_local_datetime(date_str):
         return None
 
 
+def utc_iso_to_epoch(date_str):
+    """ESPN-style timestamp ('2026-10-14T19:00Z', offsets allowed) -> epoch seconds, 0 if unparsable.
+    A string without a zone is taken as UTC (ESPN sends UTC). Computed with timegm, so
+    there is no local-time round trip that could shift it by an hour around DST changes."""
+    try:
+        s = str(date_str or '').strip()
+        if not s:
+            return 0
+        if 'T' in s:
+            dp, tp = s.split('T', 1)
+        elif ' ' in s:
+            dp, tp = s.split(' ', 1)
+        else:
+            dp, tp = s, '00:00'
+        y, mo, d = [int(x) for x in dp.split('-')[:3]]
+        tp = tp.strip()
+        off = 0
+        if tp[-1:] in ('Z', 'z'):
+            tp = tp[:-1]
+        else:
+            mt = re.search(r'([+-])(\d{2}):?(\d{2})?$', tp)
+            if mt and len(tp[:mt.start()].split(':')) >= 2:
+                off = (int(mt.group(2)) * 3600 + int(mt.group(3) or 0) * 60) * (1 if mt.group(1) == '+' else -1)
+                tp = tp[:mt.start()]
+        hms = tp.split(':')
+        H = int(hms[0]) if hms and hms[0] else 0
+        M = int(hms[1]) if len(hms) > 1 else 0
+        S = int(float(hms[2])) if len(hms) > 2 else 0
+        return int(calendar.timegm((y, mo, d, H, M, S, 0, 0, 0)) - off)
+    except Exception:
+        return 0
+
+
 # ==============================================================================
 # UNIFIED MATCH SNAPSHOT BUILDER
 # ==============================================================================
@@ -2856,6 +3655,10 @@ def build_match_snapshot(event):
 
     # --- Team / Player Names & Scores ---
     sport_type   = get_sport_type(league_url)
+    # Soccer has no SPORT_TYPE_* constant of its own (get_sport_type() returns
+    # SPORT_TYPE_TEAM), so the logo fallbacks below test the league URL instead of
+    # the undefined name SPORT_TYPE_SOCCER they used to reference.
+    _is_soccer_league = ('/soccer/' in (league_url or '').lower()) or (league_url or '').startswith('epl://')
     comps        = event.get('competitions', [{}])[0].get('competitors', [])
 
     h_name = 'Home'; a_name = 'Away'
@@ -3070,11 +3873,14 @@ def build_match_snapshot(event):
         'time_str':      time_str,      # "45'" or "FT" or "20:30"
 
         # Logos (already set by process_events_data, with robust fallback)
-        'h_logo_url':    event.get('h_logo_url') or (extract_team_logo(team_h.get('team', {}), 'soccer' if sport_type == SPORT_TYPE_SOCCER else 'default', h_team_id) if h_team_id else ''),
-        'a_logo_url':    event.get('a_logo_url') or (extract_team_logo(team_a.get('team', {}), 'soccer' if sport_type == SPORT_TYPE_SOCCER else 'default', a_team_id) if a_team_id else ''),
+        # Team-logo fallback only for team sports (athletes have no 'team' object;
+        # e.g. a tennis player without a flag used to hit the NameError here).
+        'h_logo_url':    event.get('h_logo_url') or (extract_team_logo(team_h.get('team', {}), 'soccer' if _is_soccer_league else 'default', h_team_id) if (h_team_id and team_h.get('team')) else ''),
+        'a_logo_url':    event.get('a_logo_url') or (extract_team_logo(team_a.get('team', {}), 'soccer' if _is_soccer_league else 'default', a_team_id) if (a_team_id and team_a.get('team')) else ''),
         'l_logo_url':    event.get('l_logo_url', ''),
-        'h_logo_id':     event.get('h_logo_id') or (('soc_' + h_team_id) if (h_team_id and sport_type == SPORT_TYPE_SOCCER) else (h_team_id or '')),
-        'a_logo_id':     event.get('a_logo_id') or (('soc_' + a_team_id) if (a_team_id and sport_type == SPORT_TYPE_SOCCER) else (a_team_id or '')),
+        # Same id scheme as process_events_data (sport prefix + id) so cached logo files match
+        'h_logo_id':     event.get('h_logo_id') or (format_logo_id(get_sport_id_prefix(league_url), h_team_id) if h_team_id else ''),
+        'a_logo_id':     event.get('a_logo_id') or (format_logo_id(get_sport_id_prefix(league_url), a_team_id) if a_team_id else ''),
         'l_logo_id':     event.get('l_logo_id', ''),
 
         # Red Cards
@@ -3092,6 +3898,21 @@ def build_match_snapshot(event):
         # Raw event reference (for GameInfoScreen detail requests only)
         'raw_event':     event,
     }
+
+
+def build_match_snapshot_safe(event):
+    """build_match_snapshot() for loops over many events: a malformed event is
+    logged and skipped (returns None) instead of raising and aborting the whole
+    league/batch update. Callers must skip None."""
+    try:
+        return build_match_snapshot(event)
+    except Exception as e:
+        try:
+            eid = event.get('id', '?') if isinstance(event, dict) else '?'
+            log_dbg("[Snapshot] Skipped malformed event {}: {}".format(eid, e))
+        except Exception:
+            pass
+        return None
 
 
 def snapshot_passes_filter(snap, filter_mode, today, tomorrow, yesterday):
@@ -3646,7 +4467,106 @@ def _spread_to_probs(spread, league_url):
     total = p_home + p_away
     if total <= 0:
         return None
-    return (p_home / total) * 100.0, (p_away / total) * 100.0
+    # Return the raw win probabilities (home%, away%). For draw sports they sum to
+    # less than 100 and the remainder is the draw chance, the same convention as
+    # the moneyline path. The old renormalisation over home+away dropped the draw:
+    # a -0.5 soccer spread showed 69/31 instead of 50/22 (draw 28).
+    return p_home * 100.0, p_away * 100.0
+
+
+# ---- Own home/draw/away model for soccer games with no odds --------------------
+POISSON_HOME_FACTOR = 1.10   # home sides score ~10% above the league average...
+POISSON_AWAY_FACTOR = 0.90   # ...and away sides ~10% below (typical for top leagues)
+POISSON_PRIOR_GAMES = 5.0    # early in the season, team strengths are pulled toward average
+POISSON_DC_RHO = -0.08       # Dixon-Coles correction: slightly more 0-0 / 1-1 than plain Poisson
+POISSON_MAX_GOALS = 10
+
+
+def parse_soccer_standings(data):
+    """{team_id: (games, goals_for, goals_against)} from an ESPN standings response
+    (all groups of a group-stage competition included)."""
+    table = {}
+    if not isinstance(data, dict):
+        return table
+    groups = data.get('children') or [data]
+    for g in groups:
+        entries = ((g or {}).get('standings') or {}).get('entries') or []
+        for e in entries:
+            try:
+                tid = str((e.get('team') or {}).get('id', ''))
+                st = dict((s.get('name'), s.get('value')) for s in (e.get('stats') or [])
+                          if isinstance(s, dict) and s.get('name'))
+                gp = float(st.get('gamesPlayed') or 0)
+                gf = float(st.get('pointsFor') or 0)
+                ga = float(st.get('pointsAgainst') or 0)
+            except (TypeError, ValueError, AttributeError):
+                continue
+            if tid and gp >= 0 and gf >= 0 and ga >= 0:
+                table[tid] = (gp, gf, ga)
+    return table
+
+
+def poisson_match_model(table, home_id, away_id):
+    """Home/draw/away chances and the most likely score from league-table goals.
+
+    Each side's expected goals = league average x home/away factor x its attack
+    strength x the opponent's defensive weakness, where a strength is goals per
+    game relative to the league average, shrunk toward 1.0 by POISSON_PRIOR_GAMES
+    (so after two games a team isn't rated on two results). Goals are independent
+    Poisson with the Dixon-Coles low-score correction. Returns None when either
+    team isn't in the table or fewer than about one round has been played.
+    This is an ESTIMATE from season form only (no injuries, no line-ups)."""
+    h = table.get(str(home_id)) if table else None
+    a = table.get(str(away_id)) if table else None
+    if not h or not a or str(home_id) == str(away_id):
+        return None
+    tot_gp = sum(v[0] for v in table.values())
+    tot_gf = sum(v[1] for v in table.values())
+    if tot_gp < max(len(table), 4) or tot_gf <= 0:
+        return None
+    mu = tot_gf / tot_gp                      # goals per team per game
+    k = POISSON_PRIOR_GAMES
+
+    def _strength(goals, games):
+        return (goals / mu + k) / (games + k)
+
+    lam_h = mu * POISSON_HOME_FACTOR * _strength(h[1], h[0]) * _strength(a[2], a[0])
+    lam_a = mu * POISSON_AWAY_FACTOR * _strength(a[1], a[0]) * _strength(h[2], h[0])
+    lam_h = min(max(lam_h, 0.15), 5.0)
+    lam_a = min(max(lam_a, 0.15), 5.0)
+
+    def _pmf(lam):
+        p = [math.exp(-lam)]
+        for n in range(1, POISSON_MAX_GOALS + 1):
+            p.append(p[-1] * lam / n)
+        return p
+    ph, pa = _pmf(lam_h), _pmf(lam_a)
+    rho = POISSON_DC_RHO
+    grid = {}
+    for i in range(POISSON_MAX_GOALS + 1):
+        for j in range(POISSON_MAX_GOALS + 1):
+            p = ph[i] * pa[j]
+            if i == 0 and j == 0:
+                p *= 1.0 - lam_h * lam_a * rho
+            elif i == 0 and j == 1:
+                p *= 1.0 + lam_h * rho
+            elif i == 1 and j == 0:
+                p *= 1.0 + lam_a * rho
+            elif i == 1 and j == 1:
+                p *= 1.0 - rho
+            grid[(i, j)] = max(p, 0.0)
+    total = sum(grid.values())
+    if total <= 0:
+        return None
+    p_home = sum(p for (i, j), p in grid.items() if i > j) / total
+    p_draw = sum(p for (i, j), p in grid.items() if i == j) / total
+    p_away = sum(p for (i, j), p in grid.items() if i < j) / total
+    best = max(grid, key=lambda s: grid[s])
+    return {
+        'h_pct': p_home * 100.0, 'd_pct': p_draw * 100.0, 'a_pct': p_away * 100.0,
+        'score': best, 'score_pct': grid[best] / total * 100.0,
+        'xg': (round(lam_h, 2), round(lam_a, 2)),
+    }
 
 
 def _moneyline_to_prob(moneyline):
@@ -3694,8 +4614,11 @@ def extract_win_prediction_from_event(event):
             if win_prob and isinstance(win_prob, list):
                 wp = win_prob[0]
                 if isinstance(wp, dict) and 'homeWinPercentage' in wp:
-                    h_pct = float(wp.get('homeWinPercentage', 0.5)) * 100.0
-                    a_pct = (1.0 - float(wp.get('homeWinPercentage', 0.5))) * 100.0
+                    home_p = float(wp.get('homeWinPercentage', 0.5))
+                    tie_p = float(wp.get('tiePercentage', 0.0) or 0.0)
+                    h_pct = home_p * 100.0
+                    # The tie share is the draw, not an away win (was 1 - home)
+                    a_pct = max(0.0, 1.0 - home_p - tie_p) * 100.0
                     return h_pct, a_pct
 
             # b) homeTeamOdds / awayTeamOdds winPercentage
@@ -3808,6 +4731,26 @@ def get_local_time_str(utc_date_str):
 def get_league_abbr(full_name):
     if not full_name: return ""
     return full_name[:3].upper()
+
+
+_CHOICEBOX_SELECTION = None
+
+
+def _choicebox_takes_selection():
+    """True when this image's ChoiceBox accepts selection=<index> (checked once;
+    passing an unknown argument to a Screen can restart the GUI on some images)."""
+    global _CHOICEBOX_SELECTION
+    if _CHOICEBOX_SELECTION is None:
+        try:
+            import inspect
+            try:
+                names = list(inspect.signature(ChoiceBox.__init__).parameters)
+            except AttributeError:
+                names = inspect.getargspec(ChoiceBox.__init__).args
+            _CHOICEBOX_SELECTION = 'selection' in names
+        except Exception:
+            _CHOICEBOX_SELECTION = False
+    return _CHOICEBOX_SELECTION
 
 
 def is_system_screen_active(session):
@@ -3925,6 +4868,22 @@ def safe_connect(timer_obj, func):
             timer_obj.timeout.get().append(func)
         except AttributeError:
             timer_obj.timeout.append(func)
+
+
+class OverlayToastMixin(object):
+    """Lets a toast run either as a classic modal popup (session.open) or as an
+    overlay drawn on top of live TV that never takes the remote
+    (session.instantiateDialog + show). Toasts call dismiss() instead of close():
+    in overlay mode the monitor hides and deletes the dialog, otherwise it closes."""
+    _overlay_finish = None
+
+    def dismiss(self, *args):
+        finish = getattr(self, '_overlay_finish', None)
+        if finish:
+            self._overlay_finish = None
+            finish(self)
+        else:
+            self.close()
 
 
 GLOBAL_PIXMAP_CACHE = collections.OrderedDict()
@@ -4083,6 +5042,50 @@ def get_main_bg_color_name(color_key=None):
     """Return localized display name of the background color."""
     preset = get_main_bg_preset(color_key)
     return _t(preset["name_en"])
+
+
+_FALLBACK_ARENA_VIEW_PREFERENCE = "heading_only"
+
+
+def get_arena_view_preference():
+    try:
+        from Components.config import config
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "arena_view_preference"):
+            return str(config.plugins.SimplySport.arena_view_preference.value)
+    except Exception:
+        pass
+    global _FALLBACK_ARENA_VIEW_PREFERENCE
+    if global_sports_monitor and hasattr(global_sports_monitor, "arena_view_preference"):
+        return getattr(global_sports_monitor, "arena_view_preference", _FALLBACK_ARENA_VIEW_PREFERENCE)
+    return _FALLBACK_ARENA_VIEW_PREFERENCE
+
+
+def set_arena_view_preference(val):
+    global _FALLBACK_ARENA_VIEW_PREFERENCE
+    _FALLBACK_ARENA_VIEW_PREFERENCE = val
+    if global_sports_monitor:
+        global_sports_monitor.arena_view_preference = val
+        try:
+            global_sports_monitor.save_config()
+        except Exception:
+            pass
+    try:
+        from Components.config import config, configfile
+        if hasattr(config.plugins, "SimplySport") and hasattr(config.plugins.SimplySport, "arena_view_preference"):
+            config.plugins.SimplySport.arena_view_preference.value = val
+            config.plugins.SimplySport.arena_view_preference.save()
+            configfile.save()
+    except Exception:
+        pass
+
+
+def get_arena_view_preference_label():
+    val = get_arena_view_preference()
+    labels = {
+        "heading_only": u"\u0639\u0646\u0627\u0648\u064a\u0646 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0641\u0642\u0637" if PLUGIN_LANGUAGE == "ar" else "League Heading only",
+        "with_matches": u"\u0639\u0646\u0627\u0648\u064a\u0646 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0645\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a" if PLUGIN_LANGUAGE == "ar" else "League Heading with Matches",
+    }
+    return labels.get(val, val)
 
 
 # ==============================================================================
@@ -5106,8 +6109,33 @@ def LiveScoreCZListEntry(entry, theme_mode="default"):
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, h-1, 0, RT_HALIGN_CENTER, "", c_bg, c_bg))
             # Left accent strip
             res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, sx(4), h-1, 0, RT_HALIGN_CENTER, "", c_accent, c_accent))
+
+            league_title = _league_name(entry.get("name", ""))
+            if entry.get("is_heading_only"):
+                prefix = u"\u25bc  " if entry.get("is_expanded") else u"\u25b6  "
+                try:
+                    if isinstance(league_title, bytes):
+                        league_title = league_title.decode('utf-8', 'ignore')
+                except Exception:
+                    pass
+                league_title = prefix + league_title
+
+                match_cnt = entry.get("match_count", 0)
+                if match_cnt > 0:
+                    cnt_str = _t("Matches") if match_cnt != 1 else _t("Match")
+                    try:
+                        if isinstance(cnt_str, bytes):
+                            cnt_str = cnt_str.decode('utf-8', 'ignore')
+                    except Exception:
+                        pass
+                    cnt_text = u"({} {})".format(match_cnt, cnt_str)
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, SCREEN_WIDTH - sx(260), 0, sx(210), h-1, 3, RT_HALIGN_RIGHT|RT_VALIGN_CENTER, cnt_text, c_dim, c_accent))
+                text_width = SCREEN_WIDTH - sx(320)
+            else:
+                text_width = SCREEN_WIDTH - sx(100)
+
             # Centered/Left League Name text
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(50), 0, SCREEN_WIDTH - sx(100), h-1, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, _league_name(entry.get("name", "")), c_accent, c_accent))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sx(50), 0, text_width, h-1, 1, RT_HALIGN_LEFT|RT_VALIGN_CENTER, league_title, c_accent, c_accent))
             return res
 
         # Match Row layout
@@ -6110,7 +7138,7 @@ def LeaderboardListEntry(rank, name, score, is_me=False):
     return res
 
 
-class AIToast(Screen):
+class AIToast(OverlayToastMixin, Screen):
     """Non-invasive AI Mode notification ticker that appears at the bottom."""
     def __init__(self, session, text, duration_ms=10000):
         from enigma import eTimer
@@ -6140,21 +7168,27 @@ class AIToast(Screen):
         # ActionMap makes it dismissable via ANY standard button
         from Components.ActionMap import ActionMap
         self["actions"] = ActionMap(["SetupActions", "DirectionActions", "OkCancelActions", "ColorActions"], {
-            "cancel": self.close,
-            "ok":     self.close,
-            "up":     self.close,
-            "down":   self.close,
-            "left":   self.close,
-            "right":  self.close,
-            "red":    self.close,
-            "green":  self.close,
-            "yellow": self.close,
-            "blue":   self.close
+            "cancel": self.dismiss,
+            "ok":     self.dismiss,
+            "up":     self.dismiss,
+            "down":   self.dismiss,
+            "left":   self.dismiss,
+            "right":  self.dismiss,
+            "red":    self.dismiss,
+            "green":  self.dismiss,
+            "yellow": self.dismiss,
+            "blue":   self.dismiss
         }, -1)
 
         self.timer = eTimer()
-        self.timer.callback.append(self.close)
+        self.timer.callback.append(self.dismiss)
         self.timer.start(duration_ms, True)
+
+    def _stop_timers(self):
+        try:
+            if self.timer.isActive(): self.timer.stop()
+        except Exception:
+            pass
 
 # ==============================================================================
 # SPORTS MONITOR (FIXED: Stable Sorting)
@@ -6187,12 +7221,42 @@ class SportsMonitor:
         self.last_details_seen = {}  # Track VAR/disallowed counts per match_id
         self.predictor_cache = {}    # match_id -> {'h_pct':, 'a_pct':, 'fetched_at':} - ESPN pre-game win prediction
         self.predictor_inflight = set()  # match_ids currently being fetched, to avoid duplicate requests
+        # Prediction referee guards. Set before load_ledger()/load_config() below,
+        # because both can reach evaluate_pending_bets()/repair_epl_resolved_bets().
+        self._epl_bet_inflight = set()     # EPL bet ids with a lookup thread running
+        self._epl_repair_running = False   # repair_epl_resolved_bets() worker active
+        self._epl_repair_last_run = 0      # epoch of the last repair pass
+        # Notification controls (persisted in the config; see load_config/defaults)
+        self.alert_scope = "all"            # "all" | "favorites" | "followed"
+        self.alert_types = dict(self.ALERT_TYPES_DEFAULT)
+        self.alert_big_only = False         # skip one-sided games (favourites/followed always alert)
+        self.quiet_hours = "off"            # "off" or "HH-HH", e.g. "23-07"
+        self.spoiler_mode = "off"           # "off" | "delay30" | "delay60" | "delay90" | "mute"
+        self.toast_style = "overlay"        # "overlay" (remote keeps working) | "classic"
+        self.lineup_alerts = True           # favourite teams: lineups announced
+        self.followed_matches = {}          # match_id -> kick-off epoch
+        self.in_standby = False
+        self._overlay_toasts = set()
+        self._queue_wakeup = None
+        self._cur_prog_cache = None
+        # Favourite-team reminders run on their own 60 s timer (no ESPN polling)
+        self.fav_upcoming = {}              # match_id -> fixture dict from team schedules
+        self._fav_sched_ts = 0
+        self._fav_sched_sig = None
+        self._fav_sched_running = False
+        self._lineup_state = {}             # match_id -> {'last_poll': ts, 'done': bool}
+        self.fav_timer = eTimer()
+        safe_connect(self.fav_timer, self._fav_tick)
+        # Kick-off reminders fire from a one-shot timer armed for the next one
+        self.reminder_timer = eTimer()
+        safe_connect(self.reminder_timer, self._reminder_timer_fired)
         self.notified_events = set()  # Track fired notifications: {(match_id, event_type)}
         self.filter_mode = 2
         self.ch_day_offset = 0   # 0 = today; +N = N days ahead; -N = N days ago
         self.theme_mode = "default"
         self.transparency = "59"
         self.main_bg_color = "default"
+        self.arena_view_preference = "heading_only"
 
         self.logo_path_cache = {}
         self.missing_logo_cache = set()
@@ -6241,7 +7305,12 @@ class SportsMonitor:
         self.current_toast = None  # Reference to active GoalToast for live updates
         self.current_toast_match = None  # (home, away) tuple of active toast
         self.has_changes = True  # Track if data changed since last UI refresh
-        self.all_community_votes = {} # Store all match votes locally
+        # (all_community_votes / fetch_all_community_votes removed: they downloaded the
+        # whole /matches.json vote database and nothing ever read it)
+        self._legacy_lb_removed = False    # old device-id leaderboard entry deleted this session
+        self._referee_last = {}            # event id -> last referee lookup (epoch)
+        self._standings_cache = {}         # soccer league slug -> (fetched_at, {team_id: (gp, gf, ga)})
+        self._standings_lock = threading.Lock()
 
         # Batching variables
         self.batch_queue = []
@@ -6307,7 +7376,8 @@ class SportsMonitor:
         self.boot_timer.start(5000, True)
 
         try:
-            import threading
+            # (module-level threading; a local import here made 'threading' a local
+            # name for the whole of __init__)
             t_dns = threading.Thread(target=check_and_repair_dns)
             t_dns.daemon = True
             t_dns.start()
@@ -6316,32 +7386,14 @@ class SportsMonitor:
 
         self._boot_initialized = True # Mark initialization complete
 
-    def fetch_all_community_votes(self):
-        # Only download votes when the main screen is actually open.
-        # Background mode has no UI to update, so fetching is pure waste.
-        if not self.callbacks:
-            return
-        try:
-            from twisted.web.client import getPage
-            url = "{}/matches.json".format(FIREBASE_URL)
-            getPage(url.encode('utf-8'), timeout=10).addCallback(self.on_all_votes_received).addErrback(lambda e: None)
-        except Exception as e:
-            log_dbg("Error starting vote fetch: {}".format(e))
-
-    def on_all_votes_received(self, html):
-        try:
-            import json
-            data = json.loads(html)
-            if isinstance(data, dict):
-                self.all_community_votes = data
-                self.has_changes = True
-                self._trigger_callbacks()
-        except Exception:
-            pass
-
     def set_session(self, session):
         self.session = session
         self._start_ai_timer()  # Start AI timer when session is available
+        # Called at boot (session start) and every time the main screen opens:
+        # the hooks below are installed once.
+        self._hook_standby()
+        self._start_fav_timer()
+        self._arm_reminder_timer()
     def register_callback(self, func):
         if func not in self.callbacks:
             self.callbacks.append(func)
@@ -6367,7 +7419,7 @@ class SportsMonitor:
 
     def _ai_timer_fired(self):
         """Called by the AI timer. Builds prompt and fires API call."""
-        if not self.ai_enabled or not self.ai_api_key:
+        if not self.ai_enabled or not self.ai_api_key or self.in_standby:
             return
         # Rate-limit guard
         now = int(time.time())
@@ -6383,23 +7435,41 @@ class SportsMonitor:
 
         self._ai_call_in_flight = True
         self._ai_last_call_ts = now
+        call_ai_api_threaded(self.ai_api_key, self.ai_provider, self._ai_news_request(), self._on_ai_response)
 
-        prompt = build_ai_prompt(
+    def _ai_news_request(self):
+        """Prompt for the periodic update (also used by Test Now)."""
+        self._ai_news_count = getattr(self, '_ai_news_count', 0) + 1
+        return build_ai_news_request(
             self.ai_language,
             self.cached_events,
             self.match_snapshots,
-            getattr(self, 'ledger', None)
+            getattr(self, 'ledger', None),
+            favorite_ids=[f.get("team_id") for f in (self.favorite_teams or [])],
+            recent_lines=getattr(self, '_ai_recent_lines', []),
+            call_index=self._ai_news_count,
         )
 
-        call_ai_api_threaded(
-            self.ai_api_key,
-            self.ai_provider,
-            prompt,
-            self._on_ai_response
-        )
+    def _ai_remember(self, lines):
+        """Keep the last few lines shown so the next prompt can avoid repeating them."""
+        recent = getattr(self, '_ai_recent_lines', [])
+        recent.extend(lines)
+        self._ai_recent_lines = recent[-AI_RECENT_LINES_MAX:]
+
+    def _ai_push_lines(self, lines):
+        for msg in lines:
+            self._show_ai_notification(msg)
+        # Also feed to the active SimpleSportsScreen ticker if any
+        for cb in self.callbacks:
+            try:
+                screen = getattr(cb, '__self__', None)
+                if screen and hasattr(screen, 'receive_ai_ticker'):
+                    screen.receive_ai_ticker(list(lines))
+            except Exception:
+                pass
 
     def _on_ai_response(self, text):
-        """Called on main thread after AI API returns."""
+        """Called on main thread after AI API returns (periodic update / Test Now)."""
         self._ai_call_in_flight = False
         if not text:
             return
@@ -6410,30 +7480,40 @@ class SportsMonitor:
                     self.session.open(MessageBox, "AI API Error: " + text[7:], MessageBox.TYPE_ERROR, timeout=10)
             except Exception:
                 pass
-        # Sanitize and strip any thoughts/analysis
-        text = clean_ai_text(text)
+            # Stop here: the error was already shown; without this return it was
+            # also pushed out as an AI commentary toast and into the ticker.
+            return
+        lines = finalize_ai_lines(clean_ai_text(text), 2, AI_NEWS_MAX_CHARS)
+        if not lines:
+            return
+        self._ai_remember(lines)
+        self._ai_push_lines(lines)
+
+    def _on_ai_commentary(self, text, created_ts=0, label=""):
+        """Result of a goal / kick-off / full-time call: one line, shown only while
+        it is still fresh. Errors are logged, not shown: a dialog popping up during
+        a match for a missed commentary line would be worse than the missing line."""
         if not text:
             return
-
-        # Split into individual messages (blank-line separated)
-        messages = [m.strip() for m in text.split("\n\n") if m.strip()]
-        for msg in messages[:2]:              # show max 2 notifications
-            self._show_ai_notification(msg)
-        # Also feed to the active SimpleSportsScreen ticker if any
-        for cb in self.callbacks:
-            try:
-                screen = getattr(cb, '__self__', None)
-                if screen and hasattr(screen, 'receive_ai_ticker'):
-                    screen.receive_ai_ticker(messages[:2])
-            except Exception:
-                pass
+        if text.startswith("ERROR: "):
+            log_dbg("[AI Mode] {} commentary failed: {}".format(label, text[7:200]))
+            return
+        if created_ts and time.time() - created_ts > AI_COMMENTARY_STALE_S:
+            log_dbg("[AI Mode] {} commentary arrived too late ({} s), dropped".format(
+                label, int(time.time() - created_ts)))
+            return
+        lines = finalize_ai_lines(clean_ai_text(text), 1, AI_COMMENTARY_MAX_CHARS)
+        if not lines:
+            return
+        self._ai_remember(lines)
+        self._ai_push_lines(lines)
 
     def _show_ai_notification(self, text):
         """Display an auto-dismissing popup with the AI-generated message."""
-        if not self.session or is_system_screen_active(self.session):
+        if not self.session or self.in_standby or is_system_screen_active(self.session):
             return
         try:
-            self.session.open(AIToast, text, 10000)
+            self._open_toast(AIToast, text, 10000)
         except Exception as e:
             log_dbg("[AI Mode] Notification failed: " + str(e))
 
@@ -6446,23 +7526,101 @@ class SportsMonitor:
         if self._ai_call_in_flight:
             return
         self._ai_call_in_flight = True
-        prompt = build_ai_prompt(
-            self.ai_language,
-            self.cached_events,
-            self.match_snapshots,
-            getattr(self, 'ledger', None)
-        )
-        call_ai_api_threaded(
-            self.ai_api_key,
-            self.ai_provider,
-            prompt,
-            self._on_ai_response
-        )
+        call_ai_api_threaded(self.ai_api_key, self.ai_provider, self._ai_news_request(), self._on_ai_response)
+
+    def _ai_match_context(self, match_id, score_display=None):
+        """Everything the commentary prompts need about one match, from data already
+        in memory (snapshot, scoreboard event, odds/model cache, ledger, favourites).
+        No network requests."""
+        mid = str(match_id)
+        snap = self.match_snapshots.get(mid, {}) or {}
+        ev = self.event_map.get(mid, {}) or {}
+        ctx = {
+            'h_name': snap.get("h_name", "Home"),
+            'a_name': snap.get("a_name", "Away"),
+            'league': snap.get("league_name", ""),
+            'clock': snap.get("clock", ""),
+            'minute': ai_minute(snap.get("clock", "")),
+            'h': snap.get('h_score_int', 0) or 0,
+            'a': snap.get('a_score_int', 0) or 0,
+        }
+        if score_display:
+            m = re.match(r"^\s*(\d+)\s*-\s*(\d+)\s*$", str(score_display))
+            if m:
+                ctx['h'], ctx['a'] = int(m.group(1)), int(m.group(2))
+        try:
+            ctx['h'], ctx['a'] = int(ctx['h']), int(ctx['a'])
+        except Exception:
+            ctx['h'], ctx['a'] = 0, 0
+
+        ctx['goals'], ctx['reds'] = ai_match_events(ev, ctx['h'], ctx['a'])
+
+        try:
+            comp = (ev.get('competitions') or [{}])[0]
+            venue = comp.get('venue') or {}
+            v_name = venue.get('fullName') or ''
+            v_city = ((venue.get('address') or {}).get('city') or '')
+            if v_name:
+                ctx['venue'] = v_name + (", " + v_city if v_city and v_city not in v_name else "")
+            notes = [n.get('headline') for n in (comp.get('notes') or []) if n.get('headline')]
+            leg = (comp.get('leg') or {}).get('displayValue') or ''
+            note = " - ".join(notes[:1] + ([leg] if leg and not any(leg in n for n in notes) else []))
+            if note:
+                ctx['note'] = note
+            for c in comp.get('competitors', []) or []:
+                form = re.sub(r"[^WDL]", "", str(c.get('form') or '').upper())[:5]
+                if form:
+                    ctx['h_form' if c.get('homeAway') == 'home' else 'a_form'] = form
+        except Exception as e:
+            log_dbg("[AI Mode] match context: {}".format(e))
+
+        try:
+            pe = self.predictor_entry(mid)
+            if pe and pe.get('source') not in (None, 'none'):
+                h_pct, a_pct = int(round(float(pe.get('h_pct') or 0))), int(round(float(pe.get('a_pct') or 0)))
+                d_pct = pe.get('d_pct')
+                d_pct = int(round(float(d_pct))) if d_pct is not None else max(0, 100 - h_pct - a_pct)
+                if h_pct > 0 or a_pct > 0:
+                    ctx['odds'] = {'h': h_pct, 'd': d_pct, 'a': a_pct, 'source': {
+                        'model': 'standings model', 'moneyline': 'bookmakers',
+                        'spread_estimate': 'betting-line estimate'}.get(pe.get('source'), 'ESPN prediction')}
+        except Exception:
+            pass
+
+        try:
+            bet = (getattr(self, 'ledger', None) or {}).get("pending_bets", {}).get(mid)
+            if bet and bet.get("prediction") in ('home', 'away', 'draw'):
+                ctx['pick'] = bet.get("prediction")
+        except Exception:
+            pass
+
+        fav_ids = set(str(f.get("team_id", "")) for f in (self.favorite_teams or []) if f.get("team_id"))
+        fans = []
+        if str(snap.get('h_team_id', '')) in fav_ids:
+            fans.append(ctx['h_name'])
+        if str(snap.get('a_team_id', '')) in fav_ids:
+            fans.append(ctx['a_name'])
+        ctx['fan_of'] = fans
+        return ctx
+
+    def _schedule_ai_commentary(self, request, label, delay=8):
+        """Send a commentary prompt after 'delay' seconds, so the goal / kick-off
+        banner (GoalToast) has gone before the AI toast arrives."""
+        _key, _prov = self.ai_api_key, self.ai_provider
+        created = time.time()
+
+        def _send():
+            if not self.ai_enabled or not self.ai_api_key or self.in_standby:
+                return
+            call_ai_api_threaded(_key, _prov, request,
+                                 lambda text: self._on_ai_commentary(text, created, label))
+        reactor.callLater(delay, _send)
 
     def _trigger_ai_goal_commentary(self, match_id, score_display, scorer_text, scoring_team):
-        """Fire an immediate AI commentary call when a soccer goal is detected.
-        Only called for soccer (see evaluate_goals guard). Reads the full match
-        timeline already held in event_map — no additional API request needed.
+        """Fire an AI commentary call when a soccer goal is detected.
+        Only called for soccer (see evaluate_goals guard). Everything comes from
+        data already in memory; the goal's meaning (equaliser, lead, comeback,
+        brace, late goal, red cards) is worked out here, not left to the model.
 
         Guards:
           - AI Mode must be enabled with a valid key.
@@ -6473,7 +7631,6 @@ class SportsMonitor:
         if not self.ai_enabled or not self.ai_api_key:
             return
 
-        # Per-match cooldown stored as a dynamic attribute (no extra dict needed)
         now = int(time.time())
         cooldown_attr = "_ai_goal_ts_" + str(match_id)
         if now - getattr(self, cooldown_attr, 0) < 90:
@@ -6482,136 +7639,19 @@ class SportsMonitor:
         setattr(self, cooldown_attr, now)
 
         try:
-            snap = self.match_snapshots.get(str(match_id), {})
-            h_name = snap.get("h_name", "Home")
-            a_name = snap.get("a_name", "Away")
-            league = snap.get("league_name", "")
-            clock  = snap.get("clock", "")
-            scoring_team_name = h_name if scoring_team == "home" else a_name
-
-            # --- Build match event timeline from event_map (no API call needed) ---
-            # Uses the same 'details' array that powers the GameInfo screen's
-            # timeline view — goals, penalties, own goals, red cards, with
-            # scorer, assist, team, and clock all already parsed and in memory.
-            timeline_lines = []
-            try:
-                ev = self.event_map.get(str(match_id), {})
-                details = ev.get('competitions', [{}])[0].get('details', [])
-
-                # Resolve home team id so we can label events correctly
-                h_id_str = ""
-                for c in ev.get('competitions', [{}])[0].get('competitors', []):
-                    if c.get('homeAway') == 'home':
-                        h_id_str = str(c.get('id', '') or c.get('team', {}).get('id', ''))
-                        break
-
-                for play in details:
-                    text_desc = play.get('type', {}).get('text', '').lower()
-                    is_og    = play.get('ownGoal', False)
-                    is_pk    = play.get('penaltyKick', False)
-                    is_rc    = play.get('redCard', False)
-                    is_score = (play.get('scoringPlay', False) or is_og or is_pk
-                                or 'goal' in text_desc)
-                    is_red   = is_rc or ('card' in text_desc and 'red' in text_desc)
-
-                    if not (is_score or is_red):
-                        continue  # skip yellow cards, subs — keep prompt compact
-
-                    event_clock = play.get('clock', {}).get('displayValue', '?')
-
-                    # Resolve athlete names (two possible ESPN structures)
-                    athletes = play.get('athletesInvolved', []) or []
-                    if not athletes:
-                        athletes = [p.get('athlete', p)
-                                    for p in play.get('participants', [])]
-                    player = ""
-                    assist = ""
-                    if athletes:
-                        a0 = athletes[0]
-                        player = a0.get('displayName') or a0.get('shortName', '')
-                        if is_score and len(athletes) > 1:
-                            a1 = athletes[1]
-                            assist = a1.get('displayName') or a1.get('shortName', '')
-
-                    t_id       = str(play.get('team', {}).get('id', ''))
-                    team_label = h_name if t_id == h_id_str else a_name
-
-                    if is_red:
-                        badge = "[RC]"
-                    elif is_pk:
-                        badge = "[Pen]"
-                    elif is_og:
-                        badge = "[OG]"
-                    else:
-                        badge = "[Goal]"
-
-                    # Team-level only: no player names to avoid AI confusing old scorers
-                    line = "{} {} {}".format(event_clock, badge, team_label)
-                    timeline_lines.append(line)
-
-            except Exception as te:
-                log_dbg("[AI Mode] Timeline build error: {}".format(str(te)))
-
-            # --- Personal stake note from ledger ---
-            personal_note = ""
-            if hasattr(self, "ledger"):
-                bet = self.ledger.get("pending_bets", {}).get(str(match_id))
-                if bet:
-                    prediction = bet.get("prediction", "")
-                    pred_name  = (h_name if prediction == "home" else
-                                  a_name if prediction == "away" else "Draw")
-                    if pred_name == scoring_team_name:
-                        personal_note = (
-                            " The viewer predicted {} to win and their team just scored!".format(pred_name))
-                    else:
-                        personal_note = (
-                            " The viewer predicted {} to win — this goal goes against them.".format(pred_name))
-
-            # --- Build match flow context (team-level, no player names) ---
-            timeline_block = ""
-            if timeline_lines:
-                timeline_block = "\nMATCH FLOW: " + "; ".join(timeline_lines[-8:])
-
-            # --- Assemble prompt (THIS goal + match story) ---
-            prompt = (
-                "React to THIS goal that JUST happened RIGHT NOW. "
-                "Write exactly ONE short sentence, like a real human TV commentator would say it live on air. "
-                "Sound natural and conversational, like a friend watching the game.\n\n"
-                "THE GOAL: {} scores for {} in minute {}! Score is now {} in {} ({}).{}\n\n"
-                "RULES:\n"
-                "- The ONLY player you may name is the current scorer: {}.\n"
-                "- Do NOT name any other players from previous events.\n"
-                "- You MAY reference the match story (comebacks, red cards, drama) "
-                "without naming old scorers.\n"
-                "- Keep it under 20 words. One sentence only.\n"
-                "- No numbering, no emojis, no asterisks, no markdown.\n"
-                "- Output ONLY the final commentary sentence. Do not include analysis, preamble, or thoughts.\n"
-                "- {}.{}"
-            ).format(
-                scorer_text, scoring_team_name, clock, score_display,
-                league, "{} vs {}".format(h_name, a_name),
-                personal_note, scorer_text, get_ai_language_instruction(self.ai_language),
-                timeline_block
-            )
-
-            # Delay so the GoalToast (5 s) has fully dismissed before the AIToast
-            # appears. 8 s here + ~3-5 s API latency = commentary arrives ~11-13 s
-            # after the goal — well clear of the score notification.
-            _key  = self.ai_api_key
-            _prov = self.ai_provider
-            _cb   = self._on_ai_response
-            reactor.callLater(8, lambda: call_ai_api_threaded(_key, _prov, prompt, _cb))
-            log_dbg("[AI Mode] Goal commentary scheduled (+8 s) — match {} score {} timeline_events={}".format(
-                match_id, score_display, len(timeline_lines)))
-
+            ctx = self._ai_match_context(match_id, score_display)
+            request = build_ai_goal_request(ctx, scorer_text, scoring_team, self.ai_language,
+                                            getattr(self, '_ai_recent_lines', []))
+            self._schedule_ai_commentary(request, "goal")
+            log_dbg("[AI Mode] Goal commentary scheduled (+8 s) — match {} score {} events={}".format(
+                match_id, score_display, len(ctx.get('goals') or [])))
         except Exception as e:
             log_dbg("[AI Mode] _trigger_ai_goal_commentary error: {}".format(str(e)))
 
     def _trigger_ai_match_event_commentary(self, match_id, event_type, score_fmt):
         """Fire AI commentary when a soccer match kicks off ('start') or ends ('end').
-        Uses the same delayed delivery pattern as goal commentary so the GoalToast
-        notification (kickoff / full-time banner) is fully visible before the AI
-        response arrives.
+        Uses the same delayed delivery as goal commentary so the kick-off / full-time
+        banner is fully visible before the AI line arrives.
 
         event_type : 'start' or 'end'
         score_fmt  : compact score string e.g. '2-1'
@@ -6623,114 +7663,23 @@ class SportsMonitor:
         now = int(time.time())
         cooldown_attr = "_ai_{}_ts_{}".format(event_type, str(match_id))
         if now - getattr(self, cooldown_attr, 0) < 300:
-            log_dbg("[AI Mode] {} commentary skipped — cooldown for {}".format(
-                event_type, match_id))
+            log_dbg("[AI Mode] {} commentary skipped — cooldown for {}".format(event_type, match_id))
             return
         setattr(self, cooldown_attr, now)
 
         try:
-            snap   = self.match_snapshots.get(str(match_id), {})
-            h_name = snap.get("h_name", "Home")
-            a_name = snap.get("a_name", "Away")
-            league = snap.get("league_name", "")
-
-            # --- Build full timeline for end-of-match summary ---
-            timeline_lines = []
-            if event_type == 'end':
-                try:
-                    ev      = self.event_map.get(str(match_id), {})
-                    details = ev.get('competitions', [{}])[0].get('details', [])
-                    h_id_str = ""
-                    for c in ev.get('competitions', [{}])[0].get('competitors', []):
-                        if c.get('homeAway') == 'home':
-                            h_id_str = str(
-                                c.get('id', '') or c.get('team', {}).get('id', ''))
-                            break
-                    for play in details:
-                        text_desc = play.get('type', {}).get('text', '').lower()
-                        is_og    = play.get('ownGoal', False)
-                        is_pk    = play.get('penaltyKick', False)
-                        is_rc    = play.get('redCard', False)
-                        is_score = (play.get('scoringPlay', False) or is_og or is_pk
-                                    or 'goal' in text_desc)
-                        is_red   = is_rc or ('card' in text_desc and 'red' in text_desc)
-                        if not (is_score or is_red):
-                            continue
-                        event_clock = play.get('clock', {}).get('displayValue', '?')
-                        athletes = play.get('athletesInvolved', []) or [
-                            p.get('athlete', p) for p in play.get('participants', [])]
-                        player = ""
-                        assist = ""
-                        if athletes:
-                            a0     = athletes[0]
-                            player = a0.get('displayName') or a0.get('shortName', '')
-                            if is_score and len(athletes) > 1:
-                                a1     = athletes[1]
-                                assist = a1.get('displayName') or a1.get('shortName', '')
-                        t_id       = str(play.get('team', {}).get('id', ''))
-                        team_label = h_name if t_id == h_id_str else a_name
-                        badge = ("[RC]"   if is_red  else
-                                 "[Pen]"  if is_pk   else
-                                 "[OG]"   if is_og   else "[Goal]")
-                        line = "{} {} {} ({})".format(
-                            event_clock, badge, player, team_label)
-                        if assist and is_score and not is_red:
-                            line += " assist: {}".format(assist)
-                        timeline_lines.append(line)
-                except Exception as te:
-                    log_dbg("[AI Mode] Match-end timeline error: {}".format(str(te)))
-
-            # --- User prediction context ---
-            personal_note = ""
-            if hasattr(self, "ledger"):
-                bet = self.ledger.get("pending_bets", {}).get(str(match_id))
-                if bet:
-                    prediction = bet.get("prediction", "")
-                    pred_name  = (h_name if prediction == "home" else
-                                  a_name if prediction == "away" else "Draw")
-                    personal_note = (
-                        " The viewer predicted {} to win.".format(pred_name))
-
-            # --- Build prompt ---
+            recent = getattr(self, '_ai_recent_lines', [])
             if event_type == 'start':
-                prompt = (
-                    "The whistle just blew — {} vs {} is kicking off NOW in the {}. "
-                    "Write exactly ONE sentence like a real human commentator would say live on TV. "
-                    "Sound natural and excited, not robotic. "
-                    "Mention both teams. Keep it under 20 words. "
-                    "No emojis, no markdown, no numbering. "
-                    "Output ONLY the single sentence. No thoughts or analysis. "
-                    "{}.{}"
-                ).format(h_name, a_name, league, get_ai_language_instruction(self.ai_language), personal_note)
-
-            else:   # 'end'
-                timeline_block = ""
-                if timeline_lines:
-                    timeline_block = (
-                        "\nMatch events for context: " + "; ".join(timeline_lines[-6:]))
-                prompt = (
-                    "Full time! {} vs {} ends {}. {}. "
-                    "Write exactly ONE sentence like a real human commentator would say at the final whistle. "
-                    "React to the final score. Sound natural, not robotic, not cliche. "
-                    "Keep it under 20 words. "
-                    "No emojis, no markdown, no numbering. "
-                    "Output ONLY the single sentence. No thoughts or analysis. "
-                    "{}.{}{}"
-                ).format(
-                    h_name, a_name, score_fmt, league,
-                    get_ai_language_instruction(self.ai_language), personal_note, timeline_block)
-
-            # Delay so the start/end GoalToast banner finishes before AIToast arrives
-            _key  = self.ai_api_key
-            _prov = self.ai_provider
-            _cb   = self._on_ai_response
-            reactor.callLater(8, lambda: call_ai_api_threaded(_key, _prov, prompt, _cb))
+                ctx = self._ai_match_context(match_id)
+                request = build_ai_kickoff_request(ctx, self.ai_language, recent)
+            else:
+                ctx = self._ai_match_context(match_id, score_fmt)
+                request = build_ai_fulltime_request(ctx, self.ai_language, recent)
+            self._schedule_ai_commentary(request, event_type)
             log_dbg("[AI Mode] Match {} commentary scheduled (+8 s) — {} {}".format(
                 event_type, match_id, score_fmt))
-
         except Exception as e:
-            log_dbg("[AI Mode] _trigger_ai_match_event_commentary error: {}".format(
-                str(e)))
+            log_dbg("[AI Mode] _trigger_ai_match_event_commentary error: {}".format(str(e)))
 
     def load_config(self):
         if os.path.exists(CONFIG_FILE):
@@ -6796,6 +7745,21 @@ class SportsMonitor:
                     # Notification Toast Animation
                     self.toast_animation = bool(data.get("toast_animation", True))
 
+                    # Arena View Preference
+                    self.arena_view_preference = data.get("arena_view_preference", "heading_only")
+
+                    # Notification controls
+                    al = data.get("alerts", {}) or {}
+                    self.alert_scope = al.get("scope", "all") if al.get("scope") in ("all", "favorites", "followed") else "all"
+                    self.alert_types = dict(self.ALERT_TYPES_DEFAULT)
+                    self.alert_types.update({k: bool(v) for k, v in (al.get("types") or {}).items() if k in self.ALERT_TYPES_DEFAULT})
+                    self.alert_big_only = bool(al.get("big_only", False))
+                    self.quiet_hours = al.get("quiet_hours", "off") if al.get("quiet_hours", "off") in self.QUIET_HOURS_CHOICES else "off"
+                    self.spoiler_mode = al.get("spoiler", "off") if al.get("spoiler", "off") in self.SPOILER_CHOICES else "off"
+                    self.toast_style = "classic" if al.get("toast_style") == "classic" else "overlay"
+                    self.lineup_alerts = bool(al.get("lineups", True))
+                    self.followed_matches = self._prune_followed(al.get("followed", {}) or {})
+
                     # User-Selected League for Key 8
                     _k8_slug = data.get("key8_league_slug")
                     if _k8_slug and _k8_slug in SLUG_TO_IDX:
@@ -6831,6 +7795,9 @@ class SportsMonitor:
         self.fav_notified = set()
         self.goal_sound_file = "pop.mp3"
         self.toast_animation = True
+        self.alert_scope = "all"; self.alert_types = dict(self.ALERT_TYPES_DEFAULT)
+        self.alert_big_only = False; self.quiet_hours = "off"; self.spoiler_mode = "off"
+        self.toast_style = "overlay"; self.lineup_alerts = True; self.followed_matches = {}
         self.key8_league_index = -1
         self.saved_custom_league_indices = []
         self.favorite_league_indices = []
@@ -6838,7 +7805,12 @@ class SportsMonitor:
         # FIX Bug 1: resolved_bets must be a dict (not a list) to support key-based
         # lookups and assignment used throughout the gamification engine.
         # Also ensure total_predictions and correct_predictions are always present.
-        self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
+        # Only create an empty ledger if none was loaded. load_ledger() runs BEFORE
+        # load_config(), so resetting it here (as this used to) meant a missing or
+        # corrupt config file wiped the prediction history in memory, and the next
+        # vote saved that empty ledger over the real file.
+        if not isinstance(getattr(self, 'ledger', None), dict):
+            self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
 
     def fetch_remote_config(self):
         try:
@@ -6897,46 +7869,79 @@ class SportsMonitor:
             "favorite_teams": self.favorite_teams[:10],  # enforce max 10
             "goal_sound_file": self.goal_sound_file,
             "toast_animation": getattr(self, "toast_animation", True),
+            "arena_view_preference": getattr(self, "arena_view_preference", "heading_only"),
+            "alerts": {
+                "scope": self.alert_scope,
+                "types": self.alert_types,
+                "big_only": self.alert_big_only,
+                "quiet_hours": self.quiet_hours,
+                "spoiler": self.spoiler_mode,
+                "toast_style": self.toast_style,
+                "lineups": self.lineup_alerts,
+                "followed": self._prune_followed(self.followed_matches),
+            },
             "key8_league_index": getattr(self, "key8_league_index", 165),
             "key8_league_slug": IDX_TO_SLUG.get(getattr(self, "key8_league_index", 165), ""),
         }
         try:
-            with open(CONFIG_FILE, "w") as f: json.dump(data, f)
-        except: pass
+            # Atomic write: a power cut mid-save used to leave a truncated config,
+            # which load_config() then replaced with defaults.
+            _atomic_write_json(CONFIG_FILE, data)
+        except Exception as e:
+            log_dbg("save_config ERROR: " + str(e))
 
     def load_ledger(self):
-        try:
-            if os.path.exists(LEDGER_FILE):
+        empty_ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
+        self.ledger = dict(empty_ledger)
+        if os.path.exists(LEDGER_FILE):
+            try:
                 with open(LEDGER_FILE, "r") as f:
-                    self.ledger = json.load(f)
-            else:
-                self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
-
-            # FIX: Ensure resolved_bets is a dictionary (V2 requirement)
-            if not isinstance(self.ledger.get("resolved_bets"), dict):
-                # Migration: if it was a list, just convert to empty dict (safer than trying to guess structure)
-                self.ledger["resolved_bets"] = {}
-
-            # Migration logic for old /tmp votes
-            old_votes_file = "/tmp/simplysports_votes.json"
-            if os.path.exists(old_votes_file):
+                    loaded = json.load(f)
+                if not isinstance(loaded, dict):
+                    raise ValueError("ledger file is not a JSON object")
+                self.ledger = loaded
+            except Exception as e:
+                # Keep the unreadable file for manual recovery instead of letting the
+                # next save_ledger() overwrite it with an empty ledger.
                 try:
-                    with open(old_votes_file, "r") as f:
-                        old_data = json.load(f)
-                        for eid in old_data:
-                            eid_str = str(eid)
-                            if eid_str not in self.ledger["resolved_bets"]:
-                                self.ledger["resolved_bets"][eid_str] = {"legacy": True}
-                    self.save_ledger()
-                except: pass
-            if hasattr(self, 'repair_epl_resolved_bets'):
+                    bad_copy = "{}.corrupt-{}".format(LEDGER_FILE, int(time.time()))
+                    os.rename(LEDGER_FILE, bad_copy)
+                    log_dbg("[Ledger] Unreadable ledger moved to {}: {}".format(bad_copy, e))
+                except Exception:
+                    pass
+                self.ledger = dict(empty_ledger)
+
+        # FIX: Ensure resolved_bets is a dictionary (V2 requirement)
+        if not isinstance(self.ledger.get("resolved_bets"), dict):
+            # Migration: if it was a list, just convert to empty dict (safer than trying to guess structure)
+            self.ledger["resolved_bets"] = {}
+        if not isinstance(self.ledger.get("pending_bets"), dict):
+            self.ledger["pending_bets"] = {}
+        for key in ("total_score", "total_predictions", "correct_predictions"):
+            self.ledger.setdefault(key, 0)
+
+        # Migration logic for old /tmp votes
+        old_votes_file = "/tmp/simplysports_votes.json"
+        if os.path.exists(old_votes_file):
+            try:
+                with open(old_votes_file, "r") as f:
+                    old_data = json.load(f)
+                    for eid in old_data:
+                        eid_str = str(eid)
+                        if eid_str not in self.ledger["resolved_bets"]:
+                            self.ledger["resolved_bets"][eid_str] = {"legacy": True}
+                self.save_ledger()
+            except: pass
+        # Kept outside the load try-block: a failure in the repair job must never
+        # reset the loaded ledger (it used to share the same bare except).
+        if hasattr(self, 'repair_epl_resolved_bets'):
+            try:
                 self.repair_epl_resolved_bets()
-        except:
-            self.ledger = {"total_score": 0, "pending_bets": {}, "resolved_bets": {}, "total_predictions": 0, "correct_predictions": 0}
+            except Exception as e:
+                log_dbg("[Ledger] EPL repair failed: " + str(e))
 
     def save_ledger(self):
         """Saves the current ledger to disk, pruning resolved bets older than 30 days."""
-        import json
         import time
 
         if not hasattr(self, 'ledger') or not self.ledger:
@@ -6974,14 +7979,16 @@ class SportsMonitor:
             # The silent fallback to the hardcoded string meant any rename of the
             # constant at the top of the file would be ignored here, causing a
             # path mismatch between save and load after a restart.
-            with open(LEDGER_FILE, "w") as f:
-                json.dump(self.ledger, f)
+            # Atomic write so a power cut mid-save can't truncate the ledger.
+            _atomic_write_json(LEDGER_FILE, self.ledger)
         except Exception as e:
             print("[SimplySports] Failed to save ledger:", e)
     def add_pending_bet(self, event_id, prediction, sport, league, h_name="Home", a_name="Away", league_url=""):
         eid = str(event_id)
         if eid not in self.ledger["pending_bets"] and eid not in self.ledger["resolved_bets"]:
-            self.ledger["pending_bets"][eid] = {
+            snap = self.match_snapshots.get(eid) or {}
+            ev = self.event_map.get(eid) or {}
+            bet = {
                 "prediction": prediction, # 'home', 'away', or 'draw'
                 "sport": sport,
                 "league": league,
@@ -6993,6 +8000,14 @@ class SportsMonitor:
                 "a_name": a_name,
                 "timestamp": int(time.time())
             }
+            # Kick-off time: the referee only looks the result up once the game
+            # can be over. Stage: World Cup points follow the match's own stage.
+            ko = utc_iso_to_epoch(snap.get("date") or ev.get("date", ""))
+            if ko:
+                bet["ko"] = ko
+            if snap.get("stage_label"):
+                bet["stage"] = snap.get("stage_label")
+            self.ledger["pending_bets"][eid] = bet
             self.save_ledger()
             self.evaluate_pending_bets()
 
@@ -7077,15 +8092,97 @@ class SportsMonitor:
                         source = 'spread_estimate'
                         break
 
+                # 4) Soccer with no odds at all: our own estimate from the league
+                # table (labelled as an estimate, like the spread one).
+                extra = {}
+                if not source and sport == 'soccer':
+                    h_tid, a_tid = self._fixture_team_ids(match_id, data)
+                    est = poisson_match_model(self._standings_table(league), h_tid, a_tid)
+                    if est:
+                        h_val, a_val = est['h_pct'], est['a_pct']
+                        source = 'model'
+                        extra = {'d_pct': est['d_pct'], 'score': est['score'], 'score_pct': est['score_pct']}
+
                 if not source or (h_val <= 0 and a_val <= 0):
+                    # Remember the miss (for an hour) so the list doesn't start
+                    # a new lookup for this game on every refresh.
+                    self.predictor_cache[match_id] = {'h_pct': 0.0, 'a_pct': 0.0, 'source': 'none', 'fetched_at': time.time()}
                     return
-                self.predictor_cache[match_id] = {'h_pct': h_val, 'a_pct': a_val, 'source': source, 'fetched_at': time.time()}
+                entry = {'h_pct': h_val, 'a_pct': a_val, 'source': source, 'fetched_at': time.time()}
+                entry.update(extra)
+                self.predictor_cache[match_id] = entry
             except Exception:
                 pass
             finally:
                 self.predictor_inflight.discard(match_id)
 
         t = threading.Thread(target=_run, daemon=True)
+        t.start()
+
+    # How long a cached prediction is trusted before it is looked up again
+    PREDICTOR_TTL_S = {'none': 3600, 'model': 3 * 3600}
+    STANDINGS_TTL_S = 6 * 3600
+
+    def predictor_entry(self, match_id):
+        """Cached prediction for a game, or None when missing or stale (odds often
+        appear closer to kick-off, so misses and model estimates are re-checked)."""
+        cached = self.predictor_cache.get(match_id)
+        if not cached:
+            return None
+        ttl = self.PREDICTOR_TTL_S.get(cached.get('source'))
+        if ttl and time.time() - cached.get('fetched_at', 0) > ttl:
+            return None
+        return cached
+
+    def _fixture_team_ids(self, match_id, data=None):
+        snap = self.match_snapshots.get(str(match_id)) or {}
+        h_tid, a_tid = snap.get('h_team_id', ''), snap.get('a_team_id', '')
+        if (not h_tid or not a_tid) and isinstance(data, dict):
+            comps = ((data.get('header') or {}).get('competitions') or [{}])[0].get('competitors') or []
+            for c in comps:
+                tid = str(c.get('id') or (c.get('team') or {}).get('id') or '')
+                if c.get('homeAway') == 'home':
+                    h_tid = h_tid or tid
+                elif c.get('homeAway') == 'away':
+                    a_tid = a_tid or tid
+        return str(h_tid or ''), str(a_tid or '')
+
+    def _standings_table(self, league):
+        """League table for the model ({team_id: (gp, gf, ga)}), cached for 6 h.
+        Blocking: worker threads only. One fetch at a time, so the three
+        look-ups a refresh can start share one download."""
+        if not league:
+            return {}
+        with self._standings_lock:
+            ent = self._standings_cache.get(league)
+            if ent and time.time() - ent[0] < self.STANDINGS_TTL_S:
+                return ent[1]
+            table = {}
+            url = "https://site.api.espn.com/apis/v2/sports/soccer/{}/standings".format(league)
+            try:
+                req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                table = parse_soccer_standings(json.loads(urlopen(req, timeout=8).read().decode('utf-8', 'ignore')))
+            except Exception as e:
+                log_dbg("[Model] standings for {} unavailable: {}".format(league, e))
+            self._standings_cache[league] = (time.time(), table)
+            return table
+
+    def model_estimate_async(self, match_id, league, h_tid, a_tid, callback):
+        """Standings model in a worker thread; callback(estimate or None) on the
+        main thread. The estimate is also cached for the main list."""
+        def _run():
+            est = None
+            try:
+                est = poisson_match_model(self._standings_table(league), h_tid, a_tid)
+                if est and match_id and not self.predictor_entry(match_id):
+                    entry = {'h_pct': est['h_pct'], 'a_pct': est['a_pct'], 'source': 'model', 'fetched_at': time.time(),
+                             'd_pct': est['d_pct'], 'score': est['score'], 'score_pct': est['score_pct']}
+                    self.predictor_cache[match_id] = entry
+            except Exception as e:
+                log_dbg("[Model] estimate failed: {}".format(e))
+            reactor.callFromThread(callback, est)
+        t = threading.Thread(target=_run)
+        t.daemon = True
         t.start()
 
     def _resolve_epl_bet(self, eid, bet):
@@ -7109,6 +8206,17 @@ class SportsMonitor:
                 log_dbg("EPL bet eval error for {}: {}".format(eid, e))
 
         # 2. If not found in current event_map or not marked post yet, query Azure EPL API
+        # In-flight guard: this runs on every check_goals tick and one lookup can take
+        # longer than a tick (up to 6 dates x 6 s). Without it, overlapping threads
+        # could both settle the same bet.
+        eid_key = str(eid)
+        if eid_key in self._epl_bet_inflight:
+            return
+        # Same pacing as ESPN bets: only once the game can be over, every 10 min
+        if not self._referee_due(eid_key, bet, time.time()):
+            return
+        self._epl_bet_inflight.add(eid_key)
+
         def _fetch_epl_bet_result():
             try:
                 import urllib.request as _urllib
@@ -7152,7 +8260,9 @@ class SportsMonitor:
                         matched = False
                         if m_id == str(eid):
                             matched = True
-                        elif h_bet and a_bet and (h_bet in h_name or h_name in h_bet) and (a_bet in a_name or a_name in a_bet):
+                        # Both sides must be non-empty: '' in 'al ahly' is True, so a
+                        # fixture with a blank team name used to match any bet.
+                        elif h_bet and a_bet and h_name and a_name and (h_bet in h_name or h_name in h_bet) and (a_bet in a_name or a_name in a_bet):
                             matched = True
 
                         if matched:
@@ -7176,34 +8286,77 @@ class SportsMonitor:
                                 return
             except Exception as ex:
                 log_dbg("EPL bet background fetch error: {}".format(ex))
+            finally:
+                reactor.callFromThread(self._epl_bet_inflight.discard, eid_key)
 
         t = threading.Thread(target=_fetch_epl_bet_result)
         t.daemon = True
         t.start()
 
+    # EPL repair job pacing (see repair_epl_resolved_bets)
+    EPL_REPAIR_MIN_INTERVAL = 1800   # seconds between repair passes (it used to run every tick)
+    EPL_REPAIR_MAX_TRIES = 3         # passes with API data before giving up on an unmatched bet
+    _EPL_ARABIC_KEYWORDS = ['الأهلي', 'الزمالك', 'بيراميدز', 'البنك', 'المحلة', 'الإسماعيلي', 'المصري', 'الاتحاد', 'سيراميكا', 'سموحة', 'زد', 'مودرن', 'فاركو', 'إنبي', 'طلائع', 'الجونة', 'حرس', 'بتروجت']
+
+    def _is_epl_resolved_bet(self, eid, bet_info):
+        """True only for Egyptian Premier League bets.
+        A numeric event id is NOT evidence: ESPN ids are numeric too, and the old
+        str(eid).isdigit() test made every 0-0 draw from any league a candidate."""
+        lg = str(bet_info.get("league", "") or "")
+        lg_url = str(bet_info.get("league_url", "") or "")
+        if lg == "epl" or lg_url.startswith("epl") or str(eid).startswith("epl_"):
+            return True
+        # Older records carry no league fields: fall back to Egyptian team names
+        h_nm = bet_info.get("h_name", "") or ""
+        a_nm = bet_info.get("a_name", "") or ""
+        if any(k in h_nm or k in a_nm for k in self._EPL_ARABIC_KEYWORDS):
+            return True
+        try:
+            en_names = set(n.lower() for n in EGYPTIAN_TEAMS_AR_TO_EN.values())
+        except Exception:
+            en_names = set()
+        return h_nm.strip().lower() in en_names or a_nm.strip().lower() in en_names
+
     def repair_epl_resolved_bets(self):
-        """Repair any EPL resolved bets that were prematurely settled as 0-0 draw due to pre-match/live status flags."""
+        """Repair any EPL resolved bets that were prematurely settled as 0-0 draw due to pre-match/live status flags.
+
+        Runs at most once per EPL_REPAIR_MIN_INTERVAL with a single worker (it used to
+        start a 10-request thread on every check_goals tick), only for genuine EPL bets,
+        and stops re-checking a bet once the EPL API confirms it or after
+        EPL_REPAIR_MAX_TRIES passes. The worker only reads; ledger changes are applied
+        on the main thread in _apply_epl_repairs()."""
         if not hasattr(self, 'ledger') or not self.ledger:
             return
         resolved = self.ledger.get("resolved_bets", {})
         if not isinstance(resolved, dict):
             return
+        now = time.time()
+        if self._epl_repair_running or (now - self._epl_repair_last_run) < self.EPL_REPAIR_MIN_INTERVAL:
+            return
 
         epl_candidates = []
         for eid, bet_info in list(resolved.items()):
-            score = bet_info.get("score", "")
-            res = bet_info.get("result", "")
-            h_nm = bet_info.get("h_name", "")
-            a_nm = bet_info.get("a_name", "")
-            is_epl = (str(eid).startswith("epl_") or str(eid).isdigit() or
-                      any(k in h_nm for k in ['الأهلي', 'الزمالك', 'بيراميدز', 'البنك', 'المحلة', 'الإسماعيلي', 'المصري', 'الاتحاد', 'سيراميكا', 'سموحة', 'زد', 'مودرن', 'فاركو', 'إنبي', 'طلائع', 'الجونة', 'حرس', 'بتروجت']))
-            if is_epl and score == "0-0" and res == "draw":
-                epl_candidates.append((eid, bet_info))
+            if not isinstance(bet_info, dict):
+                continue
+            if bet_info.get("score", "") != "0-0" or bet_info.get("result", "") != "draw":
+                continue
+            if bet_info.get("epl_verified"):
+                continue
+            if int(bet_info.get("epl_repair_tries", 0) or 0) >= self.EPL_REPAIR_MAX_TRIES:
+                continue
+            if self._is_epl_resolved_bet(eid, bet_info):
+                epl_candidates.append((eid, dict(bet_info)))
 
         if not epl_candidates:
             return
 
+        self._epl_repair_running = True
+        self._epl_repair_last_run = now
+
         def _run_repair():
+            corrections = {}        # eid -> (home_score, away_score) for wrongly settled bets
+            confirmed_draws = set() # eids the API confirms really ended 0-0
+            fetched_any = False
             try:
                 import urllib.request as _urllib
                 import ssl as _ssl
@@ -7227,6 +8380,7 @@ class SportsMonitor:
                         resp = _urllib.urlopen(req, timeout=6, context=ctx).read().decode('utf-8', errors='ignore')
                         data = json.loads(resp)
                         if isinstance(data, list):
+                            fetched_any = True
                             for m in data:
                                 m_id = str(m.get('id', ''))
                                 matches_by_id[m_id] = m
@@ -7234,7 +8388,6 @@ class SportsMonitor:
                     except Exception:
                         continue
 
-                needs_save = False
                 for eid, bet_info in epl_candidates:
                     m = matches_by_id.get(str(eid))
                     if not m:
@@ -7243,7 +8396,8 @@ class SportsMonitor:
                         for cand in matches_by_teams:
                             h_name = (cand.get('homeTeamName') or '').strip().lower()
                             a_name = (cand.get('awayTeamName') or '').strip().lower()
-                            if h_bet and a_bet and (h_bet in h_name or h_name in h_bet) and (a_bet in a_name or a_name in a_bet):
+                            # Non-empty names required ('' is a substring of everything)
+                            if h_bet and a_bet and h_name and a_name and (h_bet in h_name or h_name in h_bet) and (a_bet in a_name or a_name in a_bet):
                                 m = cand
                                 break
 
@@ -7259,40 +8413,78 @@ class SportsMonitor:
                             h_sc = int(h_score)
                             a_sc = int(a_score)
                             if h_sc != 0 or a_sc != 0:
-                                actual_winner = 'home' if h_sc > a_sc else ('away' if a_sc > h_sc else 'draw')
-                                prediction = bet_info.get("prediction")
-                                was_won = (prediction == bet_info.get("result"))
-                                is_won = (prediction == actual_winner)
-
-                                old_pts = bet_info.get("points", -1)
-                                new_pts = 1 if is_won else -1
-                                pts_diff = new_pts - old_pts
-
-                                bet_info["result"] = actual_winner
-                                bet_info["score"] = f"{h_sc}-{a_sc}"
-                                bet_info["points"] = new_pts
-
-                                self.ledger["total_score"] = int(self.ledger.get("total_score", 0)) + pts_diff
-                                if is_won and not was_won:
-                                    self.ledger["correct_predictions"] = int(self.ledger.get("correct_predictions", 0)) + 1
-                                    if "sport_stats" in self.ledger and "soccer" in self.ledger["sport_stats"]:
-                                        self.ledger["sport_stats"]["soccer"]["score"] = int(self.ledger["sport_stats"]["soccer"].get("score", 0)) + pts_diff
-                                        self.ledger["sport_stats"]["soccer"]["correct"] = int(self.ledger["sport_stats"]["soccer"].get("correct", 0)) + 1
-                                    if "sport_stats" in self.ledger and "Egyptian League" in self.ledger["sport_stats"]:
-                                        self.ledger["sport_stats"]["Egyptian League"]["score"] = int(self.ledger["sport_stats"]["Egyptian League"].get("score", 0)) + pts_diff
-                                        self.ledger["sport_stats"]["Egyptian League"]["correct"] = int(self.ledger["sport_stats"]["Egyptian League"].get("correct", 0)) + 1
-                                needs_save = True
-                                log_diag(f"REPAIR: Corrected EPL bet {eid} from 0-0 to {h_sc}-{a_sc} (Winner: {actual_winner})")
-
-                if needs_save:
-                    reactor.callFromThread(self.save_ledger)
-                    reactor.callFromThread(self.sync_leaderboard)
+                                corrections[eid] = (h_sc, a_sc)
+                            else:
+                                confirmed_draws.add(eid)
             except Exception as e:
                 log_diag(f"REPAIR: error {e}")
+            finally:
+                reactor.callFromThread(self._apply_epl_repairs,
+                                       [eid for eid, _b in epl_candidates],
+                                       corrections, confirmed_draws, fetched_any)
 
         t = threading.Thread(target=_run_repair)
         t.daemon = True
         t.start()
+
+    def _apply_epl_repairs(self, candidate_ids, corrections, confirmed_draws, fetched_any):
+        """Main-thread half of repair_epl_resolved_bets(): all ledger changes happen
+        here (the old code mutated the ledger from the worker thread)."""
+        self._epl_repair_running = False
+        resolved = self.ledger.get("resolved_bets", {})
+        if not isinstance(resolved, dict):
+            return
+        changed = False
+        rescored = False
+        for eid in candidate_ids:
+            bet_info = resolved.get(eid)
+            if not isinstance(bet_info, dict):
+                continue  # pruned or replaced meanwhile
+            if bet_info.get("score", "") != "0-0" or bet_info.get("result", "") != "draw":
+                continue  # changed meanwhile
+
+            if eid in corrections:
+                h_sc, a_sc = corrections[eid]
+                actual_winner = 'home' if h_sc > a_sc else ('away' if a_sc > h_sc else 'draw')
+                prediction = bet_info.get("prediction")
+                was_won = (prediction == bet_info.get("result"))
+                is_won = (prediction == actual_winner)
+
+                old_pts = bet_info.get("points", -1)
+                new_pts = 1 if is_won else -1
+                pts_diff = new_pts - old_pts
+
+                bet_info["result"] = actual_winner
+                bet_info["score"] = f"{h_sc}-{a_sc}"
+                bet_info["points"] = new_pts
+                bet_info["epl_verified"] = True
+
+                # Adjust totals in both directions (the old code only handled a
+                # lost bet becoming a win, so a won draw turning into a loss kept
+                # its 'correct' count and per-sport score).
+                correct_diff = (1 if is_won else 0) - (1 if was_won else 0)
+                self.ledger["total_score"] = int(self.ledger.get("total_score", 0)) + pts_diff
+                self.ledger["correct_predictions"] = int(self.ledger.get("correct_predictions", 0)) + correct_diff
+                for stat_key in ("soccer", "Egyptian League"):
+                    st = self.ledger.get("sport_stats", {}).get(stat_key)
+                    if isinstance(st, dict):
+                        st["score"] = int(st.get("score", 0)) + pts_diff
+                        st["correct"] = int(st.get("correct", 0)) + correct_diff
+                changed = True
+                rescored = True
+                log_diag(f"REPAIR: Corrected EPL bet {eid} from 0-0 to {h_sc}-{a_sc} (Winner: {actual_winner})")
+            elif eid in confirmed_draws:
+                bet_info["epl_verified"] = True   # genuine 0-0: never re-check it
+                changed = True
+            elif fetched_any:
+                # API answered but this bet wasn't found/finished: count the try
+                bet_info["epl_repair_tries"] = int(bet_info.get("epl_repair_tries", 0) or 0) + 1
+                changed = True
+
+        if changed:
+            self.save_ledger()
+        if rescored:
+            self.sync_leaderboard()
 
     def evaluate_pending_bets(self):
         if hasattr(self, 'repair_epl_resolved_bets'):
@@ -7321,6 +8513,14 @@ class SportsMonitor:
                 self._resolve_epl_bet(eid, bet)
                 continue
 
+            # 1. The scoreboard data already in memory often has the final score
+            ev_mem = self.event_map.get(str(eid))
+            if ev_mem and self._settle_from_event_map(eid, bet, ev_mem):
+                continue
+            # 2. Otherwise ask ESPN, but only once the game can be over
+            if not self._referee_due(eid, bet, time.time()):
+                continue
+
             url = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(sport, league, eid)
 
             if url in self.active_requests: continue
@@ -7329,10 +8529,75 @@ class SportsMonitor:
             d = self.agent.request(b'GET', url.encode('utf-8'), self.default_headers)
             d.addCallback(readBody)
             d.addCallback(self._on_summary_resolved, eid, bet)
-            d.addErrback(lambda x: log_dbg("Referee error for {}: {}".format(eid, x)))
+            d.addErrback(lambda x, e=eid: log_dbg("Referee error for {}: {}".format(e, x)))
             d.addBoth(lambda x, u=url: self.active_requests.discard(u))
 
+    # ---- Referee pacing --------------------------------------------------------
+    # Minutes after kick-off before the first result lookup (a typical game length)
+    REFEREE_FIRST_CHECK_MIN = {"soccer": 110, "basketball": 140, "football": 200, "hockey": 160,
+                               "baseball": 190, "rugby": 100, "cricket": 420, "tennis": 90}
+    REFEREE_DEFAULT_FIRST_CHECK_MIN = 150
+    REFEREE_EXPIRE_S = 3 * 86400          # still open this long after kick-off -> void "Expired"
+    REFEREE_EXPIRE_NO_KO_S = 14 * 86400   # bets saved without a kick-off time (older versions)
+    REFEREE_MIN_LOOKUPS = 3               # never expire a bet before trying this many lookups
+
+    def _settle_from_event_map(self, eid, bet, ev):
+        """Settle from the scoreboard data already in memory when it shows the game
+        over (no request). Also follows a kick-off time that has moved. Returns True
+        when the bet is no longer pending."""
+        try:
+            comp0 = (ev.get('competitions') or [{}])[0]
+            st = ev.get('status') or comp0.get('status') or {}
+            state = (st.get('type') or {}).get('state', 'pre')
+            ev_ko = utc_iso_to_epoch(ev.get('date', ''))
+            if state == 'pre' and ev_ko and ev_ko != bet.get('ko'):
+                bet['ko'] = ev_ko                  # rescheduled: wait for the new time
+            if state != 'post':
+                return False
+            comp = dict(comp0)
+            comp['status'] = st
+            body = json.dumps({'header': {'competitions': [comp]}}).encode('utf-8')
+        except Exception as e:
+            log_dbg("Referee: in-memory result unusable for {}: {}".format(eid, e))
+            return False
+        # Same rules as an ESPN summary: cancelled -> void, postponed -> stays open
+        self._on_summary_resolved(body, eid, bet)
+        return str(eid) not in self.ledger.get("pending_bets", {})
+
+    def _referee_due(self, eid, bet, now):
+        """Whether to look this bet's result up now. Waits until the game can be
+        over (kick-off + typical length), then checks every 10 minutes (hourly
+        after 6 hours). A bet still open 3 days after kick-off, after at least
+        REFEREE_MIN_LOOKUPS lookups, is voided as 'Expired'. The old referee sent
+        one summary request per pending bet on every poll, days before kick-off."""
+        eid = str(eid)
+        ko = float(bet.get('ko') or 0)
+        if ko:
+            first = ko + 60 * self.REFEREE_FIRST_CHECK_MIN.get(bet.get('sport', 'soccer'),
+                                                              self.REFEREE_DEFAULT_FIRST_CHECK_MIN)
+            if now < first:
+                return False
+            age, limit = now - ko, self.REFEREE_EXPIRE_S
+            interval = 600 if age < 6 * 3600 else 3600
+        else:
+            age, limit = now - float(bet.get('timestamp') or now), self.REFEREE_EXPIRE_NO_KO_S
+            interval = 1800
+        if age > limit and int(bet.get('lookups', 0) or 0) >= self.REFEREE_MIN_LOOKUPS:
+            self._void_pending_bet(eid, bet, {'shortDetail': 'Expired'})
+            return False
+        if now - self._referee_last.get(eid, 0) < interval:
+            return False
+        self._referee_last[eid] = now
+        bet['lookups'] = int(bet.get('lookups', 0) or 0) + 1
+        return True
+
     def _on_summary_resolved(self, body, eid, bet):
+        # A bet can only be settled once. Overlapping lookups (EPL worker threads, or
+        # an ESPN referee request still in flight after cancel_active_requests()
+        # cleared active_requests) used to settle the same bet twice and double its points.
+        eid = str(eid)
+        if eid not in self.ledger.get("pending_bets", {}):
+            return
         try:
             # ESPN may return gzip-compressed responses
             if body[:2] == b'\x1f\x8b':
@@ -7349,7 +8614,21 @@ class SportsMonitor:
 
             comp = comps[0]
             status = comp.get('status', {})
-            state = status.get('type', {}).get('state', 'pre')
+            s_type = status.get('type', {}) or {}
+            state = s_type.get('state', 'pre')
+            status_text = u" ".join(str(s_type.get(k) or '') for k in ('name', 'description', 'detail', 'shortDetail')).lower()
+
+            if state == 'post' and s_type.get('completed') is not True:
+                # ESPN reports cancelled, abandoned and postponed fixtures as state
+                # 'post' with completed=False. They used to be settled from their
+                # 0-0 placeholder score as a draw.
+                if any(x in status_text for x in ('cancel', 'abandon')):
+                    self._void_pending_bet(eid, bet, s_type)
+                    return
+                if s_type.get('completed') is False or any(x in status_text for x in ('postpone', 'suspend', 'delay')):
+                    return  # not played (yet): leave the bet pending
+                # No 'completed' flag in this payload and nothing suggests the game
+                # didn't happen: settle it as before.
 
             if state == 'post':
                 # Match finished! Calculate winner from scores (V2 Logic)
@@ -7376,17 +8655,28 @@ class SportsMonitor:
                 total_preds = int(self.ledger.get("total_predictions", 0)) + 1
                 correct_preds = int(self.ledger.get("correct_predictions", 0))
 
-                # Detect if match was decided by penalty shootout
-                # (summary body carries the final status shortDetail)
+                # Detect if match was decided by penalty shootout.
+                # (This used to call body.get(...) on the raw response bytes, which
+                # always raised, so 'penalties' was never recorded.) Uses the parsed
+                # status (e.g. STATUS_FINAL_PEN / "FT-Pens") and competitors' shootoutScore.
                 is_pk_decided = False
                 try:
-                    summary_comps = body.get('header', {}).get('competitions', [{}])
-                    pk_detail = (summary_comps[0].get('status', {})
-                                               .get('type', {})
-                                               .get('shortDetail', '')).lower()
-                    is_pk_decided = any(x in pk_detail for x in ['penalty kick', 'penalties', 'pen. kick', 'shootout'])
+                    is_pk_decided = (
+                        any(x in status_text for x in ['penalty kick', 'penalties', 'pen. kick', 'shootout', '_pen'])
+                        or re.search(r'\bpens?\b', status_text) is not None
+                        or any(c.get('shootoutScore') not in (None, '') for c in competitors)
+                    )
                 except Exception:
                     pass
+
+                # Shootout scoring rule. Default (unchanged): the 90/120-minute result
+                # counts, so a level game is a draw. Set SHOOTOUT_COUNTS_AS_WIN = True
+                # to score knockout games by who advanced instead.
+                if is_pk_decided and SHOOTOUT_COUNTS_AS_WIN:
+                    for c in competitors:
+                        if c.get('winner') is True:
+                            actual_winner = 'home' if c.get('homeAway') == 'home' else 'away'
+                            break
 
                 # Initialize sport-specific tracking
                 if "sport_stats" not in self.ledger:
@@ -7406,23 +8696,9 @@ class SportsMonitor:
                 points_to_award = 1  # Default points for standard matches
 
                 if is_world_cup:
-                    current_date = time.strftime("%m-%d")
-
-                    # 2026 World Cup Schedule Boundaries
-                    if "06-11" <= current_date <= "06-27":
-                        points_to_award = 2   # Group Stage
-                    elif "06-28" <= current_date <= "07-03":
-                        points_to_award = 3   # Round of 32
-                    elif "07-04" <= current_date <= "07-07":
-                        points_to_award = 4   # Round of 16
-                    elif "07-08" <= current_date <= "07-11":
-                        points_to_award = 5   # Quarter-finals
-                    elif "07-14" <= current_date <= "07-15":
-                        points_to_award = 6   # Semi-finals
-                    elif "07-18" <= current_date <= "07-19":
-                        points_to_award = 8   # Final and Third-Place Playoff
-                    else:
-                        points_to_award = 2   # Fallback
+                    # Points by the match's own stage (stored when the pick was
+                    # made), not by the date the result is processed.
+                    _wc_stage, points_to_award = wc_points_for_bet(bet)
                 # ------------------------------------------
 
                 self.ledger["sport_stats"][sport]["total"] += 1
@@ -7464,6 +8740,10 @@ class SportsMonitor:
                     # screen can show "Arsenal vs Chelsea" after the match is over.
                     "h_name": bet.get("h_name", "Home"),
                     "a_name": bet.get("a_name", "Away"),
+                    # League fields let repair_epl_resolved_bets() identify EPL bets
+                    # exactly instead of guessing from the event id / team names.
+                    "league": league,
+                    "league_url": bet.get("league_url", ""),
                     # FIX Bug 6: Use the current time (moment of resolution) rather than
                     # the original bet placement timestamp.  The 30-day pruning janitor in
                     # save_ledger() measures age from this timestamp.  Reusing the placement
@@ -7478,12 +8758,47 @@ class SportsMonitor:
 
                 self.save_ledger()
                 self.sync_leaderboard()
+            else:
+                # Not finished: if ESPN shows a new kick-off time (rescheduled or
+                # delayed), the referee waits for that one instead.
+                new_ko = utc_iso_to_epoch(comp.get('date', '')) if comp.get('date') else 0
+                pend = self.ledger.get("pending_bets", {}).get(eid)
+                if new_ko and pend is not None and new_ko != pend.get('ko'):
+                    pend['ko'] = new_ko
+                    self.save_ledger()
         except Exception as e:
             log_dbg("Referee processing error for {}: {}".format(eid, e))
 
+    def _void_pending_bet(self, eid, bet, status_type=None):
+        """Settle a bet on a cancelled/abandoned game as VOID: no points either way,
+        not counted in total/correct predictions, and shown as [VOID] in the profile."""
+        eid = str(eid)
+        pending = self.ledger.get("pending_bets", {})
+        if eid not in pending:
+            return
+        st = status_type or {}
+        label = st.get('shortDetail') or st.get('description') or "Cancelled"
+        self.ledger.setdefault("resolved_bets", {})[eid] = {
+            "prediction": bet.get("prediction"),
+            "result": "void",
+            "score": label,
+            "points": 0,
+            "method": "void",
+            "h_name": bet.get("h_name", "Home"),
+            "a_name": bet.get("a_name", "Away"),
+            "league": bet.get("league", ""),
+            "league_url": bet.get("league_url", ""),
+            "timestamp": int(time.time())
+        }
+        del pending[eid]
+        log_diag("REFREE: Match {} was not completed ({}) - prediction voided".format(eid, label))
+        self.save_ledger()
+
     def sync_leaderboard(self):
         device_id = get_device_id()
-        url = "{}/leaderboard/{}.json".format(FIREBASE_URL, device_id)
+        # Keyed by the Firebase user id when signed in (FIREBASE_WEB_API_KEY set),
+        # otherwise by the device id as before. '{uid}' is filled in by the writer.
+        url = "{}/leaderboard/".format(FIREBASE_URL) + "{uid}.json"
 
         # Calculate accuracy safely
         total_preds = int(self.ledger.get("total_predictions", 0))
@@ -7495,16 +8810,36 @@ class SportsMonitor:
         # leaderboard without having to recalculate it client-side.
         badge = get_rank_badge(total_score, accuracy)
 
-        payload = json.dumps({
+        fields = {
             "score": total_score,
-            "name": self.voter_name,
+            "name": (self.voter_name or "Anonymous")[:40],
             "accuracy": round(accuracy, 1),
             "total_bets": total_preds,
             "sports": self.ledger.get("sport_stats", {}),
             "badge": badge,
             "timestamp": int(time.time())
-        })
-        push_to_firebase_threaded(url, payload)
+        }
+
+        def _payload(key, signed_in):
+            p = dict(fields)
+            if signed_in and key != device_id:
+                # Lets the leaderboard hide this player's old device-id entry
+                p["legacy_id"] = device_id
+            return p
+
+        def _done(ok, uid):
+            if ok and uid and uid != device_id and not self._legacy_lb_removed:
+                reactor.callFromThread(self._remove_legacy_leaderboard_entry, device_id)
+        push_to_firebase_threaded(url, _payload, on_done=_done)
+
+    def _remove_legacy_leaderboard_entry(self, device_id):
+        """After the first write under the Firebase user id, delete the old
+        device-id entry (possible until the security rules are deployed; the
+        leaderboard hides it anyway via legacy_id)."""
+        if self._legacy_lb_removed:
+            return
+        self._legacy_lb_removed = True
+        push_to_firebase_threaded("{}/leaderboard.json".format(FIREBASE_URL), json.dumps({device_id: None}))
 
     def _register_install(self):
         """Push a registration record to /installs/{device_id} in Firebase.
@@ -7513,11 +8848,11 @@ class SportsMonitor:
         Runs in a background thread — never blocks the UI.
         """
         device_id = get_device_id()
-        url = "{}/installs/{}.json".format(FIREBASE_URL, device_id)
+        url = "{}/installs/".format(FIREBASE_URL) + "{uid}.json"   # Firebase uid when signed in
         now = int(time.time())
 
         payload = {
-            "name":       self.voter_name,
+            "name":       (self.voter_name or "Anonymous")[:40],
             "last_seen":  now,
             "version":    VERSION,
         }
@@ -7580,6 +8915,143 @@ class SportsMonitor:
         date_str = target.strftime('%Y%m%d')
         sep = '&' if '?' in url else '?'
         return url + sep + 'dates=' + date_str
+
+    # ------------------------------------------------------------------
+    # Timezone bridging for dated ESPN requests (custom / favourite modes
+    # and CH+/CH- day browsing). ESPN's 'dates=' day is not the user's local
+    # day: in UTC+3 a 22:30 UTC kick-off is 01:30 local on the next day, so a
+    # single-day request misses it. All Matches mode already fetches the
+    # neighbouring days; this does the same per league, merging the extra
+    # events into the league's own response so per-league reaping still works.
+    # ------------------------------------------------------------------
+    ADJ_DAY_TTL = 600   # seconds to reuse a neighbouring day when none of its relevant games is live/starting
+
+    @staticmethod
+    def _adjacent_espn_dates(target_date):
+        """ESPN dates (other than target_date) whose games can fall on target_date in local time."""
+        start_ts = time.mktime(datetime.datetime.combine(target_date, datetime.time(0, 0)).timetuple())
+        days = set()
+        for ts in (start_ts, start_ts + 86399):
+            days.add(datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).date())
+        days.discard(target_date)
+        return sorted(days)
+
+    @staticmethod
+    def _filter_events_local_date(events, target_date):
+        """Keep only events whose kick-off falls on target_date in local time."""
+        kept = []
+        for ev in events or []:
+            try:
+                dt = parse_to_local_datetime(ev.get('date', ''))
+                if dt and dt.date() == target_date:
+                    kept.append(ev)
+            except Exception:
+                pass
+        return kept
+
+    @staticmethod
+    def _decode_json_body(body):
+        if body[:2] == b'\x1f\x8b':
+            import gzip
+            body = gzip.decompress(body)
+        return json.loads(body.decode('utf-8', errors='ignore'))
+
+    def _merge_events_into_body(self, body, extra_events):
+        """Append extra_events (deduplicated by id) to an ESPN scoreboard response."""
+        if not extra_events:
+            return body
+        try:
+            data = self._decode_json_body(body)
+            events = data.setdefault('events', [])
+            seen = set(str(ev.get('id', '')) for ev in events)
+            added = 0
+            for ev in extra_events:
+                eid = str(ev.get('id', ''))
+                if eid and eid not in seen:
+                    seen.add(eid)
+                    events.append(ev)
+                    added += 1
+            if not added:
+                return body
+            return json.dumps(data).encode('utf-8')
+        except Exception as e:
+            log_dbg("[Bridge] merge skipped: {}".format(e))
+            return body
+
+    def _start_adjacent_fetch(self, url, fetch_url):
+        """Start fetching the neighbouring ESPN day(s) for a dated request.
+        Returns a Deferred firing with the extra events for the local target
+        date, or None when the request has no 'dates=' or no bridging is needed."""
+        try:
+            m = re.search(r'[?&]dates=(\d{8})(?:&|$)', fetch_url)
+            if not m or url.startswith(('euroleague://', 'epl://')):
+                return None
+            target = datetime.datetime.strptime(m.group(1), '%Y%m%d').date()
+            adj_days = self._adjacent_espn_dates(target)
+            if not adj_days:
+                return None
+            from twisted.internet import defer
+            ds = [self._fetch_adjacent_day(fetch_url, m.group(1), adj, target) for adj in adj_days]
+            dl = defer.gatherResults(ds, consumeErrors=True)
+            dl.addCallback(lambda lists: [ev for lst in lists for ev in (lst or [])])
+            dl.addErrback(lambda _f: [])
+            return dl
+        except Exception as e:
+            log_dbg("[Bridge] not started for {}: {}".format(url, e))
+            return None
+
+    def _fetch_adjacent_day(self, fetch_url, target_str, adj_date, target_date):
+        from twisted.internet import defer
+        adj_str = adj_date.strftime('%Y%m%d')
+        adj_url = fetch_url.replace('dates=' + target_str, 'dates=' + adj_str)
+        if not hasattr(self, '_adj_day_cache'):
+            self._adj_day_cache = {}
+        now = time.time()
+        cached = self._adj_day_cache.get(adj_url)
+        if cached and (now - cached['ts']) < self.ADJ_DAY_TTL and not cached['busy']:
+            return defer.succeed(self._filter_events_local_date(cached['events'], target_date))
+
+        def _relevant_busy(events):
+            # Re-fetch on every tick while a relevant game is live or about to start
+            for ev in self._filter_events_local_date(events, target_date):
+                state = ev.get('status', {}).get('type', {}).get('state', 'pre')
+                if state == 'in':
+                    return True
+                if state == 'pre':
+                    dt = parse_to_local_datetime(ev.get('date', ''))
+                    if dt and (time.mktime(dt.timetuple()) - time.time()) < 900:
+                        return True
+            return False
+
+        def _ok(raw):
+            events = (self._decode_json_body(raw).get('events') or [])
+            self._adj_day_cache[adj_url] = {'ts': time.time(), 'events': events, 'busy': _relevant_busy(events)}
+            # keep the cache small: drop entries older than an hour
+            for k in [k for k, v in self._adj_day_cache.items() if time.time() - v['ts'] > 3600]:
+                self._adj_day_cache.pop(k, None)
+            return self._filter_events_local_date(events, target_date)
+
+        def _err(_f):
+            return self._filter_events_local_date(cached['events'], target_date) if cached else []
+
+        try:
+            d = self.agent.request(b'GET', adj_url.encode('utf-8'), self.default_headers)
+        except Exception:
+            return defer.succeed(_err(None))
+        d.addCallback(readBody)
+        d.addCallback(_ok)
+        d.addErrback(_err)   # network error, timeout or unreadable body: fall back to cache / nothing
+        timeout_call = reactor.callLater(20, d.cancel)
+        d.addBoth(lambda x, tc=timeout_call: (tc.cancel() if tc.active() else None, x)[1])
+        return d
+
+    def _merge_adjacent(self, body, adj_d):
+        """Callback for the primary request: wait for the neighbouring day(s) and merge."""
+        if adj_d is None:
+            return body
+        adj_d.addCallback(lambda extra: self._merge_events_into_body(body, extra))
+        adj_d.addErrback(lambda _f: body)
+        return adj_d
 
 
     def navigate_day(self, delta):
@@ -7711,7 +9183,11 @@ class SportsMonitor:
             self.active_deferreds = []
         self.active_deferreds.append(d)
 
+        # Neighbouring ESPN day(s) for this local date, fetched in parallel (cached)
+        adj_d = self._start_adjacent_fetch(url, fetch_url)
+
         d.addCallback(readBody)
+        d.addCallback(self._merge_adjacent, adj_d)
         d.addCallback(self.collect_batch_response_incremental, name, url)
         d.addErrback(self.collect_batch_error, url)
         d.addBoth(self._on_batch_request_finished, url, d)
@@ -7756,11 +9232,12 @@ class SportsMonitor:
         return 300000
 
     def ensure_timer_state(self):
-        # Timer should run if:
+        # Timer should run if (see _should_poll):
         # 1. Active (Discovery Mode ON)
-        # 2. OR Reminders exist
-        # 3. OR UI is active (callbacks registered) to ensure main screen updates
-        should_run = self.active or (len(self.reminders) > 0) or (len(self.callbacks) > 0)
+        # 2. OR UI is active (callbacks registered) to ensure main screen updates
+        # and never while the box is in standby. Reminders no longer keep it
+        # running: they have their own one-shot timer.
+        should_run = self._should_poll()
 
         if should_run:
             new_interval = self._get_timer_interval()
@@ -7919,7 +9396,99 @@ class SportsMonitor:
         # renders. By the time onLayoutFinish fires and start_ui() is called the data
         # may already be arriving, giving a much faster first-paint.
         self._fetch_all_matches_data()
-    def add_reminder(self, match_name, trigger_time, league_name, h_logo, a_logo, label, sref=None, h_id=None, a_id=None):
+
+    # ==========================================================================
+    # POLLING CONDITION / STANDBY
+    # ==========================================================================
+    def _should_poll(self):
+        """Poll ESPN while Goal Alert is on or a screen is listening, never in
+        standby. Reminders and favourite-team alerts have their own timers, so
+        they no longer keep the scoreboard polling alive in the background."""
+        if self.in_standby:
+            return False
+        return bool(self.active or self.callbacks)
+
+    def _hook_standby(self):
+        if getattr(self, '_standby_hooked', False):
+            return
+        try:
+            from Components.config import config as _cfg
+            _cfg.misc.standbyCounter.addNotifier(self._on_standby_enter, initial_call=False)
+            self._standby_hooked = True
+        except Exception as e:
+            log_dbg("[Standby] notifier unavailable: {}".format(e))
+            return
+        # Plugin started while the box was already in standby (boot into standby)
+        if self._standby_screen() is not None:
+            self._on_standby_enter()
+
+    @staticmethod
+    def _standby_screen():
+        try:
+            import Screens.Standby as _sb
+            return getattr(_sb, 'inStandby', None)
+        except Exception:
+            return None
+
+    def _attach_standby_leave(self):
+        sb = self._standby_screen()
+        if sb is None:
+            return False
+        try:
+            if self._on_standby_leave not in sb.onClose:
+                sb.onClose.append(self._on_standby_leave)
+            return True
+        except Exception as e:
+            log_dbg("[Standby] cannot watch wake-up: {}".format(e))
+            return False
+
+    def _on_standby_enter(self, *args):
+        """Box went to standby: pause polling, AI calls and alerts until it wakes."""
+        if self.in_standby:
+            return
+        self.in_standby = True
+        self._attach_standby_leave()
+        try:
+            self.timer.stop()
+            self.ai_timer.stop()
+            self.reminder_timer.stop()
+            if self.live_summary_timer and self.live_summary_timer.active():
+                self.live_summary_timer.cancel()
+        except Exception:
+            pass
+        self.live_summary_timer = None
+        self._close_all_toasts()
+        log_diag("STANDBY: entered - polling and alerts paused")
+        reactor.callLater(15, self._standby_safety_check)
+
+    def _standby_safety_check(self):
+        """Images differ in when Screens.Standby.inStandby is set, so the onClose
+        hook can be missed. Check every 15 s so polling can never stay paused
+        after the box wakes up."""
+        if not self.in_standby:
+            return
+        if self._standby_screen() is None:
+            self._on_standby_leave()
+            return
+        self._attach_standby_leave()
+        reactor.callLater(15, self._standby_safety_check)
+
+    def _on_standby_leave(self, *args):
+        if not self.in_standby:
+            return
+        self.in_standby = False
+        log_diag("STANDBY: left - resuming")
+        self._start_ai_timer()
+        self.ensure_timer_state()
+        # Overdue reminders fire now if still relevant (stale ones are dropped)
+        reactor.callLater(3, self._reminder_timer_fired)
+
+    # ==========================================================================
+    # KICK-OFF REMINDERS (one-shot timer armed for the next reminder)
+    # ==========================================================================
+    REMINDER_GRACE_S = 1800   # a reminder overdue by more than this (box off / standby) is dropped
+
+    def add_reminder(self, match_name, trigger_time, league_name, h_logo, a_logo, label, sref=None, h_id=None, a_id=None, eid=None, ko=None):
         new_rem = {"match": match_name, "trigger": trigger_time, "league": league_name, "h_logo": h_logo, "a_logo": a_logo, "label": label, "sref": sref}
         for r in self.reminders:
             if r["match"] == match_name and r["trigger"] == trigger_time: return
@@ -7931,35 +9500,95 @@ class SportsMonitor:
         if a_logo:
             if not a_id: a_id = hashlib.md5(a_logo.encode('utf-8')).hexdigest()[:10]
             self.prefetch_logo(a_logo, a_id)
+        # Same ids as the prefetch, so the reminder toast finds the cached logos
+        new_rem["h_id"] = h_id
+        new_rem["a_id"] = a_id
+        if eid:
+            new_rem["eid"] = str(eid)
+        if ko:
+            new_rem["ko"] = int(ko)
 
         self.reminders.append(new_rem); self.save_config()
-        # FIX: Ensure timer starts if it wasn't running
-        self.ensure_timer_state()
+        self._arm_reminder_timer()
 
     def remove_reminder(self, match_name):
         initial_len = len(self.reminders); self.reminders = [r for r in self.reminders if r["match"] != match_name]
         if len(self.reminders) < initial_len:
             self.save_config()
-            # FIX: Stop timer if no reminders and not active
-            self.ensure_timer_state()
+            self._arm_reminder_timer()
             return True
         return False
+
+    def _arm_reminder_timer(self):
+        """Fire exactly at the next reminder (the old path waited for the next
+        poll, up to 5 minutes late). Long waits are capped at 6 h and re-armed."""
+        try:
+            self.reminder_timer.stop()
+        except Exception:
+            pass
+        if not self.reminders or self.in_standby:
+            return
+        try:
+            nxt = min(float(r.get("trigger", 0) or 0) for r in self.reminders)
+        except ValueError:
+            return
+        delay_s = max(1.0, min(nxt - time.time(), 6 * 3600))
+        self.reminder_timer.start(int(delay_s * 1000), True)
+
+    def _reminder_timer_fired(self):
+        self.check_reminders()
+        self._arm_reminder_timer()
+
     def check_reminders(self):
+        if self.in_standby:
+            return  # kept until the box wakes up
         now = time.time(); active_reminders = []; reminders_triggered = False
         for rem in self.reminders:
-            if now >= rem["trigger"]:
+            trig = float(rem.get("trigger", 0) or 0)
+            if now >= trig:
+                reminders_triggered = True
+                if now - trig > self.REMINDER_GRACE_S:
+                    log_diag("REMINDER: dropped stale reminder for {}".format(rem.get("match")))
+                    continue
                 if rem.get("sref"):
                     # Interactive Zap Reminder
                     self.trigger_zap_alert(rem)
                 else:
-                    # Standard Notification
-                    self.queue_notification(rem.get("match", rem.get("eid", "")), rem["label"], "Reminder",
-                        event_type="reminder")
-                    self.play_stend_sound()
-                reminders_triggered = True
+                    # Plain reminder. It used to go through queue_notification(),
+                    # which looked the match up by its name, found no snapshot and
+                    # showed nothing (only the sound played).
+                    self._fire_reminder_toast(rem)
             else: active_reminders.append(rem)
         if reminders_triggered: self.reminders = active_reminders; self.save_config()
 
+    def _fire_reminder_toast(self, rem, deadline=None):
+        if not self.session or self.in_standby:
+            return
+        now = time.time()
+        deadline = deadline or now + 600
+        if now > deadline:
+            return
+        if is_system_screen_active(self.session):
+            reactor.callLater(4.0, lambda: self._fire_reminder_toast(rem, deadline))
+            return
+        parts = (rem.get("match") or u"").split(" vs ")
+        home = parts[0] if parts else u""
+        away = parts[1] if len(parts) > 1 else u""
+        ko = rem.get("ko") or 0   # reminders saved by older versions have no kick-off time
+        try:
+            self._open_toast(
+                FavTeamToast, home, home, away, rem.get("league", u""), ko, u"",
+                rem.get("h_logo", u""), rem.get("a_logo", u""), rem.get("h_id"), rem.get("a_id"),
+                header_text=u"⏰  " + _t("Reminder"),
+                info_text=rem.get("label", u""),
+                countdown_text=None if ko else u"")
+            self.play_stend_sound()
+        except Exception as e:
+            log_dbg("[Reminder] toast failed: {}".format(e))
+
+    # ==========================================================================
+    # FAVOURITE-TEAM ALERTS (own 60 s timer, fixtures from team schedules)
+    # ==========================================================================
     # Notification thresholds: (seconds_before_ko, label_key, label_en)
     FAV_NOTIFY_THRESHOLDS = [
         (86400, "1day",  "Tomorrow"),
@@ -7967,75 +9596,214 @@ class SportsMonitor:
         (3600,  "1h",    "1 hour"),
         (900,   "15min", "15 minutes"),
     ]
-    # Each threshold fires when: (ko - now) is within the window below
-    FAV_NOTIFY_WINDOW_SEC = 120   # fire if we are within 2 min of the threshold crossing
+    FAV_SCHEDULE_REFRESH_S = 6 * 3600   # re-read favourite teams' schedules
+    LINEUP_WINDOW_S = 75 * 60           # look for line-ups from 75 min before kick-off
+    LINEUP_POLL_S = 300                 # every 5 minutes per fixture
+
+    def _start_fav_timer(self):
+        """Run favourite-team checks every 60 s while there are favourites.
+        They used to run only inside the scoreboard poll, so with Goal Alert
+        off (or the screen closed) they never fired."""
+        try:
+            if self.favorite_teams and not self.fav_timer.isActive():
+                self.fav_timer.start(60000, False)
+                reactor.callLater(10, self._fav_tick)
+            elif not self.favorite_teams and self.fav_timer.isActive():
+                self.fav_timer.stop()
+        except Exception as e:
+            log_dbg("[FavNotif] timer: {}".format(e))
+
+    def _fav_tick(self):
+        if self.in_standby or not self.favorite_teams:
+            return
+        try:
+            self._maybe_refresh_fav_schedules()
+            self.check_fav_team_notifications()
+            if self.lineup_alerts:
+                self._check_lineups()
+        except Exception as e:
+            log_dbg("[FavNotif] tick error: {}".format(e))
+
+    @staticmethod
+    def _fav_sport_league(fav):
+        slug = str(fav.get("league_slug", "") or "")
+        if '/' in slug:
+            sport, league = slug.split('/', 1)
+        else:
+            sport, league = 'soccer', slug
+        return sport, league
+
+    def _parse_team_schedule(self, data, fav):
+        """Upcoming fixtures (next 8 days) from an ESPN team-schedule response."""
+        out = {}
+        now = time.time()
+        sport, league = self._fav_sport_league(fav)
+        for ev in (data.get('events') or []):
+            try:
+                ko = utc_iso_to_epoch(ev.get('date', ''))
+                if not ko or ko < now - 3 * 3600 or ko > now + 8 * 86400:
+                    continue
+                comp = (ev.get('competitions') or [{}])[0]
+                comps = comp.get('competitors') or []
+                home = next((c for c in comps if c.get('homeAway') == 'home'), comps[0] if comps else {})
+                away = next((c for c in comps if c.get('homeAway') == 'away'), comps[1] if len(comps) > 1 else {})
+
+                def _team(c):
+                    return c.get('team') or {}
+
+                def _name(c):
+                    t = _team(c)
+                    return t.get('displayName') or t.get('shortDisplayName') or t.get('name') or u""
+
+                def _logo(c):
+                    t = _team(c)
+                    return extract_team_logo(t, sport, str(t.get('id', ''))) if t else u""
+                state = ((comp.get('status') or ev.get('status') or {}).get('type') or {}).get('state', 'pre')
+                lg = ev.get('league') if isinstance(ev.get('league'), dict) else {}
+                league_name = lg.get('name') or lg.get('abbreviation') or fav.get('league_name', u'')
+                h_tid = str(_team(home).get('id', ''))
+                a_tid = str(_team(away).get('id', ''))
+                mid = str(ev.get('id', ''))
+                if not mid:
+                    continue
+                out[mid] = {
+                    'match_id': mid, 'ko_ts': ko, 'state': state,
+                    'h_name': _name(home), 'a_name': _name(away),
+                    'h_team_id': h_tid, 'a_team_id': a_tid,
+                    'h_logo_url': _logo(home), 'a_logo_url': _logo(away),
+                    'h_logo_id': (sport + '_' + h_tid) if h_tid else None,
+                    'a_logo_id': (sport + '_' + a_tid) if a_tid else None,
+                    'league_name': league_name,
+                    'sport': sport, 'league': league,
+                    'fav_team_id': str(fav.get('team_id', '')),
+                }
+            except Exception:
+                continue
+        return out
+
+    def _maybe_refresh_fav_schedules(self):
+        """Fetch each favourite team's own schedule (every 6 h, or when the
+        favourites change), so 'Tomorrow'/'6 hours' alerts no longer depend on
+        that league and day happening to be loaded on the main screen."""
+        if self._fav_sched_running or not self.favorite_teams:
+            return
+        sig = tuple(sorted((str(f.get("team_id")), str(f.get("league_slug"))) for f in self.favorite_teams))
+        if sig == self._fav_sched_sig and time.time() - self._fav_sched_ts < self.FAV_SCHEDULE_REFRESH_S:
+            return
+        self._fav_sched_running = True
+        favs = [dict(f) for f in self.favorite_teams]
+
+        def _worker():
+            fixtures = {}
+            for fav in favs:
+                sport, league = self._fav_sport_league(fav)
+                tid = str(fav.get("team_id", ""))
+                if not league or not tid:
+                    continue
+                base = "https://site.api.espn.com/apis/site/v2/sports/{}/{}/teams/{}/schedule".format(sport, league, tid)
+                for url in (base + "?fixture=true", base):
+                    try:
+                        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                        data = json.loads(urlopen(req, timeout=8).read().decode('utf-8', 'ignore'))
+                    except Exception:
+                        continue
+                    got = self._parse_team_schedule(data, fav)
+                    if got:
+                        fixtures.update(got)
+                        break
+            return fixtures
+
+        def _done(fixtures):
+            self._fav_sched_running = False
+            self._fav_sched_sig = sig
+            self._fav_sched_ts = time.time()
+            if isinstance(fixtures, dict):
+                self.fav_upcoming = fixtures
+                log_dbg("[FavNotif] {} upcoming favourite fixtures".format(len(fixtures)))
+
+        try:
+            from twisted.internet import threads
+            threads.deferToThread(_worker).addCallback(_done).addErrback(lambda _f: _done(None))
+        except Exception as e:
+            self._fav_sched_running = False
+            log_dbg("[FavNotif] schedule refresh not started: {}".format(e))
+
+    def _fav_fixtures(self):
+        """Favourite-team fixtures from team schedules plus loaded scoreboards
+        (scoreboard data wins: it is fresher)."""
+        fav_ids = dict((str(f.get("team_id")), f) for f in self.favorite_teams if f.get("team_id"))
+        out = {}
+        for mid, fx in list(self.fav_upcoming.items()):
+            fav = fav_ids.get(fx.get('h_team_id')) or fav_ids.get(fx.get('a_team_id')) or fav_ids.get(fx.get('fav_team_id'))
+            if fav:
+                out[mid] = (fx, fav)
+        for snap_id, snap in list(self.match_snapshots.items()):
+            if not isinstance(snap, dict):
+                continue
+            fav = fav_ids.get(str(snap.get("h_team_id", ""))) or fav_ids.get(str(snap.get("a_team_id", "")))
+            if not fav:
+                continue
+            out[str(snap_id)] = ({
+                'match_id': str(snap_id), 'ko_ts': utc_iso_to_epoch(snap.get("date", "")),
+                'state': snap.get('state', 'pre'),
+                'h_name': snap.get('h_name', u''), 'a_name': snap.get('a_name', u''),
+                'h_team_id': str(snap.get('h_team_id', '')), 'a_team_id': str(snap.get('a_team_id', '')),
+                'h_logo_url': snap.get('h_logo_url', u''), 'a_logo_url': snap.get('a_logo_url', u''),
+                'h_logo_id': snap.get('h_logo_id'), 'a_logo_id': snap.get('a_logo_id'),
+                'league_name': snap.get('league_name', fav.get('league_name', u'')),
+                'league_url': snap.get('league_url', ''),
+            }, fav)
+        return out
 
     def check_fav_team_notifications(self):
         """
-        Called every check_goals tick.
-        Scans match_snapshots for upcoming (state='pre') matches that involve a
-        favourite team and fires a FavTeamToast at 1 day / 6 h / 1 h / 15 min.
+        Fire a favourite-team alert once per threshold (1 day / 6 h / 1 h / 15 min)
+        on the first check after it is crossed. The old version fired only within
+        +/-120 s of each threshold, which the 300 s background tick missed about
+        one time in five.
         Uses self.fav_notified = {(match_id, threshold_label)} for dedup.
         """
-        if not self.favorite_teams or not self.session:
+        if not self.favorite_teams or not self.session or self.in_standby:
             return
-
-        fav_ids = {f["team_id"]: f for f in self.favorite_teams}
         now = time.time()
-
-        for snap_id, snap in list(self.match_snapshots.items()):
-            # Only fire for pre-match events
-            if snap.get("state", "") != "pre":
+        fixtures = self._fav_fixtures()
+        for mid, (fx, fav) in fixtures.items():
+            if fx.get('state', 'pre') != 'pre':
                 continue
-
-            h_tid = snap.get("h_team_id", "")
-            a_tid = snap.get("a_team_id", "")
-
-            fav_entry = fav_ids.get(h_tid) or fav_ids.get(a_tid)
-            if not fav_entry:
+            ko = fx.get('ko_ts') or 0
+            if not ko or ko <= now:
                 continue
-
-            # Parse kick-off timestamp from the 'date' field (UTC ISO string)
-            ko_ts = 0
-            raw_date = snap.get("date", "")
-            if raw_date:
-                try:
-                    if "T" in raw_date:
-                        date_part, time_part = raw_date.split("T")
-                        y, mo, d = map(int, date_part.split("-"))
-                        time_part = time_part.replace("Z", "")
-                        H, M = map(int, time_part.split(":")[:2])
-                        import datetime as _dt2
-                        ko_ts = calendar.timegm(_dt2.datetime(y, mo, d, H, M).timetuple())
-                except Exception as pe:
-                    log_dbg("[FavNotif] date parse error snap_id={} date={} err={}".format(snap_id, raw_date, pe))
-
-            if not ko_ts or ko_ts < now:
+            delta = ko - now
+            crossed = [th for th in self.FAV_NOTIFY_THRESHOLDS if delta <= th[0]]
+            if not crossed:
                 continue
+            th_sec, label_key, label_en = min(crossed, key=lambda th: th[0])
+            if (mid, label_key) in self.fav_notified:
+                continue
+            # Mark this and every larger threshold: starting the box 30 min before
+            # kick-off gives one alert, not four.
+            for th in crossed:
+                self.fav_notified.add((mid, th[1]))
+            if self._in_quiet_hours():
+                continue
+            self._fire_fav_toast(fx, fav, label_en, ko)
+        # keep the dedup set from growing forever
+        if len(self.fav_notified) > 400:
+            self.fav_notified = set(k for k in self.fav_notified if k[0] in fixtures)
 
-            delta = ko_ts - now  # seconds until kick-off
-
-            for threshold_sec, label_key, label_en in self.FAV_NOTIFY_THRESHOLDS:
-                dedup_key = (snap_id, label_key)
-                if dedup_key in self.fav_notified:
-                    continue
-
-                # Fire when we are within FAV_NOTIFY_WINDOW_SEC of the threshold crossing
-                lower = threshold_sec - self.FAV_NOTIFY_WINDOW_SEC
-                upper = threshold_sec + self.FAV_NOTIFY_WINDOW_SEC
-                if lower <= delta <= upper:
-                    self.fav_notified.add(dedup_key)
-                    self._fire_fav_toast(snap, fav_entry, label_en, ko_ts)
-                    break
-
-    def _fire_fav_toast(self, snap, fav_entry, label_en, ko_ts):
-        """Opens FavTeamToast on the main thread."""
-        if not self.session:
+    def _fire_fav_toast(self, snap, fav_entry, label_en, ko_ts, deadline=None):
+        """Opens FavTeamToast on the main thread. Waits for menus to close for up
+        to 10 minutes (it used to retry every 4 s forever, also in standby)."""
+        if not self.session or self.in_standby:
+            return
+        now = time.time()
+        deadline = deadline or now + 600
+        if now > deadline or (ko_ts and ko_ts < now):
             return
 
         if is_system_screen_active(self.session):
             # Defer favorite team reminder while user is navigating system settings/menus
-            reactor.callLater(4.0, lambda: self._fire_fav_toast(snap, fav_entry, label_en, ko_ts))
+            reactor.callLater(4.0, lambda: self._fire_fav_toast(snap, fav_entry, label_en, ko_ts, deadline))
             return
 
         home_name   = snap.get("h_name", "")
@@ -8048,11 +9816,13 @@ class SportsMonitor:
         team_name   = fav_entry.get("team_name", "")
 
         def _open():
+            if self.in_standby:
+                return
             if is_system_screen_active(self.session):
-                reactor.callLater(4.0, lambda: self._fire_fav_toast(snap, fav_entry, label_en, ko_ts))
+                reactor.callLater(4.0, lambda: self._fire_fav_toast(snap, fav_entry, label_en, ko_ts, deadline))
                 return
             try:
-                self.session.open(
+                self._open_toast(
                     FavTeamToast,
                     team_name, home_name, away_name,
                     league_name, ko_ts, "",
@@ -8064,28 +9834,135 @@ class SportsMonitor:
 
         reactor.callLater(0, _open)
 
-    def trigger_zap_alert(self, rem):
-        if self.session:
-            if is_system_screen_active(self.session):
-                reactor.callLater(3.0, lambda: self.trigger_zap_alert(rem))
+    # ---- Line-ups announced (favourite teams) -------------------------------
+    def _summary_url_for_fixture(self, fx):
+        lu = fx.get('league_url') or ''
+        if lu.startswith(('epl://', 'euroleague://')):
+            return None
+        m = re.search(r'/sports/([^/]+)/([^/]+)/scoreboard', lu)
+        if m:
+            sport, league = m.group(1), m.group(2)
+        else:
+            sport, league = fx.get('sport') or 'soccer', fx.get('league') or ''
+        if sport != 'soccer' or not league or not fx.get('match_id'):
+            return None   # line-up alerts are a soccer feature (11 starters)
+        return "https://site.api.espn.com/apis/site/v2/sports/{}/{}/summary?event={}".format(sport, league, fx['match_id'])
+
+    @staticmethod
+    def _parse_lineups(data):
+        """[(team_name, formation, starters_count), ...] from an ESPN summary."""
+        out = []
+        for r in (data.get('rosters') or []):
+            roster = r.get('roster') or []
+            starters = [p for p in roster if isinstance(p, dict) and p.get('starter')]
+            team = (r.get('team') or {}).get('displayName', u'')
+            formation = r.get('formation') or u''
+            if isinstance(formation, dict):
+                formation = formation.get('name', u'')
+            out.append((team, formation, len(starters)))
+        return out
+
+    def _check_lineups(self):
+        """Favourite teams: one alert when the starting line-ups are published.
+        Each fixture's summary is polled every 5 min from 75 min before kick-off."""
+        if not self.session or self.in_standby or self._in_quiet_hours():
+            return
+        now = time.time()
+        for mid, (fx, fav) in self._fav_fixtures().items():
+            ko = fx.get('ko_ts') or 0
+            if fx.get('state', 'pre') != 'pre' or not ko or not (0 < ko - now <= self.LINEUP_WINDOW_S):
+                continue
+            st = self._lineup_state.setdefault(mid, {'last_poll': 0, 'done': False, 'busy': False})
+            if st['done'] or st['busy'] or now - st['last_poll'] < self.LINEUP_POLL_S:
+                continue
+            url = self._summary_url_for_fixture(fx)
+            if not url:
+                continue
+            st['busy'] = True
+            st['last_poll'] = now
+            try:
+                d = self.agent.request(b'GET', url.encode('utf-8'), self.default_headers)
+            except Exception:
+                st['busy'] = False
+                continue
+            d.addCallback(readBody)
+            d.addCallback(self._on_lineup_summary, mid, fx, fav)
+            d.addErrback(lambda _f: None)
+            d.addBoth(lambda r, s=st: s.__setitem__('busy', False))
+            tc = reactor.callLater(20, d.cancel)
+            d.addBoth(lambda x, tc=tc: (tc.cancel() if tc.active() else None, x)[1])
+        for k in [k for k, v in self._lineup_state.items() if now - v.get('last_poll', 0) > 6 * 3600]:
+            self._lineup_state.pop(k, None)
+
+    def _on_lineup_summary(self, body, mid, fx, fav):
+        try:
+            data = self._decode_json_body(body)
+        except Exception:
+            return
+        lineups = self._parse_lineups(data)
+        if len(lineups) < 2 or any(n < 11 for (_n, _f, n) in lineups[:2]):
+            return  # not published yet (soccer: 11 starters each)
+        st = self._lineup_state.setdefault(mid, {'last_poll': time.time(), 'done': False, 'busy': False})
+        if st.get('done'):
+            return
+        st['done'] = True
+        info = u"   |   ".join(
+            (u"{} {}".format(_team_name(t), f)).strip() for (t, f, _n) in lineups[:2])
+        self._fire_lineup_toast(fx, fav, info)
+
+    def _fire_lineup_toast(self, fx, fav, info, deadline=None):
+        if not self.session or self.in_standby:
+            return
+        now = time.time()
+        deadline = deadline or now + 600
+        if now > deadline:
+            return
+        if is_system_screen_active(self.session):
+            reactor.callLater(4.0, lambda: self._fire_lineup_toast(fx, fav, info, deadline))
+            return
+        try:
+            self._open_toast(
+                FavTeamToast, fav.get("team_name", u""), fx.get("h_name", u""), fx.get("a_name", u""),
+                fx.get("league_name", u""), fx.get("ko_ts") or now, u"",
+                fx.get("h_logo_url", u""), fx.get("a_logo_url", u""), fx.get("h_logo_id"), fx.get("a_logo_id"),
+                header_text=u"\U0001f4cb  " + _t("Line-ups announced"),
+                info_text=info)
+            self.play_fav_sound()
+        except Exception as e:
+            log_dbg("[Lineups] toast failed: {}".format(e))
+
+    def trigger_zap_alert(self, rem, deadline=None):
+        """Interactive zap prompt. Waits for menus to close for up to 10 minutes
+        (it used to retry every 3 s forever, also in standby)."""
+        if not self.session or self.in_standby:
+            return
+        now = time.time()
+        deadline = deadline or now + 600
+        if now > deadline:
+            log_diag("REMINDER: zap prompt for {} expired while menus were open".format(rem.get("match")))
+            return
+        if is_system_screen_active(self.session):
+            reactor.callLater(3.0, lambda: self.trigger_zap_alert(rem, deadline))
+            return
+
+        def _open_zap():
+            if self.in_standby:
                 return
+            if is_system_screen_active(self.session):
+                reactor.callLater(3.0, lambda: self.trigger_zap_alert(rem, deadline))
+                return
+            # Use ZapNotificationScreen instead of MessageBox (needs the remote: stays modal)
+            self.session.openWithCallback(partial(self.zap_confirmation_callback, domain=(rem.get("sref"),)),
+                ZapNotificationScreen,
+                rem["match"],
+                rem["league"],
+                rem.get("h_logo", ""),
+                rem.get("a_logo", ""),
+                rem.get("sref"),
+                timeout_seconds=30
+            )
 
-            def _open_zap():
-                if is_system_screen_active(self.session):
-                    reactor.callLater(3.0, lambda: self.trigger_zap_alert(rem))
-                    return
-                # Use ZapNotificationScreen instead of MessageBox
-                self.session.openWithCallback(partial(self.zap_confirmation_callback, domain=(rem.get("sref"),)),
-                    ZapNotificationScreen,
-                    rem["match"],
-                    rem["league"],
-                    rem.get("h_logo", ""),
-                    rem.get("a_logo", ""),
-                    rem.get("sref"),
-                    timeout_seconds=30
-                )
-
-            reactor.callLater(0, _open_zap)
+        reactor.callLater(0, _open_zap)
 
     def zap_confirmation_callback(self, answer, domain=None):
         if answer and domain:
@@ -8155,6 +10032,7 @@ class SportsMonitor:
                 pass
             return "SimplySports Arena"
 
+        shown = 0
         for entry in parsed:
             if entry.get("type") != "match":
                 continue
@@ -8213,29 +10091,43 @@ class SportsMonitor:
             if alert_type and self.session:
                 if is_system_screen_active(self.session):
                     continue
+                # Alert Options: event types and quiet hours apply here too
+                grp = self.ALERT_TYPE_GROUPS.get(alert_type)
+                if self._in_quiet_hours() or (grp and not self.alert_types.get(grp, True)):
+                    continue
                 home = entry.get("home", "Home")
                 away = entry.get("away", "Away")
                 score = entry.get("score", "-:-")
                 league = get_league_for_parsed_match(entry)
 
-                if self.discovery_mode == 2 or (alert_type == "goal" and self.discovery_mode > 0):
-                    try:
-                        self.play_stend_sound()
-                    except:
-                        pass
+                with_sound = self.discovery_mode == 2 or (alert_type == "goal" and self.discovery_mode > 0)
 
-                try:
-                    self.session.open(LiveScoreFollowToast, home, away, score, alert_text, league, alert_type, scoring_team)
-                except Exception as e:
-                    print("[SimplySports] Error displaying LiveScoreFollowToast:", e)
+                def _show(args=(home, away, score, alert_text, league, alert_type, scoring_team), snd=with_sound):
+                    if self.in_standby:
+                        return
+                    if snd:
+                        try:
+                            self.play_stend_sound()
+                        except Exception:
+                            pass
+                    try:
+                        self._open_toast(LiveScoreFollowToast, *args)
+                    except Exception as e:
+                        print("[SimplySports] Error displaying LiveScoreFollowToast:", e)
+                # Two alerts from the same check are shown one after the other
+                # (each toast stays 5 s) instead of on top of each other.
+                reactor.callLater(5.5 * shown, _show)
+                shown += 1
 
     @profile_function("SportsMonitor")
     def check_goals(self, from_ui=False):
+        if self.in_standby:
+            return   # nothing is fetched or shown while the box sleeps
         log_diag("CHECK_GOALS: ENTER from_ui={} active={} is_custom={} discovery_mode={} filter_mode={} cached_events={} batch_remaining={} active_requests={} callbacks={}".format(
             from_ui, self.active, self.is_custom_mode, self.discovery_mode, self.filter_mode, len(self.cached_events), self.batch_remaining, len(self.active_requests), len(self.callbacks)))
         self.check_followed_livescore_cz()
-        self.check_reminders()
-        self.check_fav_team_notifications()
+        # Reminders and favourite-team alerts now run on their own timers
+        # (reminder_timer / fav_timer), so they fire on time even with Goal Alert off.
         self.evaluate_pending_bets()
 
         # Guard: Data fetching happens if:
@@ -8280,7 +10172,10 @@ class SportsMonitor:
                     if not hasattr(self, 'active_deferreds'):
                         self.active_deferreds = []
                     self.active_deferreds.append(d)
+                    # Only dated requests (CH+/CH- browsing) get a neighbouring day
+                    adj_d = self._start_adjacent_fetch(url, fetch_url)
                     d.addCallback(readBody)
+                    d.addCallback(self._merge_adjacent, adj_d)
                     d.addCallback(self.parse_single_json, name, url)
                     d.addErrback(self.handle_error)
                     d.addBoth(self._on_single_request_finished, url, d)
@@ -8332,8 +10227,7 @@ class SportsMonitor:
                 'timestamp': self.last_update,
                 'events': events_copy
             }
-            with open(self.cache_file, 'w') as f:
-                json.dump(data, f)
+            _atomic_write_json(self.cache_file, data, fsync=False)
         except Exception as e:
             print("[SportsMonitor] Cache Save BG Error: ", e)
 
@@ -8348,8 +10242,7 @@ class SportsMonitor:
                 'date': target_date_str,
                 'events': events_copy
             }
-            with open(self.all_matches_cache_file, 'w') as f:
-                json.dump(data, f)
+            _atomic_write_json(self.all_matches_cache_file, data, fsync=False)
             log_diag("[AllMatches] Saved {} matches to disk cache {}".format(len(events_copy), self.all_matches_cache_file))
         except Exception as e:
             print("[SportsMonitor] All Matches Cache Save BG Error: ", e)
@@ -8394,7 +10287,9 @@ class SportsMonitor:
                 eid = ev.get('id')
                 if eid:
                     str_eid = str(eid)
-                    self.match_snapshots[str_eid] = build_match_snapshot(ev)
+                    _snap = build_match_snapshot_safe(ev)
+                    if _snap is not None:
+                        self.match_snapshots[str_eid] = _snap
                     self.event_map[str_eid] = ev
             self.status_message = ""
             log_diag("[AllMatches] Loaded {} matches from memory cache".format(len(self.cached_events)))
@@ -8418,7 +10313,9 @@ class SportsMonitor:
                             eid = ev.get('id')
                             if eid:
                                 str_eid = str(eid)
-                                self.match_snapshots[str_eid] = build_match_snapshot(ev)
+                                _snap = build_match_snapshot_safe(ev)
+                                if _snap is not None:
+                                    self.match_snapshots[str_eid] = _snap
                                 self.event_map[str_eid] = ev
                         self.status_message = ""
                         self._all_matches_mem_cache[target_str] = {
@@ -8469,7 +10366,9 @@ class SportsMonitor:
                             eid = ev.get('id')
                             if eid:
                                 str_eid = str(eid)
-                                self.match_snapshots[str_eid] = build_match_snapshot(ev)
+                                _snap = build_match_snapshot_safe(ev)
+                                if _snap is not None:
+                                    self.match_snapshots[str_eid] = _snap
                                 self.event_map[str_eid] = ev
                         self.status_message = "Restored from Cache"
         except Exception as e:
@@ -8594,7 +10493,9 @@ class SportsMonitor:
         for ev in self.cached_events:
             eid = ev.get('id')
             if eid:
-                self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+                _snap = build_match_snapshot_safe(ev)
+                if _snap is not None:
+                    self.match_snapshots[str(eid)] = _snap
 
         # Remove stale snapshot keys for reaped events
         stale_keys = [k for k in self.match_snapshots if k not in self.event_map]
@@ -8637,8 +10538,8 @@ class SportsMonitor:
                             live_count += 1
                 except: pass
 
-        # FIX: Restart timer even if self.active is False, as long as UI is open or reminders exist
-        should_run = self.active or (len(self.reminders) > 0) or (len(self.callbacks) > 0)
+        # FIX: Restart timer even if self.active is False, as long as UI is open
+        should_run = self._should_poll()
         if should_run:
             new_interval = self._get_timer_interval(live_count)
             log_diag("FINALIZE_BATCH: Restarting timer in {}ms (active={} callbacks={} reminders={})".format(
@@ -8654,6 +10555,9 @@ class SportsMonitor:
     def fetch_live_summaries(self):
         """For each live match (soccer or other sports), fetch the ESPN match/boxscore API directly
         (same endpoint GameInfo uses) and patch real-time score/status into event_map."""
+        if self.in_standby:
+            self.live_summary_timer = None
+            return
         if getattr(self, 'is_all_matches_mode', False):
             # In all matches mode, the global schedule feed already contains live scores and clocks for all matches.
             # Avoid firing 30-50 individual match summary requests that saturate network and CPU.
@@ -8767,7 +10671,9 @@ class SportsMonitor:
                 ev['competitions'][0]['venue'] = summary_venue
 
             # Rebuild snapshot so main screen and mini bars read fresh data
-            self.match_snapshots[eid] = build_match_snapshot(ev)
+            _snap = build_match_snapshot_safe(ev)
+            if _snap is not None:
+                self.match_snapshots[eid] = _snap
 
             # Update cached_events entry reference
             for i, ce in enumerate(self.cached_events):
@@ -10064,7 +11970,9 @@ class SportsMonitor:
                 for g in all_events:
                     gid = str(g.get('id', ''))
                     if gid:
-                        snapshots[gid] = build_match_snapshot(g)
+                        _snap = build_match_snapshot_safe(g)
+                        if _snap is not None:
+                            snapshots[gid] = _snap
                         ev_map[gid] = g
 
                 pre_parsed = {
@@ -10142,23 +12050,264 @@ class SportsMonitor:
         self.process_events_data(bodies_list)
 
     # queue_notification updated to handle split components and IDs
+    # ==========================================================================
+    # NOTIFICATION CONTROLS (who gets alerts, which types, quiet hours,
+    # exciting games only, spoiler guard)
+    # ==========================================================================
+    ALERT_TYPES_DEFAULT = {"goal": True, "red_card": True, "status": True, "var": True}
+    ALERT_TYPE_GROUPS = {
+        "goal": "goal",
+        "red_card": "red_card",
+        "start": "status", "end": "status", "ht_end": "status", "ht_start": "status",
+        "penalty_shootout": "status",
+        "var_decision": "var", "goal_disallowed": "var",
+    }
+    QUIET_HOURS_CHOICES = ("off", "22-07", "23-07", "00-08", "01-09")
+    SPOILER_CHOICES = ("off", "delay30", "delay60", "delay90", "mute")
+    SPOILER_DELAYS = {"delay30": 30, "delay60": 60, "delay90": 90}
+
+    def _prune_followed(self, followed):
+        """Followed matches are kept until two days after kick-off."""
+        out = {}
+        now = time.time()
+        for mid, ko in (followed or {}).items():
+            try:
+                ko = float(ko or 0)
+            except (TypeError, ValueError):
+                ko = 0
+            if not ko or now - ko < 2 * 86400:
+                out[str(mid)] = ko
+        return out
+
+    def is_followed(self, match_id):
+        return str(match_id) in self.followed_matches
+
+    def toggle_follow_match(self, match_id, kickoff_ts=0):
+        """Follow/unfollow a match. Followed matches always alert, even with
+        'Favourite teams only' or 'Exciting games only' on. Returns new state."""
+        mid = str(match_id)
+        if mid in self.followed_matches:
+            del self.followed_matches[mid]
+            following = False
+        else:
+            ev = self.event_map.get(mid) or {}
+            self.followed_matches[mid] = kickoff_ts or utc_iso_to_epoch(ev.get('date', '')) or time.time()
+            following = True
+        self.save_config()
+        return following
+
+    def _in_quiet_hours(self, now_dt=None):
+        q = self.quiet_hours
+        if not q or q == "off":
+            return False
+        try:
+            start, end = [int(x) for x in q.split("-")]
+        except Exception:
+            return False
+        h = (now_dt or datetime.datetime.now()).hour
+        if start <= end:
+            return start <= h < end
+        return h >= start or h < end
+
+    def _snap_has_favorite(self, snap):
+        if not snap or not self.favorite_teams:
+            return False
+        fav_ids = set(str(f.get("team_id", "")) for f in self.favorite_teams)
+        return str(snap.get("h_team_id", "")) in fav_ids or str(snap.get("a_team_id", "")) in fav_ids
+
+    def _is_exciting_match(self, match_id, snap):
+        """'Exciting games only': skip one-sided games. Live games use the
+        existing calculate_excitement() score (close score, late drama, red
+        cards); kick-off always passes; other states pass on a margin of <= 1."""
+        state = (snap or {}).get('state', 'pre')
+        if state == 'pre':
+            return True
+        if state == 'in':
+            ev = self.event_map.get(str(match_id))
+            if ev:
+                return self.calculate_excitement(ev) >= 30
+        try:
+            return abs(int(snap.get('h_score_int', 0)) - int(snap.get('a_score_int', 0))) <= 1
+        except Exception:
+            return True
+
+    def _alert_allowed(self, match_id, event_type):
+        """Apply the user's notification settings to one alert."""
+        if event_type in ("reminder", "default", "test"):
+            return True                      # explicit user reminders always fire
+        if self.in_standby:
+            return False
+        group = self.ALERT_TYPE_GROUPS.get(event_type)
+        if group and not self.alert_types.get(group, True):
+            return False
+        if self._in_quiet_hours():
+            return False
+        snap = self.match_snapshots.get(str(match_id))
+        is_fav = self._snap_has_favorite(snap)
+        is_followed = self.is_followed(match_id)
+        if self.alert_scope == "favorites" and not is_fav:
+            return False
+        if self.alert_scope == "followed" and not (is_followed or is_fav):
+            return False
+        if self.alert_big_only and not (is_fav or is_followed) and not self._is_exciting_match(match_id, snap):
+            return False
+        return True
+
+    def _current_programme_text(self):
+        """Normalised title, description and channel name of what is on air
+        now (cached for 30 s; one EPG lookup)."""
+        now = time.time()
+        if self._cur_prog_cache and now - self._cur_prog_cache[0] < 30:
+            return self._cur_prog_cache[1]
+        text = u""
+        try:
+            ref = self.session.nav.getCurrentlyPlayingServiceReference() if self.session else None
+            if ref:
+                parts = []
+                epg = eEPGCache.getInstance()
+                evt = epg.lookupEventTime(ref, int(now)) if epg else None
+                if evt:
+                    parts += [evt.getEventName() or u"", evt.getShortDescription() or u"",
+                              evt.getExtendedDescription() or u""]
+                try:
+                    info = eServiceCenter.getInstance().info(ref)
+                    if info:
+                        parts.append(info.getName(ref) or u"")
+                except Exception:
+                    pass
+                text = normalize_text(u" ".join(p for p in parts if p))
+        except Exception as e:
+            log_dbg("[Spoiler] programme lookup failed: {}".format(e))
+        self._cur_prog_cache = (now, text)
+        return text
+
+    def _is_match_on_current_channel(self, snap):
+        """True when both teams appear in what's on air now (EPG title,
+        description or channel name), in English or Arabic."""
+        if not snap:
+            return False
+        text = self._current_programme_text()
+        if not text:
+            return False
+
+        def _on_air(name):
+            names = [name or u""]
+            try:
+                ar = TEAM_TRANSLATIONS_AR.get(name or u"")
+                if ar:
+                    names.append(ar)
+            except Exception:
+                pass
+            for n in names:
+                words = [normalize_text(w) for w in get_search_keywords(n)]
+                words = [w for w in words if len(w) > 2]
+                if words and any(w in text for w in words):
+                    return True
+            return False
+        return _on_air(snap.get('h_name')) and _on_air(snap.get('a_name'))
+
+    # ==========================================================================
+    # TOAST DISPLAY: overlay (never takes the remote) or classic popup
+    # ==========================================================================
+    OVERLAY_WATCHDOG_S = 40   # longest a toast may stay up (FavTeamToast is 15 s)
+
+    def _open_toast(self, screen_cls, *args, **kwargs):
+        """Show a toast. Overlay style draws it over live TV without taking the
+        remote (instantiateDialog + show); classic style is the old modal popup.
+        on_done() runs when it disappears in either style."""
+        on_done = kwargs.pop('on_done', None)
+        if not self.session:
+            return None
+        if self.toast_style == "overlay":
+            try:
+                dlg = self.session.instantiateDialog(screen_cls, *args, **kwargs)
+                state = {'done': False}
+
+                def _finish(d, _cb=on_done):
+                    if state['done']:
+                        return
+                    state['done'] = True
+                    self._close_overlay_toast(d)
+                    if _cb:
+                        try:
+                            _cb()
+                        except Exception as e:
+                            log_dbg("[Toast] on_done error: {}".format(e))
+                dlg._overlay_finish = _finish
+                self._overlay_toasts.add(dlg)
+                dlg.show()
+                # Watchdog: never let a stuck overlay block the alert queue
+                reactor.callLater(self.OVERLAY_WATCHDOG_S, lambda d=dlg: (not state['done']) and _finish(d))
+                return dlg
+            except Exception as e:
+                log_dbg("[Toast] overlay failed, using classic popup: {}".format(e))
+        if on_done:
+            return self.session.openWithCallback(lambda *a: on_done(), screen_cls, *args, **kwargs)
+        return self.session.open(screen_cls, *args, **kwargs)
+
+    def _close_overlay_toast(self, dlg):
+        """Hide an overlay toast now and delete it a moment later (never from
+        inside its own timer callback)."""
+        for name in ('timer', '_timer', 'anim_timer', '_anim_timer', 'frame_timer'):
+            try:
+                t = getattr(dlg, name, None)
+                if t is not None and t.isActive():
+                    t.stop()
+            except Exception:
+                pass
+        try:
+            dlg.hide()
+        except Exception:
+            pass
+
+        def _delete():
+            self._overlay_toasts.discard(dlg)
+            try:
+                self.session.deleteDialog(dlg)
+            except Exception as e:
+                log_dbg("[Toast] deleteDialog failed: {}".format(e))
+        reactor.callLater(0.3, _delete)
+
+    def _close_all_toasts(self):
+        """Used on entering standby: take down overlays and drop queued alerts."""
+        self.notification_queue = []
+        for dlg in list(self._overlay_toasts):
+            try:
+                if getattr(dlg, '_overlay_finish', None):
+                    dlg.dismiss()
+            except Exception:
+                pass
+
     def queue_notification(self, match_id, score, scorer, event_type="default", scoring_team=None, sound_type=None):
         if self.discovery_mode == 0: return
         match_id = str(match_id)
         snap = self.match_snapshots.get(match_id)
         if not snap: return
+        # Scope, alert types, quiet hours, exciting games only
+        if not self._alert_allowed(match_id, event_type):
+            return
+
+        # Spoiler guard: the scores feed is usually ahead of the TV picture, so
+        # alerts for the match on the current channel can be muted or delayed.
+        now = time.time()
+        deliver_at = now
+        if self.spoiler_mode != "off" and event_type not in ("reminder", "default") \
+                and self._is_match_on_current_channel(snap):
+            if self.spoiler_mode == "mute":
+                return
+            deliver_at = now + self.SPOILER_DELAYS.get(self.spoiler_mode, 0)
 
         sport_type = snap.get('sport_type')
         league_url = (snap.get('league_url') or '').lower()
         league_name = (snap.get('league_name') or '').lower()
 
         # Check if basketball: inspect URL, snap fields, or league name
-        is_basketball = ('/basketball/' in league_url or 
-                         'euroleague' in league_url or 
-                         'fiba' in league_url or 
-                         'basket' in league_url or 
-                         'nba' in league_url or 
-                         'wnba' in league_url or 
+        is_basketball = ('/basketball/' in league_url or
+                         'euroleague' in league_url or
+                         'fiba' in league_url or
+                         'basket' in league_url or
+                         'nba' in league_url or
+                         'wnba' in league_url or
                          self.get_sport_type(league_name, league_url) == 'basketball')
 
         # BASKETBALL: Visual toast ONLY — strictly disable all sound notifications
@@ -10166,7 +12315,8 @@ class SportsMonitor:
             sound_type = None
 
         is_soccer = '/soccer/' in league_url
-        notification = (match_id, score, scorer, event_type, scoring_team, sound_type, time.time())
+        # (match_id, score, scorer, event_type, scoring_team, sound_type, queued_at, deliver_at)
+        notification = (match_id, score, scorer, event_type, scoring_team, sound_type, now, deliver_at)
 
         # BASKETBALL MERGE: If same basketball match already in queue, merge scorer text
         if is_basketball and event_type == 'goal':
@@ -10180,7 +12330,8 @@ class SportsMonitor:
                     self.notification_queue[i] = (
                         match_id, score, merged_scorer,
                         existing[3], existing[4], existing[5],
-                        existing[6] if len(existing) > 6 else time.time()
+                        existing[6] if len(existing) > 6 else now,
+                        existing[7] if len(existing) > 7 else now
                     )
                     return  # Merged, no new entry needed
 
@@ -10220,33 +12371,54 @@ class SportsMonitor:
 
         self.process_queue()
 
+    @staticmethod
+    def _queue_due(item):
+        return item[7] if len(item) > 7 else (item[6] if len(item) > 6 else 0)
+
+    def _wake_queue_at(self, due_ts):
+        """Re-run process_queue when a spoiler-delayed alert becomes due."""
+        try:
+            if self._queue_wakeup is not None and self._queue_wakeup.active():
+                self._queue_wakeup.cancel()
+        except Exception:
+            pass
+        self._queue_wakeup = reactor.callLater(max(0.2, due_ts - time.time() + 0.1), self.process_queue)
+
     def process_queue(self):
-        if self.discovery_mode == 0:
+        if self.discovery_mode == 0 or self.in_standby:
             self.notification_queue = []
             return
         if self.notification_active or not self.notification_queue: return
 
+        now = time.time()
+        # Drop stale alerts (> 180 s past due) e.g. after a long settings session
+        self.notification_queue = [it for it in self.notification_queue
+                                   if now - max(self._queue_due(it), it[6] if len(it) > 6 else now) < 180]
+        if not self.notification_queue:
+            return
+
         # Check if an Enigma2 system menu, setup screen, channel list, or other plugin is active
         if is_system_screen_active(self.session):
-            now = time.time()
-            # Clean up stale notifications (> 180s) to avoid bursting stale alerts after long settings sessions
-            self.notification_queue = [
-                it for it in self.notification_queue
-                if (len(it) < 7 or (now - it[6] < 180))
-            ]
-            if not self.notification_queue:
-                return
             # Postpone processing and re-check once the user closes the system screen/menu
             reactor.callLater(2.5, self.process_queue)
             return
 
+        # First alert that is due (spoiler-delayed ones wait their turn)
+        idx = None
+        next_due = None
+        for i, it in enumerate(self.notification_queue):
+            due = self._queue_due(it)
+            if due <= now:
+                idx = i
+                break
+            next_due = due if next_due is None else min(next_due, due)
+        if idx is None:
+            if next_due is not None:
+                self._wake_queue_at(next_due)
+            return
+
         try:
-            item = self.notification_queue.pop(0)
-            now = time.time()
-            if len(item) >= 7 and (now - item[6] > 180):
-                # Stale item dropped, try next in queue
-                reactor.callLater(0.1, self.process_queue)
-                return
+            item = self.notification_queue.pop(idx)
 
             # Simplified item: (match_id, score, scorer, event_type, scoring_team, sound_type)
             match_id, score, scorer, event_type, scoring_team, sound_type = item[:6]
@@ -10257,8 +12429,9 @@ class SportsMonitor:
                 try:
                     def _open_toast():
                         # Final guard right before opening
-                        if is_system_screen_active(self.session):
-                            self.notification_queue.insert(0, item)
+                        if is_system_screen_active(self.session) or self.in_standby:
+                            if not self.in_standby:
+                                self.notification_queue.insert(0, item)
                             self.notification_active = False
                             self.current_toast = None
                             self.current_toast_match = None
@@ -10274,10 +12447,8 @@ class SportsMonitor:
                             self.play_end_sound()
 
                         try:
-                            self.session.openWithCallback(
-                                self.on_toast_closed, GoalToast,
-                                match_id, score, scorer, event_type, scoring_team
-                            )
+                            self._open_toast(GoalToast, match_id, score, scorer, event_type, scoring_team,
+                                             on_done=self.on_toast_closed)
                         except Exception as e:
                             print("[SimplySport] Error opening GoalToast: {}".format(e))
                             # RE-QUEUE: Don't lose notification on screen stack error
@@ -11527,12 +13698,16 @@ class SportsMonitor:
                 for ev in changed_events:
                     eid = ev.get('id')
                     if eid:
-                        self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+                        _snap = build_match_snapshot_safe(ev)
+                        if _snap is not None:
+                            self.match_snapshots[str(eid)] = _snap
                 # Also rebuild snapshots for any new events not yet in match_snapshots
                 for ev in self.cached_events:
                     eid = ev.get('id')
                     if eid and str(eid) not in self.match_snapshots:
-                        self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+                        _snap = build_match_snapshot_safe(ev)
+                        if _snap is not None:
+                            self.match_snapshots[str(eid)] = _snap
                 log_dbg("SNAPSHOTS: Incremental \u2014 rebuilt {} changed, {} total".format(
                     len(changed_events), len(self.match_snapshots)))
                 # NOTE: evaluate_goals() deferred to finalize_batch() for append_mode
@@ -11542,7 +13717,9 @@ class SportsMonitor:
                 for ev in self.cached_events:
                     eid = ev.get('id')
                     if eid:
-                        self.match_snapshots[str(eid)] = build_match_snapshot(ev)
+                        _snap = build_match_snapshot_safe(ev)
+                        if _snap is not None:
+                            self.match_snapshots[str(eid)] = _snap
 
                 # TRIGGER: Evaluate goals IMMEDIATELY after snapshots are built
                 self.evaluate_goals()
@@ -11590,7 +13767,7 @@ class SportsMonitor:
 
                 # ADAPTIVE POLLING: 60s for Live/Near-start, 300s for Idle
                 # FIX: Ensure timer restarts if UI is active (callbacks) or reminders exist
-                should_run = self.active or (len(self.callbacks) > 0) or (len(self.reminders) > 0)
+                should_run = self._should_poll()
                 if should_run:
                     new_interval = self._get_timer_interval(live_count)
                     log_diag("LAZY_PROCESS: Restarting timer in {}ms (active={} callbacks={} reminders={})".format(
@@ -13568,6 +15745,7 @@ class GameInfoScreen(Screen):
         self["actions"] = ActionMap(["SetupActions", "ColorActions", "DirectionActions", "WizardActions", "InfobarSeekActions", "InfobarBouquetActions"], {
             "cancel": self.close, "green": self.close, "ok": self.handle_ok, "back": self.close,
             "yellow": self.open_leaderboard,
+            "blue": self.toggle_follow,
             "up": self["info_list"].up, "down": self["info_list"].down,
             "left": self.page_up, "right": self.page_down,
             "seekFwd": self.page_down, "seekBack": self.page_up,
@@ -13580,7 +15758,78 @@ class GameInfoScreen(Screen):
         self.has_voted = self._check_local_vote_status()
         self.fetch_community_votes()
 
+        # Live refresh: the header follows the monitor's snapshot on every poll, and
+        # the match centre (events, stats) is re-fetched every LIVE_REFRESH_MS while
+        # the game is live, without blanking the list or moving the cursor.
+        self._silent_refresh = False
+        self._lazy_running = False
+        self._live_closed = False
+        self._rows_before_refresh = []
+        self._saved_page = 0
+        self._saved_index = 0
+        self._live_refresh_timer = eTimer()
+        safe_connect(self._live_refresh_timer, self._live_refresh_tick)
+        if global_sports_monitor:
+            global_sports_monitor.register_callback(self._on_monitor_update)
+        self.onClose.append(self._stop_live_refresh)
+
         self.onLayoutFinish.append(self.start_loading)
+
+    # ---- League-table estimate (soccer games with no ESPN prediction) ----------
+    def _model_rows(self, est):
+        i, j = est.get('score', (0, 0))
+        return [
+            TextListEntry(_t("MODEL ESTIMATE (league table)"), self.theme, is_header=True),
+            TextListEntry(u"{}: {:.0f}%  |  {}: {:.0f}%  |  {}: {:.0f}%".format(
+                self.h_team_name, est['h_pct'], _t("Draw"), est['d_pct'], self.a_team_name, est['a_pct']), self.theme),
+            TextListEntry(u"{} {}-{} ({:.0f}%)".format(_t("Most likely score:"), i, j, est.get('score_pct', 0.0)), self.theme),
+        ]
+
+    def _add_model_estimate(self, h_id, a_id):
+        """Append the estimate rows, or fetch the league table and insert them
+        at this position when it arrives."""
+        self._model_insert_at = None
+        mon = global_sports_monitor
+        if not mon or self.sport_type != SPORT_TYPE_TEAM or getattr(self, 'odds_data', None):
+            return
+        m = re.search(r'/sports/soccer/([^/]+)/', self.league_url or '')
+        if not m or not h_id or not a_id:
+            return
+        cached = mon.predictor_entry(str(self.event_id))
+        if cached and cached.get('source') == 'model' and 'd_pct' in cached:
+            self.full_rows.extend(self._model_rows(cached))
+            return
+        if cached:
+            return      # odds-based figure, or no estimate possible for this game
+        self._model_insert_at = len(self.full_rows)
+        if not getattr(self, '_model_requested', False):
+            self._model_requested = True
+            mon.model_estimate_async(str(self.event_id), m.group(1), str(h_id), str(a_id), self._on_model_estimate)
+
+    def _on_model_estimate(self, est):
+        at = getattr(self, '_model_insert_at', None)
+        self._model_insert_at = None
+        if (not est or at is None or getattr(self, '_live_closed', False)
+                or getattr(self, 'game_status', 'pre') != 'pre'):
+            return
+        at = min(at, len(self.full_rows))
+        self.full_rows[at:at] = self._model_rows(est)
+        self.update_display()
+
+    def toggle_follow(self):
+        """BLUE: follow / unfollow this match. A followed match always alerts,
+        whatever the 'Alerts for' and 'Exciting games only' settings say."""
+        mon = global_sports_monitor
+        if not mon or not self.event_id:
+            return
+        ev = mon.event_map.get(str(self.event_id)) or self.fallback_event_data or {}
+        try:
+            ko = utc_iso_to_epoch(ev.get('date', ''))
+        except Exception:
+            ko = 0
+        following = mon.toggle_follow_match(self.event_id, ko)
+        msg = _t("Following this match: its alerts always show.") if following else _t("Match unfollowed.")
+        self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
     def _check_local_vote_status(self):
         """Check if this device already voted for this match locally via centralized ledger."""
@@ -13597,7 +15846,11 @@ class GameInfoScreen(Screen):
         pass
 
     def fetch_community_votes(self):
-        url = "{}/matches/{}.json".format(FIREBASE_URL, self.event_id)
+        if getattr(self, '_silent_refresh', False):
+            return  # live refresh: voting is closed, don't re-download the tally every minute
+        # shallow=true returns the three counters but not the 'voters' list,
+        # which grows with every vote and is never shown.
+        url = "{}/matches/{}.json?shallow=true".format(FIREBASE_URL, self.event_id)
         print("[SimplySports] Fetching community votes from:", url)
         getPage(url.encode('utf-8'), timeout=10).addCallback(self.on_votes_received).addErrback(self.on_votes_error)
 
@@ -13644,6 +15897,8 @@ class GameInfoScreen(Screen):
         print("[SimplySports] Firebase fetch error:", error)
 
     def handle_ok(self):
+        if getattr(self, '_silent_refresh', False):
+            return  # rows are being rebuilt by the live refresh (about a second)
         idx = self["info_list"].getSelectedIndex()
         if idx is None: return
 
@@ -13682,7 +15937,6 @@ class GameInfoScreen(Screen):
                     a_nm = getattr(self, 'a_team_name', 'Away')
                     if global_sports_monitor:
                         global_sports_monitor.add_pending_bet(self.event_id, team_type, sport, league, h_nm, a_nm, l_url)
-                        global_sports_monitor.fetch_all_community_votes()
 
                     # 3. --- REBUILD VOTE ROWS IN MEMORY FOR INSTANT REFRESH ---
                     h_votes = self.community_votes.get('home', 0)
@@ -13702,9 +15956,7 @@ class GameInfoScreen(Screen):
 
                     # 4. BUILD THE PAYLOADS
                     voter_name = getattr(global_sports_monitor, 'voter_name', 'Anonymous')
-                    device_id = getattr(self, 'device_id', 'unknown')
 
-                    import json
                     # FIX Bug 3 & 6: Previously the atomic counter and voter record
                     # were sent as a single PATCH to /matches/{id}.json.  Firebase
                     # REST PATCH only shallow-merges one level deep, so the "voters"
@@ -13721,23 +15973,23 @@ class GameInfoScreen(Screen):
                     # Bug 5 (race condition) fix is preserved: the counter still uses
                     # Firebase's server-side atomic increment ({".sv": {"increment": 1}}).
 
-                    # 4a. Atomic counter — match level
-                    counter_data = json.dumps({
-                        team_type: {".sv": {"increment": 1}}
-                    })
+                    # Update: both now go in ONE multi-path PATCH. A key with a
+                    # slash ("voters/<id>") writes that deep path without touching
+                    # its siblings, so the voters list is still never replaced, and
+                    # the counter and the voter record succeed or fail together.
+                    # That is what lets the security rules accept a +1 only when
+                    # the same write creates this user's (first) voter record.
+                    # The voter key is the Firebase user id when signed in,
+                    # otherwise the device id as before.
+                    def _vote_payload(key, signed_in, team=team_type, name=(voter_name or "Anonymous")[:40]):
+                        return {
+                            team: {".sv": {"increment": 1}},       # atomic, server-side
+                            "voters/" + key: {"name": name, "team": team},
+                        }
 
-                    # 4b. Voter record — voter-specific path
-                    voter_data = json.dumps({
-                        "name": voter_name,
-                        "team": team_type
-                    })
-
-                    # 5. SEND TO FIREBASE (two independent writes)
+                    # 5. SEND TO FIREBASE (one atomic write)
                     counter_url = "{}/matches/{}.json".format(FIREBASE_URL, self.event_id)
-                    push_to_firebase_threaded(counter_url, counter_data)
-
-                    voter_url = "{}/matches/{}/voters/{}.json".format(FIREBASE_URL, self.event_id, device_id)
-                    push_to_firebase_threaded(voter_url, voter_data)
+                    push_to_firebase_threaded(counter_url, _vote_payload)
 
                     # 6. FORCE UI REFRESH IMMEDIATELY
                     if hasattr(self, 'update_display'):
@@ -14008,6 +16260,8 @@ class GameInfoScreen(Screen):
             self.close()
 
     def update_display(self):
+        if getattr(self, '_silent_refresh', False):
+            return  # live refresh in progress: keep showing the current rows until it finishes
         if not self.full_rows:
             self["info_list"].setList([])
             self["page_indicator"].setText("")
@@ -14037,6 +16291,8 @@ class GameInfoScreen(Screen):
             self["page_indicator"].setText("")
 
     def page_down(self):
+        if getattr(self, '_silent_refresh', False):
+            return
         total_items = len(self.full_rows)
         if total_items > 0:
             total_pages = int(math.ceil(float(total_items) / float(self.items_per_page)))
@@ -14050,6 +16306,8 @@ class GameInfoScreen(Screen):
                 except: pass
 
     def page_up(self):
+        if getattr(self, '_silent_refresh', False):
+            return
         total_items = len(self.full_rows)
         if total_items > 0:
             total_pages = int(math.ceil(float(total_items) / float(self.items_per_page)))
@@ -14061,6 +16319,109 @@ class GameInfoScreen(Screen):
                 self.update_display()
                 try: self["info_list"].moveToIndex(0)
                 except: pass
+
+    # ------------------------------------------------------------------
+    # Live refresh (match centre stays current while the game is live)
+    # ------------------------------------------------------------------
+    LIVE_REFRESH_MS = 60000
+
+    def _live_refresh_supported(self):
+        """Team sports on the ESPN summary path (the lazy parser). EuroLeague, the
+        Egyptian league and individual sports keep their one-shot load."""
+        return (bool(getattr(self, 'summary_url', ''))
+                and not getattr(self, '_is_euroleague', False)
+                and not getattr(self, '_is_epl', False)
+                and self.sport_type not in (SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT,
+                                            SPORT_TYPE_TENNIS, SPORT_TYPE_CRICKET, SPORT_TYPE_RUGBY))
+
+    def _schedule_live_refresh(self):
+        if self._live_closed or not self._live_refresh_supported():
+            return
+        if getattr(self, 'game_status', 'pre') == 'in':
+            self._live_refresh_timer.start(self.LIVE_REFRESH_MS, True)
+
+    def _live_refresh_tick(self):
+        if self._live_closed or self._silent_refresh or not self._live_refresh_supported():
+            return
+        if self._lazy_running:
+            self._live_refresh_timer.start(5000, True)  # initial load still building rows
+            return
+        self._rows_before_refresh = list(self.full_rows)
+        self._saved_page = self.current_page
+        try:
+            self._saved_index = self["info_list"].getSelectedIndex() or 0
+        except Exception:
+            self._saved_index = 0
+        self._silent_refresh = True
+        d = getPage(self.summary_url.encode('utf-8'), headers={b'User-Agent': b'curl/7.68.0'}, timeout=20)
+        d.addCallback(self.parse_details)
+        d.addErrback(self._live_refresh_failed)
+
+    def _live_refresh_failed(self, error=None):
+        """Network or parse problem during a background refresh: put the previous
+        rows back exactly as they were and try again on the next cycle."""
+        log_dbg("[GameInfo] live refresh skipped: {}".format(error))
+        self._lazy_running = False
+        if self._silent_refresh:
+            self._silent_refresh = False
+            self.full_rows = self._rows_before_refresh
+            self.current_page = self._saved_page
+        self._schedule_live_refresh()
+
+    def _finish_silent_refresh(self):
+        self._silent_refresh = False
+        total = len(self.full_rows)
+        if not total:
+            # Nothing parsed: keep what the user was looking at
+            self.full_rows = self._rows_before_refresh
+            total = len(self.full_rows)
+        pages = max(1, int(math.ceil(float(total) / float(self.items_per_page)))) if total else 1
+        self.current_page = min(max(0, self._saved_page), pages - 1)
+        self.update_display()
+        try:
+            start = self.current_page * self.items_per_page
+            on_page = len(self.full_rows[start:start + self.items_per_page])
+            if on_page:
+                self["info_list"].moveToIndex(min(self._saved_index, on_page - 1))
+        except Exception:
+            pass
+        self._schedule_live_refresh()
+
+    def _on_monitor_update(self, data_ready=True, force_refresh=False):
+        """Monitor poll finished: update the live header from the shared snapshot
+        (no extra request) and refresh once at kick-off and at full time."""
+        if self._live_closed or not global_sports_monitor:
+            return
+        snap = global_sports_monitor.match_snapshots.get(str(self.event_id))
+        if not snap:
+            return
+        state = snap.get('state')
+        if (state == 'in' and not self._silent_refresh
+                and self.sport_type not in (SPORT_TYPE_RACING, SPORT_TYPE_GOLF, SPORT_TYPE_COMBAT, SPORT_TYPE_TENNIS)):
+            try:
+                self["h_score"].setText(str(snap.get('h_score_str', '0')))
+                self["a_score"].setText(str(snap.get('a_score_str', '0')))
+                clock = snap.get('clock') or snap.get('time_str') or ''
+                if clock:
+                    self["match_title"].setText(u"{} - {}".format(self.league_name or "LIVE", clock))
+            except Exception:
+                pass
+        prev = getattr(self, 'game_status', None)
+        if ((prev == 'pre' and state == 'in') or (prev == 'in' and state == 'post')) \
+                and self._live_refresh_supported() and not self._silent_refresh and not self._lazy_running:
+            self._live_refresh_timer.start(1500, True)
+
+    def _stop_live_refresh(self):
+        self._live_closed = True
+        try:
+            self._live_refresh_timer.stop()
+        except Exception:
+            pass
+        try:
+            if global_sports_monitor:
+                global_sports_monitor.unregister_callback(self._on_monitor_update)
+        except Exception:
+            pass
 
     def start_loading(self):
         # PHASE 5: Pre-populate header from snapshot (instant, no HTTP wait)
@@ -14201,6 +16562,7 @@ class GameInfoScreen(Screen):
             if hasattr(self, 'vote_rows_count'):
                 self.full_rows = self.full_rows[:self.vote_rows_count]
             self.lazy_gen = self._run_lazy_parser()
+            self._lazy_running = True
             self.do_lazy_load()
         except Exception as e:
             print("[SimplySport] Summary enrichment error:", e)
@@ -14946,6 +17308,7 @@ class GameInfoScreen(Screen):
             self.lazy_boxscore_teams = comps
             self.lazy_game_status = state
             self.lazy_gen = self._run_lazy_parser()
+            self._lazy_running = True
             self.do_lazy_load()
 
         except Exception as e:
@@ -14954,6 +17317,8 @@ class GameInfoScreen(Screen):
 
     def download_logo(self, url, widget_name, img_id=None):
         """Delegate to shared logo loader (supports HQ URL upgrade for detail screen)"""
+        if getattr(self, '_silent_refresh', False):
+            return  # logos are already on screen; don't reload them on every live refresh
         if url and url.startswith("http"):
             hq_url = url.replace("40&h=40", "500&h=500")
             load_logo_to_widget(self, widget_name, hq_url, img_id)
@@ -15036,8 +17401,8 @@ class GameInfoScreen(Screen):
             if game_status == 'pre':
                 self["h_score"].hide(); self["a_score"].hide(); self["score_sep"].hide()
                 match_date = data.get('header', {}).get('competitions', [{}])[0].get('date', '') or data.get('competitions', [{}])[0].get('date', '') or getattr(self, 'match_time', '')
-                if not match_date and snap:
-                    match_date = snap.get('match_date', '') or snap.get('display_time', '')
+                if not match_date and live_snap:  # was the undefined name 'snap' (NameError)
+                    match_date = live_snap.get('match_date', '') or live_snap.get('display_time', '')
                 if match_date:
                     dt = parse_espn_date(match_date)
                     if dt:
@@ -15159,9 +17524,13 @@ class GameInfoScreen(Screen):
             self.lazy_game_status = game_status
 
             self.lazy_gen = self._run_lazy_parser()
+            self._lazy_running = True
             self.do_lazy_load()
 
         except Exception as e:
+            if getattr(self, '_silent_refresh', False):
+                self._live_refresh_failed(e)   # keep the rows that were on screen
+                return
             self.full_rows.append(TextListEntry("Error: " + str(e), self.theme))
             self.update_display()
             self["loading"].hide()
@@ -15169,21 +17538,34 @@ class GameInfoScreen(Screen):
 
     def do_lazy_load(self):
         if not hasattr(self, 'lazy_gen'): return
+        if getattr(self, '_live_closed', False):
+            self._lazy_running = False
+            return  # screen closed while rows were still being built
         try:
             next(self.lazy_gen)
             from twisted.internet import reactor
             reactor.callLater(0.01, self.do_lazy_load)
         except StopIteration:
+            self._lazy_running = False
+            if getattr(self, '_silent_refresh', False):
+                self._finish_silent_refresh()
+                return
             try:
                 self.update_display()
             except Exception:
                 pass
+            self._schedule_live_refresh()
         except Exception as e:
+            self._lazy_running = False
             print("[SimplySport] Lazy Load Error: ", e)
+            if getattr(self, '_silent_refresh', False):
+                self._live_refresh_failed(e)
+                return
             try:
                 self.update_display()
             except Exception:
                 pass
+            self._schedule_live_refresh()
 
     def _run_lazy_parser(self):
         data = self.lazy_data
@@ -15246,6 +17628,7 @@ class GameInfoScreen(Screen):
             self["match_title"].setText(_league_name(league_name) if league_name else _t("PREVIEW"))
 
             # 1. Prediction (Win Probability)
+            shown_prediction = False
             try:
                 predictor = data.get('predictor', {})
                 if predictor:
@@ -15264,7 +17647,15 @@ class GameInfoScreen(Screen):
                         else:
                             txt = "{}: {:.1f}%  |  {}: {:.1f}%".format(self.h_team_name, h_val, self.a_team_name, a_val)
                         self.full_rows.append(TextListEntry(txt, self.theme))
+                        shown_prediction = True
             except: pass
+
+            # 1b. No ESPN prediction for a soccer game: our league-table estimate
+            if not shown_prediction:
+                try:
+                    self._add_model_estimate(h_id, a_id)
+                except Exception as e:
+                    log_dbg("[Model] GameInfo estimate error: {}".format(e))
 
             # 2. Betting Odds
             self.current_page = 0; self.update_display(); yield
@@ -16530,7 +18921,7 @@ class GameInfoScreen(Screen):
 # ==============================================================================
 # GOAL TOAST
 # ==============================================================================
-class GoalToast(Screen):
+class GoalToast(OverlayToastMixin, Screen):
     def __init__(self, session, match_id, score_text, scorer_text, event_type="default", scoring_team=None):
         self.event_type = event_type
         self.scoring_team = scoring_team
@@ -16746,8 +19137,8 @@ class GoalToast(Screen):
 
         # 5. UX: Cleanup Timer (Dynamic Duration)
         self.timer = eTimer()
-        try: self.timer.callback.append(self.close)
-        except AttributeError: self.timer.timeout.get().append(self.close)
+        try: self.timer.callback.append(self.dismiss)
+        except AttributeError: self.timer.timeout.get().append(self.dismiss)
 
         # 6. UX: Entry Animation (Slide-In)
         self.anim_timer = eTimer()
@@ -16778,9 +19169,9 @@ class GoalToast(Screen):
         self.center_x    = (dw - self.toast_width) // 2
 
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions", "DirectionActions"], {
-            "ok": self.close, "cancel": self.close,
-            "red": self.close, "green": self.close, "yellow": self.close, "blue": self.close,
-            "up": self.close, "down": self.close, "left": self.close, "right": self.close
+            "ok": self.dismiss, "cancel": self.dismiss,
+            "red": self.dismiss, "green": self.dismiss, "yellow": self.dismiss, "blue": self.dismiss,
+            "up": self.dismiss, "down": self.dismiss, "left": self.dismiss, "right": self.dismiss
         }, -1)
 
         self.onLayoutFinish.append(self.start_animation)
@@ -17203,6 +19594,7 @@ class FavoriteTeamsManagerScreen(Screen):
             return
         removed = teams.pop(idx)
         global_sports_monitor.save_config()
+        global_sports_monitor._start_fav_timer()   # stops it when the last favourite goes
         self.refresh_list()
         self.session.open(
             MessageBox,
@@ -17416,6 +19808,7 @@ class FavoriteTeamPickerScreen(Screen):
             "logo_url":    team["logo_url"],
         })
         monitor.save_config()
+        monitor._start_fav_timer()   # alerts start now, not at the next plugin restart
 
         self.session.open(
             MessageBox,
@@ -17429,7 +19822,7 @@ class FavoriteTeamPickerScreen(Screen):
 # ==============================================================================
 # FAVORITE TEAM REMINDER TOAST
 # ==============================================================================
-class FavTeamToast(Screen):
+class FavTeamToast(OverlayToastMixin, Screen):
     """
     Gold-accented overlay that fires when a favourite team match is approaching.
     Prominently different from GoalToast so the viewer cannot miss it.
@@ -17448,7 +19841,10 @@ class FavTeamToast(Screen):
 
     def __init__(self, session, team_name, home_name, away_name,
                  league_name, kick_off_ts, channel_name,
-                 h_logo_url, a_logo_url, h_logo_id, a_logo_id):
+                 h_logo_url, a_logo_url, h_logo_id, a_logo_id,
+                 header_text=None, info_text=None, countdown_text=None):
+        # header_text / info_text / countdown_text let other alerts (e.g. lineups
+        # announced) reuse this layout with their own title and info line.
         Screen.__init__(self, session)
 
         def _s(v):
@@ -17470,10 +19866,11 @@ class FavTeamToast(Screen):
 
         import time as _time
         import datetime as _dt
-        try:    ko_str = _dt.datetime.fromtimestamp(kick_off_ts).strftime("%H:%M")
+        # kick_off_ts may be 0 (unknown, e.g. a reminder saved by an older version)
+        try:    ko_str = _dt.datetime.fromtimestamp(kick_off_ts).strftime("%H:%M") if kick_off_ts else ""
         except: ko_str = ""
 
-        delta = int(kick_off_ts - _time.time())
+        delta = int(kick_off_ts - _time.time()) if kick_off_ts else 0
         if   delta >= 86400: countdown = _t("Tomorrow") + " " + ko_str
         elif delta >= 3600:  countdown = _t("in") + " {}h".format(delta // 3600)
         elif delta >= 60:    countdown = _t("in") + " {}min".format(delta // 60)
@@ -17481,6 +19878,12 @@ class FavTeamToast(Screen):
 
         header_lbl  = u"\u2605  " + _t("My Favorite Teams") + u"  \u2605"
         channel_lbl = (u"\U0001f4fa  " + channel_name) if channel_name else ""
+        if header_text:
+            header_lbl = _s(header_text)
+        if info_text:
+            channel_lbl = _s(info_text)
+        if countdown_text is not None:
+            countdown = _s(countdown_text)
 
         GOLD      = "#FFD700"
         GOLD_DARK = "#B8860B"
@@ -17548,17 +19951,17 @@ class FavTeamToast(Screen):
         self["channel"]   = Label(channel_lbl)
         self["h_logo"]    = Pixmap()
         self["a_logo"]    = Pixmap()
-        self._has_channel = bool(channel_name)
+        self._has_channel = bool(channel_lbl)
 
         self["actions"] = ActionMap(
             ["OkCancelActions", "ColorActions", "DirectionActions"],
-            {k: self.close for k in ("ok","cancel","red","green","yellow","blue",
+            {k: self.dismiss for k in ("ok","cancel","red","green","yellow","blue",
                                      "up","down","left","right")}, -1
         )
 
         self._timer = eTimer()
-        try:    self._timer.callback.append(self.close)
-        except: self._timer.timeout.get().append(self.close)
+        try:    self._timer.callback.append(self.dismiss)
+        except: self._timer.timeout.get().append(self.dismiss)
 
         use_anim = getattr(global_sports_monitor, "toast_animation", True)
         self._anim_timer = eTimer()
@@ -18918,7 +21321,7 @@ _TEAM_SYNONYMS = {
         "pse":                    "palestine",
         "syr":                    "syria",
         "yem":                    "yemen",
-        "bah":                    "bahrain",
+        'bhr': 'bahrain',
         # Premier League clubs
         "man city":               "manchester city",
         "mancity":                "manchester city",
@@ -19015,7 +21418,6 @@ _TEAM_SYNONYMS = {
         "get":                    "getafe",
         "espanyol":               "espanyol",
         "rcd espanyol":           "espanyol",
-        "esp":                    "espanyol",
         "real valladolid":        "real valladolid",
         "valladolid":             "real valladolid",
         "vld":                    "real valladolid",
@@ -19036,20 +21438,20 @@ _TEAM_SYNONYMS = {
         "juve":                   "juventus",
         "juv":                    "juventus",
         # French Ligue 1 & German Bundesliga
-        "paris saint-germain":    "paris saint-germain",
+        "paris saint-germain":    "paris saint germain",
         "paris sg":               "paris saint-germain",
-        "psg":                    "paris saint-germain",
-        "st etienne":             "saint-etienne",
+        "psg":                    "paris saint germain",
+        "st etienne":             "saint etienne",
         "st. etienne":            "saint-etienne",
-        "monchengladbach":        "borussia monchengladbach",
+        "monchengladbach":        "monchengladbach",
         "m'gladbach":             "borussia monchengladbach",
         "mgladbach":              "borussia monchengladbach",
-        "dortmund":               "borussia dortmund",
-        "bvb":                    "borussia dortmund",
+        "dortmund":               "dortmund",
+        "bvb":                    "dortmund",
         "bayern":                 "bayern munich",
         "bay":                    "bayern munich",
-        "leverkusen":             "bayer leverkusen",
-        "b04":                    "bayer leverkusen",
+        "leverkusen":             "leverkusen",
+        "b04":                    "leverkusen",
         "napoli":                 "napoli",
         "ssc napoli":             "napoli",
         "nap":                    "napoli",
@@ -19096,12 +21498,8 @@ _TEAM_SYNONYMS = {
         "bayern":                 "bayern munich",
         "bay":                    "bayern munich",
         "borussia dortmund":      "dortmund",
-        "dortmund":               "dortmund",
-        "bvb":                    "dortmund",
         "dor":                    "dortmund",
         "bayer leverkusen":       "leverkusen",
-        "leverkusen":             "leverkusen",
-        "b04":                    "leverkusen",
         "lev":                    "leverkusen",
         "rb leipzig":             "leipzig",
         "leipzig":                "leipzig",
@@ -19109,14 +21507,12 @@ _TEAM_SYNONYMS = {
         "eintracht frankfurt":    "frankfurt",
         "frankfurt":              "frankfurt",
         "sge":                    "frankfurt",
-        "fra":                    "frankfurt",
         "vfb stuttgart":          "stuttgart",
         "stuttgart":              "stuttgart",
         "vfb":                    "stuttgart",
         "stu":                    "stuttgart",
         "borussia mönchengladbach": "monchengladbach",
         "borussia monchengladbach": "monchengladbach",
-        "monchengladbach":        "monchengladbach",
         "mönchengladbach":        "monchengladbach",
         "gladbach":               "monchengladbach",
         "bmg":                    "monchengladbach",
@@ -19165,17 +21561,13 @@ _TEAM_SYNONYMS = {
         "kie":                    "holstein kiel",
         "vfl bochum":             "bochum",
         "bochum":                 "bochum",
-        "boc":                    "bochum",
+        "boc":                    "boca juniors",
         # French Ligue 1 clubs
         "paris saint germain":    "paris saint germain",
-        "paris saint-germain":    "paris saint germain",
-        "psg":                    "paris saint germain",
-        "par":                    "paris saint germain",
         "olympique marseille":    "marseille",
         "olympique de marseille": "marseille",
         "marseille":              "marseille",
         "om":                     "marseille",
-        "mar":                    "marseille",
         "as monaco":              "monaco",
         "monaco":                 "monaco",
         "asm":                    "monaco",
@@ -19228,7 +21620,6 @@ _TEAM_SYNONYMS = {
         "as saint-étienne":       "saint etienne",
         "saint-etienne":          "saint etienne",
         "saint-étienne":          "saint etienne",
-        "st etienne":             "saint etienne",
         "asse":                   "saint etienne",
         "ste":                    "saint etienne",
         "le havre ac":            "le havre",
@@ -19319,7 +21710,6 @@ _TEAM_SYNONYMS = {
         "scp":                    "sporting lisbon",
         "porto":                  "porto",
         "fc porto":               "porto",
-        "por":                    "porto",
         "fcp":                    "porto",
         "braga":                  "braga",
         "sc braga":               "braga",
@@ -19371,7 +21761,7 @@ _TEAM_SYNONYMS = {
         "nacional":               "nacional",
         "cd nacional":            "nacional",
         "nacional da madeira":    "nacional",
-        "nac":                    "nacional",
+        "nac":                    "nac breda",
         "avs":                    "avs",
         "avs futebol sad":        "avs",
         "avs fs":                 "avs",
@@ -19430,7 +21820,6 @@ _TEAM_SYNONYMS = {
         "groningen":              "groningen",
         "gro":                    "groningen",
         "nac breda":              "nac breda",
-        "nac":                    "nac breda",
         # Brazilian Série A clubs
         "flamengo":               "flamengo",
         "cr flamengo":            "flamengo",
@@ -19492,7 +21881,6 @@ _TEAM_SYNONYMS = {
         "ec vitória":             "vitoria bahia",
         "juventude":              "juventude",
         "ec juventude":           "juventude",
-        "juv":                    "juventude",
         "criciuma":               "criciuma",
         "criciúma":               "criciuma",
         "criciuma ec":            "criciuma",
@@ -19519,7 +21907,6 @@ _TEAM_SYNONYMS = {
         "boca juniors":           "boca juniors",
         "ca boca juniors":        "boca juniors",
         "boca":                   "boca juniors",
-        "boc":                    "boca juniors",
         "racing club":            "racing club",
         "racing club de avellaneda": "racing club",
         "racing":                 "racing club",
@@ -19555,7 +21942,6 @@ _TEAM_SYNONYMS = {
         "tal":                    "talleres",
         "belgrano":               "belgrano",
         "ca belgrano":            "belgrano",
-        "bel":                    "belgrano",
         "instituto":              "instituto",
         "instituto ac cordoba":   "instituto",
         "instituto ac córdoba":   "instituto",
@@ -19590,7 +21976,6 @@ _TEAM_SYNONYMS = {
         "ca tigre":               "tigre",
         "tig":                    "tigre",
         "barracas central":       "barracas central",
-        "bar":                    "barracas central",
         "central cordoba":        "central cordoba",
         "central córdoba":        "central cordoba",
         "cco":                    "central cordoba",
@@ -20727,7 +23112,7 @@ TEAM_TRANSLATIONS_AR = {
     "Andorra": u"أندورا",
     "Angola": u"أنغولا",
     "Anguilla": u"أنغويلا",
-    "Antigua and Barbuda": u"أنتيجوا وباربودا",
+    "Antigua and Barbuda": u"أنتيغوا وبربودا",
     "Argentina": u"الأرجنتين",
     "Armenia": u"أرمينيا",
     "Aruba": u"أروبا",
@@ -20821,7 +23206,7 @@ TEAM_TRANSLATIONS_AR = {
     "Indonesia": u"إندونيسيا",
     "Iran": u"إيران",
     "Iraq": u"العراق",
-    "Ireland": u"أيرلندا",
+    "Ireland": u"جمهورية أيرلندا",
     "Israel": u"إسرائيل",
     "Italy": u"إيطاليا",
     "Ivory Coast": u"ساحل العاج",
@@ -20899,7 +23284,7 @@ TEAM_TRANSLATIONS_AR = {
     "Rwanda": u"رواندا",
     "Saint Kitts and Nevis": u"سانت كيتس ونيفيس",
     "Saint Lucia": u"سانت لوسيا",
-    "Saint Vincent and the Grenadines": u"سانت فينسنت والغرينادين",
+    "Saint Vincent and the Grenadines": u"سانت فنسنت والغرينادين",
     "Samoa": u"ساموا",
     "San Marino": u"سان مارينو",
     "Sao Tome and Principe": u"ساو تومي وبرينسيب",
@@ -21412,14 +23797,14 @@ TEAM_TRANSLATIONS_AR = {
     "Rodez AF": u"روديز",
     "Pau": u"باو",
     "Pau FC": u"باو",
-    "Laval": u"لافال",
+    "Laval": u"ستاد لافال",
     "Stade Lavallois": u"لافال",
     "Dunkerque": u"دونكيرك",
     "USL Dunkerque": u"دونكيرك",
     "Amiens": u"أميان",
     "Amiens SC": u"أميان",
     "Red Star": u"رد ستار",
-    "Red Star FC": u"رد ستار",
+    "Red Star FC": u"رد ستار الفرنسي",
     "Martigues": u"مارتيغ",
     "FC Martigues": u"مارتيغ",
     "Annecy": u"آنسي",
@@ -21905,8 +24290,8 @@ TEAM_TRANSLATIONS_AR = {
     "CA River Plate": u"ريفر بليت",
     "Boca Juniors": u"بوكا جونيورز",
     "CA Boca Juniors": u"بوكا جونيورز",
-    "Racing Club": u"راسينغ كلوب",
-    "Racing Club de Avellaneda": u"راسينغ كلوب",
+    "Racing Club": u"راسينغ كلوب الأرجنتيني",
+    "Racing Club de Avellaneda": u"راسينغ كلوب الأرجنتيني",
     "Independiente": u"إنديبندينتي",
     "CA Independiente": u"إنديبندينتي",
     "San Lorenzo": u"سان لورينزو",
@@ -22202,7 +24587,7 @@ TEAM_TRANSLATIONS_AR = {
     "Urawa Red Diamonds": u"أوراوا ريد دياموندز",
     "Urawa Reds": u"أوراوا ريد دياموندز",
     "Sanfrecce Hiroshima": u"سانفريس هيروشيما",
-    "Kashima Antlers": u"كاشيما أنتلرز",
+    "Kashima Antlers": u"كاشيما أنتليز",
     "Nagoya Grampus": u"ناغويا غرامبوس",
     "Cerezo Osaka": u"سيريزو أوساكا",
     "Gamba Osaka": u"غامبا أوساكا",
@@ -22213,12 +24598,12 @@ TEAM_TRANSLATIONS_AR = {
     "Kashiwa Reysol": u"كاشيوا ريسول",
     "Albirex Niigata": u"ألبيريكس نيغاتا",
     "Kyoto Sanga": u"كيوتو سانغا",
-    "Shonan Bellmare": u"شونان بلمار",
+    "Shonan Bellmare": u"شونان بيلمار",
     "Júbilo Iwata": u"جوبيلو إيواتا",
     "Jubilo Iwata": u"جوبيلو إيواتا",
     "Sagan Tosu": u"ساغان توسو",
     "Consadole Sapporo": u"كونسادول سابورو",
-    "Shimizu S-Pulse": u"شيميزو إس بولس",
+    "Shimizu S-Pulse": u"شيميزو إس-بولس",
     "Yokohama FC": u"يوكوهاما إف سي",
     "Ventforet Kofu": u"فينتفورت كوفو",
     # South Korea K League 1
@@ -22589,7 +24974,7 @@ TEAM_TRANSLATIONS_AR = {
     "Sol de América": u"سول دي أمريكا",
     "Sol de America": u"سول دي أمريكا",
     "Tacuary": u"تاكواري",
-    "Sportivo Ameliano": u"سبورتيفو أميليانو",
+    "Sportivo Ameliano": u"سبورتيفو أمليانو",
     "2 de Mayo": u"دو دي مايو",
     "Sportivo Trinidense": u"سبورتيفو ترينيدينسي",
     # Peru
@@ -22797,8 +25182,8 @@ TEAM_TRANSLATIONS_AR = {
     "TSV Hartberg": u"هارتبرغ",
     "Austria Klagenfurt": u"أوستريا كلاغنفورت",
     # Switzerland
-    "BSC Young Boys": u"يونغ بويز",
-    "Young Boys": u"يونغ بويز",
+    "BSC Young Boys": u"يانغ بويز",
+    "Young Boys": u"يانغ بويز",
     "FC Basel": u"بازل",
     "Basel": u"بازل",
     "FC Zürich": u"زيورخ",
@@ -22810,8 +25195,8 @@ TEAM_TRANSLATIONS_AR = {
     "Lugano": u"لوغانو",
     "FC St. Gallen": u"سانت غالن",
     "St. Gallen": u"سانت غالن",
-    "FC Luzern": u"لوتسيرن",
-    "Luzern": u"لوتسيرن",
+    "FC Luzern": u"لوزيرن",
+    "Luzern": u"لوزيرن",
     "Grasshopper Club Zürich": u"غراسهوبرز",
     "Grasshoppers": u"غراسهوبرز",
     "FC Sion": u"سيون",
@@ -22881,7 +25266,7 @@ TEAM_TRANSLATIONS_AR = {
     "HNK Hajduk Split": u"هايدوك سبليت",
     "HNK Rijeka": u"رييكا",
     "Rijeka": u"رييكا",
-    "NK Osijek": u"أوسيك",
+    "NK Osijek": u"أوسييك",
     "Red Star Belgrade": u"النجم الأحمر بلغراد",
     "Crvena Zvezda": u"النجم الأحمر بلغراد",
     "Partizan": u"بارتيزان بلغراد",
@@ -22919,14 +25304,14 @@ TEAM_TRANSLATIONS_AR = {
     "Jagiellonia Białystok": u"ياغيلونيا بياويستوك",
     "Jagiellonia Bialystok": u"ياغيلونيا بياويستوك",
     "Jagiellonia": u"ياغيلونيا بياويستوك",
-    "Raków Częstochowa": u"راكوف تشيستوخوفا",
-    "Rakow Czestochowa": u"راكوف تشيستوخوفا",
+    "Raków Częstochowa": u"راكوف تشانستوخوفا",
+    "Rakow Czestochowa": u"راكوف تشانستوخوفا",
     "Raków": u"راكوف تشيستوخوفا",
     "Rakow": u"راكوف تشيستوخوفا",
     "Pogoń Szczecin": u"بوغون شتتين",
     "Pogon Szczecin": u"بوغون شتتين",
-    "Śląsk Wrocław": u"شلوسك فروتسواف",
-    "Slask Wroclaw": u"شلوسك فروتسواف",
+    "Śląsk Wrocław": u"شلاونسك فروتسواف",
+    "Slask Wroclaw": u"شلاونسك فروتسواف",
     "Wisła Kraków": u"فيسوا كراكوف",
     "Wisla Krakow": u"فيسوا كراكوف",
     "Górnik Zabrze": u"غورنيك زابجه",
@@ -22939,17 +25324,17 @@ TEAM_TRANSLATIONS_AR = {
     "Paksi FC": u"باكسي",
     "Debreceni VSC": u"ديبريتسين",
     "Újpest": u"أويبشت",
-    "FCSB": u"إف سي إف بي (ستيوا بوخارست)",
+    "FCSB": u"ستيوا بوخارست (FCSB)",
     "Steaua București": u"إف سي إف بي (ستيوا بوخارست)",
     "Steaua Bucharest": u"إف سي إف بي (ستيوا بوخارست)",
     "CFR Cluj": u"سي إف آر كلوج",
     "Cluj": u"سي إف آر كلوج",
-    "Universitatea Craiova": u"جامعة كرايوفا",
+    "Universitatea Craiova": u"يونيفيرسيتاتيا كرايوفا",
     "Rapid București": u"رابيد بوخارست",
     "Rapid Bucharest": u"رابيد بوخارست",
     "Farul Constanța": u"فارول كونستانتسا",
     "Dinamo București": u"دينامو بوخارست",
-    "Sepsi OSK": u"سبسي",
+    "Sepsi OSK": u"سيبسي",
     "Ludogorets": u"لودوغوريتس رازغراد",
     "Ludogorets Razgrad": u"لودوغوريتس رازغراد",
     "PFC Ludogorets": u"لودوغوريتس رازغراد",
@@ -22989,28 +25374,28 @@ TEAM_TRANSLATIONS_AR = {
     "Malmo FF": u"مالمو",
     "Malmö": u"مالمو",
     "Malmo": u"مالمو",
-    "Djurgårdens IF": u"يورغوردين",
+    "Djurgårdens IF": u"يورغوردينس",
     "Djurgarden IF": u"يورغوردين",
     "Djurgården": u"يورغوردين",
-    "Djurgarden": u"يورغوردين",
-    "AIK": u"أيك سولنا",
-    "AIK Stockholm": u"أيك سولنا",
-    "BK Häcken": u"هكن",
-    "BK Hacken": u"هكن",
-    "Häcken": u"هكن",
-    "Hacken": u"هكن",
+    "Djurgarden": u"يورغوردينس",
+    "AIK": u"أيك ستوكهولم",
+    "AIK Stockholm": u"أيك ستوكهولم",
+    "BK Häcken": u"هاكن",
+    "BK Hacken": u"هاكن",
+    "Häcken": u"هاكن",
+    "Hacken": u"هاكن",
     "IF Elfsborg": u"إلفسبورغ",
     "Elfsborg": u"إلفسبورغ",
-    "IFK Göteborg": u"غوتبورغ",
-    "IFK Goteborg": u"غوتبورغ",
+    "IFK Göteborg": u"غوتنبرغ",
+    "IFK Goteborg": u"غوتنبرغ",
     "Hammarby IF": u"هاماربي",
     "Hammarby": u"هاماربي",
-    "FK Bodø/Glimt": u"بودو/غليمت",
+    "FK Bodø/Glimt": u"بودو غليمت",
     "FK Bodo/Glimt": u"بودو/غليمت",
     "Bodø/Glimt": u"بودو/غليمت",
-    "Bodo/Glimt": u"بودو/غليمت",
+    "Bodo/Glimt": u"بودو غليمت",
     "Bodø Glimt": u"بودو/غليمت",
-    "Bodo Glimt": u"بودو/غليمت",
+    "Bodo Glimt": u"بودو غليمت",
     "Molde FK": u"مولده",
     "Molde": u"مولده",
     "Rosenborg BK": u"روزنبورغ",
@@ -23023,7 +25408,7 @@ TEAM_TRANSLATIONS_AR = {
     "Vålerenga": u"فاليرينغا",
     "HJK Helsinki": u"هلسنكي",
     "HJK": u"هلسنكي",
-    "KuPS": u"كوبس كوبيو",
+    "KuPS": u"كوبس",
     "FC Flora": u"فلورا تالين",
     "FCI Levadia": u"ليفاديا تالين",
     "Žalgiris": u"زالغيريس فيلنيوس",
@@ -23110,17 +25495,14 @@ TEAM_TRANSLATIONS_AR = {
     "Cerezo Osaka": u"سيريزو أوساكا",
     "Nagoya Grampus": u"ناغويا غرامبوس",
     "Sanfrecce Hiroshima": u"سانفريس هيروشيما",
-    "Kashima Antlers": u"كاشيما أنتليز",
     "Vissel Kobe": u"فيسيل كوبه",
     "Machida Zelvia": u"ماتشيدا زيلفيا",
     "Tokyo Verdy": u"طوكيو فيردي",
-    "Shimizu S-Pulse": u"شيميزو إس-بولس",
     "Júbilo Iwata": u"جوبيلو إيواتا",
     "Jubilo Iwata": u"جوبيلو إيواتا",
     "Albirex Niigata": u"ألبيريكس نيغاتا",
     "Kyoto Sanga": u"كيوتو سانغا",
     "Sagan Tosu": u"ساغان توسو",
-    "Shonan Bellmare": u"شونان بيلمار",
     "Montedio Yamagata": u"مونتيديو ياماغاتا",
     "Ventforet Kofu": u"فينتفورت كوفو",
     "Vegalta Sendai": u"فيغالتا سينداي",
@@ -23138,22 +25520,14 @@ TEAM_TRANSLATIONS_AR = {
     "Kagoshima United": u"كاغوشيما يونايتد",
     "Iwaki FC": u"إيواكي",
     # Swedish Allsvenskan & Superettan
-    "BK Häcken": u"هاكن",
-    "Häcken": u"هاكن",
-    "Hacken": u"هاكن",
     "Malmö FF": u"مالمو",
     "Malmo FF": u"مالمو",
-    "AIK": u"أيك سولنا",
     "AIK Fotboll": u"أيك سولنا",
-    "Djurgårdens IF": u"يورغوردينس",
     "Djurgardens IF": u"يورغوردينس",
-    "Djurgarden": u"يورغوردينس",
     "Hammarby IF": u"هاماربي",
     "Hammarby": u"هاماربي",
     "IF Elfsborg": u"إلفسبورغ",
     "Elfsborg": u"إلفسبورغ",
-    "IFK Göteborg": u"غوتبورغ",
-    "IFK Goteborg": u"غوتبورغ",
     "IFK Norrköping": u"نوركوبينغ",
     "IFK Norrkoping": u"نوركوبينغ",
     "Mjällby AIF": u"ميالمبي",
@@ -23180,13 +25554,10 @@ TEAM_TRANSLATIONS_AR = {
     "Orgryte IS": u"أورغريته",
     # Norwegian Eliteserien
     "Bodø/Glimt": u"بودو/غليمت",
-    "Bodo/Glimt": u"بودو/غليمت",
     "Brann": u"بران",
     "SK Brann": u"بران",
     "Molde": u"مولده",
     "Molde FK": u"مولده",
-    "Rosenborg": u"روزنبرغ",
-    "Rosenborg BK": u"روزنبرغ",
     "Viking": u"فايكنغ",
     "Viking FK": u"فايكنغ",
     "Tromsø": u"ترومسو",
@@ -23214,20 +25585,18 @@ TEAM_TRANSLATIONS_AR = {
     "FC Nordsjælland": u"نوردشيلاند",
     "FC Nordsjaelland": u"نوردشيلاند",
     "Nordsjælland": u"نوردشيلاند",
-    "Randers FC": u"راندرس",
+    "Randers FC": u"راندرز",
     "Silkeborg IF": u"سيلكيبورغ",
     "Viborg FF": u"فيبورغ",
     "Lyngby": u"لينغبي",
     "Lyngby BK": u"لينغبي",
     "Vejle": u"فايله",
     "Vejle Boldklub": u"فايله",
-    "AaB": u"أولبورغ",
+    "AaB": u"ألبورغ",
     "Aalborg": u"أولبورغ",
-    "Sønderjyske": u"سوندرجيسكه",
-    "Sonderjyske": u"سوندرجيسكه",
+    "Sønderjyske": u"سوندرييسكه",
+    "Sonderjyske": u"سوندرييسكه",
     # Swiss Super League
-    "Young Boys": u"يانغ بويز",
-    "BSC Young Boys": u"يانغ بويز",
     "FC Basel": u"بازل",
     "Basel": u"بازل",
     "FC Zürich": u"زيورخ",
@@ -23242,14 +25611,10 @@ TEAM_TRANSLATIONS_AR = {
     # Polish Ekstraklasa
     "Jagiellonia Białystok": u"ياغيلونيا بياويستوك",
     "Jagiellonia Bialystok": u"ياغيلونيا بياويستوك",
-    "Śląsk Wrocław": u"شلاونسك فروتسواف",
-    "Slask Wroclaw": u"شلاونسك فروتسواف",
     "Legia Warsaw": u"ليغيا وارسو",
     "Legia Warszawa": u"ليغيا وارسو",
     "Lech Poznań": u"ليخ بوزنان",
     "Lech Poznan": u"ليخ بوزنان",
-    "Raków Częstochowa": u"راكوف تشانستوخوفا",
-    "Rakow Czestochowa": u"راكوف تشانستوخوفا",
     "Pogoń Szczecin": u"بوغون شتتين",
     "Pogon Szczecin": u"بوغون شتتين",
     "Górnik Zabrze": u"غورنيك زابجه",
@@ -23269,14 +25634,11 @@ TEAM_TRANSLATIONS_AR = {
     "Lechia Gdansk": u"ليخيا غدانسك",
     "GKS Katowice": u"جي كيه إس كاتوفيتسه",
     # Romanian SuperLiga
-    "FCSB": u"ستيوا بوخارست (FCSB)",
     "CFR Cluj": u"سي إف آر كلوج",
     "Rapid București": u"رابيد بوخارست",
     "Rapid Bucuresti": u"رابيد بوخارست",
-    "Universitatea Craiova": u"يونيفيرسيتاتيا كرايوفا",
     "Farul Constanța": u"فارول كونستانتسا",
     "Farul Constanta": u"فارول كونستانتسا",
-    "Sepsi OSK": u"سيبسي",
     "Dinamo București": u"دينامو بوخارست",
     "Dinamo Bucuresti": u"دينامو بوخارست",
     "Oțelul Galați": u"أوتسيلول غالاتسي",
@@ -23303,7 +25665,6 @@ TEAM_TRANSLATIONS_AR = {
     "Hajduk Split": u"هايدوك سبليت",
     "HNK Rijeka": u"رييكا",
     "Rijeka": u"رييكا",
-    "NK Osijek": u"أوسييك",
     "Osijek": u"أوسييك",
     "Lokomotiva Zagreb": u"لوكوموتيفا زغرب",
     "NK Varaždin": u"فاراجدين",
@@ -23369,7 +25730,7 @@ TEAM_TRANSLATIONS_AR = {
     "Petrocub Hîncești": u"بيتروكوب هينسشتي",
     "Petrocub": u"بيتروكوب هينسشتي",
     "Dinamo Batumi": u"دينامو باتومي",
-    "Dinamo Tbilisi": u"دينامو تبيليسي",
+    "Dinamo Tbilisi": u"دينامو تبليسي",
     "Torpedo Kutaisi": u"توربيدو كوتايسي",
     "Iberia 1999": u"إيبيريا 1999",
     "Pyunik Yerevan": u"بيونيك يريفان",
@@ -23510,7 +25871,6 @@ TEAM_TRANSLATIONS_AR = {
     "Congo DR": u"جمهورية الكونغو الديمقراطية",
     "Democratic Republic of the Congo": u"جمهورية الكونغو الديمقراطية",
     "Republic of Ireland": u"جمهورية أيرلندا",
-    "Ireland": u"جمهورية أيرلندا",
     "North Korea": u"كوريا الشمالية",
     "Korea DPR": u"كوريا الشمالية",
     "South Korea": u"كوريا الجنوبية",
@@ -23525,7 +25885,6 @@ TEAM_TRANSLATIONS_AR = {
     "FYR Macedonia": u"مقدونيا الشمالية",
     "Trinidad and Tobago": u"ترينيداد وتوباغو",
     "Saint Kitts and Nevis": u"سانت كيتس ونيفيس",
-    "Antigua and Barbuda": u"أنتيغوا وبربودا",
     # ── Belgian Pro League & Challenger Pro League ───────────────────────────
     "Club Brugge": u"كلوب بروج",
     "Club Brugge KV": u"كلوب بروج",
@@ -23559,7 +25918,7 @@ TEAM_TRANSLATIONS_AR = {
     "Westerlo": u"فيسترلو",
     "KVC Westerlo": u"فيسترلو",
     "Sporting Charleroi": u"سبورتينغ شارلروا",
-    "Charleroi": u"سبورتينغ شارلروا",
+    "Charleroi": u"شارلروا",
     "R. Charleroi SC": u"سبورتينغ شارلروا",
     "Kortrijk": u"كورتريك",
     "KV Kortrijk": u"كورتريك",
@@ -23662,7 +26021,7 @@ TEAM_TRANSLATIONS_AR = {
     "Cove Rangers": u"كوف رينجرز",
     "Montrose": u"مونتروز",
     "Kelty Hearts": u"كيلتي هارتس",
-    "Stenhousemuir": u"ستينهاوسموير",
+    "Stenhousemuir": u"ستينهاوسمور",
     "Peterhead": u"بيترهيد",
     "East Fife": u"إيست فايف",
     "Stirling Albion": u"ستيرلينغ ألبيون",
@@ -23675,7 +26034,6 @@ TEAM_TRANSLATIONS_AR = {
     "Inter Turku": u"إنتر توركو",
     "HJK Helsinki": u"هلسنكي",
     "HJK": u"هلسنكي",
-    "KuPS": u"كوبس",
     "KuPS Kuopio": u"كوبس",
     "SJK Seinäjoki": u"إس جيه كيه",
     "SJK": u"إس جيه كيه",
@@ -23702,28 +26060,14 @@ TEAM_TRANSLATIONS_AR = {
     "Jaro": u"يارو",
     "Malmö FF": u"مالمو",
     "Malmo FF": u"مالمو",
-    "AIK": u"أيك ستوكهولم",
-    "AIK Stockholm": u"أيك ستوكهولم",
-    "Djurgårdens IF": u"يورغوردينس",
-    "Djurgarden": u"يورغوردينس",
     "Hammarby IF": u"هاماربي",
     "Hammarby": u"هاماربي",
-    "IFK Göteborg": u"غوتنبرغ",
-    "IFK Goteborg": u"غوتنبرغ",
     "IFK Norrköping": u"نوركوبينغ",
     "IFK Norrkoping": u"نوركوبينغ",
-    "BK Häcken": u"هاكن",
-    "BK Hacken": u"هاكن",
-    "Hacken": u"هاكن",
     "IF Elfsborg": u"إلفسبورغ",
     "Elfsborg": u"إلفسبورغ",
-    "FK Bodø/Glimt": u"بودو غليمت",
-    "Bodo/Glimt": u"بودو غليمت",
-    "Bodo Glimt": u"بودو غليمت",
     "Molde FK": u"مولده",
     "Molde": u"مولده",
-    "Rosenborg BK": u"روزنبورغ",
-    "Rosenborg": u"روزنبورغ",
     "SK Brann": u"بران",
     "Brann": u"بران",
     "Viking FK": u"فايكنغ",
@@ -23742,10 +26086,8 @@ TEAM_TRANSLATIONS_AR = {
     "Aarhus GF": u"آرهوس",
     "AGF": u"آرهوس",
     "Aalborg BK": u"ألبورغ",
-    "AaB": u"ألبورغ",
     "Silkeborg IF": u"سيلكيبورغ",
     "Silkeborg": u"سيلكيبورغ",
-    "Randers FC": u"راندرز",
     "Randers": u"راندرز",
     "Viborg FF": u"فيبورغ",
     "Viborg": u"فيبورغ",
@@ -23755,8 +26097,6 @@ TEAM_TRANSLATIONS_AR = {
     "Vejle": u"فايله",
     "Lyngby BK": u"لينغبي",
     "Lyngby": u"لينغبي",
-    "Sønderjyske": u"سوندرييسكه",
-    "Sonderjyske": u"سوندرييسكه",
     # ── Andorran & Microstate Clubs ──────────────────────────────────────────
     "Inter Club d'Escaldes": u"إنتر ديسكالديس",
     "Inter Club d Escaldes": u"إنتر ديسكالديس",
@@ -23799,8 +26139,6 @@ TEAM_TRANSLATIONS_AR = {
     "Sporting San José": u"سبورتينغ سان خوسيه",
     "Sporting San Jose": u"سبورتينغ سان خوسيه",
     "Sporting FC": u"سبورتينغ سان خوسيه",
-    "Racing Club": u"راسينغ كلوب الأرجنتيني",
-    "Racing Club de Avellaneda": u"راسينغ كلوب الأرجنتيني",
     "Racing de Avellaneda": u"راسينغ كلوب الأرجنتيني",
     "Racing Santander": u"راسينغ سانتاندير",
     "Real Racing Club": u"راسينغ سانتاندير",
@@ -23836,7 +26174,6 @@ TEAM_TRANSLATIONS_AR = {
     "Dinamo Zagreb": u"دينامو زغرب",
     "Dynamo Kyiv": u"دينامو كييف",
     "Dynamo Moscow": u"دينامو موسكو",
-    "Dinamo Tbilisi": u"دينامو تبليسي",
     "Dinamo Batumi": u"دينامو باتومي",
     "Dinamo Minsk": u"دينامو مينسك",
     "Dinamo Brest": u"دينامو برست",
@@ -23855,11 +26192,8 @@ TEAM_TRANSLATIONS_AR = {
     "FK Partizani": u"بارتيزاني تيرانا",
     "Crvena Zvezda": u"النجم الأحمر بلغراد",
     "Red Star Belgrade": u"النجم الأحمر بلغراد",
-    "Red Star FC": u"رد ستار الفرنسي",
     "Red Star Paris": u"رد ستار الفرنسي",
     # ── Swiss & Austrian Bundesliga Clubs ────────────────────────────────────
-    "BSC Young Boys": u"يانغ بويز",
-    "Young Boys": u"يانغ بويز",
     "FC Basel": u"بازل",
     "Basel": u"بازل",
     "FC Zürich": u"زيورخ",
@@ -23873,8 +26207,6 @@ TEAM_TRANSLATIONS_AR = {
     "Lugano": u"لوغانو",
     "FC St. Gallen": u"سانت غالن",
     "St. Gallen": u"سانت غالن",
-    "FC Luzern": u"لوزيرن",
-    "Luzern": u"لوزيرن",
     "FC Sion": u"سيون",
     "Sion": u"سيون",
     "FC Winterthur": u"فينترتور",
@@ -24132,7 +26464,6 @@ TEAM_TRANSLATIONS_AR = {
     "Rodez Aveyron": u"روديز",
     "Rodez": u"روديز",
     "Stade Laval": u"ستاد لافال",
-    "Laval": u"ستاد لافال",
     "AS Le Gosier": u"لو غوزييه",
     "Arcachon": u"أركاشون",
     "Avranches": u"أفرانش",
@@ -24201,7 +26532,6 @@ TEAM_TRANSLATIONS_AR = {
     "Unión (Santa Fe)": u"يونيون دي سانتا في",
     "RAAL La Louvière": u"لا لوفيير",
     "Royal Charleroi SC": u"شارلروا",
-    "Charleroi": u"شارلروا",
     "Sint-Truidense": u"سينت ترويدن",
     "América": u"كلوب أمريكا",
     "CF América": u"كلوب أمريكا",
@@ -24242,7 +26572,6 @@ TEAM_TRANSLATIONS_AR = {
     "Sint Maarten": u"سينت مارتن",
     "St. Martin": u"سانت مارتن",
     "St. Vincent and the Grenadines": u"سانت فنسنت والغرينادين",
-    "Saint Vincent and the Grenadines": u"سانت فنسنت والغرينادين",
 
     # ── Scottish & European Clubs ──────────────────────────────────────────
     "Ayr": u"آير يونايتد",
@@ -24250,7 +26579,6 @@ TEAM_TRANSLATIONS_AR = {
     "Raith": u"ريث روفرز",
     "Raith Rovers": u"ريث روفرز",
     "Stenhousem'r": u"ستينهاوسمور",
-    "Stenhousemuir": u"ستينهاوسمور",
     "Spartans": u"سبارتانز",
     "Spartans FC": u"سبارتانز",
     "FK Gornji Rahic": u"غورنيي راهيتش",
@@ -24263,7 +26591,6 @@ TEAM_TRANSLATIONS_AR = {
 
     # ── South American & Mexican Clubs ────────────────────────────────────
     "Ameliano": u"سبورتيفو أمليانو",
-    "Sportivo Ameliano": u"سبورتيفو أمليانو",
     "Luqueño": u"سبورتيفو لوكينيو",
     "Sportivo Luqueño": u"سبورتيفو لوكينيو",
     "Pasto": u"ديبورتيفو باستو",
@@ -27876,6 +30203,407 @@ def get_all_services():
     return services_list
 
 
+# ==============================================================================
+# CHANNEL GUIDE: box EPG search, sports-channel ordering, team matching
+# ==============================================================================
+# Channel-name hints for sports channels (normalised, lower case)
+SPORTS_CHANNEL_HINTS = (
+    'sport', 'bein', 'ssc', 'dazn', 'espn', 'kass', 'arena', 'premier', 'laliga', 'liga', 'calcio',
+    'football', 'foot', 'futbol', 'fussball', 'soccer', 'goal', 'gol', 'match', 'setanta', 'canal+',
+    u'رياض', u'سبورت', u'الكاس',
+)
+# Broadcast window around kick-off: a programme counts when it is on air at some
+# point from 15 minutes before kick-off to an hour after it (the same span the
+# old per-channel probes covered: KO-15m, KO, KO+15m, KO+60m).
+BROADCAST_WINDOW_BEFORE_S = 15 * 60
+BROADCAST_WINDOW_AFTER_S = 60 * 60
+EPG_TITLE_SEARCH_MAX = 1000
+
+
+def _is_sports_channel(name):
+    n = (name or u'').lower()
+    return any(h in n for h in SPORTS_CHANNEL_HINTS)
+
+
+def _sports_channels_first(services):
+    """Bouquet services with sports-named channels first (original order kept
+    inside each group)."""
+    sports, rest = [], []
+    for s in services or []:
+        try:
+            (sports if _is_sports_channel(s[1]) else rest).append(s)
+        except Exception:
+            rest.append(s)
+    return sports + rest
+
+
+def _epg_dvb_key(sref_str):
+    """(SID, TSID, ONID, NAMESPACE) of a service reference, as lower-case hex
+    without leading zeros. IPTV references (4097:, 5001:, 5002:) that carry DVB ids
+    give the same key as the DVB channel whose EPG they use."""
+    parts = (sref_str or '').split(':')
+    if len(parts) < 7:
+        return None
+    try:
+        key = tuple(format(int(p or '0', 16), 'x') for p in parts[3:7])
+    except ValueError:
+        return None
+    return key if key[0] != '0' else None
+
+
+def epg_title_search(epg, term, max_results=EPG_TITLE_SEARCH_MAX, kind=None):
+    """The box's own EPG search (C++, all channels at once), by title unless another
+    search type is given: [(service_ref, event_id, begin, duration, title), ...].
+    Main thread only."""
+    if not epg or not term:
+        return []
+    if kind is None:
+        kind = getattr(eEPGCache, 'PARTIAL_TITLE_SEARCH', 2)
+    query = ('RIBDT', int(max_results), kind, term, getattr(eEPGCache, 'NO_CASE_CHECK', 1))
+    return epg.search(query) or []
+
+
+_EPG_SCORE_STOP_WORDS = ('al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs',
+                         'live', 'hd', 'fhd', '4k', 'uhd')
+
+
+def _score_broadcast(blob, h_words, a_words, l_words, evt_start, m_time):
+    """(valid, score, diff_minutes) for one programme: team / league words found in
+    its title, descriptions and channel name, plus closeness to kick-off. Same
+    scoring as the old per-channel search."""
+    def _sig_found(keywords):
+        sig = [w for w in keywords if w not in _EPG_SCORE_STOP_WORDS and len(w) > 1] or keywords
+        return sum(1 for w in sig if w in blob), len(sig)
+
+    h_found, h_total = _sig_found(h_words)
+    a_found, a_total = _sig_found(a_words) if a_words else (0, 0)
+    l_found, l_total = _sig_found(l_words)
+    h_ratio = h_found / float(h_total) if h_total else 0.0
+    a_ratio = a_found / float(a_total) if a_total else 0.0
+    l_ratio = l_found / float(l_total) if l_total else 0.0
+
+    score = h_ratio * 40 + a_ratio * 40 + l_ratio * 20
+    if h_ratio == 1.0: score += 10
+    if a_ratio == 1.0: score += 10
+    if h_ratio == 1.0 and (a_ratio == 1.0 or not a_words): score += 30
+    score += h_found + a_found + l_found
+
+    diff_min = abs(evt_start - m_time) / 60.0 if evt_start else 999
+    if diff_min <= 15: score += 20
+    elif diff_min <= 45: score += 10
+    elif diff_min <= 90: score += 5
+    elif diff_min > 120: score -= 15
+
+    valid = ((h_ratio == 1.0 and (a_ratio == 1.0 or not a_words))
+             or (h_ratio >= 0.5 and a_ratio >= 0.5)
+             or ((h_ratio == 1.0 or a_ratio == 1.0) and l_ratio >= 0.5))
+    return valid and score > 40, score, diff_min
+
+
+def _broadcast_row(sref_raw, ch_name, title, score, diff_min, evt_start, m_time):
+    """Channel-list entry (sref, name, display title, colour) as before."""
+    cat_color = 0x00FF00 if score >= 100 else (0xFFFF00 if score >= 80 else 0xffffff)
+    sat_pos = get_sat_position(sref_raw)
+    full_name = ch_name + ((" (" + sat_pos + ")") if sat_pos else "")
+    if diff_min < 1:
+        time_info = "T+0"
+    elif evt_start < m_time:
+        time_info = "T-%d" % int(diff_min)
+    else:
+        time_info = "T+%d" % int(diff_min)
+    return (sref_raw, full_name, "[%d|%s] %s" % (int(score), time_info, title), cat_color)
+
+
+def _epg_search_terms(home, away):
+    """Title-search terms: the two most distinctive words of each team, plus their
+    accent-free spelling when it differs (EPG titles often drop accents)."""
+    terms = []
+    for team in (home, away):
+        words = sorted(set(w for w in get_search_keywords(team) if len(w) > 2), key=len, reverse=True)[:2]
+        for w in words:
+            for t in (w, normalize_text(w)):
+                if t and t not in terms:
+                    terms.append(t)
+    return terms
+
+
+def epg_find_broadcasts(home, away, league, m_time, services, epg=None, max_results=200):
+    """Channels showing a match, from the box's own EPG.
+
+    One eEPGCache.search() title search per team keyword (fast C++ over every
+    channel, run on the main thread) replaces probing each bouquet channel from a
+    background thread, which was slow and called Enigma2's C++ objects off the
+    main thread. Hits are kept when they are on air around kick-off and the
+    channel is in the user's bouquets, then scored as before.
+    Returns [(sref, channel name, display title, colour)], best first."""
+    epg = epg or eEPGCache.getInstance()
+    if not epg or not services:
+        return []
+    by_key = {}
+    for s in services:
+        try:
+            key = _epg_dvb_key(s[0])
+        except Exception:
+            key = None
+        if key:
+            by_key.setdefault(key, []).append((s[0], s[1]))
+
+    terms = _epg_search_terms(home, away)
+    try:
+        found = [epg_title_search(epg, term) for term in terms]
+    except Exception as e:
+        log_dbg("EPG search: eEPGCache.search failed ({}), scanning sports channels".format(e))
+        return _epg_scan_broadcasts(epg, home, away, league, m_time, services, max_results)
+    # Many guides title a match "Live Premier League" and name the teams only in
+    # the description: search descriptions too where the image supports it.
+    desc_kind = getattr(eEPGCache, 'PARTIAL_DESCRIPTION_SEARCH', None)
+    if desc_kind is not None:
+        for term in terms:
+            try:
+                found.append(epg_title_search(epg, term, kind=desc_kind))
+            except Exception:
+                break
+
+    win_start = m_time - BROADCAST_WINDOW_BEFORE_S
+    win_end = m_time + BROADCAST_WINDOW_AFTER_S
+    hits = {}
+    for rows_for_term in found:
+        for row in rows_for_term:
+            try:
+                sref, eid, begin, duration, title = row[:5]
+                begin, duration = int(begin or 0), int(duration or 0)
+            except Exception:
+                continue
+            if not (begin < win_end and begin + duration > win_start):
+                continue        # a preview or replay on another day/time
+            key = _epg_dvb_key(sref)
+            if key in by_key:   # only channels in the user's bouquets can be zapped to
+                hits[(key, eid)] = (sref, eid, begin, title or u"")
+
+    h_words = [normalize_text(kw) for kw in get_search_keywords(home)]
+    a_words = [normalize_text(kw) for kw in get_search_keywords(away)]
+    l_words = [normalize_text(kw) for kw in get_search_keywords(league)]
+    rows, seen = [], set()
+    for (key, eid), (sref, _eid, begin, title) in hits.items():
+        desc = ext = u""
+        try:
+            evt = epg.lookupEventId(eServiceReference(sref), int(eid))
+            if evt:
+                desc = evt.getShortDescription() or u""
+                ext = evt.getExtendedDescription() or u""
+        except Exception:
+            pass
+        for sref_raw, ch_name in by_key[key]:
+            if sref_raw in seen:
+                continue
+            blob = normalize_text(title + u" " + desc + u" " + ext + u" " + ch_name)
+            valid, score, diff_min = _score_broadcast(blob, h_words, a_words, l_words, begin, m_time)
+            if valid:
+                seen.add(sref_raw)
+                rows.append((score, _broadcast_row(sref_raw, ch_name, title, score, diff_min, begin, m_time)))
+    rows.sort(key=lambda r: r[0], reverse=True)
+    return [r[1] for r in rows[:max_results]]
+
+
+def _epg_scan_broadcasts(epg, home, away, league, m_time, services, max_results=200, limit=600):
+    """Fallback for images without eEPGCache.search: probe the channels around
+    kick-off, sports-named channels first, on the main thread."""
+    h_words = [normalize_text(kw) for kw in get_search_keywords(home)]
+    a_words = [normalize_text(kw) for kw in get_search_keywords(away)]
+    l_words = [normalize_text(kw) for kw in get_search_keywords(league)]
+    rows, seen = [], set()
+    for sref_raw, ch_name in [(s[0], s[1]) for s in _sports_channels_first(services)][:limit]:
+        if sref_raw in seen:
+            continue
+        try:
+            ref = eServiceReference(sref_raw)
+            evt = None
+            for off in (900, 0, 3600, -900):
+                evt = epg.lookupEventTime(ref, m_time + off)
+                if evt:
+                    break
+            if not evt:
+                continue
+            title = evt.getEventName() or u""
+            blob = normalize_text(title + u" " + (evt.getShortDescription() or u"") + u" " +
+                                  (evt.getExtendedDescription() or u"") + u" " + ch_name)
+            begin = evt.getBeginTime()
+            valid, score, diff_min = _score_broadcast(blob, h_words, a_words, l_words, begin, m_time)
+            if valid:
+                seen.add(sref_raw)
+                rows.append((score, _broadcast_row(sref_raw, ch_name, title, score, diff_min, begin, m_time)))
+        except Exception:
+            continue
+    rows.sort(key=lambda r: r[0], reverse=True)
+    return [r[1] for r in rows[:max_results]]
+
+
+# ---- Team matching for XMLTV programmes ----------------------------------------
+# Common short forms in guide titles, expanded before matching
+_GUIDE_TEXT_ALIASES = (
+    (u'man utd', u'manchester united'), (u'man united', u'manchester united'),
+    (u'man city', u'manchester city'), (u'psg', u'paris saint germain'),
+    (u'wolves', u'wolverhampton'), (u'atleti', u'atletico madrid'),
+)
+# Words that tell clubs of the same city apart: a programme naming the rival's
+# word (and not the team's own) is about the other club.
+_TEAM_QUALIFIER_RIVALS = {
+    u'united': (u'city',), u'utd': (u'city',), u'city': (u'united', u'utd'),
+    u'real': (u'atletico',), u'atletico': (u'real',),
+    u'inter': (u'ac',), u'ac': (u'inter',),
+}
+
+
+def guide_text_words(text):
+    """Normalised word set of a programme's text, with common short forms expanded."""
+    t = u' ' + normalize_text(text) + u' '
+    for short, full in _GUIDE_TEXT_ALIASES:
+        t = t.replace(u' ' + short + u' ', u' ' + full + u' ')
+    return set(t.split())
+
+
+def team_mentioned(team_name, words):
+    """True when a programme (its normalised word set) names this team: whole words
+    only (so 'inter' doesn't match 'international'), its most distinctive word must
+    be there (so 'Borussia' alone isn't Dortmund), and a same-city rival's word
+    without the team's own rules it out (so 'Manchester City' isn't United)."""
+    if not team_name:
+        return True
+    name_words = normalize_text(team_name).split()
+    sig = [normalize_text(w) for w in get_search_keywords(team_name)]
+    sig = [w for w in sig if w]
+    if not sig:
+        return False
+    if not any(w in words for w in sig):
+        return False
+    if not all(w in words for w in sig):
+        # longest word, the later one on a tie ("Borussia Dortmund" -> "dortmund")
+        key_word = max(enumerate(sig), key=lambda iw: (len(iw[1]), iw[0]))[1]
+        if key_word not in words:
+            return False
+    own = [q for q in name_words if q in _TEAM_QUALIFIER_RIVALS]
+    for q in own:
+        mates = (q,) + ((u'utd',) if q == u'united' else ((u'united',) if q == u'utd' else ()))
+        if not any(m in words for m in mates) and any(r in words for r in _TEAM_QUALIFIER_RIVALS[q]):
+            return False
+    return True
+
+
+def _xmltv_time_to_epoch(value):
+    """XMLTV time ('20260331220000 +0300', offset optional = UTC) -> epoch, 0 if bad."""
+    try:
+        s = (value or '').strip()
+        base = s[:14]
+        if len(base) < 12 or not base.isdigit():
+            return 0
+        sec = int(base[12:14]) if len(base) >= 14 else 0
+        off = 0
+        rest = s[len(base):].strip()
+        if len(rest) >= 5 and rest[0] in '+-' and rest[1:5].isdigit():
+            off = (int(rest[1:3]) * 3600 + int(rest[3:5]) * 60) * (1 if rest[0] == '+' else -1)
+        return calendar.timegm((int(base[0:4]), int(base[4:6]), int(base[6:8]),
+                                int(base[8:10]), int(base[10:12]), sec, 0, 0, 0)) - off
+    except Exception:
+        return 0
+
+
+# ---- XMLTV guide download -------------------------------------------------------
+XMLTV_CACHE_NAME = "simplysports_xmltv.xml.gz"
+XMLTV_CACHE_MAX_AGE_S = 12 * 3600       # the guide is regenerated daily
+XMLTV_DOWNLOAD_MAX_S = 15 * 60          # give up on a transfer still crawling after this
+XMLTV_PARSE_MAX_S = 6 * 60              # stop reading a guide after this (results so far are kept)
+
+
+def _free_bytes(directory):
+    try:
+        st = os.statvfs(directory)
+        return st.f_bavail * st.f_frsize
+    except Exception:
+        return 0
+
+
+def _xmltv_cache_path():
+    """Where to keep the guide: a mounted HDD/USB/SD card if there is one (kept for
+    12 h), else /tmp (RAM on most boxes: the copy is deleted after each search)."""
+    for d in ('/media/hdd', '/media/usb', '/media/mmc', '/media/sdcard'):
+        try:
+            real = os.path.realpath(d)
+            if os.path.ismount(real) and os.access(real, os.W_OK):
+                return os.path.join(real, XMLTV_CACHE_NAME)
+        except Exception:
+            pass
+    return os.path.join('/tmp', XMLTV_CACHE_NAME)
+
+
+def xmltv_local_copy(url, progress=None, cancelled=None):
+    """Local gzip copy of an online XMLTV guide. Downloads the .gz variant (about a
+    tenth of the size), streamed to disk with a per-read timeout, so a slow but
+    moving transfer completes instead of being cut at 45 s. A copy younger than
+    12 h is reused, and an older one is refreshed only when the server has a newer
+    file. Returns the path, or None when no copy can be stored (no space, or the
+    download failed with no older copy) - the caller then streams instead."""
+    try:
+        from urllib.error import HTTPError
+        from email.utils import formatdate
+    except ImportError:
+        from urllib2 import HTTPError
+        from email.Utils import formatdate
+    gz_url = url + '.gz' if url.endswith('.xml') else url
+    path = _xmltv_cache_path()
+    if os.path.exists(path) and time.time() - os.path.getmtime(path) < XMLTV_CACHE_MAX_AGE_S:
+        return path
+    part = path + '.part'
+    started = time.time()
+    try:
+        req = Request(gz_url, headers={'User-Agent': 'Mozilla/5.0'})
+        if os.path.exists(path):
+            req.add_header('If-Modified-Since', formatdate(os.path.getmtime(path), usegmt=True))
+        try:
+            resp = urlopen(req, timeout=EPG_SEARCH_TIMEOUT)
+        except HTTPError as e:
+            if e.code == 304 and os.path.exists(path):
+                os.utime(path, None)
+                return path
+            raise
+        try:
+            total = int(resp.headers.get('Content-Length') or 0)
+        except Exception:
+            total = 0
+        if total and _free_bytes(os.path.dirname(path)) < total + 16 * 1024 * 1024:
+            log_dbg("XMLTV: not enough space for a {:.0f} MB copy, streaming".format(total / 1048576.0))
+            resp.close()
+            return None
+        got = 0
+        with open(part, 'wb') as f:
+            while True:
+                if cancelled and cancelled():
+                    raise IOError("cancelled")
+                if time.time() - started > XMLTV_DOWNLOAD_MAX_S:
+                    raise IOError("download still running after {} s".format(XMLTV_DOWNLOAD_MAX_S))
+                chunk = resp.read(65536)
+                if not chunk:
+                    break
+                f.write(chunk)
+                got += len(chunk)
+                if progress:
+                    progress(got, total)
+        resp.close()
+        if total and got < total:
+            raise IOError("incomplete download ({} of {} bytes)".format(got, total))
+        os.replace(part, path)
+        return path
+    except Exception as e:
+        log_dbg("XMLTV download failed: {}".format(e))
+        try:
+            os.remove(part)
+        except Exception:
+            pass
+        return path if os.path.exists(path) else None
+
+
+QUICK_SCAN_LIMIT = 400   # channel probes per quick lookup (sports-named channels come first)
+
+
 def _epg_quick_channel_for_match(home_name, away_name, league_name, kick_off_ts, services=None):
     """
     Fast synchronous EPG scan to find the best broadcasting channel name for a match.
@@ -27915,8 +30643,10 @@ def _epg_quick_channel_for_match(home_name, away_name, league_name, kick_off_ts,
         offsets    = [0, 900, -900, 3600]
         now        = int(_t.time())
 
-        # Cap scan at 300 channels to stay fast
-        for sref_raw, ch_name in services[:300]:
+        # Sports-named channels first, then the rest, up to QUICK_SCAN_LIMIT probes.
+        # (It used to scan the first 300 channels in bouquet order, so sports
+        # bouquets further down the list were never reached.)
+        for sref_raw, ch_name in [(sv[0], sv[1]) for sv in _sports_channels_first(services)][:QUICK_SCAN_LIMIT]:
             try:
                 sref_obj = eServiceReference(sref_raw)
                 evt = None
@@ -28092,6 +30822,7 @@ class LiveScoreCZScreen(Screen):
         self.last_key_time = 0
         global LAST_LIVESCORE_CZ_SPORT
         self.current_sport = LAST_LIVESCORE_CZ_SPORT
+        self.expanded_league = None
 
         self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
         self["list"].l.setFont(0, gFont("SimplySportFont", sf(26)))
@@ -28136,8 +30867,8 @@ class LiveScoreCZScreen(Screen):
 
         self["actions"] = ActionMap(["OkCancelActions", "DirectionActions", "EPGSelectActions", "EventViewActions", "InfobarBouquetActions", "NumberActions"],
             {
-                "cancel": self.close,
-                "ok": self.open_game_info,
+                "cancel": self.handle_cancel,
+                "ok": self.handle_ok,
                 "up": self["list"].up,
                 "down": self["list"].down,
                 "info": self.open_broadcasting,
@@ -28172,6 +30903,7 @@ class LiveScoreCZScreen(Screen):
         if self.current_sport != "soccer":
             self.current_sport = "soccer"
             LAST_LIVESCORE_CZ_SPORT = "soccer"
+            self.expanded_league = None
             self.is_initial_load = True
             self["list"].setList([])
             self["list_title"].setText(_t("Fetching data from livescore.cz..."))
@@ -28182,6 +30914,7 @@ class LiveScoreCZScreen(Screen):
         if self.current_sport != "basketball":
             self.current_sport = "basketball"
             LAST_LIVESCORE_CZ_SPORT = "basketball"
+            self.expanded_league = None
             self.is_initial_load = True
             self["list"].setList([])
             self["list_title"].setText(_t("Fetching data from livescore.cz..."))
@@ -28192,6 +30925,7 @@ class LiveScoreCZScreen(Screen):
         if self.current_sport != "volleyball":
             self.current_sport = "volleyball"
             LAST_LIVESCORE_CZ_SPORT = "volleyball"
+            self.expanded_league = None
             self.is_initial_load = True
             self["list"].setList([])
             self["list_title"].setText(_t("Fetching data from livescore.cz..."))
@@ -28333,12 +31067,13 @@ class LiveScoreCZScreen(Screen):
             rendered = [LiveScoreCZListEntry(dummy_entry, self.theme_mode)]
             self["list"].setList(rendered)
             self.raw_parsed_data = []
+            self.expanded_league = None
             return
 
         self.raw_parsed_data = parsed_data
         self.render_filtered_list()
 
-    def render_filtered_list(self):
+    def render_filtered_list(self, focus_league=None, focus_first_match=False):
         if self.current_sport == "basketball":
             sport_label = " - BASKETBALL"
         elif self.current_sport == "volleyball":
@@ -28353,6 +31088,7 @@ class LiveScoreCZScreen(Screen):
         if not self.raw_parsed_data:
             self["list"].setList([])
             return
+
         if self.day_offset == 0:
             today_str = datetime.date.today().strftime("%d/%m/%Y")
             day_label = _t("Today") + "  " + today_str
@@ -28367,44 +31103,146 @@ class LiveScoreCZScreen(Screen):
             else:
                 day_label = _t(day_name) + "  " + date_str
         self["list_title"].setText(day_label)
-        
-        filtered_entries = []
-        if self.show_only_live:
-            current_header = None
-            current_matches = []
-            
-            for entry in self.raw_parsed_data:
-                if entry["type"] == "header":
-                    if current_header and current_matches:
-                        filtered_entries.append(current_header)
-                        filtered_entries.extend(current_matches)
-                    current_header = entry
-                    current_matches = []
-                elif entry["type"] == "match":
-                    if entry.get("status") == "live":
-                        current_matches.append(entry)
-                        
-            if current_header and current_matches:
-                filtered_entries.append(current_header)
-                filtered_entries.extend(current_matches)
-        else:
-            filtered_entries = self.raw_parsed_data
 
+        # 1. Group raw_parsed_data into leagues: list of (header_dict, list_of_matches)
+        leagues = []
+        current_header = None
+        current_matches = []
+        for entry in self.raw_parsed_data:
+            if entry.get("type") == "header":
+                if current_header:
+                    leagues.append((current_header, current_matches))
+                current_header = entry
+                current_matches = []
+            elif entry.get("type") == "match":
+                current_matches.append(entry)
+        if current_header:
+            leagues.append((current_header, current_matches))
+
+        def _is_live(m):
+            st = m.get("status", "").lower()
+            if st == "live":
+                return True
+            time_lower = m.get("time", "").lower()
+            if ("live" in time_lower or "'" in time_lower or "min" in time_lower) and not ("ft" in time_lower or "fin" in time_lower):
+                return True
+            return False
+
+        filtered_leagues = []
+        for header, matches in leagues:
+            if self.show_only_live:
+                live_matches = [m for m in matches if _is_live(m)]
+                if live_matches:
+                    filtered_leagues.append((header, live_matches))
+            else:
+                filtered_leagues.append((header, matches))
+
+        pref = get_arena_view_preference()
+
+        # If expanded_league is no longer present in filtered_leagues, reset it
+        if self.expanded_league:
+            if not any(h.get("name") == self.expanded_league for h, _ in filtered_leagues):
+                self.expanded_league = None
+
+        # Build flat list of entries to render
+        entries_to_render = []
+        if pref == "heading_only":
+            for header, matches in filtered_leagues:
+                league_name = header.get("name", "")
+                is_expanded = (self.expanded_league == league_name)
+                h_entry = dict(header)
+                h_entry["is_heading_only"] = True
+                h_entry["is_expanded"] = is_expanded
+                h_entry["match_count"] = len(matches)
+                entries_to_render.append(h_entry)
+
+                if is_expanded:
+                    for m in matches:
+                        m_entry = dict(m)
+                        m_entry["league_name"] = league_name
+                        entries_to_render.append(m_entry)
+        else:
+            # Mode: with_matches (legacy view)
+            for header, matches in filtered_leagues:
+                league_name = header.get("name", "")
+                h_entry = dict(header)
+                h_entry["is_heading_only"] = False
+                h_entry["is_expanded"] = True
+                h_entry["match_count"] = len(matches)
+                entries_to_render.append(h_entry)
+
+                for m in matches:
+                    m_entry = dict(m)
+                    m_entry["league_name"] = league_name
+                    entries_to_render.append(m_entry)
+
+        # 2. Determine target cursor focus index
+        target_focus_idx = None
+        if focus_league is not None:
+            if focus_first_match:
+                for idx, entry in enumerate(entries_to_render):
+                    if entry.get("type") == "match" and entry.get("league_name") == focus_league:
+                        target_focus_idx = idx
+                        break
+                if target_focus_idx is None:
+                    for idx, entry in enumerate(entries_to_render):
+                        if entry.get("type") == "header" and entry.get("name") == focus_league:
+                            target_focus_idx = idx
+                            break
+            else:
+                for idx, entry in enumerate(entries_to_render):
+                    if entry.get("type") == "header" and entry.get("name") == focus_league:
+                        target_focus_idx = idx
+                        break
+        else:
+            # Try to preserve current selection
+            try:
+                curr_sel = self["list"].getCurrent()
+                if curr_sel and len(curr_sel) > 0 and curr_sel[0]:
+                    prev_entry = curr_sel[0]
+                    if prev_entry.get("type") == "match" and prev_entry.get("href"):
+                        target_href = prev_entry.get("href")
+                        for idx, entry in enumerate(entries_to_render):
+                            if entry.get("type") == "match" and entry.get("href") == target_href:
+                                target_focus_idx = idx
+                                break
+                    elif prev_entry.get("type") == "header":
+                        target_name = prev_entry.get("name")
+                        for idx, entry in enumerate(entries_to_render):
+                            if entry.get("type") == "header" and entry.get("name") == target_name:
+                                target_focus_idx = idx
+                                break
+                    if target_focus_idx is None and prev_entry.get("league_name"):
+                        target_league = prev_entry.get("league_name")
+                        for idx, entry in enumerate(entries_to_render):
+                            if entry.get("type") == "header" and entry.get("name") == target_league:
+                                target_focus_idx = idx
+                                break
+            except Exception:
+                pass
+
+        # 3. Create LiveScoreCZListEntry objects
         rendered = []
         match_count = 0
-        for entry in filtered_entries:
-            if entry["type"] == "match":
+        for entry in entries_to_render:
+            if entry.get("type") == "match":
                 entry["row_idx"] = match_count
                 match_count += 1
             rendered.append(LiveScoreCZListEntry(entry, self.theme_mode))
 
         self["list"].setList(rendered)
 
+        if target_focus_idx is not None and 0 <= target_focus_idx < len(rendered):
+            try:
+                self["list"].moveToIndex(target_focus_idx)
+            except Exception:
+                pass
+
         # Adaptive interval: only poll fast when there are actually live matches
         # visible right now. If all matches are scheduled/finished, there is nothing
         # to update, so fall back to the slow 120-second cadence to reduce requests.
         if self.show_only_live and self.day_offset == 0 and self.refresh_timer.isActive():
-            has_live = any(e.get("type") == "match" and e.get("status") == "live"
+            has_live = any(e.get("type") == "match" and _is_live(e)
                           for e in self.raw_parsed_data)
             new_interval = 60000 if has_live else 120000
             self.refresh_timer.stop()
@@ -28485,6 +31323,7 @@ class LiveScoreCZScreen(Screen):
         if self.day_offset >= 7:
             return
         self.day_offset += 1
+        self.expanded_league = None
         self["list"].setList([])
 
         # Live-filter is meaningless on any day other than today — reset it.
@@ -28512,6 +31351,7 @@ class LiveScoreCZScreen(Screen):
         if self.day_offset <= -7:
             return
         self.day_offset -= 1
+        self.expanded_league = None
         self["list"].setList([])
 
         # Live-filter is meaningless on any day other than today — reset it.
@@ -28538,6 +31378,46 @@ class LiveScoreCZScreen(Screen):
         if hasattr(self, "_toggle_fetch_timer"):
             self._toggle_fetch_timer.stop()
 
+    def handle_ok(self):
+        sel = self["list"].getCurrent()
+        if not sel or len(sel) < 1:
+            return
+        entry = sel[0]
+        if not entry:
+            return
+
+        pref = get_arena_view_preference()
+        entry_type = entry.get("type")
+
+        if pref == "heading_only":
+            if entry_type == "header":
+                league_name = entry.get("name", "")
+                if self.expanded_league == league_name:
+                    # Collapse current expanded league and keep focus on the header
+                    self.expanded_league = None
+                    self.render_filtered_list(focus_league=league_name, focus_first_match=False)
+                else:
+                    # Expand this league and place focus on the first match of that league
+                    self.expanded_league = league_name
+                    self.render_filtered_list(focus_league=league_name, focus_first_match=True)
+            elif entry_type == "match":
+                self.open_game_info()
+        else:
+            # Mode: with_matches (legacy view)
+            if entry_type == "match":
+                self.open_game_info()
+
+    def handle_cancel(self):
+        pref = get_arena_view_preference()
+        if pref == "heading_only" and self.expanded_league is not None:
+            # Collapse any open league and restore focus to its header
+            target_league = self.expanded_league
+            self.expanded_league = None
+            self.render_filtered_list(focus_league=target_league, focus_first_match=False)
+        else:
+            # No league is expanded (or in with_matches mode) -> exit screen
+            self.close()
+
     def open_game_info(self):
         sel = self["list"].getCurrent()
         if not sel or len(sel) < 1:
@@ -28554,24 +31434,53 @@ class LiveScoreCZScreen(Screen):
         if not sel or len(sel) < 1:
             return
         entry = sel[0]
-        if not entry or entry.get("type") != "match":
+        if not entry:
             return
-        if not entry.get("href"):
-            return
-            
-        league_name = ""
-        try:
-            idx = self["list"].getSelectedIndex()
-            curr_list = self["list"].list
-            for i in range(idx, -1, -1):
-                item = curr_list[i][0]
-                if item.get("type") == "header":
-                    league_name = item.get("name", "")
-                    break
-        except:
-            pass
 
-        self.session.openWithCallback(self.on_child_closed, LiveScoreCZTeamStandingScreen, entry.get("href"), league_name)
+        href = None
+        league_name = ""
+
+        if entry.get("type") == "header":
+            league_name = entry.get("name", "")
+            # Find the first match belonging to this league to get its href
+            found_header = False
+            for item in self.raw_parsed_data:
+                if item.get("type") == "header":
+                    if item.get("name") == league_name:
+                        found_header = True
+                        continue
+                    elif found_header:
+                        break
+                elif found_header and item.get("type") == "match" and item.get("href"):
+                    href = item.get("href")
+                    break
+        elif entry.get("type") == "match":
+            href = entry.get("href")
+            league_name = entry.get("league_name", "")
+            if not league_name:
+                try:
+                    idx = self["list"].getSelectedIndex()
+                    curr_list = self["list"].list
+                    for i in range(idx, -1, -1):
+                        item = curr_list[i][0]
+                        if item.get("type") == "header":
+                            league_name = item.get("name", "")
+                            break
+                except Exception:
+                    pass
+                if not league_name:
+                    cur_h = ""
+                    for raw in self.raw_parsed_data:
+                        if raw.get("type") == "header":
+                            cur_h = raw.get("name", "")
+                        elif raw.get("type") == "match" and raw.get("href") == href:
+                            league_name = cur_h
+                            break
+
+        if not href:
+            return
+
+        self.session.openWithCallback(self.on_child_closed, LiveScoreCZTeamStandingScreen, href, league_name)
 
     def open_minibar(self):
         self.cleanup()
@@ -30003,7 +32912,7 @@ class LiveScoreCZMiniBar3(Screen):
         self.close(self.show_only_live)
 
 
-class LiveScoreFollowToast(Screen):
+class LiveScoreFollowToast(OverlayToastMixin, Screen):
     def __init__(self, session, home_team, away_team, score, notification_text, league_name, event_type="start", scoring_team=None):
         self.session = session
         self.score = score
@@ -30078,7 +32987,7 @@ class LiveScoreFollowToast(Screen):
         self["scorer"] = Label(self.notification_text)
 
         self.timer = eTimer()
-        safe_connect(self.timer, self.close)
+        safe_connect(self.timer, self.dismiss)
         self.timer.start(5000, True)
 
 
@@ -31343,28 +34252,21 @@ class SimpleSportsScreen(Screen):
                 downloadPage(url.encode('utf-8'), target_path, headers=headers, timeout=10).addCallback(self.download_finished, filename, target_path).addErrback(self.download_failed, filename)
 
     def check_epg_availability(self, home, away):
+        """True when the box's EPG has a programme naming one of the teams.
+        (Not called anywhere at present.) It used to pass (keyword, 2, 0, 10) to
+        eEPGCache.search, which expects (format, max, search type, text, case
+        flag), so it always failed; it now uses the shared epg_title_search()."""
         epg = eEPGCache.getInstance()
         if not epg: return False
 
-        h_terms = get_search_keywords(home)
-        a_terms = get_search_keywords(away)
-
-        # Check primary keywords for discovery
-        queries = []
-        if h_terms: queries.append(normalize_text(h_terms[0]))
-        if a_terms: queries.append(normalize_text(a_terms[0]))
-
-        for kw in queries:
-            if not kw: continue
+        for term in _epg_search_terms(home, away):
             try:
-                # Fast global search
-                results = epg.search((kw, 2, 0, 10))
-                if results:
-                    for entry in results:
-                        title = normalize_text(entry[2] or "")
-                        # Verification: Name must be in title
-                        if kw in title: return True
-            except: pass
+                for entry in epg_title_search(epg, term, 10):
+                    # 'RIBDT' rows: (sref, event id, begin, duration, title)
+                    if normalize_text(term) in normalize_text(entry[4] or ""):
+                        return True
+            except Exception:
+                pass
         return False
 
     def open_broadcasting(self, forced_event=None):
@@ -31529,127 +34431,21 @@ class SimpleSportsScreen(Screen):
                             probe_result = "No Data on %s" % s[1]
             except Exception as e: probe_result = "Error: %s" % str(e)
         # -------------------------------------
-        unique_services = {}
-        for s in self.service_cache:
-            unique_services[str(s[0])] = s
-
-        from twisted.internet import threads
-        import time
-
-        def _bg_search(services, m_time, h_words, a_words, l_words):
-            bg_results = []
-            search_offsets = [900, 0, 3600, -900]
-            now = int(time.time())
-            use_fallback_now = True
-
-            if m_time > (now + 21600):
-                use_fallback_now = False
-
-            for sref_str, s_info in services.items():
-                sref_raw = s_info[0]
-                ch_name = s_info[1]
-                try:
-                    evt = None
-                    sref_obj = eServiceReference(sref_raw)
-
-                    for offset in search_offsets:
-                        probe_time = m_time + offset
-                        candidate = epg.lookupEventTime(sref_obj, probe_time)
-                        if candidate:
-                            evt = candidate
-                            break
-
-                    if not evt and use_fallback_now:
-                         if abs(m_time - now) < 7200:
-                             evt = epg.lookupEventTime(sref_obj, now)
-
-                    if not evt and (sref_raw.startswith("4097:") or sref_raw.startswith("5001:")):
-                        parts = sref_raw.split(':')
-                        if len(parts) > 10:
-                            dvb_ref_str = "1:0:1:%s:%s:%s:%s:0:0:0" % (parts[3], parts[4], parts[5], parts[6])
-                            dvb_obj = eServiceReference(dvb_ref_str)
-                            for offset in search_offsets:
-                                probe_time = m_time + offset
-                                evt = epg.lookupEventTime(dvb_obj, probe_time)
-                                if evt: break
-                            if not evt and use_fallback_now and abs(m_time - now) < 7200:
-                                evt = epg.lookupEventTime(dvb_obj, now)
-
-                    if evt:
-                        title = evt.getEventName() or ""
-                        desc = evt.getShortDescription() or ""
-                        ext = evt.getExtendedDescription() or ""
-
-                        blob = normalize_text(title + " " + desc + " " + ext + " " + ch_name)
-
-                        STOP_WORDS = ['al', 'el', 'the', 'fc', 'sc', 'fk', 'sk', 'club', 'sport', 'sports', 'vs', 'live', 'hd', 'fhd', '4k', 'uhd']
-
-                        def match_sig_score(keywords, text_blob, require_all=True):
-                            sig = [w for w in keywords if w not in STOP_WORDS and len(w) > 1]
-                            if not sig: sig = keywords
-
-                            found_count = 0
-                            for w in sig:
-                                if w in text_blob: 
-                                    found_count += 1
-
-                            return found_count, len(sig)
-
-                        h_found, h_total = match_sig_score(h_words, blob)
-                        a_found, a_total = match_sig_score(a_words, blob) if a_words else (0, 0)
-                        l_found, l_total = match_sig_score(l_words, blob)
-
-                        h_ratio = h_found / float(h_total) if h_total > 0 else 0.0
-                        a_ratio = a_found / float(a_total) if a_total > 0 else 0.0
-                        l_ratio = l_found / float(l_total) if l_total > 0 else 0.0
-
-                        score = 0.0
-                        score += (h_ratio * 40)
-                        score += (a_ratio * 40)
-                        score += (l_ratio * 20)
-
-                        if h_ratio == 1.0: score += 10
-                        if a_ratio == 1.0: score += 10
-                        if h_ratio == 1.0 and (a_ratio == 1.0 or not a_words): score += 30
-                        score += (h_found + a_found + l_found)
-
-                        try:
-                            evt_start = evt.getBeginTime()
-                            diff_min = abs(evt_start - m_time) / 60.0
-
-                            if diff_min <= 15: score += 20
-                            elif diff_min <= 45: score += 10
-                            elif diff_min <= 90: score += 5
-                            elif diff_min > 120: score -= 15
-                        except: diff_min = 999
-
-                        valid_match = False
-                        if h_ratio == 1.0 and (a_ratio == 1.0 or not a_words): valid_match = True
-                        elif h_ratio >= 0.5 and a_ratio >= 0.5: valid_match = True
-                        elif (h_ratio == 1.0 or a_ratio == 1.0) and l_ratio >= 0.5: valid_match = True
-
-                        if valid_match and score > 40:
-                            cat_color = 0xffffff
-                            if score >= 100: cat_color = 0x00FF00
-                            elif score >= 80: cat_color = 0xFFFF00
-
-                            sat_pos = get_sat_position(sref_raw)
-                            full_name = ch_name + ((" (" + sat_pos + ")") if sat_pos else "")
-                            time_info = "T+0" if diff_min < 1 else "T-%d" % int(diff_min) if evt_start < m_time else "T+%d" % int(diff_min)
-                            display_title = "[%d|%s] %s" % (int(score), time_info, title)
-                            bg_results.append((sref_raw, full_name, display_title, cat_color, score))
-                except:
-                    pass
-
-            bg_results.sort(key=lambda x: x[4], reverse=True)
-            return [(r[0], r[1], r[2], r[3]) for r in bg_results[:200]]
-
-        def _on_search_done(final_list):
-            # Always open BroadcastingChannelsScreen - user can still use Red/Green buttons
-            self.session.open(BroadcastingChannelsScreen, final_list or [], match_time_ts=match_time_ts, target_event=target_event)
-
-        # Execute heavy loop in background thread to prevent UI lockup
-        threads.deferToThread(_bg_search, unique_services, match_time_ts, h_norm, a_norm, l_norm).addCallback(_on_search_done)
+        # The box's own EPG title search (eEPGCache.search, see epg_find_broadcasts):
+        # one fast C++ search per team keyword over every channel, on the main
+        # thread. It replaces probing each bouquet channel up to 8 times from a
+        # background thread, which was slow and called Enigma2's C++ objects off
+        # the main thread.
+        try:
+            final_list = epg_find_broadcasts(home, away, league, match_time_ts, self.service_cache, epg=epg)
+        except Exception as e:
+            log_dbg("search_and_display_epg: EPG search error: {}".format(e))
+            final_list = []
+        log_dbg("search_and_display_epg: {} EPG matches (target words {} / {} / {}; epg.dat {}; "
+                "box time {}; probe {})".format(len(final_list), h_norm, a_norm, l_norm,
+                                                found_epg_path, sys_time_str, probe_result))
+        # Always open BroadcastingChannelsScreen - user can still use Red/Green buttons
+        self.session.open(BroadcastingChannelsScreen, final_list, match_time_ts=match_time_ts, target_event=target_event)
 
     @profile_function("SimpleSportsScreen")
     def refresh_logos_only(self):
@@ -31694,9 +34490,54 @@ class SimpleSportsScreen(Screen):
             print("[SimplySports] _update_wc_background error:", e)
 
     @profile_function("SimpleSportsScreen")
+    # ------------------------------------------------------------------
+    # Row render cache: refresh_ui runs every poll, but most rows are unchanged.
+    # A row is reused when its entry tuple and every outside input the renderer
+    # reads (theme, background colour, transparency, today-vs-other-day, and the
+    # 3-second Key Moments rotation) are identical to a previous pass.
+    # ------------------------------------------------------------------
+    def _begin_row_cache_pass(self):
+        self._row_cache_gen = getattr(self, '_row_cache_gen', 0) + 1
+        cache = getattr(self, '_row_cache', None)
+        if cache is None:
+            self._row_cache = {}
+        elif len(cache) > 50:
+            keep_from = self._row_cache_gen - 2
+            for k in [k for k, v in cache.items() if v[0] < keep_from]:
+                del cache[k]
+
+    def _render_row(self, entry_data):
+        theme = self.monitor.theme_mode
+        try:
+            km = entry_data[32] if len(entry_data) > 32 else None
+            rotating = bool(km) and ((isinstance(km, (list, tuple)) and len(km) > 5) or
+                                     (isinstance(km, str) and km.count("\n") >= 5))
+            key = (theme,
+                   getattr(self.monitor, 'main_bg_color', ''),
+                   getattr(self.monitor, 'transparency', ''),
+                   getattr(self.monitor, 'ch_day_offset', 0) == 0,
+                   int(time.time() // 3) if rotating else 0,
+                   repr(entry_data))
+        except Exception:
+            key = None
+        cache = getattr(self, '_row_cache', None)
+        if cache is None:
+            cache = self._row_cache = {}
+        gen = getattr(self, '_row_cache_gen', 0)
+        if key is not None:
+            hit = cache.get(key)
+            if hit is not None:
+                cache[key] = (gen, hit[1])
+                return hit[1]
+        row = UCLListEntry(entry_data) if theme == "ucl" else VNextListEntry(entry_data)
+        if key is not None:
+            cache[key] = (gen, row)
+        return row
+
     def refresh_ui(self, success, force_refresh=False):
         log_diag("REFRESH_UI: success={} force={} filter_mode={} is_custom={} cached_events={} status='{}'".format(
             success, force_refresh, self.monitor.filter_mode, self.monitor.is_custom_mode, len(self.monitor.cached_events), self.monitor.status_message))
+        self._begin_row_cache_pass()
         # Guard: Don't refresh UI during loading states UNLESS forced or displaying a Loading status
         if not success and not force_refresh:
             if not is_loading_status(self.monitor.status_message):
@@ -31928,11 +34769,12 @@ class SimpleSportsScreen(Screen):
 
                     # 2. Fallback to cached async predictor if event odds unpopulated
                     if h_pred_pct <= 0 and a_pred_pct <= 0:
-                        cached = self.monitor.predictor_cache.get(match_id)
+                        cached = self.monitor.predictor_entry(match_id)
                         if cached:
                             h_pred_pct = cached.get('h_pct', 0.0)
                             a_pred_pct = cached.get('a_pct', 0.0)
-                            pred_is_estimate = 1 if cached.get('source') == 'spread_estimate' else 0
+                            # spread-only and league-table figures are shown as estimates
+                            pred_is_estimate = 1 if cached.get('source') in ('spread_estimate', 'model') else 0
                         elif (match_id not in self.monitor.predictor_inflight
                               and predictor_fetches_started < 3):
                             predictor_fetches_started += 1
@@ -32094,17 +34936,11 @@ class SimpleSportsScreen(Screen):
                     l_png
                 )
 
-                if self.monitor.theme_mode == "ucl":
-                    list_content.append(UCLListEntry(header_entry))
-                else:
-                    list_content.append(VNextListEntry(header_entry))
+                list_content.append(self._render_row(header_entry))
                 new_match_ids.append("__league_header__" + lname)
 
                 for entry_data, match_id, is_live, event in items:
-                    if self.monitor.theme_mode == "ucl":
-                        list_content.append(UCLListEntry(entry_data))
-                    else:
-                        list_content.append(VNextListEntry(entry_data))
+                    list_content.append(self._render_row(entry_data))
                     new_match_ids.append(match_id)
         else:
             for i, (entry_data, match_id, is_live, event) in enumerate(raw_entries):
@@ -32158,11 +34994,8 @@ class SimpleSportsScreen(Screen):
                                 if row:
                                     list_content.append(row)
                                     new_match_ids.append(match_id + '_ses_' + str(comp_idx) + '_drv_' + str(d_rank))
-                elif self.monitor.theme_mode == "ucl":
-                    list_content.append(UCLListEntry(entry_data))
-                    new_match_ids.append(match_id)
                 else:
-                    list_content.append(VNextListEntry(entry_data))
+                    list_content.append(self._render_row(entry_data))
                     new_match_ids.append(match_id)
 
         # Count match states for header breakdown
@@ -32233,10 +35066,7 @@ class SimpleSportsScreen(Screen):
             self._last_refreshed = datetime.datetime.now()
         else:
             # Prepend navigation card as index 0
-            if self.monitor.theme_mode == "ucl":
-                list_content.insert(0, UCLListEntry(nav_entry))
-            else:
-                list_content.insert(0, VNextListEntry(nav_entry))
+            list_content.insert(0, self._render_row(nav_entry))
             new_match_ids.insert(0, nav_id)
 
             self.update_header(len(raw_entries), count_live, count_fin, count_sch)
@@ -32318,11 +35148,13 @@ class SimpleSportsScreen(Screen):
             (_t("Goal Sound: ") + cur_sound_lbl, "goal_sound"),
             (_t("Goal Alert Mode: ") + alert_lbl, "toggle_goal_alert"),
             (_t("Toast Animation: ") + toast_anim_txt, "toggle_toast_animation"),
+            (_t("Alert Options"), "alert_options"),
             (_t("AI Mode: ") + ai_status, "ai_mode"),
             (_t("Match Highlights Resolution: ") + get_highlights_resolution_label(), "highlights_resolution"),
             ((u"مشغل ملخصات المباريات: " if PLUGIN_LANGUAGE == "ar" else "Match Highlights Player: ") + get_highlights_player_label(), "highlights_player"),
             ((u"نوع مشغل البث (Service Type): " if PLUGIN_LANGUAGE == "ar" else "Highlights Service Type: ") + get_highlights_service_type_label(), "highlights_service_type"),
             (_t("Live Match Search Source: ") + get_highlights_live_source_label(), "highlights_live_source"),
+            ((u"تفضيل عرض الساحة: " if PLUGIN_LANGUAGE == "ar" else "Arena View Preference: ") + get_arena_view_preference_label(), "arena_view_preference"),
             (_t("Notifications Test"), "notif_test"),
             (u"Language / \u0644\u063a\u0629: " + cur_lang_lbl, "change_language"),
         ]
@@ -32355,6 +35187,8 @@ class SimpleSportsScreen(Screen):
                 self.open_highlights_service_type_selector()
             elif action == "highlights_live_source":
                 self.open_highlights_live_source_selector()
+            elif action == "arena_view_preference":
+                self.open_arena_view_preference_selector()
             elif action == "toggle_goal_alert":
                 self.open_goal_alert_selector()
             elif action == "toggle_toast_animation":
@@ -32363,8 +35197,75 @@ class SimpleSportsScreen(Screen):
                 status = _t("ON") if self.monitor.toast_animation else _t("OFF")
                 msg = _t("Toast Animation: ") + status
                 self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
+            elif action == "alert_options": self.open_alert_options_menu()
             elif action == "notif_test": self.run_notification_test()
             elif action == "change_language": self.open_language_selector()
+
+    # ---- Alert options: which matches, which events, and when alerts show ----
+    def _alert_option_labels(self):
+        m = self.monitor
+        on, off = _t("ON"), _t("OFF")
+        scope = {"all": _t("All matches"),
+                 "favorites": _t("Favourite teams only"),
+                 "followed": _t("Favourite + followed matches")}.get(m.alert_scope, _t("All matches"))
+        quiet = _t("OFF") if m.quiet_hours in (None, "", "off") else m.quiet_hours.replace("-", ":00 - ") + ":00"
+        if m.spoiler_mode == "mute":
+            spoiler = _t("Mute alerts")
+        elif m.spoiler_mode in m.SPOILER_DELAYS:
+            spoiler = _t("Delay {} s").format(m.SPOILER_DELAYS[m.spoiler_mode])
+        else:
+            spoiler = off
+        style = _t("Overlay (keeps the remote)") if m.toast_style == "overlay" else _t("Classic popup")
+        t = m.alert_types
+        return [
+            (_t("Alerts for: ") + scope, "scope"),
+            (_t("Goals: ") + (on if t.get("goal", True) else off), "type:goal"),
+            (_t("Red cards: ") + (on if t.get("red_card", True) else off), "type:red_card"),
+            (_t("Kick-off / half-time / full-time: ") + (on if t.get("status", True) else off), "type:status"),
+            (_t("VAR decisions: ") + (on if t.get("var", True) else off), "type:var"),
+            (_t("Exciting games only: ") + (on if m.alert_big_only else off), "big_only"),
+            (_t("Quiet hours: ") + quiet, "quiet"),
+            (_t("Spoiler guard (channel you are watching): ") + spoiler, "spoiler"),
+            (_t("Toast style: ") + style, "toast_style"),
+            (_t("Line-up alerts (favourite teams): ") + (on if m.lineup_alerts else off), "lineups"),
+        ]
+
+    def open_alert_options_menu(self, selection_index=0):
+        items = self._alert_option_labels()
+        kwargs = {"title": _t("Alert Options"), "list": items}
+        if selection_index and _choicebox_takes_selection():
+            kwargs["selection"] = selection_index
+        self.session.openWithCallback(self._alert_option_selected, ChoiceBox, **kwargs)
+
+    def _alert_option_selected(self, selection):
+        if not selection:
+            return
+        m = self.monitor
+        action = selection[1]
+        keys = [k for (_l, k) in self._alert_option_labels()]
+        if action == "scope":
+            order = ("all", "favorites", "followed")
+            m.alert_scope = order[(order.index(m.alert_scope) + 1) % len(order)] if m.alert_scope in order else "favorites"
+        elif action.startswith("type:"):
+            grp = action.split(":", 1)[1]
+            types = dict(m.alert_types)
+            types[grp] = not types.get(grp, True)
+            m.alert_types = types
+        elif action == "big_only":
+            m.alert_big_only = not m.alert_big_only
+        elif action == "quiet":
+            order = m.QUIET_HOURS_CHOICES
+            m.quiet_hours = order[(order.index(m.quiet_hours) + 1) % len(order)] if m.quiet_hours in order else "off"
+        elif action == "spoiler":
+            order = m.SPOILER_CHOICES
+            m.spoiler_mode = order[(order.index(m.spoiler_mode) + 1) % len(order)] if m.spoiler_mode in order else "off"
+        elif action == "toast_style":
+            m.toast_style = "classic" if m.toast_style == "overlay" else "overlay"
+        elif action == "lineups":
+            m.lineup_alerts = not m.lineup_alerts
+        m.save_config()
+        # Re-open on the same line so several options can be changed in a row
+        self.open_alert_options_menu(keys.index(action) if action in keys else 0)
 
     def open_highlights_resolution_selector(self):
         cur = get_highlights_resolution()
@@ -32452,6 +35353,26 @@ class SimpleSportsScreen(Screen):
         if choice and len(choice) >= 2:
             set_highlights_live_source(choice[1])
             msg = _t("Live Match Search Source: ") + get_highlights_live_source_label()
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
+
+    def open_arena_view_preference_selector(self):
+        cur = get_arena_view_preference()
+        def _item(opt_id, en_name, ar_name):
+            prefix = "* " if cur == opt_id else "  "
+            name = ar_name if PLUGIN_LANGUAGE == "ar" else en_name
+            return (prefix + name, opt_id)
+
+        menu = [
+            _item("heading_only", "League Heading only", u"\u0639\u0646\u0627\u0648\u064a\u0646 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0641\u0642\u0637"),
+            _item("with_matches", "League Heading with Matches", u"\u0639\u0646\u0627\u0648\u064a\u0646 \u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0645\u0639 \u0627\u0644\u0645\u0628\u0627\u0631\u064a\u0627\u062a"),
+        ]
+        title = u"\u062a\u0641\u0636\u064a\u0644 \u0639\u0631\u0636 \u0627\u0644\u0633\u0627\u062d\u0629" if PLUGIN_LANGUAGE == "ar" else "Arena View Preference"
+        self.session.openWithCallback(self._on_arena_view_preference_selected, ChoiceBox, title=title, list=menu)
+
+    def _on_arena_view_preference_selected(self, choice):
+        if choice and len(choice) >= 2:
+            set_arena_view_preference(choice[1])
+            msg = (_t("Arena View Preference set to: ") if "Arena View Preference set to: " in TRANSLATIONS else "Arena view preference set to: ") + get_arena_view_preference_label()
             self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=2)
 
     def on_favorite_teams_closed(self, result=None):
@@ -32600,6 +35521,7 @@ class SimpleSportsScreen(Screen):
             ("end",              "2 - 1", "Full Time",                      None,   "Full Time"),
             ("ai_toast",         "",      "",                               None,   "AI Toast"),
             ("fav_toast",        "",      "",                               None,   "Favourite Team Reminder"),
+            ("lineup_toast",     "",      "",                               None,   "Line-ups announced"),
         ]
         self._notif_test_dummy_id = dummy_id
         self._show_next_test_notification()
@@ -32614,36 +35536,34 @@ class SimpleSportsScreen(Screen):
             return
 
         event_type, score, scorer, scoring_team, label = self._notif_test_queue.pop(0)
+        # Shown the way real alerts are (overlay or classic, per Alert Options)
+        show = self.monitor._open_toast
+        nxt = self._show_next_test_notification
 
         if event_type == "ai_toast":
-            # Show AI Toast as the final demo item
-            self.session.openWithCallback(
-                self._show_next_test_notification, AIToast,
-                "This is an AI-powered sports update notification demo!",
-                5000
-            )
-        elif event_type == "fav_toast":
+            show(AIToast, "This is an AI-powered sports update notification demo!", 5000, on_done=nxt)
+        elif event_type in ("fav_toast", "lineup_toast"):
             import time as _time
-            self.session.openWithCallback(
-                self._show_next_test_notification, FavTeamToast,
-                "Real Madrid",             # team_name
-                "Real Madrid",             # home_name
-                "Barcelona",               # away_name
-                "La Liga",                 # league_name
-                int(_time.time()) + 3600,  # kick_off_ts — 1 hour from now
-                "",                        # channel_name — empty (no EPG)
-                "https://a.espncdn.com/i/teamlogos/soccer/500/86.png",  # h_logo_url
-                "https://a.espncdn.com/i/teamlogos/soccer/500/83.png",  # a_logo_url
-                "test_h",                  # h_logo_id
-                "test_a",                  # a_logo_id
-            )
+            extra = {}
+            if event_type == "lineup_toast":
+                extra = {"header_text": u"\U0001f4cb  " + _t("Line-ups announced"),
+                         "info_text": u"Real Madrid 4-3-3   |   Barcelona 4-2-3-1"}
+            show(FavTeamToast,
+                 "Real Madrid",             # team_name
+                 "Real Madrid",             # home_name
+                 "Barcelona",               # away_name
+                 "La Liga",                 # league_name
+                 int(_time.time()) + 3600,  # kick_off_ts — 1 hour from now
+                 "",                        # channel_name — empty (no EPG)
+                 "https://a.espncdn.com/i/teamlogos/soccer/500/86.png",  # h_logo_url
+                 "https://a.espncdn.com/i/teamlogos/soccer/500/83.png",  # a_logo_url
+                 "test_h",                  # h_logo_id
+                 "test_a",                  # a_logo_id
+                 on_done=nxt, **extra)
             self.monitor.play_fav_sound()
         else:
             dummy_id = getattr(self, '_notif_test_dummy_id', 'notif_test_dummy')
-            self.session.openWithCallback(
-                self._show_next_test_notification, GoalToast,
-                dummy_id, score, scorer, event_type, scoring_team
-            )
+            show(GoalToast, dummy_id, score, scorer, event_type, scoring_team, on_done=nxt)
 
     def open_ai_mode_menu(self):
         """AI Mode settings via ChoiceBox sub-menu (proven navigation pattern)."""
@@ -33074,9 +35994,12 @@ class SimpleSportsScreen(Screen):
                     state = selected_event.get('competitions', [{}])[0].get('status', {}).get('type', {}).get('state', 'pre')
 
             if state == 'pre':
+                follow_lbl = (_t("Unfollow this match") if self.monitor.is_followed(selected_event.get('id', ''))
+                              else _t("Follow this match (always alert)"))
                 options = [
                     (_t("Game Info / Details"), "info"),
                     (_t("Find Broadcasting Channel"), "broadcast_search"),
+                    (follow_lbl, "follow"),
                     (_t("Remind me 12 hours before"), 720),
                     (_t("Remind me 9 hours before"), 540),
                     (_t("Remind me 6 hours before"), 360),
@@ -33146,6 +36069,11 @@ class SimpleSportsScreen(Screen):
             return
         if val == "broadcast_search":
             self.open_broadcasting(forced_event=event)
+            return
+        if val == "follow":
+            following = self.monitor.toggle_follow_match(event.get('id', ''), utc_iso_to_epoch(event.get('date', '')))
+            msg = _t("Following this match: its alerts always show.") if following else _t("Match unfollowed.")
+            self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
             return
 
         try:
@@ -33228,7 +36156,8 @@ class SimpleSportsScreen(Screen):
             # This requires us to know call open_broadcasting logic or similar?
             # For now, just store generic data
 
-            self.monitor.add_reminder(match_name, trigger_time, league_name, h_logo, a_logo, label, h_id=h_id, a_id=a_id)
+            self.monitor.add_reminder(match_name, trigger_time, league_name, h_logo, a_logo, label, h_id=h_id, a_id=a_id,
+                                      eid=event.get('id'), ko=match_time_ts)
             msg = (u"\u062a\u0645 \u0636\u0628\u0637 \u0627\u0644\u062a\u0630\u0643\u064a\u0631 \u0644\u0640:\n" + match_name) if PLUGIN_LANGUAGE == "ar" else ("Reminder set for:\n" + match_name)
             self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
@@ -33922,6 +36851,10 @@ class BroadcastingChannelsScreen(Screen):
 
         self._epg_search_running = False
         self._broadcaster_names = set()   # populated lazily when Green is first pressed
+        self._xmltv_cancel = False        # set on close: stops a guide download / parse
+        self._xmltv_partial = False
+        self._xmltv_last_mb = -1
+        self.onClose.append(self._cancel_xmltv)
 
         self.onLayoutFinish.append(self.start_list)
 
@@ -34172,7 +37105,8 @@ class BroadcastingChannelsScreen(Screen):
                 a_id   = self.target_event.get('a_logo_id', '') if self.target_event else ''
                 l_name = self.target_event.get('league_name', 'SimplySports') if self.target_event else 'SimplySports'
 
-                global_sports_monitor.add_reminder(event_name, trigger, l_name, h_logo, a_logo, label, sref=sref, h_id=h_id, a_id=a_id)
+                global_sports_monitor.add_reminder(event_name, trigger, l_name, h_logo, a_logo, label, sref=sref, h_id=h_id, a_id=a_id,
+                                                   ko=self.match_time_ts or None)
                 self.session.open(MessageBox, _t("Zap Reminder Set!\nYou will be asked to zap when the match starts."),
                                   MessageBox.TYPE_INFO, timeout=5)
             except Exception as e:
@@ -34230,19 +37164,15 @@ class BroadcastingChannelsScreen(Screen):
 
     def _launch_epg_search(self):
         self._epg_search_running = True
+        self._xmltv_cancel = False
+        self._xmltv_partial = False
+        self._xmltv_last_mb = -1
         self["key_green"].setText(_t("Searching..."))
         self["hint"].setText(_t("Parsing XMLTV..."))
-
-        home_words = get_search_keywords(self._match_home)
-        away_words = get_search_keywords(self._match_away)
-
-        h_terms = [_normalize_name(w) for w in home_words]
-        a_terms = [_normalize_name(w) for w in away_words]
 
         # Compile XMLTV sources list (Remote URL + Local files in /etc/epgimport)
         sources = [XMLTV_EPG_URL]
 
-        import os
         epgimport_dir = "/etc/epgimport"
         if os.path.exists(epgimport_dir) and os.path.isdir(epgimport_dir):
             try:
@@ -34252,132 +37182,168 @@ class BroadcastingChannelsScreen(Screen):
             except Exception as e:
                 log_dbg("Error listing /etc/epgimport: {}".format(e))
 
-        log_dbg("XMLTV Search starting. Sources: {}, h_terms: {}, a_terms: {}".format(sources, h_terms, a_terms))
+        log_dbg("XMLTV Search starting. Sources: {}, home: {}, away: {}, kick-off: {}".format(
+            sources, self._match_home, self._match_away, self.match_time_ts))
 
         from twisted.internet import threads
 
         # Run stream parser in background to prevent UI freeze
         threads.deferToThread(
-            self._parse_xmltv_stream_worker, sources, h_terms, a_terms
+            self._parse_xmltv_stream_worker, sources, self._match_home, self._match_away, self.match_time_ts
         ).addCallback(
             self._on_xmltv_parsed
         ).addErrback(
             self._xmltv_search_err
         )
 
-    def _parse_xmltv_stream_worker(self, sources, h_terms, a_terms):
-        """Background worker to memory-safely parse XMLTV from local files or HTTP streams."""
-        import xml.etree.ElementTree as ET
-        import gzip
-        import os
-        import time
+    def _cancel_xmltv(self):
+        """Screen closed: stop a running guide download / parse."""
+        self._xmltv_cancel = True
 
-        # Helper to safely convert text to unicode
+    def _hint_from_thread(self, text):
+        """Update the hint from the worker thread (never lets a UI hiccup stop the search)."""
+        def _set():
+            try:
+                self["hint"].setText(text)
+            except Exception:
+                pass
+        try:
+            reactor.callFromThread(_set)
+        except Exception:
+            pass
+
+    def _xmltv_progress(self, got, total):
+        """Download progress from the worker thread, shown in the hint every 2 MB."""
+        step = got // (2 * 1048576)
+        if step == self._xmltv_last_mb:
+            return
+        self._xmltv_last_mb = step
+        txt = _t("Downloading guide... {} MB").format(got // 1048576)
+        if total:
+            txt += u" / {}".format(total // 1048576)
+        self._hint_from_thread(txt)
+
+    def _open_xmltv_source(self, source):
+        """(stream, label, temp copy to delete afterwards) for one guide source."""
+        import gzip
+        if source.startswith("http://") or source.startswith("https://"):
+            path = xmltv_local_copy(source, self._xmltv_progress, lambda: self._xmltv_cancel)
+            if path:
+                self._hint_from_thread(_t("Parsing XMLTV..."))
+                return gzip.open(path, 'rb'), u"XMLTV", (path if path.startswith('/tmp/') else None)
+            # No room for a copy: read straight from the connection, as before
+            req = Request(source, headers={'User-Agent': 'Mozilla/5.0'})
+            return urlopen(req, timeout=EPG_SEARCH_TIMEOUT), u"XMLTV", None
+        if not os.path.exists(source):
+            return None, None, None
+        label = u"EPGI: {}".format(os.path.basename(source))
+        if source.endswith(".gz"):
+            return gzip.open(source, 'rb'), label, None
+        return open(source, 'rb'), label, None
+
+    def _parse_xmltv_stream_worker(self, sources, home, away, m_time):
+        """Background worker: read the XMLTV guides (online copy + /etc/epgimport
+        files) and return the channels showing this match, as
+        [(channel name, bouquet sref or "", source label)].
+
+        A programme counts only when it
+          1. is on air around kick-off (previews and replays on other days used
+             to match), and
+          2. names BOTH teams, each by whole words, with clubs of the same city
+             told apart (one shared word such as 'Manchester' used to be enough).
+        The online guide is downloaded as .gz to a local copy first (see
+        xmltv_local_copy), instead of being parsed off the network under a 45 s
+        cut-off that stopped big guides part-way."""
+        import xml.etree.ElementTree as ET
+
         def _to_unicode(s):
             if isinstance(s, bytes):
                 return s.decode('utf-8', errors='replace')
-            return s
+            return s or u""
 
+        win = (m_time - BROADCAST_WINDOW_BEFORE_S, m_time + BROADCAST_WINDOW_AFTER_S) if m_time else None
         t_start = time.time()
-        channels = {}      # ch_id -> display_name
+        channels = {}          # ch_id -> display_name
         matched_channels = {}  # ch_id -> source_label
 
         for source in sources:
-            # Check elapsed time limit (45 seconds hard limit)
-            if time.time() - t_start > 45:
-                log_dbg("XMLTV parser aborted after 45s hard limit to prevent box freeze.")
+            if self._xmltv_cancel or self._xmltv_partial:
                 break
-
             log_dbg("Parsing XMLTV source: {}".format(source))
-            
-            # Determine source label
-            if source.startswith("http://") or source.startswith("https://"):
-                source_label = u"XMLTV"
-            else:
-                source_label = u"EPGI: {}".format(os.path.basename(source))
-
-            response = None
+            stream = temp_path = None
             try:
-                if source.startswith("http://") or source.startswith("https://"):
-                    # Remote URL
-                    try:
-                        import urllib.request as urllib2
-                    except ImportError:
-                        import urllib2
-                    req = urllib2.Request(source, headers={'User-Agent': 'Mozilla/5.0'})
-                    response = urllib2.urlopen(req, timeout=EPG_SEARCH_TIMEOUT)
-                else:
-                    # Local File
-                    if os.path.exists(source):
-                        if source.endswith(".gz") or source.endswith(".xml.gz"):
-                            response = gzip.open(source, 'rb')
-                        else:
-                            response = open(source, 'rb')
-                    else:
-                        continue
+                stream, source_label, temp_path = self._open_xmltv_source(source)
             except Exception as e:
                 log_dbg("Failed to open XMLTV source {}: {}".format(source, e))
+            if not stream:
                 continue
 
-            if not response:
-                continue
-
+            n = 0
             try:
-                context = ET.iterparse(response, events=("start", "end"))
-                context = iter(context)
+                context = iter(ET.iterparse(stream, events=("start", "end")))
                 try:
                     _, root = next(context)
                 except StopIteration:
-                    response.close()
                     continue
 
                 for event, elem in context:
-                    if time.time() - t_start > 45:
-                        log_dbg("XMLTV parser aborted inside source loop after 45s limit.")
-                        break
+                    if event != "end":
+                        continue
+                    n += 1
+                    if n % 2000 == 0:
+                        if self._xmltv_cancel:
+                            break
+                        if time.time() - t_start > XMLTV_PARSE_MAX_S:
+                            self._xmltv_partial = True
+                            log_dbg("XMLTV: stopped after {} s; results so far are kept".format(XMLTV_PARSE_MAX_S))
+                            break
+                        time.sleep(0.001)      # give the GUI thread a turn
 
-                    if event == "end":
-                        if elem.tag == "channel":
-                            ch_id = elem.get("id")
-                            display = elem.find("display-name")
-                            if ch_id and display is not None and display.text:
-                                channels[ch_id] = _to_unicode(display.text)
-                            elem.clear()
-                            root.clear()
+                    if elem.tag == "channel":
+                        ch_id = elem.get("id")
+                        display = elem.find("display-name")
+                        if ch_id and display is not None and display.text:
+                            channels[ch_id] = _to_unicode(display.text)
+                        elem.clear()
+                        root.clear()
 
-                        elif elem.tag == "programme":
-                            title = elem.find("title")
-                            desc = elem.find("desc")
-                            
-                            title_text = _to_unicode(title.text) if title is not None and title.text else u""
-                            desc_text = _to_unicode(desc.text) if desc is not None and desc.text else u""
-                            
-                            prog_blob = _normalize_name(title_text + u" " + desc_text)
-                            
-                            h_ok = any(t in prog_blob for t in h_terms) if h_terms else True
-                            a_ok = any(t in prog_blob for t in a_terms) if a_terms else True
-                            
-                            if h_ok and a_ok:
-                                ch_id = elem.get("channel")
-                                if ch_id:
+                    elif elem.tag == "programme":
+                        ch_id = elem.get("channel")
+                        if ch_id and ch_id not in matched_channels:
+                            on_air = True
+                            if win:
+                                st = _xmltv_time_to_epoch(elem.get("start"))
+                                sp = _xmltv_time_to_epoch(elem.get("stop")) or (st + 7200 if st else 0)
+                                on_air = bool(st) and st < win[1] and sp > win[0]
+                            if on_air:
+                                parts = [elem.find("title"), elem.find("sub-title"), elem.find("desc")]
+                                words = guide_text_words(u" ".join(
+                                    _to_unicode(p.text) for p in parts if p is not None and p.text))
+                                if team_mentioned(home, words) and (not away or team_mentioned(away, words)):
                                     matched_channels[ch_id] = source_label
-                            elem.clear()
-                            root.clear()
+                        elem.clear()
+                        root.clear()
             except Exception as e:
                 log_dbg("Error parsing source {}: {}".format(source, e))
             finally:
                 try:
-                    response.close()
-                except:
+                    stream.close()
+                except Exception:
                     pass
+                if temp_path:
+                    try:
+                        os.remove(temp_path)        # /tmp is RAM on most boxes
+                    except Exception:
+                        pass
 
         results = []
         for ch_id, source_label in matched_channels.items():
-            if ch_id in channels:
-                ch_name = channels[ch_id]
+            ch_name = channels.get(ch_id)
+            if ch_name:
                 sref = _scan_bouquet_for_name(ch_name) or u""
                 results.append((ch_name, sref, source_label))
-
+        log_dbg("XMLTV search: {} channels in {:.0f} s{}".format(
+            len(results), time.time() - t_start, " (partial)" if self._xmltv_partial else ""))
         return results
 
     def _xmltv_search_err(self, error):
@@ -34393,6 +37359,11 @@ class BroadcastingChannelsScreen(Screen):
         # Format expects: list of (success, result)
         mock_results_list = [(True, xmltv_results)]
         self._on_all_epg_done(mock_results_list)
+        if getattr(self, '_xmltv_partial', False):
+            try:
+                self["hint"].setText(self["hint"].getText() + u"  " + _t("(guide only partly read)"))
+            except Exception:
+                pass
 
     def _on_all_epg_done(self, results_list):
         self._epg_search_running = False
@@ -35480,20 +38451,79 @@ WC_HOST_CITY_FLAGS = {
 }
 
 
+# World Cup prediction points for a correct pick, by stage (a wrong pick costs 1).
+WC_STAGE_POINTS = {"GROUP": 2, "R32": 3, "R16": 4, "QF": 5, "SF": 6, "FINAL": 8}
+WC_UNKNOWN_STAGE_POINTS = 2
+# 2026 tournament calendar (local match dates in North America). Only used when
+# a match carries no stage label of its own.
+WC2026_STAGE_DATES = (
+    ("2026-06-11", "2026-06-27", "GROUP"),
+    ("2026-06-28", "2026-07-03", "R32"),
+    ("2026-07-04", "2026-07-07", "R16"),
+    ("2026-07-08", "2026-07-11", "QF"),
+    ("2026-07-14", "2026-07-15", "SF"),
+    ("2026-07-18", "2026-07-19", "FINAL"),
+)
+
+
+def wc_stage_from_label(label):
+    """Stage key from a snapshot stage_label ('GROUP · MD2', 'ROUND OF 16',
+    'SEMI-FINAL', '3RD PLACE', ...), or None."""
+    s = (label or u"").upper()
+    if not s:
+        return None
+    if 'SEMI' in s:
+        return 'SF'
+    if 'QUARTER' in s:
+        return 'QF'
+    if '3RD' in s or 'THIRD' in s or 'FINAL' in s:
+        return 'FINAL'      # third-place play-off is scored like the final, as before
+    if '16' in s:
+        return 'R16'
+    if '32' in s:
+        return 'R32'
+    if 'GROUP' in s:
+        return 'GROUP'
+    return None
+
+
+def wc_stage_from_kickoff(ko_ts):
+    """Stage key from the kick-off time using the 2026 calendar, or None.
+    Uses North American local dates (UTC-6), so a late group game on 27 June
+    is not counted as a round-of-32 game because it ends after midnight UTC."""
+    try:
+        d = datetime.datetime.utcfromtimestamp(float(ko_ts) - 6 * 3600).strftime("%Y-%m-%d")
+    except Exception:
+        return None
+    for start, end, key in WC2026_STAGE_DATES:
+        if start <= d <= end:
+            return key
+    return None
+
+
+def wc_points_for_bet(bet):
+    """(stage_key, points) for a correct World Cup pick, from the stage stored
+    on the bet, then the kick-off date. The old code used the date the result
+    happened to be processed, so a group game settled a day late (box off)
+    could be scored as a knockout game, and the reverse."""
+    key = wc_stage_from_label(bet.get("stage"))
+    if not key and bet.get("ko"):
+        key = wc_stage_from_kickoff(bet.get("ko"))
+    if not key:
+        return ("WC", WC_UNKNOWN_STAGE_POINTS)
+    return (key, WC_STAGE_POINTS[key])
+
+
 def get_wc_stage_info():
     """Return (stage_short, multiplier) for the current WC 2026 tournament stage.
 
-    Mirrors the date brackets in _on_summary_resolved so both scoring and
-    the leaderboard badge always agree on the current stage.
+    Uses the same calendar as wc_points_for_bet() so scoring and the
+    leaderboard badge agree.
     """
-    cur_md = time.strftime("%m-%d")
-    if   "06-11" <= cur_md <= "06-27": return ("GROUP", 2)
-    elif "06-28" <= cur_md <= "07-03": return ("R32",   3)
-    elif "07-04" <= cur_md <= "07-07": return ("R16",   4)
-    elif "07-08" <= cur_md <= "07-11": return ("QF",    5)
-    elif "07-14" <= cur_md <= "07-15": return ("SF",    6)
-    elif "07-18" <= cur_md <= "07-19": return ("FINAL", 8)
-    else:                               return ("WC",    1)
+    key = wc_stage_from_kickoff(time.time())
+    if key:
+        return (key, WC_STAGE_POINTS[key])
+    return ("WC", 1)
 
 
 def get_rank_badge(score, accuracy):
@@ -35692,7 +38722,7 @@ def LeaderboardListEntry(rank, name, badge, score, accuracy, total_bets, theme_m
 def ProfileListEntry(outcome, h_name, a_name, picked, score_str, date_str, theme_mode="default"):
     """One coloured row for the Personal Profile bet history.
 
-    outcome: "WON", "LOST", or "PENDING"
+    outcome: "WON", "LOST", "VOID" (cancelled/abandoned game) or "PENDING"
     Column layout (1600 px wide, item height 74 px):
       x=0   w=4    accent bar (green/red/yellow)
       x=12  w=130  outcome tag  [WON] / [LOST] / [PENDING]
@@ -35719,6 +38749,8 @@ def ProfileListEntry(outcome, h_name, a_name, picked, score_str, date_str, theme
             bar_color = c_won;     tag_color = c_won;     tag_txt = u"[" + _t("WON") + u"]"
         elif outcome == "LOST":
             bar_color = c_lost;    tag_color = c_lost;    tag_txt = u"[" + _t("LOST") + u"]"
+        elif outcome == "VOID":
+            bar_color = c_dim;     tag_color = c_dim;     tag_txt = u"[" + _t("VOID") + u"]"
         else:
             bar_color = c_pending; tag_color = c_pending; tag_txt = u"[" + _t("PENDING") + u"]"
 
@@ -35758,16 +38790,17 @@ def ProfileListEntry(outcome, h_name, a_name, picked, score_str, date_str, theme
                     RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                     picked, c_text, c_sel))
 
-        # FT + score (resolved only)
+        # FT + score (resolved only; a VOID row shows its status text without "FT:")
         if outcome != "PENDING":
-            res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                        sx(1085), 0, sx(50), h, 0,
-                        RT_HALIGN_LEFT | RT_VALIGN_CENTER,
-                        u"FT:", c_dim, c_sel))
+            if outcome != "VOID":
+                res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                            sx(1085), 0, sx(50), h, 0,
+                            RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                            u"FT:", c_dim, c_sel))
             res.append((eListboxPythonMultiContent.TYPE_TEXT,
                         sx(1140), 0, sx(180), h, 1,
                         RT_HALIGN_LEFT | RT_VALIGN_CENTER,
-                        score_str, c_text, c_sel))
+                        _t(score_str) if outcome == "VOID" else score_str, c_text, c_sel))
 
         # Date
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
@@ -35816,12 +38849,134 @@ def ProfileSectionHeader(title, theme_mode="default"):
         return []
 
 
+# ==============================================================================
+# LEADERS ARENA: the #1 of every league, with a victory badge and a nickname
+# ==============================================================================
+# League leaderboard categories: (logo slug, accent colour). The slug is looked up
+# in KNOWN_SOCCER_LEAGUES; "epl" uses the bundled Egyptian Premier League logo.
+ARENA_LEAGUES = collections.OrderedDict([
+    ("Premier League",   ("eng.1",          "#E90052")),
+    ("La Liga",          ("esp.1",          "#FF4B44")),
+    ("Serie A",          ("ita.1",          "#2E86FF")),
+    ("Bundesliga",       ("ger.1",          "#E2001A")),
+    ("Ligue 1",          ("fra.1",          "#DAE025")),
+    ("Champions League", ("uefa.champions", "#7FA7FF")),
+    ("World Cup",        ("fifa.world",     "#D4AF37")),
+    ("Egyptian League",  ("epl",            "#E0263A")),
+])
+# Sport-wide categories (the bet's sport): display name, accent colour, logo league
+ARENA_SPORTS = {
+    "soccer":     (u"Football (all leagues)", "#00C853", None),
+    "basketball": (u"Basketball",             "#FF8C00", "nba"),
+    "football":   (u"American Football",      "#C0703A", "nfl"),
+    "hockey":     (u"Ice Hockey",             "#00B4D8", "nhl"),
+    "baseball":   (u"Baseball",               "#E63946", "mlb"),
+    "rugby":      (u"Rugby",                  "#2EC4B6", None),
+    "cricket":    (u"Cricket",                "#8AC926", None),
+    "tennis":     (u"Tennis",                 "#C6F432", None),
+}
+# Nickname shown under the leader's name: a play on the league's own name.
+# (English, Arabic)
+ARENA_NICKNAMES = {
+    "Global":           (u"Grand Champion",        u"البطل الأكبر"),
+    "Premier League":   (u"The Premier Leader",    u"زعيم البريميرليغ"),
+    "La Liga":          (u"La Leyenda",            u"أسطورة الليغا"),
+    "Serie A":          (u"Sir A Expert",          u"سيّد السيري آ"),
+    "Bundesliga":       (u"Der Bundes-Kaiser",     u"قيصر البوندسليغا"),
+    "Ligue 1":          (u"Le Numéro Un",     u"رقم 1 في الليغ 1"),
+    "Champions League": (u"Champion of Champions", u"بطل الأبطال"),
+    "World Cup":        (u"Mundial Maestro",       u"مايسترو المونديال"),
+    "Egyptian League":  (u"Pharaoh of the League", u"فرعون الدوري"),
+    "soccer":           (u"Football Sage",         u"حكيم الكرة"),
+    "basketball":       (u"Slam Dunk Sage",        u"حكيم السلّة"),
+    "football":         (u"Touchdown Titan",       u"عملاق التاتش داون"),
+    "hockey":           (u"Ice Oracle",            u"عرّاف الجليد"),
+    "baseball":         (u"Home Run Hero",         u"بطل الهوم رن"),
+    "rugby":            (u"Try Master",            u"سيّد المحاولات"),
+    "cricket":          (u"Century Seer",          u"عرّاف المئويات"),
+    "tennis":           (u"Ace of Aces",           u"ملك الإرسال"),
+}
+
+
+def arena_nickname(category):
+    """League-themed nickname for the leader of `category` (in the plugin language)."""
+    pair = ARENA_NICKNAMES.get(category)
+    if pair:
+        return pair[1] if PLUGIN_LANGUAGE == "ar" else pair[0]
+    name = arena_category_name(category)
+    return (u"زعيم " + name) if PLUGIN_LANGUAGE == "ar" else (name + u" Leader")
+
+
+def arena_category_name(category):
+    """Display name of a leaderboard category (league or sport)."""
+    if category in ARENA_SPORTS:
+        return _t(ARENA_SPORTS[category][0])
+    return _t(category)
+
+
+def arena_category_style(category):
+    """(logo_url, logo_id, accent colour) for a category's victory badge.
+    Categories without a logo get an empty url (a star emblem is shown)."""
+    if category in ARENA_LEAGUES:
+        slug, color = ARENA_LEAGUES[category]
+        if slug == "epl":
+            return "epl://logo", "league_epl", color
+        return KNOWN_SOCCER_LEAGUES.get(slug, ""), "arena_lg_" + slug, color
+    if category in ARENA_SPORTS:
+        _name, color, lid = ARENA_SPORTS[category]
+        if lid:
+            return ("https://a.espncdn.com/combiner/i?img=/i/teamlogos/leagues/500/{}.png".format(lid),
+                    "arena_lg_" + lid, color)
+        return "", None, color
+    return "", None, "#D4AF37"
+
+
+def leaderboard_user_stats(user, category):
+    """(points, accuracy %, picks) of a leaderboard user, overall ("Global") or
+    for one league / sport category."""
+    if category == "Global":
+        return user.get('score', 0), user.get('accuracy', 0.0), user.get('total_bets', 0)
+    sd = (user.get('sports') or {}).get(category, {})
+    try:
+        sc = int(sd.get("score", 0))
+        tot = int(sd.get("total", 0))
+        cor = int(sd.get("correct", 0))
+    except (AttributeError, TypeError, ValueError):
+        return 0, 0.0, 0      # malformed entry: rank it last, don't crash
+    acc = (float(cor) / tot * 100.0) if tot > 0 else 0.0
+    return sc, acc, tot
+
+
+def compute_league_leaders(users, categories):
+    """{category: leader or None}. The leader is the top of that category's score
+    ranking (points, then accuracy, then picks, then name); only a player with at
+    least one settled pick and a positive score is crowned.
+    leader = {'user', 'score', 'accuracy', 'total'}."""
+    leaders = collections.OrderedDict()
+    for cat in categories:
+        best = None
+        for u in users or []:
+            if not isinstance(u, dict):
+                continue
+            if cat != "Global" and cat not in (u.get('sports') or {}):
+                continue
+            sc, acc, tot = leaderboard_user_stats(u, cat)
+            if tot <= 0 or sc <= 0:
+                continue
+            rank_key = (sc, acc, tot)
+            if (best is None or rank_key > best[0]
+                    or (rank_key == best[0] and u'{}'.format(u.get('name', '')) < u'{}'.format(best[1].get('name', '')))):
+                best = (rank_key, u)
+        leaders[cat] = ({'user': best[1], 'score': best[0][0], 'accuracy': best[0][1], 'total': best[0][2]}
+                        if best else None)
+    return leaders
+
+
 class LeaderboardScreen(Screen):
 
     def __init__(self, session):
         Screen.__init__(self, session)
         self.setTitle("SimplySports: Global Leaderboard")
-        if global_sports_monitor: global_sports_monitor.fetch_all_community_votes()
 
         theme = getattr(global_sports_monitor, "theme_mode", "default") if global_sports_monitor else "default"
         if theme == "ucl":
@@ -35842,6 +38997,7 @@ class LeaderboardScreen(Screen):
             u'foregroundColor="{acc}" halign="center" valign="center" transparent="1" zPosition="5"/>'
             u'<widget name="sport_label" position="0,96" size="1600,28" font="Regular;20" '
             u'foregroundColor="{dim}" halign="center" valign="center" transparent="1" zPosition="5"/>'
+            u'<widget name="hint"       position="1180,96" size="400,28" font="Regular;18" foregroundColor="{dim}" halign="right" valign="center" transparent="1" zPosition="5"/>'
             # ── Column header labels ──
             u'<eLabel position="0,124"  size="1600,30"  backgroundColor="#0a0a16" zPosition="2"/>'
             u'<widget name="col_rank"   position="0,124"   size="70,30"  font="Regular;16" foregroundColor="{dim}" halign="center" valign="center" transparent="1" zPosition="5"/>'
@@ -35859,13 +39015,14 @@ class LeaderboardScreen(Screen):
             # ── Button bar ──
             u'<eLabel position="0,820" size="1600,3"   backgroundColor="{acc}" zPosition="1"/>'
             u'<eLabel position="0,823" size="1600,77"  backgroundColor="{top}" zPosition="0"/>'
-            u'<ePixmap pixmap="skin_default/buttons/green.png"  position="30,848"  size="35,25" alphatest="on" zPosition="5"/>'
-            u'<widget name="key_green"  position="75,843"  size="260,35" font="Regular;22" foregroundColor="{acc}" halign="left" valign="center" transparent="1" zPosition="5"/>'
-            u'<ePixmap pixmap="skin_default/buttons/yellow.png" position="430,848" size="35,25" alphatest="on" zPosition="5"/>'
-            u'<widget name="key_yellow" position="475,843" size="280,35" font="Regular;22" foregroundColor="#FFEE00" halign="left" valign="center" transparent="1" zPosition="5"/>'
-            u'<ePixmap pixmap="skin_default/buttons/blue.png"   position="860,848" size="35,25" alphatest="on" zPosition="5"/>'
-            u'<widget name="key_blue"   position="905,843" size="260,35" font="Regular;22" foregroundColor="#44AAFF" halign="left" valign="center" transparent="1" zPosition="5"/>'
-            u'<widget name="hint"       position="1200,848" size="380,35" font="Regular;18" foregroundColor="{dim}" halign="right" valign="center" transparent="1" zPosition="5"/>'
+            u'<ePixmap pixmap="skin_default/buttons/red.png"    position="30,848"   size="35,25" alphatest="on" zPosition="5"/>'
+            u'<widget name="key_red"    position="75,843"   size="300,35" font="Regular;22" foregroundColor="#FF5A5A" halign="left" valign="center" transparent="1" zPosition="5"/>'
+            u'<ePixmap pixmap="skin_default/buttons/green.png"  position="410,848"  size="35,25" alphatest="on" zPosition="5"/>'
+            u'<widget name="key_green"  position="455,843"  size="300,35" font="Regular;22" foregroundColor="{acc}" halign="left" valign="center" transparent="1" zPosition="5"/>'
+            u'<ePixmap pixmap="skin_default/buttons/yellow.png" position="790,848"  size="35,25" alphatest="on" zPosition="5"/>'
+            u'<widget name="key_yellow" position="835,843"  size="300,35" font="Regular;22" foregroundColor="#FFEE00" halign="left" valign="center" transparent="1" zPosition="5"/>'
+            u'<ePixmap pixmap="skin_default/buttons/blue.png"   position="1170,848" size="35,25" alphatest="on" zPosition="5"/>'
+            u'<widget name="key_blue"   position="1215,843" size="300,35" font="Regular;22" foregroundColor="#44AAFF" halign="left" valign="center" transparent="1" zPosition="5"/>'
             u'</screen>'
         ).format(bg=bg, top=top_bar, acc=accent, dim=dim))
 
@@ -35873,6 +39030,7 @@ class LeaderboardScreen(Screen):
         self["title_lbl"]  = Label(_t("GLOBAL LEADERBOARD"))
         self["sport_label"] = Label("")
         self["loading"]    = Label(_t("Fetching leaderboard..."))
+        self["key_red"]    = Label(_t("Leaders Arena"))
         self["key_green"]  = Label(_t("Score Rank"))
         self["key_yellow"] = Label(_t("Accuracy Rank"))
         self["key_blue"]   = Label(_t("My Profile"))
@@ -35893,10 +39051,13 @@ class LeaderboardScreen(Screen):
         self.current_sort    = "score"
         self._theme          = theme
 
+        # OkCancelActions, not SetupActions: SetupActions also maps the RED key to
+        # "cancel", which closed this screen instead of opening the Leaders Arena.
         self["actions"] = ActionMap(
-            ["SetupActions", "ColorActions", "DirectionActions"], {
+            ["OkCancelActions", "ColorActions", "DirectionActions"], {
                 "cancel": self.close,
                 "ok":     self.close,
+                "red":    self.open_arena,
                 "green":  self.sort_by_score,
                 "yellow": self.sort_by_accuracy,
                 "blue":   self.open_profile,
@@ -35922,6 +39083,24 @@ class LeaderboardScreen(Screen):
 
     def open_profile(self):
         self.session.open(PersonalProfileScreen)
+
+    def open_arena(self):
+        """RED: Leaders Arena - the #1 player of every league as victory badges."""
+        if not self.users_data:
+            self.session.open(MessageBox, _t("The leaderboard is still loading..."), MessageBox.TYPE_INFO, timeout=3)
+            return
+        self.session.openWithCallback(self._on_arena_closed, LeadersArenaScreen,
+                                      self.users_data, self.available_sports, self._theme)
+
+    def _on_arena_closed(self, category=None):
+        """OK on a badge opens that league's full ranking here."""
+        if not category:
+            return
+        if category not in self.available_sports:
+            self.available_sports.append(category)
+        self.current_sport_idx = self.available_sports.index(category)
+        self.current_sort = "score"
+        self.apply_sort()
 
     def fetch_leaderboard(self):
         import threading
@@ -35960,13 +39139,26 @@ class LeaderboardScreen(Screen):
             sports_set = set()  # Automatically find all sports the community has voted on
 
             if isinstance(data, dict):
+                # Players who moved to a Firebase user id name their old
+                # device-id entry in 'legacy_id': show them once.
+                legacy_ids = set(str(v.get("legacy_id")) for v in data.values()
+                                 if isinstance(v, dict) and v.get("legacy_id"))
                 for device_id, info in data.items():
+                    # One malformed entry must not break the whole leaderboard
+                    if not isinstance(info, dict) or str(device_id) in legacy_ids:
+                        continue
                     user_sports = info.get("sports", {})
+                    if not isinstance(user_sports, dict):
+                        user_sports = {}
                     for s in user_sports.keys():
                         sports_set.add(s)
 
-                    stored_score    = int(info.get("score", 0))
-                    stored_accuracy = float(info.get("accuracy", 0.0))
+                    try:
+                        stored_score    = int(info.get("score", 0))
+                        stored_accuracy = float(info.get("accuracy", 0.0))
+                        stored_total    = int(info.get("total_bets", 0))
+                    except (TypeError, ValueError):
+                        continue
 
                     # Use the badge stored by the remote client if present;
                     # otherwise compute it live so older clients that pre-date
@@ -35976,10 +39168,11 @@ class LeaderboardScreen(Screen):
                         stored_badge = get_rank_badge(stored_score, stored_accuracy)
 
                     self.users_data.append({
-                        "name": info.get("name", "Anonymous"),
+                        "key": str(device_id),
+                        "name": u"{}".format(info.get("name", "Anonymous"))[:40],
                         "score": stored_score,
                         "accuracy": stored_accuracy,
-                        "total_bets": int(info.get("total_bets", 0)),
+                        "total_bets": stored_total,
                         "sports": user_sports,
                         "badge": stored_badge
                     })
@@ -36036,15 +39229,7 @@ class LeaderboardScreen(Screen):
     # --- CORE FILTERING AND SORTING ENGINE ---
     def extract_stats(self, user, sport):
         """Extracts either Global stats or specific Sport stats for the math"""
-        if sport == "Global":
-            return user['score'], user['accuracy'], user['total_bets']
-        else:
-            sd = user['sports'].get(sport, {})
-            sc = sd.get("score", 0)
-            tot = sd.get("total", 0)
-            cor = sd.get("correct", 0)
-            acc = (float(cor) / tot * 100.0) if tot > 0 else 0.0
-            return sc, acc, tot
+        return leaderboard_user_stats(user, sport)   # shared with the Leaders Arena
 
     def apply_sort(self):
         if not self.users_data:
@@ -36122,6 +39307,305 @@ class LeaderboardScreen(Screen):
             pass
 
 
+class LeadersArenaScreen(Screen):
+    """RED in the leaderboard. The overall champion on top, then the #1 player of
+    every league on a victory badge (league crest in a gold medallion with a #1
+    ribbon) and a nickname that plays on the league's name (Serie A -> "Sir A
+    Expert"). Eight leagues per page; OK opens that league's full ranking."""
+
+    COLS, ROWS = 4, 2
+    PER_PAGE = COLS * ROWS
+    CARD_X = (30, 420, 810, 1200)
+    CARD_Y = (258, 548)
+    CARD_PARTS = ("hl", "bg", "strip", "ring", "inner", "logo", "emb", "tl", "tr", "rib",
+                  "league", "name", "nick", "stats")
+
+    def __init__(self, session, users_data, categories, theme="default"):
+        Screen.__init__(self, session)
+        self.setTitle("SimplySports: Leaders Arena")
+        if theme == "ucl":
+            bg, top, acc, dim = "#00091442", "#091442", "#c9a020", "#7799cc"
+            card, inner = "#0f1f5c", "#060d2e"
+        else:
+            bg, top, acc, dim = "#00111118", "#0d0d20", "#00FF85", "#556677"
+            card, inner = "#1b1b30", "#0b0b18"
+        gold, gold_hi, gold_dk = "#D4AF37", "#FFD700", "#8C6A12"
+
+        x = [u'<screen name="LeadersArenaScreen" position="center,center" size="1600,900" '
+             u'flags="wfNoBorder" backgroundColor="{bg}">'.format(bg=bg)]
+        # Title bar
+        x.append(u'<eLabel position="0,0" size="1600,90" backgroundColor="{0}" zPosition="0"/>'.format(top))
+        x.append(u'<eLabel position="0,90" size="1600,3" backgroundColor="{0}" zPosition="1"/>'.format(acc))
+        x.append(u'<widget name="title" position="0,8" size="1600,48" font="Regular;34" foregroundColor="{0}" '
+                 u'halign="center" valign="center" transparent="1" zPosition="5"/>'.format(gold_hi))
+        x.append(u'<widget name="subtitle" position="0,56" size="1600,30" font="Regular;20" foregroundColor="{0}" '
+                 u'halign="center" valign="center" transparent="1" zPosition="5"/>'.format(dim))
+        # Overall champion (hero banner)
+        x.append(u'<widget name="h_hl" position="26,100" size="1548,148" backgroundColor="{0}" zPosition="1"/>'.format(acc))
+        x.append(u'<eLabel position="30,104" size="1540,140" backgroundColor="{0}" zPosition="2"/>'.format(card))
+        x.append(u'<eLabel position="30,104" size="8,140" backgroundColor="{0}" zPosition="3"/>'.format(gold_hi))
+        x.append(u'<eLabel position="66,112" size="124,124" backgroundColor="{0}" zPosition="3"/>'.format(gold))
+        x.append(u'<eLabel position="71,117" size="114,114" backgroundColor="{0}" zPosition="4"/>'.format(inner))
+        x.append(u'<widget name="h_emb" position="71,117" size="114,114" font="Regular;72" foregroundColor="{0}" '
+                 u'halign="center" valign="center" transparent="1" zPosition="5"/>'.format(gold_hi))
+        x.append(u'<widget name="h_title" position="220,114" size="760,28" font="Regular;20" foregroundColor="{0}" '
+                 u'halign="left" valign="center" transparent="1" zPosition="5"/>'.format(gold_hi))
+        x.append(u'<widget name="h_name" position="220,144" size="760,48" font="Regular;40" foregroundColor="#FFFFFF" '
+                 u'halign="left" valign="center" transparent="1" zPosition="5"/>')
+        x.append(u'<widget name="h_nick" position="220,194" size="760,36" font="Regular;26" foregroundColor="{0}" '
+                 u'halign="left" valign="center" transparent="1" zPosition="5"/>'.format(gold_hi))
+        x.append(u'<widget name="h_pts" position="1000,114" size="540,60" font="Regular;48" foregroundColor="{0}" '
+                 u'halign="right" valign="center" transparent="1" zPosition="5"/>'.format(acc))
+        x.append(u'<widget name="h_stats" position="1000,180" size="540,40" font="Regular;22" foregroundColor="{0}" '
+                 u'halign="right" valign="center" transparent="1" zPosition="5"/>'.format(dim))
+        # League cards: medallion with crest, #1 ribbon, league, name, nickname, stats
+        for i in range(self.PER_PAGE):
+            cx, cy = self.CARD_X[i % self.COLS], self.CARD_Y[i // self.COLS]
+            parts = [
+                (u'hl', cx - 4, cy - 4, 378, 290, 1, u'backgroundColor="{0}"'.format(acc)),
+                (u'bg', cx, cy, 370, 282, 2, u'backgroundColor="{0}"'.format(card)),
+                (u'strip', cx, cy, 370, 6, 3, u'backgroundColor="{0}"'.format(gold)),
+                (u'ring', cx + 131, cy + 18, 108, 108, 3, u'backgroundColor="{0}"'.format(gold)),
+                (u'inner', cx + 135, cy + 22, 100, 100, 4, u'backgroundColor="{0}"'.format(inner)),
+                (u'emb', cx + 135, cy + 22, 100, 100, 5, u'font="Regular;56" foregroundColor="{0}" halign="center" '
+                                                        u'valign="center" transparent="1"'.format(gold_hi)),
+                (u'tl', cx + 105, cy + 122, 26, 22, 5, u'backgroundColor="{0}"'.format(gold_dk)),
+                (u'tr', cx + 239, cy + 122, 26, 22, 5, u'backgroundColor="{0}"'.format(gold_dk)),
+                (u'rib', cx + 125, cy + 114, 120, 30, 6, u'font="Regular;20" foregroundColor="#1A1200" '
+                                                       u'backgroundColor="{0}" halign="center" valign="center"'.format(gold_hi)),
+                (u'league', cx + 10, cy + 150, 350, 26, 5, u'font="Regular;18" foregroundColor="{0}" halign="center" '
+                                                         u'valign="center" transparent="1"'.format(dim)),
+                (u'name', cx + 10, cy + 178, 350, 36, 5, u'font="Regular;28" foregroundColor="#FFFFFF" halign="center" '
+                                                       u'valign="center" transparent="1"'),
+                (u'nick', cx + 10, cy + 214, 350, 30, 5, u'font="Regular;21" foregroundColor="{0}" halign="center" '
+                                                       u'valign="center" transparent="1"'.format(gold_hi)),
+                (u'stats', cx + 10, cy + 246, 350, 26, 5, u'font="Regular;17" foregroundColor="{0}" halign="center" '
+                                                        u'valign="center" transparent="1"'.format(dim)),
+            ]
+            for name, px, py, w, h, z, attrs in parts:
+                x.append(u'<widget name="c{0}_{1}" position="{2},{3}" size="{4},{5}" zPosition="{6}" {7}/>'.format(
+                    i, name, px, py, w, h, z, attrs))
+            x.append(u'<widget name="c{0}_logo" position="{1},{2}" size="84,84" alphatest="blend" scale="1" '
+                     u'zPosition="5"/>'.format(i, cx + 143, cy + 30))
+        # Button bar
+        x.append(u'<eLabel position="0,834" size="1600,3" backgroundColor="{0}" zPosition="1"/>'.format(acc))
+        x.append(u'<eLabel position="0,837" size="1600,63" backgroundColor="{0}" zPosition="0"/>'.format(top))
+        x.append(u'<ePixmap pixmap="skin_default/buttons/red.png" position="30,856" size="35,25" alphatest="on" zPosition="5"/>')
+        x.append(u'<widget name="key_red" position="75,851" size="300,35" font="Regular;22" foregroundColor="#FF5A5A" '
+                 u'halign="left" valign="center" transparent="1" zPosition="5"/>')
+        x.append(u'<widget name="hint" position="400,851" size="1170,35" font="Regular;20" foregroundColor="{0}" '
+                 u'halign="right" valign="center" transparent="1" zPosition="5"/>'.format(dim))
+        x.append(u'</screen>')
+        self.skin = scale_skin_xml(u''.join(x))
+
+        self["title"] = Label(u"★  " + _t("LEADERS ARENA") + u"  ★")
+        self["subtitle"] = Label(u"")
+        for k in ("h_hl", "h_title", "h_name", "h_nick", "h_pts", "h_stats"):
+            self[k] = Label(u"")
+        self["h_emb"] = Label(u"★")
+        for i in range(self.PER_PAGE):
+            for part in self.CARD_PARTS:
+                self["c%d_%s" % (i, part)] = Pixmap() if part == "logo" else Label(u"")
+        self["key_red"] = Label(_t("Back"))
+        self["hint"] = Label(_t(u"OK: full ranking    ◄ ► ▲ ▼: move    CH +/-: page"))
+
+        # Categories: the main leagues always (an empty throne invites a challenger),
+        # then any other league or sport that has players.
+        extra = [c for c in (categories or []) if c != "Global" and c not in ARENA_LEAGUES]
+        extra.sort(key=lambda c: (c != "soccer", c not in ARENA_SPORTS, arena_category_name(c).lower()))
+        self.cats = list(ARENA_LEAGUES.keys()) + extra
+        self.leaders = compute_league_leaders(users_data, ["Global"] + self.cats)
+        self._my_keys = set(k for k in (firebase_uid(), get_device_id()) if k)
+        self.page = 0
+        self.sel = -1          # -1 = overall champion, 0..7 = card on this page
+        self._slot_cat = {}    # card slot -> category it shows now (for late crest downloads)
+        self._closed = False
+        self.onClose.append(self._on_close)
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions", "EPGSelectActions", "InfobarBouquetActions"], {
+                "cancel": lambda: self.close(None),
+                "red": lambda: self.close(None),
+                "ok": self.key_ok,
+                "left": self.key_left,
+                "right": self.key_right,
+                "up": self.key_up,
+                "down": self.key_down,
+                "nextBouquet": self.next_page,
+                "prevBouquet": self.prev_page,
+            }, -1)
+        self.onLayoutFinish.append(self._render)
+
+    def _on_close(self):
+        self._closed = True
+
+    # ---- data -> widgets ------------------------------------------------------
+    def _pages(self):
+        return max(1, (len(self.cats) + self.PER_PAGE - 1) // self.PER_PAGE)
+
+    def _count(self):
+        return max(0, min(self.PER_PAGE, len(self.cats) - self.page * self.PER_PAGE))
+
+    def _player_name(self, user):
+        name = u"{}".format(user.get('name', 'Anonymous'))
+        if user.get('key') in self._my_keys:
+            name += u"  " + _t("(You)")
+        return name
+
+    @staticmethod
+    def _set_color(widget, color, background=False):
+        try:
+            if background:
+                widget.instance.setBackgroundColor(parseColor(color))
+            else:
+                widget.instance.setForegroundColor(parseColor(color))
+        except Exception:
+            pass
+
+    def _render(self):
+        sub = _t("The #1 of every league")
+        if self._pages() > 1:
+            sub += u"   •   " + _t("Page {} of {}").format(self.page + 1, self._pages())
+        self["subtitle"].setText(sub)
+
+        lead = self.leaders.get("Global")
+        self["h_title"].setText(_t("OVERALL LEADER"))
+        if lead:
+            sc, acc, tot = lead['score'], lead['accuracy'], lead['total']
+            self["h_name"].setText(self._player_name(lead['user']))
+            self["h_nick"].setText(u"« {} »".format(arena_nickname("Global")))
+            self["h_pts"].setText(u"{} {}".format(sc, _t("Pts")))
+            self["h_stats"].setText(u"{:.0f}% {}   •   {} {}   •   {}".format(
+                acc, _t("Accuracy"), tot, _t("Bets"), _t(get_rank_badge(sc, acc))))
+        else:
+            self["h_name"].setText(u"—")
+            self["h_nick"].setText(_t("The throne is empty"))
+            self["h_pts"].setText(u"")
+            self["h_stats"].setText(_t("Top this league to claim it!"))
+
+        for i in range(self.PER_PAGE):
+            idx = self.page * self.PER_PAGE + i
+            self._fill_card(i, self.cats[idx] if idx < len(self.cats) else None)
+        self._update_highlight()
+
+    def _fill_card(self, i, cat):
+        w = lambda part: self["c%d_%s" % (i, part)]
+        self._slot_cat[i] = cat
+        if cat is None:
+            for part in self.CARD_PARTS:
+                w(part).hide()
+            return
+        for part in self.CARD_PARTS:
+            if part not in ("hl", "logo"):
+                w(part).show()
+        _url, _logo_id, color = arena_category_style(cat)
+        self._set_color(w("strip"), color, background=True)
+        self._set_color(w("league"), color)
+        w("league").setText(arena_category_name(cat).upper())
+        self._load_crest(i, cat)
+        lead = self.leaders.get(cat)
+        if lead:
+            w("rib").setText(u"#1")
+            w("name").setText(self._player_name(lead['user']))
+            w("nick").setText(u"« {} »".format(arena_nickname(cat)))
+            w("stats").setText(u"{} {}   •   {:.0f}%   •   {} {}".format(
+                lead['score'], _t("Pts"), lead['accuracy'], lead['total'], _t("Bets")))
+        else:
+            w("rib").setText(u"—")
+            w("name").setText(u"—")
+            w("nick").setText(_t("The throne is empty"))
+            w("stats").setText(_t("Top this league to claim it!"))
+
+    def _load_crest(self, i, cat):
+        """League crest in the medallion; a star shows until it arrives (or for
+        categories without a crest)."""
+        url, logo_id, _color = arena_category_style(cat)
+        self["c%d_logo" % i].hide()
+        self["c%d_emb" % i].setText(u"★")
+        if not url:
+            return
+
+        def _loaded(slot=i, want=cat):
+            if self._closed:
+                return
+            now = self._slot_cat.get(slot)
+            if now == want:
+                self["c%d_emb" % slot].setText(u"")
+            elif now is not None:
+                self._load_crest(slot, now)    # late crest from another page: restore this page's
+            else:
+                self["c%d_logo" % slot].hide()
+        load_logo_to_widget(self, "c%d_logo" % i, url, logo_id, on_loaded=_loaded)
+
+    def _update_highlight(self):
+        if self.sel < 0:
+            self["h_hl"].show()
+        else:
+            self["h_hl"].hide()
+        for i in range(self.PER_PAGE):
+            if i == self.sel:
+                self["c%d_hl" % i].show()
+            else:
+                self["c%d_hl" % i].hide()
+
+    # ---- navigation -------------------------------------------------------------
+    def _go_page(self, page, sel):
+        self.page = page
+        self.sel = min(sel, self._count() - 1) if sel >= 0 else -1
+        self._render()
+
+    def key_left(self):
+        if self.sel < 0:
+            return
+        if self.sel % self.COLS:
+            self.sel -= 1
+            self._update_highlight()
+        elif self.page > 0:
+            row = self.sel // self.COLS
+            self._go_page(self.page - 1, row * self.COLS + self.COLS - 1)
+
+    def key_right(self):
+        if self.sel < 0:
+            return
+        if self.sel % self.COLS < self.COLS - 1 and self.sel + 1 < self._count():
+            self.sel += 1
+            self._update_highlight()
+        elif self.page < self._pages() - 1:
+            row = self.sel // self.COLS
+            self._go_page(self.page + 1, row * self.COLS)
+
+    def key_up(self):
+        if self.sel >= self.COLS:
+            self.sel -= self.COLS
+        elif self.sel >= 0:
+            self.sel = -1
+        self._update_highlight()
+
+    def key_down(self):
+        if self.sel < 0:
+            if self._count():
+                self.sel = 0
+        elif self.sel + self.COLS < self._count():
+            self.sel += self.COLS
+        self._update_highlight()
+
+    def next_page(self):
+        if self.page < self._pages() - 1:
+            self._go_page(self.page + 1, max(self.sel, 0))
+
+    def prev_page(self):
+        if self.page > 0:
+            self._go_page(self.page - 1, max(self.sel, 0))
+
+    def key_ok(self):
+        if self.sel < 0:
+            self.close("Global")
+            return
+        idx = self.page * self.PER_PAGE + self.sel
+        if idx < len(self.cats):
+            self.close(self.cats[idx])
+
+
 # ==============================================================================
 # PERSONAL PROFILE / BET HISTORY SCREEN
 # ==============================================================================
@@ -36138,7 +39622,6 @@ class PersonalProfileScreen(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
         self.setTitle("SimplySports: My Profile")
-        if global_sports_monitor: global_sports_monitor.fetch_all_community_votes()
 
         theme = getattr(global_sports_monitor, "theme_mode", "default") if global_sports_monitor else "default"
         self._theme = theme
@@ -36295,7 +39778,10 @@ class PersonalProfileScreen(Screen):
                 h_name      = bet.get("h_name", "Home")
                 a_name      = bet.get("a_name", "Away")
                 ts          = bet.get("timestamp", 0)
-                outcome     = "WON" if prediction == result else "LOST"
+                if result == "void":
+                    outcome = "VOID"   # cancelled/abandoned game: no points either way
+                else:
+                    outcome = "WON" if prediction == result else "LOST"
                 picked_lbl  = self._prediction_label(prediction, h_name, a_name)
                 date_lbl    = self._format_timestamp(ts)
                 row = ProfileListEntry(
@@ -36460,11 +39946,13 @@ class WatchPartyScreen(Screen):
         # ── Firebase state ────────────────────────────────────────────────
         self._last_poll_ts   = 0      # Incremental startAt cursor for GET
         self._poll_in_flight = False  # Prevent overlapping poll threads
-        self._my_uid         = get_device_id()
+        # Firebase user id when signed in (needed by the security rules), else device id
+        self._my_uid         = firebase_uid() or get_device_id()
         self._last_etag      = None   # ETag for conditional GET
 
         # Nickname state — send name only once per session to save bandwidth
         self._my_name = getattr(global_sports_monitor, 'voter_name', 'Anonymous') if global_sports_monitor else 'Anonymous'
+        self._my_name = (self._my_name or 'Anonymous')[:40]   # the database rules cap names at 40 characters
         self._name_sent    = False     # True after first push includes the name
         self._uid_names    = {}        # uid -> display_name cache from polled data
         self._uid_names[self._my_uid] = self._my_name  # Pre-cache own name
@@ -36960,7 +40448,7 @@ class WatchPartyScreen(Screen):
                 # 1. Register own name
                 reg_url = "{}/party_names/{}/{}.json".format(FIREBASE_URL, self.match_id, self._my_uid)
                 try:
-                    req = req_mod.Request(reg_url, data=json.dumps(self._my_name).encode("utf-8"))
+                    req = req_mod.Request(firebase_auth_url(reg_url), data=json.dumps(self._my_name).encode("utf-8"))
                     req.add_header("Content-Type", "application/json")
                     req.add_header("X-HTTP-Method-Override", "PUT")
                     req_mod.urlopen(req, timeout=5)
@@ -37196,7 +40684,7 @@ class WatchPartyScreen(Screen):
                 FIREBASE_URL, self.match_id, self._my_uid
             )
             payload = json.dumps(value).encode("utf-8")
-            req = _req.Request(url, data=payload)
+            req = _req.Request(firebase_auth_url(url), data=payload)
             req.add_header("Content-Type", "application/json")
             req.get_method = lambda: "PUT"
             ctx = ssl.create_default_context()
@@ -37436,7 +40924,8 @@ class WatchPartyScreen(Screen):
             return
         self._commentary_in_flight = True
         prompt = self._build_wp_commentary_prompt()
-        call_ai_api_threaded(mon.ai_api_key, mon.ai_provider, prompt, self._on_commentary_result)
+        call_ai_api_threaded(mon.ai_api_key, mon.ai_provider, prompt, self._on_commentary_result,
+                             kind="commentary", include_news=False)
 
     def _build_wp_commentary_prompt(self):
         """Build a focused, match-specific commentary prompt enriched with live stats and news."""
@@ -37659,7 +41148,7 @@ class WatchPartyScreen(Screen):
                     import urllib2 as req_mod
                 except ImportError:
                     import urllib.request as req_mod
-                req = req_mod.Request(url, data=payload.encode("utf-8"))
+                req = req_mod.Request(firebase_auth_url(url), data=payload.encode("utf-8"))
                 req.add_header("Content-Type", "application/json")
                 # FIREBASE MAGIC: Tell Firebase this POST is actually a PATCH.
                 # This is the proven workaround used throughout the plugin.
@@ -38122,6 +41611,14 @@ try:
                 ("youtube", "YouTube Only")
             ]
         )
+    if not hasattr(config.plugins.SimplySport, "arena_view_preference"):
+        config.plugins.SimplySport.arena_view_preference = ConfigSelection(
+            default="heading_only",
+            choices=[
+                ("heading_only", "League Heading only"),
+                ("with_matches", "League Heading with Matches")
+            ]
+        )
 except Exception:
     pass
 
@@ -38547,7 +42044,9 @@ def search_dailymotion_live(home_en, away_en, lang="en"):
     seen = set()
     for q in queries:
         try:
-            q_enc = _quote(q.encode('utf-8') if isinstance(q, unicode) else str(q))
+            # Quote UTF-8 bytes (works on Py2 and Py3). The old isinstance(q, unicode)
+            # raised NameError on Python 3, so every Dailymotion search returned [].
+            q_enc = _quote(q if isinstance(q, bytes) else q.encode('utf-8'))
             api_url = "https://api.dailymotion.com/videos?search={}&flags=live&limit=10&fields=id,title,owner.screenname,thumbnail_360_url,url".format(q_enc)
             req = _urllib_req.Request(api_url, headers=headers)
             resp = _urllib_req.urlopen(req, timeout=5, context=ctx) if ctx else _urllib_req.urlopen(req, timeout=5)
@@ -40933,14 +44432,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.1 by reali22",
+            description="Live Sports Scores, v7.2 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.1 by reali22",
+            description="Live Sports Scores, v7.2 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -40955,7 +44454,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.1 by reali22",
+            description="Live Sports Scores, v7.2 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
