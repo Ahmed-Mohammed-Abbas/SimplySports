@@ -1,0 +1,52 @@
+name: Build Enigma2 IPK and DEB
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build DEB and IPK Packages
+        run: |
+          PKG="enigma2-plugin-extensions-simplysports"
+          VER="1.0+git${GITHUB_RUN_NUMBER}"
+          mkdir -p build/DEBIAN
+          mkdir -p build/usr/lib/enigma2/python/Plugins/Extensions/SimplySports
+
+          cp -r * build/usr/lib/enigma2/python/Plugins/Extensions/SimplySports/ 2>/dev/null || true
+          rm -rf build/usr/lib/enigma2/python/Plugins/Extensions/SimplySports/build
+
+          cat << EOF > build/DEBIAN/control
+          Package: $PKG
+          Version: $VER
+          Section: extra
+          Priority: optional
+          Architecture: all
+          Maintainer: Ahmed-Mohammed-Abbas
+          Description: SimplySports Plugin for Enigma2
+          EOF
+
+          chmod -R 755 build
+          
+          # Build DEB (using gzip for DreamOS compatibility)
+          dpkg-deb -Zgzip --build build "${PKG}_${VER}_all.deb"
+
+          # Convert to IPK format
+          mkdir -p ipk_work
+          cd ipk_work
+          ar x "../${PKG}_${VER}_all.deb"
+          tar --numeric-owner --group=0 --owner=0 -czf "../${PKG}_${VER}_all.ipk" ./debian-binary ./control.tar.gz ./data.tar.gz
+
+      - name: Upload Packages as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SimplySports-Packages
+          path: |
+            *.ipk
+            *.deb
