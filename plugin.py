@@ -258,7 +258,7 @@ FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedat
 # this version (it rejects writes from older ones). See FIREBASE_SETUP.md.
 FIREBASE_WEB_API_KEY = "AIzaSyDTo90doEeXZvHcyB2w71cAKo92Eiq7HZs"   # project simplysports-votes
 FIREBASE_AUTH_FILE = "/etc/enigma2/simplysports_auth.json"
-VERSION = "7.2"
+VERSION = "7.3"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -529,6 +529,12 @@ TRANSLATIONS = {
     "Dark Maroon":                                  {"ar": u"\u0639\u0646\u0627\u0628\u064a \u062f\u0627\u0643\u0646"},
     "Dark Graphite":                                {"ar": u"\u0631\u0645\u0627\u062f\u064a \u063a\u0631\u0627\u0641\u064a\u062a"},
     "Background color saved.":                      {"ar": u"\u062a\u0645 \u062d\u0641\u0638 \u0644\u0648\u0646 \u0627\u0644\u062e\u0644\u0641\u064a\u0629."},
+    "Club Themes":                                  {"ar": u"\u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u0623\u0646\u062f\u064a\u0629"},
+    "Basic Colours":                                {"ar": u"\u0627\u0644\u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629"},
+    "Club Kits":                                    {"ar": u"\u0623\u0637\u0642\u0645 \u0627\u0644\u0623\u0646\u062f\u064a\u0629"},
+    "Main Theme Colours & Club Kits":               {"ar": u"\u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u0648\u0627\u062c\u0647\u0629 \u0648\u0623\u0637\u0642\u0645 \u0627\u0644\u0623\u0646\u062f\u064a\u0629"},
+    "not used by club kits":                        {"ar": u"\u0644\u0627 \u064a\u0646\u0637\u0628\u0642 \u0639\u0644\u0649 \u0623\u0637\u0642\u0645 \u0627\u0644\u0623\u0646\u062f\u064a\u0629"},
+    "LaLiga":                                       {"ar": u"\u0627\u0644\u062f\u0648\u0631\u064a \u0627\u0644\u0625\u0633\u0628\u0627\u0646\u064a"},
     "Main Screen Transparency (Default Theme only)": {"ar": u"\u0634\u0641\u0627\u0641\u064a\u0629 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 (\u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)"},
     "Show Plugin in Main Menu: ": {"ar": u"\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c \u0641\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629: "},
     "Set Voter Name: ":           {"ar": u"\u062a\u0639\u064a\u064a\u0646 \u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0648\u0651\u062a: "},
@@ -2512,7 +2518,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "7.2"
+CURRENT_VERSION = "7.3"
 # v7.2: Alert Options (which matches/events, quiet hours, exciting games only, spoiler guard, overlay toasts that keep
 # the remote), follow a match, no polling or alerts in standby, on-time reminders, favourite-team and line-ups alerts,
 # timezone-correct fixtures and live match details; result checking after full time, World Cup points by stage,
@@ -2520,6 +2526,8 @@ CURRENT_VERSION = "7.2"
 # (RED in the leaderboard); channel guide uses the box EPG search, an XMLTV time window and a cached guide download.
 # AI Mode: goal / kick-off / full-time lines built on worked-out facts (equaliser, comeback, late winner, red cards,
 # form, odds, the viewer's pick), separate system prompts and tuned settings for Gemini and Groq, varied news lines.
+# v7.3: Club Kit Mode - 10 club themes drawn from the shirts (stripes, diamonds, Hechter band ...), collar-trim header,
+# kit-edged rounded cards (90% opaque), per-plate text colours checked for contrast; artwork in icons/vnext/backgrounds/clubs/.
 # New Arena View Preference & Accordion Navigation.
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -4931,12 +4939,15 @@ def get_scaled_pixmap(path, width, height):
 # ==============================================================================
 # LIST RENDERERS
 # ==============================================================================
-def draw_rounded_box(res, x, y, w, h, border_color, fill_color, is_solid):
+def draw_rounded_box(res, x, y, w, h, border_color, fill_color, is_solid, sel_color=None):
     """Draw a box with rounded top-left and bottom-right corners (arched from middle height, convex/outward circular curvature from plugin6.4.3.py).
-    Groups contiguous scanlines into horizontal rectangle bands for optimal performance."""
+    Groups contiguous scanlines into horizontal rectangle bands for optimal performance.
+    sel_color (solid boxes only): colour used while the row is focused."""
     import math
+    if sel_color is None:
+        sel_color = border_color
     if h < 6 or w < 6:
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, x, y, w, h, 0, RT_HALIGN_CENTER, "", border_color, border_color, border_color, border_color))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, x, y, w, h, 0, RT_HALIGN_CENTER, "", border_color, sel_color, border_color, sel_color))
         return
 
     h_half = h // 2
@@ -4971,8 +4982,9 @@ def draw_rounded_box(res, x, y, w, h, border_color, fill_color, is_solid):
 
     if is_solid:
         c = border_color
+        cs = sel_color
         for gy, gh, dl, dr in grouped:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, x + dl, y + gy, w - dl - dr, gh, 0, RT_HALIGN_CENTER, "", c, c, c, c))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, x + dl, y + gy, w - dl - dr, gh, 0, RT_HALIGN_CENTER, "", c, cs, c, cs))
     else:
         c_b = border_color
         c_f = fill_color
@@ -5019,6 +5031,7 @@ def draw_card(res, x, y, w, h, radius, fill, fill_sel, border=None, border_sel=N
 # MAIN THEME BACKGROUND COLOR PRESETS
 # ==============================================================================
 MAIN_THEME_BG_COLORS = {
+    # --- Plain backgrounds (original presets, unchanged) ---
     "default":  {"name_en": "Default (Dark Slate)", "name_ar": u"\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a (\u0641\u062d\u0645\u064a \u062f\u0627\u0643\u0646)", "deep_hex": "111418", "navy_hex": "0E1621", "deep_int": 0x111418, "navy_int": 0x0E1621},
     "black":    {"name_en": "Pure Black (OLED)",    "name_ar": u"\u0623\u0633\u0648\u062f \u0646\u0642\u064a (OLED)",        "deep_hex": "000000", "navy_hex": "080808", "deep_int": 0x000000, "navy_int": 0x080808},
     "navy":     {"name_en": "Deep Navy",            "name_ar": u"\u0623\u0632\u0631\u0642 \u0643\u062d\u0644\u064a \u062f\u0627\u0643\u0646",          "deep_hex": "0A121D", "navy_hex": "060D17", "deep_int": 0x0A121D, "navy_int": 0x060D17},
@@ -5027,6 +5040,242 @@ MAIN_THEME_BG_COLORS = {
     "purple":   {"name_en": "Deep Purple",          "name_ar": u"\u0628\u0646\u0641\u0633\u062c\u064a \u062f\u0627\u0643\u0646",            "deep_hex": "140D1D", "navy_hex": "0E0816", "deep_int": 0x140D1D, "navy_int": 0x0E0816},
     "maroon":   {"name_en": "Dark Maroon",          "name_ar": u"\u0639\u0646\u0627\u0628\u064a \u062f\u0627\u0643\u0646",              "deep_hex": "180D11", "navy_hex": "12080B", "deep_int": 0x180D11, "navy_int": 0x12080B},
     "graphite": {"name_en": "Dark Graphite",        "name_ar": u"\u0631\u0645\u0627\u062f\u064a \u063a\u0631\u0627\u0641\u064a\u062a",           "deep_hex": "16181B", "navy_hex": "101215", "deep_int": 0x16181B, "navy_int": 0x101215},
+
+    # ------------------------------------------------------------------
+    # CLUB KIT THEMES - generated from tools/club_themes.py (contrast-audited:
+    # names/scores >= 7:1, all other text >= 4.5:1). The kit artwork lives in
+    # icons/vnext/backgrounds/clubs/; without it the flat deep_hex is used.
+    # ------------------------------------------------------------------
+    "barcelona": {
+        "name_en": u"\u26bd FC Barcelona", "name_ar": u"\u26bd \u0628\u0631\u0634\u0644\u0648\u0646\u0629",
+        "is_club": True, "tone": "dark", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "5A1240", "navy_hex": "08102A", "deep_int": 0x5A1240, "navy_int": 0x08102A,
+        "accent1_hex": "EDBB00", "accent2_hex": "8DB8FF", "accent1_int": 0xEDBB00, "accent2_int": 0x8DB8FF,
+        "header_line": "EDBB00", "header_title_hex": "FFFFFF",
+        # surfaces
+        "card_int": 0x0E1530, "card_sel_int": 0x131C45, "card_live_int": 0x1C0F2C, "card_live_sel_int": 0x2E1648,
+        "border_int": 0x2A3570, "border_sel_int": 0xEDBB00, "score_box_int": 0x070C22, "score_box_sel_int": 0x0B1238,
+        "kit_edge": [0x004D98, 0xA50044, 0x004D98, 0xA50044],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xB8C2DE, "win": 0xF7C843, "accent": 0x8DB8FF, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xD3DAF0, "win": 0xFFD54F, "accent": 0xFFD54F, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0xEDBB00, "button_text_int": 0x1A1A1A,
+        # header and footer
+        "header": {"bg": 0x004D98, "tone": "dark", "trim": [(0xEDBB00, 4), (0xA50044, 6)],
+                   "title": 0xFFFFFF, "text": 0xFFFFFF, "sub": 0xD6E2F5, "muted": 0xB9CBE8, "clock": 0xFFD54F, "badge": 0xFFFFFF, "live": 0x7CFFB2},
+        "footer": {"bg": 0x08102A, "trim": [(0xA50044, 4), (0xEDBB00, 2)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_barcelona_1920x1080.png", "kit_row": "kit_barcelona_row_1920x136.png", "kit_veil": "kit_barcelona_veil_1920x136.png",
+        "pill_small": "pill_small_barcelona.png", "pill_wide": "pill_wide_barcelona.png",
+    },
+    "real_madrid": {
+        "name_en": u"\u26bd Real Madrid", "name_ar": u"\u26bd \u0631\u064a\u0627\u0644 \u0645\u062f\u0631\u064a\u062f",
+        "is_club": True, "tone": "light", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "F4F4F1", "navy_hex": "0A1F44", "deep_int": 0xF4F4F1, "navy_int": 0x0A1F44,
+        "accent1_hex": "FEBE10", "accent2_hex": "00529F", "accent1_int": 0xFEBE10, "accent2_int": 0x00529F,
+        "header_line": "FEBE10", "header_title_hex": "0A1F44",
+        # surfaces
+        "card_int": 0xFFFFFF, "card_sel_int": 0x141414, "card_live_int": 0xFFF6F5, "card_live_sel_int": 0x1A1212,
+        "border_int": 0xB9BEC8, "border_sel_int": 0xFEBE10, "score_box_int": 0xEDEFF4, "score_box_sel_int": 0x454545,
+        "kit_edge": [0xFEBE10, 0x0A1F44],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0x0A1F44, "dim": 0x4A5566, "win": 0x7A5600, "accent": 0x00529F, "live": 0xB71C1C, "warn": 0xA14A00, "muted": 0x5F6368},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xC9CDD4, "win": 0xFEBE10, "accent": 0xFEBE10, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0x0A1F44, "button_text_int": 0xFFFFFF,
+        # header and footer
+        "header": {"bg": 0xFFFFFF, "tone": "light", "trim": [(0xFEBE10, 4), (0x0A1F44, 3)],
+                   "title": 0x0A1F44, "text": 0x0A1F44, "sub": 0x3D4A5C, "muted": 0x4A5260, "clock": 0x7A5600, "badge": 0x0A1F44, "live": 0x0B7A35},
+        "footer": {"bg": 0x0A1F44, "trim": [(0xFEBE10, 3)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_real_madrid_1920x1080.png", "kit_row": "kit_real_madrid_row_1920x136.png", "kit_veil": "kit_real_madrid_veil_1920x136.png",
+        "pill_small": "pill_small_real_madrid.png", "pill_wide": "pill_wide_real_madrid.png",
+    },
+    "man_city": {
+        "name_en": u"\u26bd Manchester City", "name_ar": u"\u26bd \u0645\u0627\u0646\u0634\u0633\u062a\u0631 \u0633\u064a\u062a\u064a",
+        "is_club": True, "tone": "dark", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "6CABDD", "navy_hex": "0E1A38", "deep_int": 0x6CABDD, "navy_int": 0x0E1A38,
+        "accent1_hex": "FFFFFF", "accent2_hex": "8FCBF2", "accent1_int": 0xFFFFFF, "accent2_int": 0x8FCBF2,
+        "header_line": "1C2C5B", "header_title_hex": "0B1A3E",
+        # surfaces
+        "card_int": 0x0F1B3A, "card_sel_int": 0x1E3268, "card_live_int": 0x161A3A, "card_live_sel_int": 0x26305E,
+        "border_int": 0x2B3F70, "border_sel_int": 0xFFFFFF, "score_box_int": 0x09122A, "score_box_sel_int": 0x112048,
+        "kit_edge": [0x6CABDD, 0xFFFFFF, 0x6CABDD],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xB7C7E3, "win": 0xF7C843, "accent": 0x8FCBF2, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xD4DEF0, "win": 0xFFD54F, "accent": 0xA9D8F7, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0x6CABDD, "button_text_int": 0x0B1A3E,
+        # header and footer
+        "header": {"bg": 0x6CABDD, "tone": "light", "trim": [(0x1C2C5B, 5), (0xFFFFFF, 2)],
+                   "title": 0x0B1A3E, "text": 0x0B1A3E, "sub": 0x13254F, "muted": 0x0F1D44, "clock": 0x0B1A3E, "badge": 0x0B1A3E, "live": 0x033818},
+        "footer": {"bg": 0x0E1A38, "trim": [(0x6CABDD, 4)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_man_city_1920x1080.png", "kit_row": "kit_man_city_row_1920x136.png", "kit_veil": "kit_man_city_veil_1920x136.png",
+        "pill_small": "pill_small_man_city.png", "pill_wide": "pill_wide_man_city.png",
+    },
+    "man_utd": {
+        "name_en": u"\u26bd Manchester United", "name_ar": u"\u26bd \u0645\u0627\u0646\u0634\u0633\u062a\u0631 \u064a\u0648\u0646\u0627\u064a\u062a\u062f",
+        "is_club": True, "tone": "dark", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "DA291C", "navy_hex": "0A0A0A", "deep_int": 0xDA291C, "navy_int": 0x0A0A0A,
+        "accent1_hex": "FFFFFF", "accent2_hex": "FF8A80", "accent1_int": 0xFFFFFF, "accent2_int": 0xFF8A80,
+        "header_line": "DA291C", "header_title_hex": "FFFFFF",
+        # surfaces
+        "card_int": 0x121212, "card_sel_int": 0x2A1412, "card_live_int": 0x1A0E0E, "card_live_sel_int": 0x341614,
+        "border_int": 0x4E2C29, "border_sel_int": 0xFFFFFF, "score_box_int": 0x0A0A0A, "score_box_sel_int": 0x1A0A09,
+        "kit_edge": [0xDA291C, 0xFFFFFF, 0xDA291C],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xC9B9B7, "win": 0xFFE14D, "accent": 0xFF8A80, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xE2D3D1, "win": 0xFFE500, "accent": 0xFFB3AB, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0xDA291C, "button_text_int": 0xFFFFFF,
+        # header and footer
+        "header": {"bg": 0x0A0A0A, "tone": "dark", "trim": [(0xDA291C, 5), (0xFFFFFF, 2)],
+                   "title": 0xFFFFFF, "text": 0xFFFFFF, "sub": 0xD9D9D9, "muted": 0xA8A8A8, "clock": 0xFFE500, "badge": 0xFFFFFF, "live": 0x4CE08A},
+        "footer": {"bg": 0x0A0A0A, "trim": [(0xDA291C, 4)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_man_utd_1920x1080.png", "kit_row": "kit_man_utd_row_1920x136.png", "kit_veil": "kit_man_utd_veil_1920x136.png",
+        "pill_small": "pill_small_man_utd.png", "pill_wide": "pill_wide_man_utd.png",
+    },
+    "liverpool": {
+        "name_en": u"\u26bd Liverpool FC", "name_ar": u"\u26bd \u0644\u064a\u0641\u0631\u0628\u0648\u0644",
+        "is_club": True, "tone": "dark", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "C8102E", "navy_hex": "14070A", "deep_int": 0xC8102E, "navy_int": 0x14070A,
+        "accent1_hex": "FFFFFF", "accent2_hex": "4FD6CE", "accent1_int": 0xFFFFFF, "accent2_int": 0x4FD6CE,
+        "header_line": "FFFFFF", "header_title_hex": "FFFFFF",
+        # surfaces
+        "card_int": 0x170A0D, "card_sel_int": 0x33121A, "card_live_int": 0x1D0B10, "card_live_sel_int": 0x3C1520,
+        "border_int": 0x55262F, "border_sel_int": 0xFFFFFF, "score_box_int": 0x0E0507, "score_box_sel_int": 0x1E080C,
+        "kit_edge": [0xC8102E, 0x00B2A9],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xD2BCC0, "win": 0xF7C843, "accent": 0x4FD6CE, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xE8D6D9, "win": 0xFFD54F, "accent": 0x6FE3DC, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0x00B2A9, "button_text_int": 0x05201E,
+        # header and footer
+        "header": {"bg": 0xA50D26, "tone": "dark", "trim": [(0xFFFFFF, 3), (0x00B2A9, 5)],
+                   "title": 0xFFFFFF, "text": 0xFFFFFF, "sub": 0xFFE3E7, "muted": 0xF5C8CF, "clock": 0xFFFFFF, "badge": 0xFFFFFF, "live": 0xB6FFD6},
+        "footer": {"bg": 0x14070A, "trim": [(0x00B2A9, 3)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_liverpool_1920x1080.png", "kit_row": "kit_liverpool_row_1920x136.png", "kit_veil": "kit_liverpool_veil_1920x136.png",
+        "pill_small": "pill_small_liverpool.png", "pill_wide": "pill_wide_liverpool.png",
+    },
+    "bayern": {
+        "name_en": u"\u26bd Bayern Munich", "name_ar": u"\u26bd \u0628\u0627\u064a\u0631\u0646 \u0645\u064a\u0648\u0646\u064a\u062e",
+        "is_club": True, "tone": "dark", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "DC052D", "navy_hex": "14060B", "deep_int": 0xDC052D, "navy_int": 0x14060B,
+        "accent1_hex": "FFFFFF", "accent2_hex": "6FB4F0", "accent1_int": 0xFFFFFF, "accent2_int": 0x6FB4F0,
+        "header_line": "FFFFFF", "header_title_hex": "FFFFFF",
+        # surfaces
+        "card_int": 0x16080D, "card_sel_int": 0x341018, "card_live_int": 0x1C0A10, "card_live_sel_int": 0x3A1220,
+        "border_int": 0x55262F, "border_sel_int": 0xFFFFFF, "score_box_int": 0x0E0408, "score_box_sel_int": 0x20060C,
+        "kit_edge": [0xDC052D, 0xFFFFFF, 0x0066B2],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xD4BCC3, "win": 0xF7C843, "accent": 0x6FB4F0, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xEAD7DC, "win": 0xFFD54F, "accent": 0x9CCBF5, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0xFFFFFF, "button_text_int": 0xB80426,
+        # header and footer
+        "header": {"bg": 0xB80426, "tone": "dark", "trim": [(0xFFFFFF, 3), (0x0066B2, 5)],
+                   "title": 0xFFFFFF, "text": 0xFFFFFF, "sub": 0xFFE0E6, "muted": 0xFFD6DD, "clock": 0xFFFFFF, "badge": 0xFFFFFF, "live": 0xB6FFD6},
+        "footer": {"bg": 0x14060B, "trim": [(0x0066B2, 4)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_bayern_1920x1080.png", "kit_row": "kit_bayern_row_1920x136.png", "kit_veil": "kit_bayern_veil_1920x136.png",
+        "pill_small": "pill_small_bayern.png", "pill_wide": "pill_wide_bayern.png",
+    },
+    "juventus": {
+        "name_en": u"\u26bd Juventus", "name_ar": u"\u26bd \u064a\u0648\u0641\u0646\u062a\u0648\u0633",
+        "is_club": True, "tone": "dark", "sel_tone": "light",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "0A0A0A", "navy_hex": "050505", "deep_int": 0x0A0A0A, "navy_int": 0x050505,
+        "accent1_hex": "8A6A10", "accent2_hex": "E0B84A", "accent1_int": 0x8A6A10, "accent2_int": 0xE0B84A,
+        "header_line": "F2F2F2", "header_title_hex": "FFFFFF",
+        # surfaces
+        "card_int": 0x0E0E0E, "card_sel_int": 0xF4F4F4, "card_live_int": 0x150F0F, "card_live_sel_int": 0xFBF1F1,
+        "border_int": 0x5A5A5A, "border_sel_int": 0x8A6A10, "score_box_int": 0x050505, "score_box_sel_int": 0xE2E2E2,
+        "kit_edge": [0xF2F2F2, 0x0A0A0A, 0xF2F2F2],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xB5B5B5, "win": 0xE0B84A, "accent": 0xE0B84A, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0x0A0A0A, "dim": 0x4A4A4A, "win": 0x7A5A00, "accent": 0x7A5A00, "live": 0xB71C1C, "warn": 0xA14A00, "muted": 0x5F6368},
+        "button_int": 0xF2F2F2, "button_text_int": 0x0A0A0A,
+        # header and footer
+        "header": {"bg": 0x050505, "tone": "dark", "trim": [("stripes", 8), (0xC9A23A, 2)],
+                   "title": 0xFFFFFF, "text": 0xFFFFFF, "sub": 0xD0D0D0, "muted": 0xA0A0A0, "clock": 0xE0B84A, "badge": 0xFFFFFF, "live": 0x4CE08A},
+        "footer": {"bg": 0x050505, "trim": [(0xF2F2F2, 2)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_juventus_1920x1080.png", "kit_row": "kit_juventus_row_1920x136.png", "kit_veil": "kit_juventus_veil_1920x136.png",
+        "pill_small": "pill_small_juventus.png", "pill_wide": "pill_wide_juventus.png",
+    },
+    "psg": {
+        "name_en": u"\u26bd Paris Saint-Germain", "name_ar": u"\u26bd \u0628\u0627\u0631\u064a\u0633 \u0633\u0627\u0646 \u062c\u064a\u0631\u0645\u0627\u0646",
+        "is_club": True, "tone": "dark", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "143D80", "navy_hex": "071633", "deep_int": 0x143D80, "navy_int": 0x071633,
+        "accent1_hex": "FFFFFF", "accent2_hex": "FF7A70", "accent1_int": 0xFFFFFF, "accent2_int": 0xFF7A70,
+        "header_line": "FFFFFF", "header_title_hex": "FFFFFF",
+        # surfaces
+        "card_int": 0x060C1E, "card_sel_int": 0x18285A, "card_live_int": 0x120C22, "card_live_sel_int": 0x281C50,
+        "border_int": 0x2A3C70, "border_sel_int": 0xFFFFFF, "score_box_int": 0x060F26, "score_box_sel_int": 0x0C1A40,
+        "kit_edge": [0xFFFFFF, 0xDA291C, 0xFFFFFF],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xB4C0DA, "win": 0xF7C843, "accent": 0xFF7A70, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xD4DCEC, "win": 0xFFD54F, "accent": 0xFF9A92, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0xDA291C, "button_text_int": 0xFFFFFF,
+        # header and footer
+        "header": {"bg": 0x0A1F44, "tone": "dark", "trim": [(0xFFFFFF, 2), (0xDA291C, 6), (0xFFFFFF, 2)],
+                   "title": 0xFFFFFF, "text": 0xFFFFFF, "sub": 0xD2DAEA, "muted": 0xA9B6D0, "clock": 0xFFFFFF, "badge": 0xFFFFFF, "live": 0x4CE08A},
+        "footer": {"bg": 0x071633, "trim": [(0xDA291C, 4)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_psg_1920x1080.png", "kit_row": "kit_psg_row_1920x136.png", "kit_veil": "kit_psg_veil_1920x136.png",
+        "pill_small": "pill_small_psg.png", "pill_wide": "pill_wide_psg.png",
+    },
+    "inter": {
+        "name_en": u"\u26bd Inter Milan", "name_ar": u"\u26bd \u0625\u0646\u062a\u0631 \u0645\u064a\u0644\u0627\u0646",
+        "is_club": True, "tone": "dark", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "0A63B5", "navy_hex": "050505", "deep_int": 0x0A63B5, "navy_int": 0x050505,
+        "accent1_hex": "2FB0EE", "accent2_hex": "4FB8F2", "accent1_int": 0x2FB0EE, "accent2_int": 0x4FB8F2,
+        "header_line": "009CDE", "header_title_hex": "4FB8F2",
+        # surfaces
+        "card_int": 0x080D16, "card_sel_int": 0x0F2448, "card_live_int": 0x120E18, "card_live_sel_int": 0x1E1E44,
+        "border_int": 0x1D3554, "border_sel_int": 0x2FB0EE, "score_box_int": 0x04070D, "score_box_sel_int": 0x081630,
+        "kit_edge": [0x009CDE, 0x060606, 0x009CDE],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xA9B8CC, "win": 0xFCBB2E, "accent": 0x4FB8F2, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xCCD7E6, "win": 0xFFCF5C, "accent": 0x7FCBF5, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0x009CDE, "button_text_int": 0x04121C,
+        # header and footer
+        "header": {"bg": 0x050505, "tone": "dark", "trim": [(0x009CDE, 5), (0xFCBB2E, 2)],
+                   "title": 0x4FB8F2, "text": 0xFFFFFF, "sub": 0xC8D6E6, "muted": 0x9AAABD, "clock": 0xFCBB2E, "badge": 0xFFFFFF, "live": 0x4CE08A},
+        "footer": {"bg": 0x050505, "trim": [(0x009CDE, 4)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_inter_1920x1080.png", "kit_row": "kit_inter_row_1920x136.png", "kit_veil": "kit_inter_veil_1920x136.png",
+        "pill_small": "pill_small_inter.png", "pill_wide": "pill_wide_inter.png",
+    },
+    "dortmund": {
+        "name_en": u"\u26bd Borussia Dortmund", "name_ar": u"\u26bd \u0628\u0648\u0631\u0648\u0633\u064a\u0627 \u062f\u0648\u0631\u062a\u0645\u0648\u0646\u062f",
+        "is_club": True, "tone": "dark", "sel_tone": "dark",
+        # old keys, kept so every existing reader still works
+        "deep_hex": "FDE100", "navy_hex": "0A0A0A", "deep_int": 0xFDE100, "navy_int": 0x0A0A0A,
+        "accent1_hex": "FDE100", "accent2_hex": "FDE100", "accent1_int": 0xFDE100, "accent2_int": 0xFDE100,
+        "header_line": "000000", "header_title_hex": "000000",
+        # surfaces
+        "card_int": 0x0E0E0E, "card_sel_int": 0x22220E, "card_live_int": 0x160E0E, "card_live_sel_int": 0x2A1E10,
+        "border_int": 0x343422, "border_sel_int": 0xFDE100, "score_box_int": 0x050505, "score_box_sel_int": 0x15150A,
+        "kit_edge": [0xFDE100, 0xFDE100],
+        # ink: text colours for normal rows and for the focused row
+        "ink": {"text": 0xFFFFFF, "dim": 0xBDBDBD, "win": 0xFDE100, "accent": 0xFDE100, "live": 0xFF5C5C, "warn": 0xFF9800, "muted": 0x8A8A8A},
+        "ink_sel": {"text": 0xFFFFFF, "dim": 0xD9D9C8, "win": 0xFDE100, "accent": 0xFDE100, "live": 0xFF8A8A, "warn": 0xFFAA33, "muted": 0xA8A8A8},
+        "button_int": 0xFDE100, "button_text_int": 0x000000,
+        # header and footer
+        "header": {"bg": 0xFDE100, "tone": "light", "trim": [(0x000000, 6)],
+                   "title": 0x000000, "text": 0x000000, "sub": 0x2A2A2A, "muted": 0x3D3D3D, "clock": 0x000000, "badge": 0x000000, "live": 0x0B5E2A},
+        "footer": {"bg": 0x0A0A0A, "trim": [(0xFDE100, 4)]},
+        # artwork in icons/vnext/backgrounds/clubs/ (flat deep_hex is used if a file is missing)
+        "kit_canvas": "kit_dortmund_1920x1080.png", "kit_row": "kit_dortmund_row_1920x136.png", "kit_veil": "kit_dortmund_veil_1920x136.png",
+        "pill_small": "pill_small_dortmund.png", "pill_wide": "pill_wide_dortmund.png",
+    },
 }
 
 def get_main_bg_preset(color_key=None):
@@ -5042,6 +5291,82 @@ def get_main_bg_color_name(color_key=None):
     """Return localized display name of the background color."""
     preset = get_main_bg_preset(color_key)
     return _t(preset["name_en"])
+
+
+KIT_ASSET_DIR = "Extensions/SimplySports/icons/vnext/backgrounds/clubs/"
+_CLUB_PALETTE_CACHE = {}
+
+
+def _kit_asset(name):
+    """Full path of a club-kit image, or None when it is not installed."""
+    if not name:
+        return None
+    try:
+        path = resolveFilename(SCOPE_PLUGINS, KIT_ASSET_DIR + name)
+        return path if os.path.exists(path) else None
+    except Exception:
+        return None
+
+
+def get_club_palette(color_key=None):
+    """Return a full palette dict for the active background color.
+
+    Club-kit keys (ink, header, kit_edge, artwork ...) are optional in the preset
+    dict: plain presets get today's VN_ values, so they render exactly as before.
+    Cached per colour key because the list renderer asks for it on every row.
+    """
+    if not color_key:
+        try:
+            color_key = global_sports_monitor.main_bg_color
+        except Exception:
+            color_key = "default"
+    cached = _CLUB_PALETTE_CACHE.get(color_key)
+    if cached is not None:
+        return cached
+    preset = get_main_bg_preset(color_key)
+    plain_ink = {"text": VN_TEXT_PRI, "dim": VN_TEXT_SEC, "win": VN_GOLD, "accent": VN_ACCENT_CYAN,
+                 "live": VN_LIVE_RED, "warn": VN_WARN_ORANGE, "muted": VN_GRAY_FIN}
+    accent2 = preset.get("accent2_int", VN_ACCENT_CYAN)
+    # plain presets: the focused row's text is the accent colour, as before
+    plain_ink_sel = dict((role, accent2) for role in plain_ink)
+    pal = {
+        "deep_int":          preset["deep_int"],
+        "navy_int":          preset["navy_int"],
+        "deep_hex":          preset["deep_hex"],
+        "navy_hex":          preset["navy_hex"],
+        "card_int":          preset.get("card_int",          VN_CARD),
+        "card_sel_int":      preset.get("card_sel_int",      VN_CARD_SEL),
+        "card_live_int":     preset.get("card_live_int",     VN_CARD_LIVE),
+        "card_live_sel_int": preset.get("card_live_sel_int", VN_CARD_LIVE_SEL),
+        "border_int":        preset.get("border_int",        VN_BORDER),
+        "accent1_int":       preset.get("accent1_int",       VN_ACCENT_BLUE),
+        "accent2_int":       accent2,
+        "accent1_hex":       preset.get("accent1_hex",       "00AFFF"),
+        "accent2_hex":       preset.get("accent2_hex",       "00D9FF"),
+        "header_line":       preset.get("header_line",       "00AFFF"),
+        "header_title_hex":  preset.get("header_title_hex",  preset.get("accent1_hex", "00AFFF")),
+        # --- club kit additions ---
+        "key":               color_key,
+        "is_club":           bool(preset.get("is_club", False)),
+        "tone":              preset.get("tone", "dark"),
+        "border_sel_int":    preset.get("border_sel_int",    accent2),
+        "score_box_int":     preset.get("score_box_int",     preset["navy_int"]),
+        "score_box_sel_int": preset.get("score_box_sel_int", preset["navy_int"]),
+        "kit_edge":          preset.get("kit_edge", []),
+        "ink":               preset.get("ink", plain_ink),
+        "ink_sel":           preset.get("ink_sel", plain_ink_sel),
+        "button_int":        preset.get("button_int",        preset.get("accent1_int", VN_ACCENT_BLUE)),
+        "button_text_int":   preset.get("button_text_int",   0x071020),
+        "header":            preset.get("header"),
+        "footer":            preset.get("footer"),
+        "kit_canvas_path":   _kit_asset(preset.get("kit_canvas")),
+        "kit_row_path":      _kit_asset(preset.get("kit_row")),
+        "kit_veil_path":     _kit_asset(preset.get("kit_veil")),
+        "pill_small_path":   _kit_asset(preset.get("pill_small")),
+        "pill_wide_path":    _kit_asset(preset.get("pill_wide")),
+    }
+    _CLUB_PALETTE_CACHE[color_key] = pal
+    return pal
 
 
 _FALLBACK_ARENA_VIEW_PREFERENCE = "heading_only"
@@ -5423,6 +5748,7 @@ def VNextListEntry(entry):
         goal_glow_side = None
         pulse_alpha = 0.0  # 0.0 = no pulse, >0.0 = recently-updated flash intensity
         series_summary = ""
+        km_text = ""
         if len(entry) >= 33:
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int, has_epg, c_score_bg, l_png, h_red_cards, a_red_cards, h_poss, a_poss, h_pct_stats, a_pct_stats, h_shots, a_shots, h_on_target, a_on_target, h_form, a_form, h_pred_pct, a_pred_pct, pred_is_estimate, goal_glow_side, pulse_alpha, km_text = entry[:33]
         elif len(entry) >= 32:
@@ -5465,49 +5791,149 @@ def VNextListEntry(entry):
         c_dim = VN_TEXT_SEC
         c_win = VN_GOLD            # winner highlight (replaces old green accent)
         c_live = VN_LIVE_RED
-        c_sel = 0x00E5FF           # Vibrant Electric Cyan focus highlight for text & UI elements
 
-        _bg_preset = get_main_bg_preset()
-        vn_bg_deep = _bg_preset["deep_int"]
-        vn_bg_navy = _bg_preset["navy_int"]
+        # --- Club-theme palette (drives card, border, accent colours) ---
+        _pal = get_club_palette()
+        vn_bg_deep    = _pal["deep_int"]
+        vn_bg_navy    = _pal["navy_int"]
+        vn_card       = _pal["card_int"]
+        vn_card_sel   = _pal["card_sel_int"]
+        vn_card_live  = _pal["card_live_int"]
+        vn_card_live_sel = _pal["card_live_sel_int"]
+        vn_border     = _pal["border_int"]
+        vn_accent     = _pal["accent1_int"]
+        vn_accent2    = _pal["accent2_int"]
+        c_sel         = _pal["accent2_int"]   # focus highlight for text & UI elements
+
+        # --- Club Kit Mode: per-plate ink, kit row canvas, wider gutters ---
+        # Plain presets get today's values from get_club_palette(), so they render as before.
+        is_kit   = _pal["is_club"]
+        ink      = _pal["ink"]
+        ink_s    = _pal["ink_sel"]
+        c_text   = ink["text"]
+        c_dim    = ink["dim"]
+        c_win    = ink["win"]
+        c_sel    = ink_s["text"]
+        box_n    = _pal["score_box_int"]
+        box_s    = _pal["score_box_sel_int"]
+        GUTTER_X = sx(48) if is_kit else sx(22)
+        GAP_Y    = sy(8) if is_kit else sy(3)
+        _sel_map = {}
+        for _role in ("text", "dim", "win", "accent", "live", "warn", "muted"):
+            _sel_map.setdefault(ink[_role], ink_s[_role])
+
+        def _sel(colour):
+            """Focused-row colour for a text drawn in 'colour' on a normal row."""
+            return _sel_map.get(colour, c_sel)
+
+        def _row_canvas(res, H):
+            if is_kit and _pal["kit_row_path"]:
+                pix = _kit_pix(_pal["kit_row_path"], SCREEN_WIDTH, H)
+                if pix:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, 0, 0, SCREEN_WIDTH, H, pix))
+                    return
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
+
+        def _kit_pix(path, w, h):
+            # kit artwork is drawn 1:1 at 1080p; LoadPixmap keeps the PNG alpha exactly
+            if (w, h) == (1920, 136) and LoadPixmap:
+                try:
+                    pix = LoadPixmap(cached=True, path=path)
+                    if pix:
+                        return pix
+                except Exception:
+                    pass
+            return get_scaled_pixmap(path, w, h)
+
+        def _kit_card(res, x, y, w, h, fill, fill_sel, border, border_sel, bw, H):
+            """Kit Mode card: rounded top-right and bottom-left corners (same arch as the
+            time/status badges), then the kit 'veil' (the row's kit art at 10% opacity)
+            so the card reads as 90% opaque with the shirt pattern faintly showing."""
+            rx, ry = sx(15), sy(18)
+
+            def bands(bx, by, bwid, bh, crx, cry):
+                out = []
+                cry = max(1, min(cry, bh // 2))
+                steps = 8      # same curve as draw_rounded_box, in 8 bands to keep the element count low
+                edges = [int(round(cry * k / float(steps))) for k in range(steps + 1)]
+                for k in range(steps):
+                    t0, t1 = edges[k], edges[k + 1]
+                    if t1 <= t0:
+                        continue
+                    q = (cry - t0) / float(cry)
+                    inset = int(round(crx * (1.0 - math.sqrt(max(0.0, 1.0 - q * q)))))
+                    out.append((by + t0, t1 - t0, 0, inset))                 # top rows: right inset
+                    out.append((by + bh - t1, t1 - t0, inset, 0))            # bottom rows: left inset
+                out.append((by + cry, bh - 2 * cry, 0, 0))                   # straight middle
+                return [(bx + l, yy, bwid - l - r, hh) for (yy, hh, l, r) in out if hh > 0 and bwid - l - r > 0]
+
+            for (bx, by, bwid, bh) in bands(x, y, w, h, rx, ry):
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bx, by, bwid, bh, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
+            for (bx, by, bwid, bh) in bands(x + bw, y + bw, w - 2 * bw, h - 2 * bw, max(1, rx - bw), max(1, ry - bw)):
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bx, by, bwid, bh, 0, RT_HALIGN_CENTER, "", fill, fill_sel, fill, fill_sel))
+            if _pal.get("kit_veil_path"):
+                veil = _kit_pix(_pal["kit_veil_path"], SCREEN_WIDTH, H)
+                if veil:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHABLEND, 0, 0, SCREEN_WIDTH, H, veil))
+
+        def _kit_edge(res, x, y, h):
+            ex = x
+            for col in _pal["kit_edge"]:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, ex, y, sx(4), h, 0, RT_HALIGN_CENTER, "", col, col, col, col))
+                ex += sx(4)
 
         if status == "NAV_CARD":
             H = sy(136)
-            card_y = sy(3)
-            card_h = H - 2 * sy(3)
-            card_x = sx(22)
+            card_y = GAP_Y
+            card_h = H - 2 * GAP_Y
+            card_x = GUTTER_X
             card_w = SCREEN_WIDTH - 2 * card_x
             res = [entry]
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
-            draw_card(res, card_x, card_y, card_w, card_h, 18, VN_CARD, VN_CARD_SEL, 0x00AFFF, 0x00E5FF, border_w=2)
+            _row_canvas(res, H)
+            if is_kit:
+                _kit_card(res, card_x, card_y, card_w, card_h, vn_card, vn_card_sel, vn_border, _pal["border_sel_int"], sx(3), H)
+            else:
+                draw_card(res, card_x, card_y, card_w, card_h, 18, vn_card, vn_card_sel, vn_accent, vn_accent2, border_w=2)
             pill_w = sx(130)   # widened: "LEAGUES"/"GLOBAL" = 7/6 chars need more space
             pill_h = sy(44)
             pill_x = card_x + sx(20)
             pill_y = card_y + (card_h - pill_h) // 2
-            draw_card(res, pill_x, pill_y, pill_w, pill_h, 8, 0x1A2736, 0x00334D, 0x00AFFF, 0x00E5FF, border_w=1)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, pill_x + sx(4), pill_y, pill_w - sx(8), pill_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(league_short or "ALL"), 0x00E5FF, 0x00E5FF))
+            if is_kit:
+                draw_card(res, pill_x, pill_y, pill_w, pill_h, 8, box_n, box_s, vn_border, _pal["border_sel_int"], border_w=1)
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, pill_x + sx(4), pill_y, pill_w - sx(8), pill_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(league_short or "ALL"), ink["accent"], ink_s["accent"]))
+            else:
+                draw_card(res, pill_x, pill_y, pill_w, pill_h, 8, 0x1A2736, 0x00334D, vn_accent, vn_accent2, border_w=1)
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, pill_x + sx(4), pill_y, pill_w - sx(8), pill_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(league_short or "ALL"), vn_accent2, vn_accent2))
             text_x = pill_x + pill_w + sx(18)
             text_w = card_w - pill_w - sx(390)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, card_y + sy(16), text_w, sy(52), 1, RT_HALIGN_LEFT | RT_VALIGN_CENTER, str(left_text), VN_TEXT_PRI, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, card_y + sy(68), text_w, sy(40), 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, str(right_text), VN_TEXT_SEC, VN_TEXT_SEC))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, card_y + sy(16), text_w, sy(52), 1, RT_HALIGN_LEFT | RT_VALIGN_CENTER, str(left_text), c_text, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, card_y + sy(68), text_w, sy(40), 0, RT_HALIGN_LEFT | RT_VALIGN_CENTER, str(right_text), c_dim, ink_s["dim"] if is_kit else c_dim))
             act_w = sx(180)
             act_h = sy(50)
             act_x = card_x + card_w - act_w - sx(20)
             act_y = card_y + (card_h - act_h) // 2
-            draw_card(res, act_x, act_y, act_w, act_h, 10, 0x00AFFF, 0x00E5FF, 0x00AFFF, 0x00E5FF, border_w=1)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, act_x, act_y, act_w, act_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(score_text or "OPEN >"), 0x071020, 0x071020))
+            if is_kit:
+                btn = _pal["button_int"]; btn_t = _pal["button_text_int"]
+                draw_card(res, act_x, act_y, act_w, act_h, 10, btn, btn, btn, _pal["border_sel_int"], border_w=1)
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, act_x, act_y, act_w, act_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(score_text or "OPEN >"), btn_t, btn_t))
+            else:
+                draw_card(res, act_x, act_y, act_w, act_h, 10, vn_accent, vn_accent2, vn_accent, vn_accent2, border_w=1)
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, act_x, act_y, act_w, act_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(score_text or "OPEN >"), 0x071020, 0x071020))
             return res
 
         if status == "INFO":
             H = sy(136)
-            card_y = sy(3)
-            card_h = H - 2 * sy(3)
-            card_x = sx(22)
+            card_y = GAP_Y
+            card_h = H - 2 * GAP_Y
+            card_x = GUTTER_X
             card_w = SCREEN_WIDTH - 2 * card_x
             res = [entry]
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
-            draw_card(res, card_x, card_y, card_w, card_h, 18, VN_CARD, VN_CARD_SEL, VN_BORDER, 0x00E5FF, border_w=2)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, card_x + sx(20), card_y, card_w - sx(40), card_h, 1, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(left_text), VN_TEXT_SEC, c_sel))
+            _row_canvas(res, H)
+            if is_kit:
+                _kit_card(res, card_x, card_y, card_w, card_h, vn_card, vn_card_sel, vn_border, _pal["border_sel_int"], sx(3), H)
+            else:
+                draw_card(res, card_x, card_y, card_w, card_h, 18, vn_card, vn_card_sel, vn_border, _pal["border_sel_int"], border_w=2)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, card_x + sx(20), card_y, card_w - sx(40), card_h, 1, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(left_text), c_dim, _sel(c_dim)))
             return res
 
         if status == "LEAGUE_HEADER":
@@ -5517,15 +5943,19 @@ def VNextListEntry(entry):
             # with the deep background colour and becomes invisible.
             strip_h = sy(56)
             strip_y = H - strip_h - sy(2)
-            strip_x = sx(22)
+            strip_x = GUTTER_X
             strip_w = SCREEN_WIDTH - 2 * strip_x
             res = [entry]
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
-            draw_card(res, strip_x, strip_y, strip_w, strip_h, 10, 0x142030, 0x1A2E44, 0x243950, 0x00E5FF, border_w=1)
-            # Left accent vertical indicator bar
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, strip_x + sx(3), strip_y + sy(6), sx(5), strip_h - sy(12), 0, RT_HALIGN_CENTER, "", 0x00AFFF, 0x00E5FF, 0x00AFFF, 0x00E5FF))
-
-            cur_x = strip_x + sx(18)
+            _row_canvas(res, H)
+            if is_kit:
+                _kit_card(res, strip_x, strip_y, strip_w, strip_h, vn_card, vn_card_sel, vn_border, _pal["border_sel_int"], sx(2), H)
+                _kit_edge(res, strip_x + sx(6), strip_y + sy(10), strip_h - sy(20))
+                cur_x = strip_x + sx(10) + sx(4) * len(_pal["kit_edge"]) + sx(12)
+            else:
+                draw_card(res, strip_x, strip_y, strip_w, strip_h, 10, 0x142030, 0x1A2E44, vn_border, vn_accent2, border_w=1)
+                # Left accent vertical indicator bar
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, strip_x + sx(3), strip_y + sy(6), sx(5), strip_h - sy(12), 0, RT_HALIGN_CENTER, "", vn_accent, vn_accent2, vn_accent, vn_accent2))
+                cur_x = strip_x + sx(18)
             if l_png:
                 logo_sz = sy(36)
                 logo_y = strip_y + (strip_h - logo_sz) // 2
@@ -5539,10 +5969,14 @@ def VNextListEntry(entry):
 
             name_w = badge_x - cur_x - sx(14)
             disp_name = _league_name(left_text)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, cur_x, strip_y, name_w, strip_h, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, disp_name, VN_TEXT_PRI, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, cur_x, strip_y, name_w, strip_h, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, disp_name, c_text, c_sel))
 
-            draw_card(res, badge_x, badge_y, badge_w, badge_h, 8, 0x0E1A29, 0x00334D, 0x00AFFF, 0x00E5FF, border_w=1)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x, badge_y, badge_w, badge_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, score_text or "", 0x00E5FF, 0x00E5FF))
+            if is_kit:
+                draw_card(res, badge_x, badge_y, badge_w, badge_h, 8, box_n, box_s, box_n, box_s, border_w=1)
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x, badge_y, badge_w, badge_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, score_text or "", ink["accent"], ink_s["accent"]))
+            else:
+                draw_card(res, badge_x, badge_y, badge_w, badge_h, 8, 0x0E1A29, 0x00334D, vn_accent, vn_accent2, border_w=1)
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x, badge_y, badge_w, badge_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, score_text or "", vn_accent2, vn_accent2))
             return res
 
         c_h_score = c_text
@@ -5556,15 +5990,15 @@ def VNextListEntry(entry):
             elif a_score_int > h_score_int:
                 c_a_score = c_win; c_a_name = c_win
         elif h_score_int > a_score_int:
-            c_h_score = VN_ACCENT_CYAN; c_h_name = VN_ACCENT_CYAN
+            c_h_score = c_h_name = (ink["accent"] if is_kit else vn_accent2)
         elif a_score_int > h_score_int:
-            c_a_score = VN_ACCENT_CYAN; c_a_name = VN_ACCENT_CYAN
+            c_a_score = c_a_name = (ink["accent"] if is_kit else vn_accent2)
 
         H = sy(136)          # total row height (set via list.l.setItemHeight)
-        MARGIN_V = sy(3)      # gap between cards, top+bottom (reduced for tighter row spacing)
+        MARGIN_V = GAP_Y      # gap between cards, top+bottom (wider in Kit Mode so the kit shows)
         card_y = MARGIN_V
         card_h = H - 2 * MARGIN_V
-        card_x = sx(22)
+        card_x = GUTTER_X
         card_w = SCREEN_WIDTH - 2 * card_x
 
         res = [entry]
@@ -5572,18 +6006,25 @@ def VNextListEntry(entry):
         # Zebra background is not needed - deep canvas already comes from the
         # screen skin's main_bg; just paint each row's outer gutter to match it so
         # focus/selection never shows a "hole" between cards.
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, 0, 0, SCREEN_WIDTH, H, 0, RT_HALIGN_CENTER, "", vn_bg_deep, vn_bg_deep, vn_bg_deep, vn_bg_deep))
+        _row_canvas(res, H)
 
-        card_fill = VN_CARD_LIVE if status == "LIVE" else VN_CARD
-        card_fill_sel = VN_CARD_LIVE_SEL if status == "LIVE" else VN_CARD_SEL
-        border_default = VN_LIVE_RED if status == "LIVE" else VN_BORDER
-        border_sel = 0x00E5FF  # Bold Electric Cyan high-glow border on focus
+        card_fill = vn_card_live if status == "LIVE" else vn_card
+        card_fill_sel = vn_card_live_sel if status == "LIVE" else vn_card_sel
+        border_default = VN_LIVE_RED if status == "LIVE" else vn_border
+        border_sel = _pal["border_sel_int"]  # focus frame (accent2 for plain presets)
 
         # Card container: 4px thick electric cyan glow frame + elevated card fill on focus
-        draw_card(res, card_x, card_y, card_w, card_h, 18, card_fill, card_fill_sel, border_default, border_sel, border_w=4)
+        if is_kit:
+            _kit_card(res, card_x, card_y, card_w, card_h, card_fill, card_fill_sel, border_default, border_sel, sx(4), H)
+        else:
+            draw_card(res, card_x, card_y, card_w, card_h, 18, card_fill, card_fill_sel, border_default, border_sel, border_w=4)
 
-        # Bold 8px Left Focus Indicator Strip (lights up in Electric Cyan on focus)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, card_x, card_y, sx(8), card_h, 0, RT_HALIGN_CENTER, "", border_default, 0x00E5FF, border_default, 0x00E5FF))
+        if is_kit and _pal["kit_edge"]:
+            # Kit edge: the shirt colours as 4px bars on the card's left side
+            _kit_edge(res, card_x + sx(6), card_y + sy(10), card_h - sy(20))
+        else:
+            # Bold 8px Left Focus Indicator Strip (lights up in Electric Cyan on focus)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, card_x, card_y, sx(8), card_h, 0, RT_HALIGN_CENTER, "", border_default, vn_accent2, border_default, vn_accent2))
 
         # --- LEFT COLUMN: Key Moments & Match News Column (Rendered only on Today's matches) ---
         km_raw = km_text
@@ -5595,7 +6036,7 @@ def VNextListEntry(entry):
             km_h = card_h - sy(16)
 
             sep_x = card_x + sx(268)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, sep_x, card_y + sy(10), sx(2), card_h - sy(20), 0, RT_HALIGN_CENTER, "", 0x2A3545, 0x00AFFF, 0x2A3545, 0x00AFFF))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sep_x, card_y + sy(10), sx(2), card_h - sy(20), 0, RT_HALIGN_CENTER, "", (vn_border if is_kit else 0x2A3545), (_pal["border_sel_int"] if is_kit else vn_accent), (vn_border if is_kit else 0x2A3545), (_pal["border_sel_int"] if is_kit else vn_accent)))
 
             if isinstance(km_raw, (list, tuple)):
                 items = list(km_raw)
@@ -5631,7 +6072,7 @@ def VNextListEntry(entry):
                         text_x = km_x
                         text_w = km_w
                     txt_val = u"{}' {}".format(clock_str, desc_str).strip() if clock_str else desc_str
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, row_y, text_w, row_h, 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, txt_val, VN_TEXT_SEC, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, row_y, text_w, row_h, 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, txt_val, c_dim, _sel(c_dim)))
                 else:
                     if pix:
                         res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, km_x, row_y + sy(3), sx(15), sy(15), pix))
@@ -5650,7 +6091,7 @@ def VNextListEntry(entry):
                         else:
                             txt_val = u"{}' {}".format(clock_str, desc_str).strip() if clock_str else desc_str
 
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, row_y, text_w, row_h, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, txt_val, VN_TEXT_SEC, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, row_y, text_w, row_h, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, txt_val, c_dim, _sel(c_dim)))
 
         # "Recently updated" pulse — brief (2s) soft flash overlay on the card
         # when a score just changed. Separate from the 5-minute goal heatmap.
@@ -5685,7 +6126,7 @@ def VNextListEntry(entry):
             glow_h = card_h - 36
             glow_w = 5
             glow_x = card_x if goal_glow_side == 'home' else card_x + card_w - glow_w
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, glow_x, glow_y, glow_w, glow_h, 0, RT_HALIGN_CENTER, "", VN_GOLD, VN_GOLD, VN_GOLD, VN_GOLD))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, glow_x, glow_y, glow_w, glow_h, 0, RT_HALIGN_CENTER, "", c_win, (_sel(c_win) if is_kit else c_win), c_win, (_sel(c_win) if is_kit else c_win)))
 
         # Right column geometry (Match Date/Time on top, Match Status directly below)
         time_w = sx(170)
@@ -5713,7 +6154,7 @@ def VNextListEntry(entry):
         else:
             home_name_left = card_x + sx(30)
         home_name_w = max(sx(80), home_name_right - home_name_left)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_left, name_top, home_name_w, name_h, font_h, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, left_text, c_h_name, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_left, name_top, home_name_w, name_h, font_h, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, left_text, c_h_name, _sel(c_h_name)))
 
         if h_png:
             res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, HOME_LOGO_X - sx(1), card_y + sy(14), LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(h_png, LOGO_SIZE, LOGO_SIZE)))
@@ -5725,7 +6166,7 @@ def VNextListEntry(entry):
         if l_png:
             res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - league_size // 2, league_y, league_size, league_size, get_scaled_pixmap(l_png, league_size, league_size)))
         else:
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - league_size // 2 - sx(10), league_y, league_size + sx(20), league_size, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, league_short, c_dim, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - league_size // 2 - sx(10), league_y, league_size + sx(20), league_size, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, league_short, c_dim, _sel(c_dim)))
 
         if "-" in score_text:
             parts = score_text.split('-')
@@ -5737,17 +6178,20 @@ def VNextListEntry(entry):
             elif max_len > 5: font_idx = 0
 
             score_bg = c_score_bg if isinstance(c_score_bg, int) else vn_bg_navy
-            draw_rounded_box(res, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True)
-            draw_rounded_box(res, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s1, c_h_score, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s2, c_a_score, c_sel))
+            score_bg_s = score_bg
+            if is_kit:
+                score_bg, score_bg_s = box_n, box_s
+            draw_rounded_box(res, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True, score_bg_s)
+            draw_rounded_box(res, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True, score_bg_s)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s1, c_h_score, _sel(c_h_score)))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s2, c_a_score, _sel(c_a_score)))
 
         if a_png:
             res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, AWAY_LOGO_X - sx(1), card_y + sy(14), LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(a_png, LOGO_SIZE, LOGO_SIZE)))
 
         away_name_left = AWAY_LOGO_X + LOGO_SIZE + sx(10)
         away_name_w = max(sx(80), right_col_x - sx(12) - away_name_left)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, name_top, away_name_w, name_h, font_a, RT_HALIGN_LEFT | RT_VALIGN_CENTER, right_text, c_a_name, c_sel))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, name_top, away_name_w, name_h, font_a, RT_HALIGN_LEFT | RT_VALIGN_CENTER, right_text, c_a_name, _sel(c_a_name)))
 
         # --- Game-prediction strip, scheduled matches only ---
         if is_scheduled and h_pred_pct <= 0 and a_pred_pct <= 0:
@@ -5770,26 +6214,26 @@ def VNextListEntry(entry):
             a_pct_norm = max(0.0, min(100.0, a_pred_pct))
 
             if pred_is_estimate:
-                c_home_pred = VN_GRAY_FIN
-                c_away_pred = VN_WARN_ORANGE
+                c_home_pred = ink["muted"]
+                c_away_pred = ink["warn"]
             else:
-                c_home_pred = VN_ACCENT_CYAN
-                c_away_pred = VN_GOLD
+                c_home_pred = ink["accent"] if is_kit else vn_accent2
+                c_away_pred = c_win
 
             h_bar_w = int(pred_w * (h_pct_norm / total_pred))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w - sx(50), pred_y + sy(2), sx(40), sy(22), 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, "{:.0f}%".format(h_pct_norm), c_home_pred, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w, pred_y, pred_w, sy(5), 0, RT_HALIGN_CENTER, "", 0x1E2530, 0x1E2530, 0x1E2530, 0x1E2530))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w - sx(50), pred_y + sy(2), sx(40), sy(22), 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, "{:.0f}%".format(h_pct_norm), c_home_pred, _sel(c_home_pred)))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w, pred_y, pred_w, sy(5), 0, RT_HALIGN_CENTER, "", (box_n if is_kit else 0x1E2530), (box_s if is_kit else 0x1E2530), (box_n if is_kit else 0x1E2530), (box_s if is_kit else 0x1E2530)))
             if h_bar_w > 0:
                 res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - h_bar_w, pred_y, h_bar_w, sy(5), 0, RT_HALIGN_CENTER, "", c_home_pred, c_home_pred, c_home_pred, c_home_pred))
 
             a_bar_w = int(pred_w * (a_pct_norm / total_pred))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, pred_y, pred_w, sy(5), 0, RT_HALIGN_CENTER, "", 0x1E2530, 0x1E2530, 0x1E2530, 0x1E2530))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, pred_y, pred_w, sy(5), 0, RT_HALIGN_CENTER, "", (box_n if is_kit else 0x1E2530), (box_s if is_kit else 0x1E2530), (box_n if is_kit else 0x1E2530), (box_s if is_kit else 0x1E2530)))
             if a_bar_w > 0:
                 res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left, pred_y, a_bar_w, sy(5), 0, RT_HALIGN_CENTER, "", c_away_pred, c_away_pred, c_away_pred, c_away_pred))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left + pred_w + sx(6), pred_y + sy(2), sx(40), sy(22), 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, "{:.0f}%".format(a_pct_norm), c_away_pred, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left + pred_w + sx(6), pred_y + sy(2), sx(40), sy(22), 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, "{:.0f}%".format(a_pct_norm), c_away_pred, _sel(c_away_pred)))
 
             label_text = _t("WIN% (EST)") if pred_is_estimate else _t("WIN%")
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(60), pred_y + sy(2), sx(120), sy(22), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, label_text, VN_GRAY_FIN, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(60), pred_y + sy(2), sx(120), sy(22), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, label_text, ink["muted"], _sel(ink["muted"])))
 
         # --- Live possession bar (thin, directly under the score box) ---
         if status == "LIVE" and (h_poss > 0 or a_poss > 0):
@@ -5799,26 +6243,28 @@ def VNextListEntry(entry):
             h_w = int(bar_total_w * (h_poss / total_poss))
             a_w = bar_total_w - h_w
             if h_w > 0:
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x, bar_y, h_w, bar_h, 0, RT_HALIGN_CENTER, "", VN_ACCENT_CYAN, VN_ACCENT_CYAN, VN_ACCENT_CYAN, VN_ACCENT_CYAN))
+                _hb = ink["accent"] if is_kit else vn_accent2
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x, bar_y, h_w, bar_h, 0, RT_HALIGN_CENTER, "", _hb, _hb, _hb, _hb))
             if a_w > 0:
-                res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x + h_w, bar_y, a_w, bar_h, 0, RT_HALIGN_CENTER, "", VN_GOLD, VN_GOLD, VN_GOLD, VN_GOLD))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x + h_w, bar_y, a_w, bar_h, 0, RT_HALIGN_CENTER, "", c_win, c_win, c_win, c_win))
 
         # --- Shot-count text (absolute numbers), sits just under the possession bar ---
         if status == "LIVE" and (h_shots > 0 or a_shots > 0):
             h_shot_str = "{}({})".format(h_shots, h_on_target)
             a_shot_str = "{}({})".format(a_shots, a_on_target)
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(82), sx(80), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, h_shot_str, VN_TEXT_SEC, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(82), sx(80), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, a_shot_str, VN_TEXT_SEC, c_sel))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(82), sx(80), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, h_shot_str, c_dim, _sel(c_dim)))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(82), sx(80), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, a_shot_str, c_dim, _sel(c_dim)))
 
         # --- Comparison stat bars (shots% / shots-on-target% / corners%) ---
         if status == "LIVE" and (h_pct_stats or a_pct_stats):
             track_w = sx(170)
             home_track_x = home_name_right - track_w
             away_track_x = away_name_left
-            stat_colors = [VN_ACCENT_CYAN, VN_GOLD, VN_WARN_ORANGE]
-            stat_track_c = 0x1E2530
-            stat_y0 = card_y + sy(106)
+            stat_colors = [ink["accent"] if is_kit else vn_accent2, c_win, ink["warn"]]
+            stat_track_c = box_n if is_kit else 0x1E2530
             stat_stride = sy(7)
+            # last bar ends 8 px above the card's bottom edge (fits the shorter Kit Mode cards too)
+            stat_y0 = card_y + card_h - sy(8) - 2 * stat_stride - sy(4)
             max_stats = max(len(h_pct_stats), len(a_pct_stats))
             for i in range(min(3, max_stats)):
                 y_pos = stat_y0 + i * stat_stride
@@ -5837,9 +6283,9 @@ def VNextListEntry(entry):
 
         # Goal-side chevrons
         if goal_side == 'home':
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(122), card_y + sy(35), sx(20), sy(40), 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "<", VN_GOLD, VN_GOLD))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(122), card_y + sy(35), sx(20), sy(40), 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "<", c_win, (_sel(c_win) if is_kit else c_win)))
         elif goal_side == 'away':
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(102), card_y + sy(35), sx(20), sy(40), 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, ">", VN_GOLD, VN_GOLD))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(102), card_y + sy(35), sx(20), sy(40), 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, ">", c_win, (_sel(c_win) if is_kit else c_win)))
 
         # Red card indicators
         if h_red_cards > 0 or a_red_cards > 0:
@@ -5863,13 +6309,13 @@ def VNextListEntry(entry):
                     for i in range(h_red_cards):
                         res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - sx(140), card_y + sy(4) + sy(22) * i, sx(14), sy(20), rc_img))
                 else:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(150), card_y + sy(4), sx(30), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards), VN_LIVE_RED, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(150), card_y + sy(4), sx(30), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if h_red_cards == 1 else "{}RC".format(h_red_cards), ink["live"], ink_s["live"] if is_kit else c_sel))
             if a_red_cards > 0:
                 if rc_img:
                     for i in range(a_red_cards):
                         res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx + sx(126), card_y + sy(4) + sy(22) * i, sx(14), sy(20), rc_img))
                 else:
-                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 120, card_y + 4, 30, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards), VN_LIVE_RED, c_sel))
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 120, card_y + 4, 30, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards), ink["live"], ink_s["live"] if is_kit else c_sel))
 
         # --- RIGHT COLUMN: 1) Match Date/Time Badge (Top Right) ---
         c_time = VN_LIVE_RED if status == "LIVE" else VN_TEXT_SEC
@@ -5878,14 +6324,19 @@ def VNextListEntry(entry):
         elif status == "FIN":
             bg_time = vn_bg_navy; fg_time = VN_GRAY_FIN
         else:
-            bg_time = vn_bg_navy; fg_time = VN_ACCENT_CYAN
+            bg_time = vn_bg_navy; fg_time = vn_accent2
+        bg_time_s = bg_time; fg_time_s = fg_time
+        if is_kit and status != "LIVE":
+            bg_time, bg_time_s = box_n, box_s
+            role = "muted" if status == "FIN" else "accent"
+            fg_time, fg_time_s = ink[role], ink_s[role]
 
         time_w = sx(170)
         time_x = card_x + card_w - sx(22) - time_w
         time_y = card_y + sy(14)  # Top right, aligned with team name y-position
         time_h = sy(36)
-        draw_rounded_box(res, time_x, time_y, time_w, time_h, bg_time, bg_time, True)
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, time_x, time_y, time_w, time_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, time_str, fg_time, fg_time))
+        draw_rounded_box(res, time_x, time_y, time_w, time_h, bg_time, bg_time, True, bg_time_s)
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, time_x, time_y, time_w, time_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, time_str, fg_time, fg_time_s))
 
         # --- RIGHT COLUMN: 2) Match Status Badge (Bottom Right, directly below Match Date/Time) ---
         if status == "LIVE":
@@ -5897,13 +6348,17 @@ def VNextListEntry(entry):
         elif status == "CAN":
             bg_status = 0x555555; fg_status = 0xffffff; label_status = "CAN"
         else:
-            bg_status = vn_bg_navy; fg_status = VN_ACCENT_CYAN; label_status = status if status else "SCH"
+            bg_status = vn_bg_navy; fg_status = vn_accent2; label_status = status if status else "SCH"
+        bg_status_s = bg_status; fg_status_s = fg_status
+        if is_kit and bg_status == vn_bg_navy:
+            bg_status, bg_status_s = box_n, box_s
+            fg_status, fg_status_s = ink["accent"], ink_s["accent"]
 
         badge_x = time_x
         badge_y = time_y + time_h + sy(8)  # Positioned directly below match date/time badge (card_y + 58)
         badge_w = time_w
         badge_h = sy(36)
-        draw_rounded_box(res, badge_x, badge_y, badge_w, badge_h, bg_status, bg_status, True)
+        draw_rounded_box(res, badge_x, badge_y, badge_w, badge_h, bg_status, bg_status, True, bg_status_s)
 
         status_icon = _vnext_status_icon(status, time_str)
         text_x = badge_x
@@ -5914,7 +6369,7 @@ def VNextListEntry(entry):
             res.append((eListboxPythonMultiContent.TYPE_TEXT, badge_x + sx(16), badge_y + sy(14), sx(8), sy(8), 0, RT_HALIGN_CENTER, "", 0xffffff, 0xffffff, 0xffffff, 0xffffff))
             text_x = badge_x + sx(28)
 
-        res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, badge_y, badge_x + badge_w - text_x, badge_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, _t(label_status), fg_status, fg_status))
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, badge_y, badge_x + badge_w - text_x, badge_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, _t(label_status), fg_status, fg_status_s))
 
         return res
     except Exception:
@@ -33075,9 +33530,21 @@ class SimpleSportsScreen(Screen):
             # (see: SimplySports Enigma2 UI Renovation brief)
             # ==================================================================
             _bg_preset = get_main_bg_preset(getattr(self.monitor, "main_bg_color", "default"))
+            pal = get_club_palette(getattr(self.monitor, "main_bg_color", "default"))
+            self._kit_pal = pal
+            kit = pal["is_club"]
             c_bg_deep = "#" + self.current_alpha + _bg_preset["deep_hex"]
             c_bg_navy = "#" + self.current_alpha + _bg_preset["navy_hex"]
-            c_bar = c_bg_navy; c_top = c_bg_navy  # kept for compatibility with helper methods that reference these
+            # Club Kit Mode: header and footer take the kit colours and are opaque
+            # (the kit artwork has no transparency, so the setting is not used there)
+            kh = pal["header"] if kit else None
+            kf = pal["footer"] if kit else None
+            c_head = "#00%06X" % kh["bg"] if kh else c_bg_navy
+            c_foot = "#00%06X" % kf["bg"] if kf else c_bg_navy
+            if kit:
+                c_bg_deep = "#00" + _bg_preset["deep_hex"]
+            hx = lambda v: "#%06X" % v
+            c_bar = c_bg_navy; c_top = c_foot  # kept for compatibility with helper methods that reference these
 
             asset_root = resolveFilename(SCOPE_PLUGINS, "Extensions/SimplySports/icons/vnext/")
             self.vnext_asset = lambda folder, name: asset_root + folder + "/" + name
@@ -33092,22 +33559,42 @@ class SimpleSportsScreen(Screen):
             bg_widget = '<eLabel position="0,0" size="1920,1080" backgroundColor="{c}" zPosition="-1" />'.format(c=c_bg_deep)
             bg_widget += _pixmap_tag("main_bg_photo", 0, 0, 1920, 1080, z=-1)
             bg_widget += _pixmap_tag("main_bg_texture", 0, 0, 1920, 1080, z=-1)
-            bg_widget += '<eLabel position="0,0" size="1920,1080" backgroundColor="{c}" zPosition="-1" transparent="1" alpha="150" />'.format(c=c_bg_deep)
+            bg_widget += '<widget name="main_bg_scrim" position="0,0" size="1920,1080" backgroundColor="{c}" zPosition="-1" transparent="1" alpha="150" />'.format(c=c_bg_deep)
 
             # --- HEADER (dashboard) ---
-            top_widget = '<widget name="top_bar" position="0,0" size="1920,118" backgroundColor="{c}" zPosition="0" />'.format(c=c_bg_navy)
-            top_widget += '<eLabel position="0,118" size="1920,2" backgroundColor="#00AFFF" zPosition="3" />'
+            top_widget = '<widget name="top_bar" position="0,0" size="1920,118" backgroundColor="{c}" zPosition="0" />'.format(c=c_head)
+            if kh:
+                # Collar trim: the shirt's trim colours stacked under the header (max 10 px)
+                ty = 118
+                for t_col, t_h in kh["trim"]:
+                    if t_col == "stripes":     # Juventus: black/white striped collar
+                        for i in range(80):
+                            top_widget += '<eLabel position="{x},{y}" size="24,{h}" backgroundColor="{c}" zPosition="3" />'.format(
+                                x=i * 24, y=ty, h=t_h, c="#0A0A0A" if i % 2 else "#F2F2F2")
+                    else:
+                        top_widget += '<eLabel position="0,{y}" size="1920,{h}" backgroundColor="{c}" zPosition="3" />'.format(y=ty, h=t_h, c=hx(t_col))
+                    ty += t_h
+            else:
+                top_widget += '<eLabel position="0,118" size="1920,2" backgroundColor="#{hl}" zPosition="3" />'.format(hl=pal["header_line"])
             top_widget += _pixmap_tag("logo_mark", 32, 21, 64, 64, z=2)
 
             bar_widget = ""       # sub-header strip no longer used in vNext (cards are self-labelled)
             header_widget = ""    # column headers removed - card layout is self-describing
 
             # --- BOTTOM NAV (icon pills, focus-flash on press) ---
-            bottom_widget = '<widget name="bottom_bar" position="0,958" size="1920,122" backgroundColor="{c}" zPosition="0" />'.format(c=c_bg_navy)
-            bottom_widget += '<eLabel position="0,958" size="1920,2" backgroundColor="#00AFFF" zPosition="3" />'
+            bottom_widget = '<widget name="bottom_bar" position="0,958" size="1920,122" backgroundColor="{c}" zPosition="0" />'.format(c=c_foot)
+            if kf:
+                fy = 958
+                for t_col, t_h in kf["trim"]:
+                    bottom_widget += '<eLabel position="0,{y}" size="1920,{h}" backgroundColor="{c}" zPosition="3" />'.format(y=fy, h=t_h, c=hx(t_col))
+                    fy += t_h
+                # small plate so the "Browse Days" hint is readable on any kit
+                bottom_widget += '<eLabel position="820,937" size="280,19" backgroundColor="{c}" zPosition="1" />'.format(c=c_foot)
+            else:
+                bottom_widget += '<eLabel position="0,958" size="1920,2" backgroundColor="#{hl}" zPosition="3" />'.format(hl=pal["header_line"])
             pill_positions = [45, 415, 785, 1155, 1525]
             pill_keys = ["red", "green", "yellow", "blue", "epg"]
-            pill_accents = ["#E53935", "#00C853", "#F2B530", "#00AFFF", "#FF9800"]
+            pill_accents = ["#FF5C5C", "#00C853", "#F2B530", "#00AFFF", "#FF9800"]
             NAV_ICON_SIZE = 52   # bigger now that it sits beside the text instead of above it
             NAV_TEXT_W = 240
             NAV_GAP = 12
@@ -33121,7 +33608,16 @@ class SimpleSportsScreen(Screen):
                 bottom_widget += _pixmap_tag("navicon_" + pkey, icon_x, 990 + (64 - NAV_ICON_SIZE) // 2, NAV_ICON_SIZE, NAV_ICON_SIZE, z=2)
                 bottom_widget += '<eLabel position="{x},1050" size="350,3" backgroundColor="{c}" zPosition="2" />'.format(x=px, c=accent)
 
-            fg_title = "#00AFFF"; bg_title = c_bg_navy; fg_list_h = "#FFFFFF"; fg_list_s = "#00D9FF"
+            fg_title = "#" + pal.get("header_title_hex", "00AFFF")
+            fg_info = "#" + pal.get("accent2_hex", "00D9FF")
+            bg_title = c_head; fg_list_h = "#FFFFFF"; fg_list_s = "#00D9FF"
+            # header ink (club kits choose colours that read on their header)
+            fg_sub = "#B0B8C1"; fg_hint = "#6E7885"; fg_live = "#00C853"; fg_clock = "#F2B530"
+            fg_badge = "#00D9FF"; fg_upd = "#8A8A8A"
+            if kh:
+                fg_title = hx(kh["title"]); fg_list_h = hx(kh["text"]); fg_info = hx(kh["sub"])
+                fg_sub = hx(kh["sub"]); fg_hint = hx(kh["muted"]); fg_live = hx(kh["live"])
+                fg_clock = hx(kh["clock"]); fg_badge = hx(kh["badge"]); fg_upd = hx(kh["muted"])
             clock_x = 1726; clock_w = 170; clock_a = "center"
 
             self.skin = scale_skin_xml("""
@@ -33129,24 +33625,24 @@ class SimpleSportsScreen(Screen):
                 {bg}
                 {top}
                 <widget name="top_title" position="112,24" size="360,34" font="SimplySportFont;30" foregroundColor="{fg_t}" backgroundColor="{bg_t}" transparent="1" halign="left" valign="center" zPosition="2" />
-                <widget name="league_title" position="112,58" size="480,24" font="SimplySportFont;18" foregroundColor="#B0B8C1" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
-                <widget name="key_menu" position="32,92" size="600,20" font="SimplySportFont;14" foregroundColor="#6E7885" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
+                <widget name="league_title" position="112,58" size="480,24" font="SimplySportFont;18" foregroundColor="{fg_sub}" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
+                <widget name="key_menu" position="32,92" size="600,20" font="SimplySportFont;14" foregroundColor="{fg_hint}" backgroundColor="{bg_t}" transparent="1" halign="left" zPosition="2" />
 
                 <widget name="list_title" position="620,20" size="680,36" font="SimplySportFont;28" foregroundColor="{fg_lh}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
-                <widget name="live_indicator" position="620,58" size="680,24" font="SimplySportFont;18" foregroundColor="#00C853" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
-                <widget name="screen_info" position="560,84" size="800,26" font="SimplySportFont;16" foregroundColor="#00D9FF" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
+                <widget name="live_indicator" position="620,58" size="680,24" font="SimplySportFont;18" foregroundColor="{fg_live}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
+                <widget name="screen_info" position="560,84" size="800,26" font="SimplySportFont;16" foregroundColor="{fg_info}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="2" />
 
                 {badge_alert_bg}
                 {badge_bell_icon}
-                <widget name="badge_alert" position="1354,16" size="156,40" font="SimplySportFont;14" foregroundColor="#00D9FF" backgroundColor="{bg_t}" transparent="1" halign="left" valign="center" zPosition="3" />
+                <widget name="badge_alert" position="1354,16" size="156,40" font="SimplySportFont;14" foregroundColor="{fg_badge}" backgroundColor="{bg_t}" transparent="1" halign="left" valign="center" zPosition="3" />
                 {badge_ai_bg}
                 {badge_ai_icon}
-                <widget name="badge_ai" position="1524,16" size="190,40" font="SimplySportFont;15" foregroundColor="#00D9FF" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="3" />
-                <widget name="clock" position="{cx},16" size="{cw},40" font="SimplySportFont;26" foregroundColor="#F2B530" backgroundColor="{bg_t}" transparent="1" halign="{ca}" valign="center" zPosition="2" />
+                <widget name="badge_ai" position="1524,16" size="190,40" font="SimplySportFont;15" foregroundColor="{fg_badge}" backgroundColor="{bg_t}" transparent="1" halign="center" valign="center" zPosition="3" />
+                <widget name="clock" position="{cx},16" size="{cw},40" font="SimplySportFont;26" foregroundColor="{fg_clock}" backgroundColor="{bg_t}" transparent="1" halign="{ca}" valign="center" zPosition="2" />
                 {badge_updated_bg}
                 {badge_refresh_icon}
-                <widget name="badge_updated" position="1352,64" size="348,28" font="SimplySportFont;14" foregroundColor="#8A8A8A" backgroundColor="{bg_t}" transparent="1" halign="left" valign="center" zPosition="3" />
-                <widget name="credit" position="{cx},64" size="{cw},20" font="SimplySportFont;13" foregroundColor="#6E7885" backgroundColor="{bg_t}" transparent="1" halign="{ca}" zPosition="2" />
+                <widget name="badge_updated" position="1352,64" size="348,28" font="SimplySportFont;14" foregroundColor="{fg_upd}" backgroundColor="{bg_t}" transparent="1" halign="left" valign="center" zPosition="3" />
+                <widget name="credit" position="{cx},64" size="{cw},20" font="SimplySportFont;13" foregroundColor="{fg_hint}" backgroundColor="{bg_t}" transparent="1" halign="{ca}" zPosition="2" />
 
                 <widget name="head_status" position="0,0" size="0,0" font="SimplySportFont;18" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="center" zPosition="0" />
                 <widget name="head_home" position="0,0" size="0,0" font="SimplySportFont;20" foregroundColor="{fg_ls}" backgroundColor="{bg_t}" transparent="1" halign="right" zPosition="0" />
@@ -33159,8 +33655,8 @@ class SimpleSportsScreen(Screen):
                 <widget name="nav_glow" position="22,131" size="1876,130" zPosition="5" alphatest="blend" />
 
                 {bottom}
-                <widget name="key_ch" position="0,940" size="1920,16" font="SimplySportFont;13" foregroundColor="#6E7885" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" />
-                <widget name="key_red" position="132,990" size="240,64" font="SimplySportFont;20" foregroundColor="#E53935" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
+                <widget name="key_ch" position="0,940" size="1920,16" font="SimplySportFont;13" foregroundColor="#9AA3AE" backgroundColor="{c_top}" transparent="1" halign="center" valign="center" zPosition="1" />
+                <widget name="key_red" position="132,990" size="240,64" font="SimplySportFont;20" foregroundColor="#FF5C5C" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
                 <widget name="key_green" position="502,990" size="240,64" font="SimplySportFont;20" foregroundColor="#00C853" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
                 <widget name="key_yellow" position="872,990" size="240,64" font="SimplySportFont;20" foregroundColor="#F2B530" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
                 <widget name="key_blue" position="1242,990" size="240,64" font="SimplySportFont;20" foregroundColor="#00AFFF" backgroundColor="{c_top}" transparent="1" halign="left" valign="center" zPosition="2" />
@@ -33168,7 +33664,8 @@ class SimpleSportsScreen(Screen):
             </screen>
             """.format(
                 bg=bg_widget, top=top_widget, bottom=bottom_widget,
-                fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s,
+                fg_t=fg_title, bg_t=bg_title, fg_lh=fg_list_h, fg_ls=fg_list_s, fg_info=fg_info,
+                fg_sub=fg_sub, fg_hint=fg_hint, fg_live=fg_live, fg_clock=fg_clock, fg_badge=fg_badge, fg_upd=fg_upd,
                 cx=clock_x, cw=clock_w, ca=clock_a, c_top=c_top,
                 badge_alert_bg=_pixmap_tag("badge_alert_bg", 1320, 16, 190, 40, z=2),
                 badge_bell_icon=_pixmap_tag("badge_bell_icon", 1330, 26, 20, 20, z=3),
@@ -33189,6 +33686,7 @@ class SimpleSportsScreen(Screen):
         self["live_indicator"] = Label("")
         self["screen_info"] = Label("")
         self["main_bg_photo"] = Pixmap(); self["main_bg_texture"] = Pixmap()
+        self["main_bg_scrim"] = Label("")
         self["nav_glow"] = Pixmap()
         self._glow_idx = None    # last known selected index the glow overlay is tracking
         self._glow_y = None      # last known absolute screen y of the overlay (None = unknown/hidden)
@@ -33429,10 +33927,20 @@ class SimpleSportsScreen(Screen):
         except Exception:
             pass
 
+    def _hdr_ink(self, role, default):
+        """Header text colour: the club kit's own colour for 'role', else the default."""
+        try:
+            kh = (getattr(self, "_kit_pal", None) or {}).get("header")
+            if kh and (getattr(self, "_kit_pal", None) or {}).get("is_club"):
+                return kh.get(role, default)
+        except Exception:
+            pass
+        return default
+
     def _show_glow_at(self, y, instant=False):
         try:
             w = self["nav_glow"]
-            if not w.instance:
+            if not w.instance or getattr(self, "_kit_mode", False):
                 return
             w.instance.move(ePoint(self._GLOW_X, y))
             w.show()
@@ -33583,11 +34091,15 @@ class SimpleSportsScreen(Screen):
         skin colour/accent showing through, so partial asset drops are safe."""
         try:
             va = self.vnext_asset
+            kpal = getattr(self, "_kit_pal", None) or get_club_palette()
+            is_kit = kpal["is_club"]
+            pill_s = (is_kit and kpal["pill_small_path"]) or va("header", "badge_pill_small.png")
+            pill_w = (is_kit and kpal["pill_wide_path"]) or va("header", "badge_pill_wide.png")
             loads = [
                 ("logo_mark", va("header", "logo_mark.png")),
-                ("badge_alert_bg", va("header", "badge_pill_small.png")),
-                ("badge_ai_bg", va("header", "badge_pill_small.png")),
-                ("badge_updated_bg", va("header", "badge_pill_wide.png")),
+                ("badge_alert_bg", pill_s),
+                ("badge_ai_bg", pill_s),
+                ("badge_updated_bg", pill_w),
                 ("nav_glow", va("card", "select_glow_1876x130.png")),
                 ("badge_bell_icon", va("header", "badge_bell_off.png")),
                 ("badge_ai_icon", va("header", "badge_ai_active.png")),
@@ -33617,13 +34129,28 @@ class SimpleSportsScreen(Screen):
                 self["nav_glow"].hide()
             except Exception:
                 pass
+            if is_kit:
+                # The kit frame marks the focused card; the cyan glow (sized for the
+                # old 1876 px cards) would not line up with the narrower kit cards.
+                self._kit_mode = True
 
             # Optional stadium-atmosphere background photo + low-opacity line texture,
             # per the "Background Design" section of the renovation brief. Falls back
             # to the flat charcoal eLabel underneath if the files aren't present.
             try:
                 is_black_theme = (getattr(self.monitor, "main_bg_color", "default") == "black")
-                if not is_black_theme:
+                if is_kit:
+                    # Club Kit Mode: the shirt artwork is the background; no scrim, no texture
+                    for wn in ("main_bg_texture", "main_bg_scrim"):
+                        if wn in self:
+                            self[wn].hide()
+                    if kpal["kit_canvas_path"] and "main_bg_photo" in self and self["main_bg_photo"].instance:
+                        self["main_bg_photo"].instance.setPixmapFromFile(kpal["kit_canvas_path"])
+                        self["main_bg_photo"].instance.setScale(1)
+                        self["main_bg_photo"].show()
+                    elif "main_bg_photo" in self:
+                        self["main_bg_photo"].hide()
+                elif not is_black_theme:
                     bg_path = va("backgrounds", "bg_stadium_blur_1920x1080.png")
                     if os.path.exists(bg_path) and "main_bg_photo" in self and self["main_bg_photo"].instance:
                         self["main_bg_photo"].instance.setPixmapFromFile(bg_path)
@@ -33788,7 +34315,7 @@ class SimpleSportsScreen(Screen):
             try:
                 alert_on = d_mode != 0
                 self["badge_alert"].setText(u"{}: {}".format(_t("ALERT"), alert_txt))
-                self["badge_alert"].instance.setForegroundColor(gRGB(0x00D9FF if alert_on else 0x6E7885))
+                self["badge_alert"].instance.setForegroundColor(gRGB(self._hdr_ink("badge", 0x00D9FF) if alert_on else self._hdr_ink("muted", 0x6E7885)))
                 if getattr(self, 'is_vnext_theme', False):
                     bell_file = "badge_bell_on.png" if alert_on else "badge_bell_off.png"
                     bell_path = self.vnext_asset("header", bell_file)
@@ -33799,7 +34326,7 @@ class SimpleSportsScreen(Screen):
             try:
                 ai_on = bool(self.monitor.ai_enabled)
                 self["badge_ai"].setText(u"AI: {}".format(ai_status))
-                self["badge_ai"].instance.setForegroundColor(gRGB(0x00AFFF if ai_on else 0x6E7885))
+                self["badge_ai"].instance.setForegroundColor(gRGB(self._hdr_ink("badge", 0x00AFFF) if ai_on else self._hdr_ink("muted", 0x6E7885)))
                 if getattr(self, 'is_vnext_theme', False):
                     if ai_on:
                         self["badge_ai_icon"].show()
@@ -34056,11 +34583,11 @@ class SimpleSportsScreen(Screen):
             if count_live and count_live > 0:
                 self["live_indicator"].setText(u"\u25CF {} {}".format(count_live, _t("LIVE NOW")))
                 if getattr(self, 'is_vnext_theme', False):
-                    self["live_indicator"].instance.setForegroundColor(gRGB(VN_LIVE_GREEN))
+                    self["live_indicator"].instance.setForegroundColor(gRGB(self._hdr_ink("live", VN_LIVE_GREEN)))
             elif getattr(self, '_next_match_label', ''):
                 self["live_indicator"].setText(self._next_match_label)
                 if getattr(self, 'is_vnext_theme', False):
-                    self["live_indicator"].instance.setForegroundColor(gRGB(VN_TEXT_SEC))
+                    self["live_indicator"].instance.setForegroundColor(gRGB(self._hdr_ink("sub", VN_TEXT_SEC)))
             else:
                 self["live_indicator"].setText("")
         except Exception:
@@ -35735,6 +36262,25 @@ class SimpleSportsScreen(Screen):
 
     def open_background_color_selector(self):
         color_options = [
+            # --- Club themes ---
+            (u"\u2501\u2501\u2501\u2501\u2501 " + _t("Club Kits") + u" \u2501\u2501\u2501\u2501\u2501", "_separator_"),
+            (u"\u2501\u2501 " + _t("Premier League") + u" \u2501\u2501", "_separator_"),
+            (_t(MAIN_THEME_BG_COLORS["man_city"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["man_city"]["name_ar"], "man_city"),
+            (_t(MAIN_THEME_BG_COLORS["man_utd"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["man_utd"]["name_ar"], "man_utd"),
+            (_t(MAIN_THEME_BG_COLORS["liverpool"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["liverpool"]["name_ar"], "liverpool"),
+            (u"\u2501\u2501 " + _t("LaLiga") + u" \u2501\u2501", "_separator_"),
+            (_t(MAIN_THEME_BG_COLORS["barcelona"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["barcelona"]["name_ar"], "barcelona"),
+            (_t(MAIN_THEME_BG_COLORS["real_madrid"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["real_madrid"]["name_ar"], "real_madrid"),
+            (u"\u2501\u2501 " + _t("Serie A") + u" \u2501\u2501", "_separator_"),
+            (_t(MAIN_THEME_BG_COLORS["juventus"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["juventus"]["name_ar"], "juventus"),
+            (_t(MAIN_THEME_BG_COLORS["inter"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["inter"]["name_ar"], "inter"),
+            (u"\u2501\u2501 " + _t("Bundesliga") + u" \u2501\u2501", "_separator_"),
+            (_t(MAIN_THEME_BG_COLORS["bayern"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["bayern"]["name_ar"], "bayern"),
+            (_t(MAIN_THEME_BG_COLORS["dortmund"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["dortmund"]["name_ar"], "dortmund"),
+            (u"\u2501\u2501 " + _t("Ligue 1") + u" \u2501\u2501", "_separator_"),
+            (_t(MAIN_THEME_BG_COLORS["psg"]["name_en"]) if PLUGIN_LANGUAGE != "ar" else MAIN_THEME_BG_COLORS["psg"]["name_ar"], "psg"),
+            # --- Basic colours ---
+            (u"\u2501\u2501\u2501\u2501\u2501 " + _t("Basic Colours") + u" \u2501\u2501\u2501\u2501\u2501", "_separator_"),
             (_t("Default (Dark Slate)"), "default"),
             (_t("Pure Black (OLED)"), "black"),
             (_t("Deep Navy"), "navy"),
@@ -35744,11 +36290,16 @@ class SimpleSportsScreen(Screen):
             (_t("Dark Maroon"), "maroon"),
             (_t("Dark Graphite"), "graphite"),
         ]
-        self.session.openWithCallback(self.background_color_selected, ChoiceBox, title=_t("Select Background Color (Main Theme Only)"), list=color_options)
+        cur = getattr(self.monitor, "main_bg_color", "default")
+        sel_idx = next((i for i, o in enumerate(color_options) if o[1] == cur), 1)
+        extra = {"selection": sel_idx} if _choicebox_takes_selection() else {}
+        self.session.openWithCallback(self.background_color_selected, ChoiceBox, title=_t("Main Theme Colours & Club Kits"), list=color_options, **extra)
 
     def background_color_selected(self, selection):
         if selection:
             color_key = selection[1]
+            if color_key.startswith("_"):
+                return
             if getattr(self.monitor, "main_bg_color", "default") != color_key:
                 self.monitor.main_bg_color = color_key
                 self.monitor.save_config()
@@ -35764,7 +36315,10 @@ class SimpleSportsScreen(Screen):
             (_t("90% Transparent"), "E6"),
             (_t("Fully Transparent (100%)"), "FF"),
         ]
-        self.session.openWithCallback(self.transparency_selected, ChoiceBox, title=_t("Select Transparency"), list=t_options)
+        title = _t("Select Transparency")
+        if get_club_palette(getattr(self.monitor, "main_bg_color", "default"))["is_club"]:
+            title += "  (" + _t("not used by club kits") + ")"
+        self.session.openWithCallback(self.transparency_selected, ChoiceBox, title=title, list=t_options)
 
     def transparency_selected(self, selection):
         if selection:
@@ -44432,14 +44986,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.2 by reali22",
+            description="Live Sports Scores, v7.3 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.2 by reali22",
+            description="Live Sports Scores, v7.3 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -44454,7 +45008,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.2 by reali22",
+            description="Live Sports Scores, v7.3 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
