@@ -258,7 +258,7 @@ FIREBASE_URL = "https://simplysports-votes-default-rtdb.europe-west1.firebasedat
 # this version (it rejects writes from older ones). See FIREBASE_SETUP.md.
 FIREBASE_WEB_API_KEY = "AIzaSyDTo90doEeXZvHcyB2w71cAKo92Eiq7HZs"   # project simplysports-votes
 FIREBASE_AUTH_FILE = "/etc/enigma2/simplysports_auth.json"
-VERSION = "7.3"
+VERSION = "7.4"
 
 # ==============================================================================
 # UNIVERSAL SKIN RESOLUTION SCALER (720p, 1080p, 1440p, 4K/2160p)
@@ -530,6 +530,94 @@ TRANSLATIONS = {
     "Dark Graphite":                                {"ar": u"\u0631\u0645\u0627\u062f\u064a \u063a\u0631\u0627\u0641\u064a\u062a"},
     "Background color saved.":                      {"ar": u"\u062a\u0645 \u062d\u0641\u0638 \u0644\u0648\u0646 \u0627\u0644\u062e\u0644\u0641\u064a\u0629."},
     "Club Themes":                                  {"ar": u"\u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u0623\u0646\u062f\u064a\u0629"},
+    "Step": {"ar": u"\u0627\u0644\u062e\u0637\u0648\u0629"},
+    "Skip Setup": {"ar": u"\u062a\u062e\u0637\u064a \u0627\u0644\u0625\u0639\u062f\u0627\u062f"},
+    "Finish": {"ar": u"\u0625\u0646\u0647\u0627\u0621"},
+    "Next": {"ar": u"\u0627\u0644\u062a\u0627\u0644\u064a"},
+    "Select": {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631"},
+    "Your Leagues": {"ar": u"\u062f\u0648\u0631\u064a\u0627\u062a\u0643"},
+    "The Champions League and the five big leagues are already ticked. Add or remove any you like.": {"ar": u"\u062f\u0648\u0631\u064a \u0623\u0628\u0637\u0627\u0644 \u0623\u0648\u0631\u0648\u0628\u0627 \u0648\u0627\u0644\u062f\u0648\u0631\u064a\u0627\u062a \u0627\u0644\u062e\u0645\u0633\u0629 \u0627\u0644\u0643\u0628\u0631\u0649 \u0645\u062d\u062f\u062f\u0629 \u0645\u0633\u0628\u0642\u0627\u064b. \u0623\u0636\u0641 \u0623\u0648 \u0627\u062d\u0630\u0641 \u0645\u0627 \u062a\u0634\u0627\u0621."},
+    "Tick / Untick": {"ar": u"\u062a\u062d\u062f\u064a\u062f / \u0625\u0644\u063a\u0627\u0621"},
+    "More leagues later with button 9": {"ar": u"\u062f\u0648\u0631\u064a\u0627\u062a \u0623\u0643\u062b\u0631 \u0644\u0627\u062d\u0642\u0627\u064b \u0628\u0627\u0644\u0632\u0631 9"},
+    "Your Favourite Teams": {"ar": u"\u0641\u0631\u0642\u0643 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "Optional. You get a heads-up before your teams play, and a star next to their names.": {"ar": u"\u0627\u062e\u062a\u064a\u0627\u0631\u064a. \u064a\u0635\u0644\u0643 \u062a\u0646\u0628\u064a\u0647 \u0642\u0628\u0644 \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0641\u0631\u0642\u0643\u060c \u0648\u062a\u0638\u0647\u0631 \u0646\u062c\u0645\u0629 \u0628\u062c\u0627\u0646\u0628 \u0623\u0633\u0645\u0627\u0626\u0647\u0627."},
+    "Add a team, or remove the selected one": {"ar": u"\u0623\u0636\u0641 \u0641\u0631\u064a\u0642\u0627\u064b \u0623\u0648 \u0627\u062d\u0630\u0641 \u0627\u0644\u0641\u0631\u064a\u0642 \u0627\u0644\u0645\u062d\u062f\u062f"},
+    "Add a favourite team": {"ar": u"\u0623\u0636\u0641 \u0641\u0631\u064a\u0642\u0627\u064b \u0645\u0641\u0636\u0644\u0627\u064b"},
+    "Choose Your Look": {"ar": u"\u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u0638\u0647\u0631"},
+    "Dress the main screen in your club's shirt, or keep the classic dark look.": {"ar": u"\u0623\u0644\u0628\u0633 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0642\u0645\u064a\u0635 \u0646\u0627\u062f\u064a\u0643\u060c \u0623\u0648 \u0623\u0628\u0642\u0650 \u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u062f\u0627\u0643\u0646 \u0627\u0644\u0643\u0644\u0627\u0633\u064a\u0643\u064a."},
+    "Change it any time in Settings": {"ar": u"\u064a\u0645\u0643\u0646\u0643 \u062a\u063a\u064a\u064a\u0631\u0647 \u0641\u064a \u0623\u064a \u0648\u0642\u062a \u0645\u0646 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a"},
+    "Classic Dark": {"ar": u"\u0627\u0644\u062f\u0627\u0643\u0646 \u0627\u0644\u0643\u0644\u0627\u0633\u064a\u0643\u064a"},
+    "Matches your team": {"ar": u"\u064a\u0646\u0627\u0633\u0628 \u0641\u0631\u064a\u0642\u0643"},
+    "Keep my current colour": {"ar": u"\u0625\u0628\u0642\u0627\u0621 \u0644\u0648\u0646\u064a \u0627\u0644\u062d\u0627\u0644\u064a"},
+    "Goal Alerts": {"ar": u"\u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0627\u0644\u0623\u0647\u062f\u0627\u0641"},
+    "How should the plugin tell you about goals while you watch TV?": {"ar": u"\u0643\u064a\u0641 \u062a\u0631\u064a\u062f \u0623\u0646 \u064a\u062e\u0628\u0631\u0643 \u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c \u0628\u0627\u0644\u0623\u0647\u062f\u0627\u0641 \u0623\u062b\u0646\u0627\u0621 \u0645\u0634\u0627\u0647\u062f\u0629 \u0627\u0644\u062a\u0644\u0641\u0627\u0632\u061f"},
+    "Fine-tune later in Settings > Alert Options": {"ar": u"\u062a\u062d\u0643\u0645 \u0623\u062f\u0642 \u0644\u0627\u062d\u0642\u0627\u064b \u0645\u0646 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a > \u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u062a\u0646\u0628\u064a\u0647\u0627\u062a"},
+    "All my leagues, with sound": {"ar": u"\u0643\u0644 \u062f\u0648\u0631\u064a\u0627\u062a\u064a\u060c \u0645\u0639 \u0635\u0648\u062a"},
+    "All my leagues, silent pop-ups": {"ar": u"\u0643\u0644 \u062f\u0648\u0631\u064a\u0627\u062a\u064a\u060c \u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0635\u0627\u0645\u062a\u0629"},
+    "Only my favourite teams, with sound": {"ar": u"\u0641\u0631\u0642\u064a \u0627\u0644\u0645\u0641\u0636\u0644\u0629 \u0641\u0642\u0637\u060c \u0645\u0639 \u0635\u0648\u062a"},
+    "No alerts": {"ar": u"\u0628\u062f\u0648\u0646 \u062a\u0646\u0628\u064a\u0647\u0627\u062a"},
+    "No favourite teams yet": {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0641\u0631\u0642 \u0645\u0641\u0636\u0644\u0629 \u0628\u0639\u062f"},
+    "Please tick at least one league.": {"ar": u"\u064a\u0631\u062c\u0649 \u062a\u062d\u062f\u064a\u062f \u062f\u0648\u0631\u064a \u0648\u0627\u062d\u062f \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644."},
+    "Run Quick Setup": {"ar": u"\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0627\u0644\u0633\u0631\u064a\u0639"},
+    "Registration Required! Please enter a display name:": {"ar": u"\u0627\u0644\u062a\u0633\u062c\u064a\u0644 \u0645\u0637\u0644\u0648\u0628! \u064a\u0631\u062c\u0649 \u0625\u062f\u062e\u0627\u0644 \u0627\u0633\u0645 \u0627\u0644\u0639\u0631\u0636:"},
+    # ── FantasyScore (v7.4) ──
+    "FantasyScore": {"ar": u"\u0641\u0627\u0646\u062a\u0627\u0632\u064a \u0633\u0643\u0648\u0631"},
+    "FANTASYSCORE": {"ar": u"\u0641\u0627\u0646\u062a\u0627\u0632\u064a \u0633\u0643\u0648\u0631"},
+    "Fantasy League": {"ar": u"\u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0627\u0646\u062a\u0627\u0632\u064a"},
+    "Today's soccer: predict the score, cheer your team": {"ar": u"\u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645: \u062a\u0648\u0642\u0651\u0639 \u0627\u0644\u0646\u062a\u064a\u062c\u0629 \u0648\u0634\u062c\u0651\u0639 \u0641\u0631\u064a\u0642\u0643"},
+    "Loading fan scores...": {"ar": u"\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u062a\u0648\u0642\u0639\u0627\u062a \u0627\u0644\u062c\u0645\u0647\u0648\u0631..."},
+    "Fan scores unavailable. Press OK to try again.": {"ar": u"\u062a\u0648\u0642\u0639\u0627\u062a \u0627\u0644\u062c\u0645\u0647\u0648\u0631 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d\u0629. \u0627\u0636\u063a\u0637 OK \u0644\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u062c\u062f\u062f\u064b\u0627."},
+    "WATCH PARTY": {"ar": u"\u062d\u0641\u0644\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629"},
+    "League Table": {"ar": u"\u062c\u062f\u0648\u0644 \u0627\u0644\u062f\u0648\u0631\u064a"},
+    "Cheer Home": {"ar": u"\u0634\u062c\u0651\u0639 \u0627\u0644\u0645\u0636\u064a\u0641"},
+    "Draw / Neutral": {"ar": u"\u062a\u0639\u0627\u062f\u0644 / \u0645\u062d\u0627\u064a\u062f"},
+    "Cheer Away": {"ar": u"\u0634\u062c\u0651\u0639 \u0627\u0644\u0636\u064a\u0641"},
+    "OK  Vote": {"ar": u"OK  \u0635\u0648\u0651\u062a"},
+    "1 vote": {"ar": u"\u0635\u0648\u062a \u0648\u0627\u062d\u062f"},
+    "{} votes": {"ar": u"{} \u0623\u0635\u0648\u0627\u062a"},
+    "You": {"ar": u"\u0623\u0646\u062a"},
+    "Fans": {"ar": u"\u0627\u0644\u062c\u0645\u0647\u0648\u0631"},
+    "FT": {"ar": u"\u0627\u0646\u062a\u0647\u062a"},
+    "VOTE": {"ar": u"\u0635\u0648\u0651\u062a"},
+    "CLOSED": {"ar": u"\u0645\u063a\u0644\u0642"},
+    "OFFLINE": {"ar": u"\u063a\u064a\u0631 \u0645\u062a\u0635\u0644"},
+    "Be the first to vote": {"ar": u"\u0643\u0646 \u0623\u0648\u0644 \u0645\u0646 \u064a\u0635\u0648\u0651\u062a"},
+    "No fantasy votes": {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0648\u0642\u0639\u0627\u062a"},
+    "Switch the main screen to Today to see today's matches.": {"ar": u"\u0627\u0639\u0631\u0636 \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645 \u0641\u064a \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0644\u062a\u0638\u0647\u0631 \u0647\u0646\u0627."},
+    "No soccer matches today in your leagues.": {"ar": u"\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0643\u0631\u0629 \u0642\u062f\u0645 \u0627\u0644\u064a\u0648\u0645 \u0641\u064a \u062f\u0648\u0631\u064a\u0627\u062a\u0643."},
+    "{} matches today": {"ar": u"{} \u0645\u0628\u0627\u0631\u064a\u0627\u062a \u0627\u0644\u064a\u0648\u0645"},
+    "{} fan votes": {"ar": u"{} \u062a\u0648\u0642\u0639\u0627\u062a \u0644\u0644\u062c\u0645\u0647\u0648\u0631"},
+    "My Fantasy League points: {}": {"ar": u"\u0646\u0642\u0627\u0637\u064a \u0641\u064a \u062f\u0648\u0631\u064a \u0627\u0644\u0641\u0627\u0646\u062a\u0627\u0632\u064a: {}"},
+    "{} fans": {"ar": u"\u062c\u0645\u0647\u0648\u0631 {}"},
+    "You cheer: {}": {"ar": u"\u062a\u0634\u062c\u0651\u0639: {}"},
+    "Cheer with GREEN / YELLOW / BLUE": {"ar": u"\u0634\u062c\u0651\u0639 \u0628\u0627\u0644\u0623\u062e\u0636\u0631 / \u0627\u0644\u0623\u0635\u0641\u0631 / \u0627\u0644\u0623\u0632\u0631\u0642"},
+    "You already voted on this match:": {"ar": u"\u0644\u0642\u062f \u0635\u0648\u0651\u062a\u0651 \u0641\u064a \u0647\u0630\u0647 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629:"},
+    "You already voted {} on this match.": {"ar": u"\u0644\u0642\u062f \u0635\u0648\u0651\u062a\u0651 {} \u0641\u064a \u0647\u0630\u0647 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629."},
+    "Voting is closed for this match.": {"ar": u"\u0627\u0644\u062a\u0635\u0648\u064a\u062a \u0645\u063a\u0644\u0642 \u0644\u0647\u0630\u0647 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629."},
+    "Voting closed, match has started": {"ar": u"\u0623\u064f\u063a\u0644\u0642 \u0627\u0644\u062a\u0635\u0648\u064a\u062a\u060c \u0628\u062f\u0623\u062a \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Vote cast! Good luck.": {"ar": u"\u062a\u0645 \u0627\u0644\u062a\u0635\u0648\u064a\u062a! \u0628\u0627\u0644\u062a\u0648\u0641\u064a\u0642."},
+    "Could not send your vote. Check the connection and try again.": {"ar": u"\u062a\u0639\u0630\u0651\u0631 \u0625\u0631\u0633\u0627\u0644 \u062a\u0635\u0648\u064a\u062a\u0643. \u062a\u062d\u0642\u0651\u0642 \u0645\u0646 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0648\u062d\u0627\u0648\u0644 \u0645\u062c\u062f\u062f\u064b\u0627."},
+    "You are already cheering for {}.": {"ar": u"\u0623\u0646\u062a \u062a\u0634\u062c\u0651\u0639 {} \u0628\u0627\u0644\u0641\u0639\u0644."},
+    "This match is over.": {"ar": u"\u0627\u0646\u062a\u0647\u062a \u0647\u0630\u0647 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629."},
+    "Cheering for {}!": {"ar": u"\u062a\u0634\u062c\u064a\u0639 {}!"},
+    "Could not send your cheer. Check the connection and try again.": {"ar": u"\u062a\u0639\u0630\u0651\u0631 \u0625\u0631\u0633\u0627\u0644 \u062a\u0634\u062c\u064a\u0639\u0643. \u062a\u062d\u0642\u0651\u0642 \u0645\u0646 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0648\u062d\u0627\u0648\u0644 \u0645\u062c\u062f\u062f\u064b\u0627."},
+    "Your score prediction": {"ar": u"\u062a\u0648\u0642\u0651\u0639\u0643 \u0644\u0644\u0646\u062a\u064a\u062c\u0629"},
+    "\u25b2 \u25bc  Change score     \u25c4 \u25ba  Home / Away     EXIT  Cancel": {"ar": u"\u25b2 \u25bc  \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0646\u062a\u064a\u062c\u0629     \u25c4 \u25ba  \u0627\u0644\u0645\u0636\u064a\u0641 / \u0627\u0644\u0636\u064a\u0641     EXIT  \u0625\u0644\u063a\u0627\u0621"},
+    "Your vote is final and can't be changed.": {"ar": u"\u062a\u0635\u0648\u064a\u062a\u0643 \u0646\u0647\u0627\u0626\u064a \u0648\u0644\u0627 \u064a\u0645\u0643\u0646 \u062a\u063a\u064a\u064a\u0631\u0647."},
+    "OK  Cast vote": {"ar": u"OK  \u0623\u0631\u0633\u0644 \u0627\u0644\u062a\u0635\u0648\u064a\u062a"},
+    "Fans Zone": {"ar": u"\u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u0645\u0634\u062c\u0639\u064a\u0646"},
+    "FANS": {"ar": u"\u0627\u0644\u0645\u0634\u062c\u0639\u0648\u0646"},
+    "Predict scores, cheer your team": {"ar": u"\u062a\u0648\u0642\u0651\u0639 \u0627\u0644\u0646\u062a\u0627\u0626\u062c \u0648\u0634\u062c\u0651\u0639 \u0641\u0631\u064a\u0642\u0643"},
+    "ENTER \u2794": {"ar": u"\u062f\u062e\u0648\u0644 \u2794"},
+    "Predict today's scores and cheer your team": {"ar": u"\u062a\u0648\u0642\u0651\u0639 \u0646\u062a\u0627\u0626\u062c \u0627\u0644\u064a\u0648\u0645 \u0648\u0634\u062c\u0651\u0639 \u0641\u0631\u064a\u0642\u0643"},
+    "Back to your favourite leagues": {"ar": u"\u0627\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u062f\u0648\u0631\u064a\u0627\u062a\u0643 \u0627\u0644\u0645\u0641\u0636\u0644\u0629"},
+    "50+ leagues worldwide": {"ar": u"\u0623\u0643\u062b\u0631 \u0645\u0646 50 \u062f\u0648\u0631\u064a\u064b\u0627 \u062d\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645"},
+    "Fans Zone: press OK to predict today's scores and cheer your team": {"ar": u"\u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u0645\u0634\u062c\u0639\u064a\u0646: \u0627\u0636\u063a\u0637 OK \u0644\u062a\u0648\u0642\u0651\u0639 \u0646\u062a\u0627\u0626\u062c \u0627\u0644\u064a\u0648\u0645 \u0648\u062a\u0634\u062c\u064a\u0639 \u0641\u0631\u064a\u0642\u0643"},
+    "My Leagues": {"ar": u"\u062f\u0648\u0631\u064a\u0627\u062a\u064a"},
+    "Global": {"ar": u"\u0639\u0627\u0644\u0645\u064a"},
+    "EXIT  Main Screen": {"ar": u"EXIT  \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629"},
+    "Back to the main screen": {"ar": u"\u0627\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629"},
+    "Press OK to return to the main screen": {"ar": u"\u0627\u0636\u063a\u0637 OK \u0644\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629"},
     "Basic Colours":                                {"ar": u"\u0627\u0644\u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629"},
     "Club Kits":                                    {"ar": u"\u0623\u0637\u0642\u0645 \u0627\u0644\u0623\u0646\u062f\u064a\u0629"},
     "Main Theme Colours & Club Kits":               {"ar": u"\u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u0648\u0627\u062c\u0647\u0629 \u0648\u0623\u0637\u0642\u0645 \u0627\u0644\u0623\u0646\u062f\u064a\u0629"},
@@ -846,6 +934,15 @@ TRANSLATIONS = {
     "Unfollow this match":           {"ar": u"\u0625\u0644\u063a\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
     "Following this match: its alerts always show.": {"ar": u"\u062a\u062a\u0645 \u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629: \u0633\u062a\u0638\u0647\u0631 \u062a\u0646\u0628\u064a\u0647\u0627\u062a\u0647\u0627 \u062f\u0627\u0626\u0645\u0627\u064b."},
     "Match unfollowed.":             {"ar": u"\u062a\u0645 \u0625\u0644\u063a\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629."},
+    # ── Game info: button help strip ───────────────────────────────────────────
+    "Vote":                          {"ar": u"\u062a\u0635\u0648\u064a\u062a"},
+    "Leaderboard":                   {"ar": u"\u0644\u0648\u062d\u0629 \u0627\u0644\u0635\u062f\u0627\u0631\u0629"},
+    "Standings":                     {"ar": u"\u062c\u062f\u0648\u0644 \u0627\u0644\u062a\u0631\u062a\u064a\u0628"},
+    "Play video":                    {"ar": u"\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0641\u064a\u062f\u064a\u0648"},
+    "Play all videos":               {"ar": u"\u062a\u0634\u063a\u064a\u0644 \u0643\u0644 \u0627\u0644\u0641\u064a\u062f\u064a\u0648\u0647\u0627\u062a"},
+    "Player profile":                {"ar": u"\u0645\u0644\u0641 \u0627\u0644\u0644\u0627\u0639\u0628"},
+    "Follow match":                  {"ar": u"\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u0628\u0627\u0631\u0627\u0629"},
+    "Unfollow match":                {"ar": u"\u0625\u0644\u063a\u0627\u0621 \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629"},
     # ── Predictions: referee / model estimate ─────────────────────────────────
     "Expired":                       {"ar": u"\u0645\u0646\u062a\u0647\u064a\u0629"},
     "Cancelled":                     {"ar": u"\u0645\u0644\u063a\u0627\u0629"},
@@ -2518,7 +2615,7 @@ except ImportError:
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-CURRENT_VERSION = "7.3"
+CURRENT_VERSION = "7.4"
 # v7.2: Alert Options (which matches/events, quiet hours, exciting games only, spoiler guard, overlay toasts that keep
 # the remote), follow a match, no polling or alerts in standby, on-time reminders, favourite-team and line-ups alerts,
 # timezone-correct fixtures and live match details; result checking after full time, World Cup points by stage,
@@ -2526,6 +2623,9 @@ CURRENT_VERSION = "7.3"
 # (RED in the leaderboard); channel guide uses the box EPG search, an XMLTV time window and a cached guide download.
 # AI Mode: goal / kick-off / full-time lines built on worked-out facts (equaliser, comeback, late winner, red cards,
 # form, odds, the viewer's pick), separate system prompts and tuned settings for Gemini and Groq, varied news lines.
+# v7.4: FantasyScore - full-screen fan score predictions for today's soccer (Blue), one vote per
+#       match, community averages, cheers with the last 3 names per side, Fantasy League (+3 exact / +1 result).
+#       The Watch Party screen (reactions polled every 5 s) is no longer opened.
 # v7.3: Club Kit Mode - 10 club themes drawn from the shirts (stripes, diamonds, Hechter band ...), collar-trim header,
 # kit-edged rounded cards (90% opaque), per-plate text colours checked for contrast; artwork in icons/vnext/backgrounds/clubs/.
 # New Arena View Preference & Accordion Navigation.
@@ -4784,6 +4884,8 @@ def is_system_screen_active(session):
             "BroadcastingChannelsScreen",
             "AthleteProfileScreen",
             "WatchPartyScreen",
+            "FantasyScoreScreen",
+            "FantasyScoreEntryScreen",
             "MatchHighlightsScreen",
             "PersonalProfileScreen",
             "RacingDriverInfoScreen",
@@ -5732,6 +5834,43 @@ def extract_series_summary(event):
 extract_key_moments_summary = extract_key_moments_data
 
 
+COUNTDOWN_WINDOW_MIN = 120    # upcoming matches show a countdown in their last two hours
+
+
+def countdown_status(kickoff_epoch, now=None):
+    """Status code for an upcoming match's badge: "CD|<minutes left>" inside the last
+    two hours before kick-off ("CD|0" once the kick-off time has been reached and the
+    feed has not switched to live yet), else None."""
+    try:
+        if not kickoff_epoch:
+            return None
+        left = kickoff_epoch - (now if now is not None else time.time())
+        if left > COUNTDOWN_WINDOW_MIN * 60 or left < -15 * 60:
+            return None
+        return "CD|{}".format(max(0, int(math.ceil(left / 60.0))))
+    except Exception:
+        return None
+
+
+def countdown_label(status):
+    """ "CD|45" -> "In 45 min", "CD|95" -> "In 1h 35m", "CD|0" -> "Starting now"; None for other statuses."""
+    if not isinstance(status, str) or not status.startswith("CD|"):
+        return None
+    try:
+        mins = int(status[3:])
+    except ValueError:
+        return None
+    ar = (PLUGIN_LANGUAGE == "ar")
+    if mins <= 0:
+        return u"\u062a\u0628\u062f\u0623 \u0627\u0644\u0622\u0646" if ar else "Starting now"
+    if mins < 60:
+        return (u"\u0628\u0639\u062f {} \u062f" if ar else "In {} min").format(mins)
+    h, m = divmod(mins, 60)
+    if m == 0:
+        return (u"\u0628\u0639\u062f {} \u0633" if ar else "In {}h").format(h)
+    return (u"\u0628\u0639\u062f {} \u0633 {} \u062f" if ar else "In {}h {}m").format(h, m)
+
+
 def VNextListEntry(entry):
     """SimplySports vNext match card renderer (modern TV sports broadcast style).
     Drop-in replacement for SportListEntry: same entry tuple contract, new visuals -
@@ -5782,6 +5921,9 @@ def VNextListEntry(entry):
              status, league_short, left_text, score_text, right_text, time_str, goal_side, is_live, h_png, a_png, h_score_int, a_score_int = entry[:12]
              c_score_bg = 0x171C24; has_epg = False; l_png = ""; h_red_cards = 0; a_red_cards = 0
         else: return []
+
+        # FantasyScore rows carry a 34th field (dict); the main screen never does
+        fz = entry[33] if len(entry) >= 34 and isinstance(entry[33], dict) else None
 
         if h_png and h_png not in GLOBAL_VALID_LOGO_PATHS: h_png = None
         if a_png and a_png not in GLOBAL_VALID_LOGO_PATHS: a_png = None
@@ -5845,7 +5987,7 @@ def VNextListEntry(entry):
                     pass
             return get_scaled_pixmap(path, w, h)
 
-        def _kit_card(res, x, y, w, h, fill, fill_sel, border, border_sel, bw, H):
+        def _kit_card(res, x, y, w, h, fill, fill_sel, border, border_sel, bw, H, veil=True):
             """Kit Mode card: rounded top-right and bottom-left corners (same arch as the
             time/status badges), then the kit 'veil' (the row's kit art at 10% opacity)
             so the card reads as 90% opaque with the shirt pattern faintly showing."""
@@ -5871,16 +6013,78 @@ def VNextListEntry(entry):
                 res.append((eListboxPythonMultiContent.TYPE_TEXT, bx, by, bwid, bh, 0, RT_HALIGN_CENTER, "", border, border_sel, border, border_sel))
             for (bx, by, bwid, bh) in bands(x + bw, y + bw, w - 2 * bw, h - 2 * bw, max(1, rx - bw), max(1, ry - bw)):
                 res.append((eListboxPythonMultiContent.TYPE_TEXT, bx, by, bwid, bh, 0, RT_HALIGN_CENTER, "", fill, fill_sel, fill, fill_sel))
-            if _pal.get("kit_veil_path"):
-                veil = _kit_pix(_pal["kit_veil_path"], SCREEN_WIDTH, H)
-                if veil:
-                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHABLEND, 0, 0, SCREEN_WIDTH, H, veil))
+            if veil and _pal.get("kit_veil_path"):
+                veil_pix = _kit_pix(_pal["kit_veil_path"], SCREEN_WIDTH, H)
+                if veil_pix:
+                    res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHABLEND, 0, 0, SCREEN_WIDTH, H, veil_pix))
 
         def _kit_edge(res, x, y, h):
             ex = x
             for col in _pal["kit_edge"]:
                 res.append((eListboxPythonMultiContent.TYPE_TEXT, ex, y, sx(4), h, 0, RT_HALIGN_CENTER, "", col, col, col, col))
                 ex += sx(4)
+
+        if status == "NAV_SPLIT":
+            # time_str carries the focused half: "fans" (left) or "nav" (right)
+            H = sy(136)
+            card_y = GAP_Y
+            card_h = H - 2 * GAP_Y
+            gap = sx(18)
+            half_w = (SCREEN_WIDTH - 2 * GUTTER_X - gap) // 2
+            res = [entry]
+            _row_canvas(res, H)
+            halves = (
+                ("fans", GUTTER_X, _t("FANS"), _t("Fans Zone"), _t("Predict scores, cheer your team"), _t("ENTER ➔")),
+                ("nav", GUTTER_X + half_w + gap, str(league_short or "ALL"), str(left_text), str(right_text), str(score_text or "OPEN >")),
+            )
+            # both cards first; the kit veil (drawn with the last card) then covers both
+            for key, cx, pill_txt, title, sub, action in halves:
+                focus = (time_str == key)
+                if is_kit:
+                    b_sel = _pal["border_sel_int"] if focus else vn_border
+                    f_sel = vn_card_sel if focus else vn_card
+                    _kit_card(res, cx, card_y, half_w, card_h, vn_card, f_sel, vn_border, b_sel, sx(3), H, veil=(key == "nav"))
+                else:
+                    draw_card(res, cx, card_y, half_w, card_h, 18, vn_card, (vn_card_sel if focus else vn_card),
+                              vn_accent, (vn_accent2 if focus else vn_accent), border_w=2)
+            for key, cx, pill_txt, title, sub, action in halves:
+                focus = (time_str == key)
+                pill_w = sx(130)
+                pill_h = sy(44)
+                pill_x = cx + sx(18)
+                pill_y = card_y + (card_h - pill_h) // 2
+                if is_kit:
+                    draw_card(res, pill_x, pill_y, pill_w, pill_h, 8, box_n, (box_s if focus else box_n), vn_border, (_pal["border_sel_int"] if focus else vn_border), border_w=1)
+                    p_fg, p_fg_s = ink["accent"], (ink_s["accent"] if focus else ink["accent"])
+                else:
+                    draw_card(res, pill_x, pill_y, pill_w, pill_h, 8, 0x1A2736, (0x00334D if focus else 0x1A2736), vn_accent, (vn_accent2 if focus else vn_accent), border_w=1)
+                    p_fg = p_fg_s = vn_accent2
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, pill_x + sx(4), pill_y, pill_w - sx(8), pill_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, pill_txt, p_fg, p_fg_s))
+                act_w = sx(180)
+                act_h = sy(46)
+                act_x = cx + half_w - act_w - sx(18)
+                act_y = card_y + (card_h - act_h) // 2
+                text_x = pill_x + pill_w + sx(16)
+                text_w = act_x - sx(12) - text_x
+                t_sel = c_sel if focus else c_text
+                d_sel = (ink_s["dim"] if is_kit else c_dim) if focus else c_dim
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, card_y + sy(16), text_w, sy(52), 1, RT_HALIGN_LEFT | RT_VALIGN_CENTER, title, c_text, t_sel))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, text_x, card_y + sy(68), text_w, sy(40), 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, sub, c_dim, d_sel))
+                if focus:
+                    if is_kit:
+                        btn = _pal["button_int"]; btn_t = _pal["button_text_int"]
+                        draw_card(res, act_x, act_y, act_w, act_h, 10, btn, btn, btn, _pal["border_sel_int"], border_w=1)
+                        res.append((eListboxPythonMultiContent.TYPE_TEXT, act_x, act_y, act_w, act_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, action, btn_t, btn_t))
+                    else:
+                        draw_card(res, act_x, act_y, act_w, act_h, 10, vn_accent, vn_accent2, vn_accent, vn_accent2, border_w=1)
+                        res.append((eListboxPythonMultiContent.TYPE_TEXT, act_x, act_y, act_w, act_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, action, 0x071020, 0x071020))
+                else:
+                    # the other half: an outlined button that never lights up
+                    o_bg = box_n if is_kit else 0x1A2736
+                    o_bd = vn_border if is_kit else vn_accent
+                    draw_card(res, act_x, act_y, act_w, act_h, 10, o_bg, o_bg, o_bd, o_bd, border_w=1)
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, act_x, act_y, act_w, act_h, 0, RT_HALIGN_CENTER | RT_VALIGN_CENTER, action, c_dim, c_dim))
+            return res
 
         if status == "NAV_CARD":
             H = sy(136)
@@ -6029,7 +6233,19 @@ def VNextListEntry(entry):
         # --- LEFT COLUMN: Key Moments & Match News Column (Rendered only on Today's matches) ---
         km_raw = km_text
         is_today = (getattr(global_sports_monitor, 'ch_day_offset', 0) == 0)
-        if km_raw and is_today:
+        if fz:
+            # FantasyScore: the last three home cheerers in the far-left column
+            col_x = card_x + sx(22)
+            col_w = sx(236)
+            sep_x = card_x + sx(268)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, sep_x, card_y + sy(10), sx(2), card_h - sy(20), 0, RT_HALIGN_CENTER, "", (vn_border if is_kit else 0x2A3545), (_pal["border_sel_int"] if is_kit else vn_accent), (vn_border if is_kit else 0x2A3545), (_pal["border_sel_int"] if is_kit else vn_accent)))
+            fz_names = list(fz.get("names_h") or [])[:3]
+            line_h = sy(24)
+            ny = card_y + (card_h - 3 * line_h) // 2
+            for i, nm in enumerate(fz_names):
+                col = ink["accent"] if i == 0 else c_dim
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, col_x, ny + i * line_h, col_w, line_h, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, nm, col, _sel(col)))
+        if km_raw and is_today and not fz:
             km_x = card_x + sx(14)
             km_w = sx(245)
             km_y = card_y + sy(8)
@@ -6138,6 +6354,10 @@ def VNextListEntry(entry):
         elif len(left_text) > 23: font_h = 1
         if len(right_text) > 27: font_a = 0
         elif len(right_text) > 23: font_a = 1
+        if fz:
+            # FantasyScore "fan mood": leading team a size bigger, the other a size smaller
+            font_h = fz.get("h_font", font_h)
+            font_a = fz.get("a_font", font_a)
 
         center_cx = SCREEN_WIDTH // 2
         LOGO_SIZE = sy(69)   # Scaled proportionally with desktop height
@@ -6149,7 +6369,7 @@ def VNextListEntry(entry):
 
         # Center block: home logo, league logo, score / kickoff time, away logo
         home_name_right = HOME_LOGO_X - sx(12)
-        if is_today and km_raw:
+        if (is_today and km_raw) or fz:
             home_name_left = card_x + sx(275)
         else:
             home_name_left = card_x + sx(30)
@@ -6161,9 +6381,11 @@ def VNextListEntry(entry):
 
         is_scheduled = status not in ("LIVE", "FIN", "PPD", "SUS", "CAN")
         logo_center_y = card_y + sy(14) + LOGO_SIZE // 2
-        league_size = sy(56) if is_scheduled else sy(40)
+        league_size = sy(56) if (is_scheduled and not fz) else sy(40)
         league_y = logo_center_y - league_size // 2
-        if l_png:
+        if fz and fz.get("center") == "vote":
+            pass        # the VOTE button takes the centre
+        elif l_png:
             res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, center_cx - league_size // 2, league_y, league_size, league_size, get_scaled_pixmap(l_png, league_size, league_size)))
         else:
             res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - league_size // 2 - sx(10), league_y, league_size + sx(20), league_size, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, league_short, c_dim, _sel(c_dim)))
@@ -6185,6 +6407,42 @@ def VNextListEntry(entry):
             draw_rounded_box(res, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), score_bg, score_bg, True, score_bg_s)
             res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s1, c_h_score, _sel(c_h_score)))
             res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), font_idx, RT_HALIGN_CENTER | RT_VALIGN_CENTER, s2, c_a_score, _sel(c_a_score)))
+
+        if fz and fz.get("center") == "boxes":
+            # upcoming match after voting: the fans' average (or "-" below two votes)
+            box_bg, box_bg_s = (box_n, box_s) if is_kit else (vn_bg_navy, vn_bg_navy)
+            draw_rounded_box(res, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), box_bg, box_bg, True, box_bg_s)
+            draw_rounded_box(res, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), box_bg, box_bg, True, box_bg_s)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(26), sx(80), sy(45), 2, RT_HALIGN_CENTER | RT_VALIGN_CENTER, fz.get("s1", u"\u2013"), c_text, _sel(c_text)))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(26), sx(80), sy(45), 2, RT_HALIGN_CENTER | RT_VALIGN_CENTER, fz.get("s2", u"\u2013"), c_text, _sel(c_text)))
+        elif fz and fz.get("center") == "vote":
+            # upcoming match, not voted yet: a VOTE button between the two teams
+            if fz.get("btn_off"):
+                b_bg, b_bg_s = (box_n, box_s) if is_kit else (vn_bg_navy, vn_bg_navy)
+                b_fg, b_fg_s = ink["muted"], _sel(ink["muted"])
+            else:
+                b_bg = _pal["button_int"] if is_kit else vn_accent
+                b_bg_s = _pal["button_int"] if is_kit else vn_accent2
+                b_fg = b_fg_s = (_pal["button_text_int"] if is_kit else 0x071020)
+            draw_rounded_box(res, center_cx - sx(100), card_y + sy(26), sx(200), sy(45), b_bg, b_bg, True, b_bg_s)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(26), sx(200), sy(45), 1, RT_HALIGN_CENTER | RT_VALIGN_CENTER, fz.get("btn", "VOTE"), b_fg, b_fg_s))
+
+        if fz and fz.get("lines"):
+            # "You 2 - 1  12 votes" / "Fans 2 - 1" + "You 1 - 1  +3": every number sits in its own
+            # cell under its score box, so right-to-left (Arabic) layout can't swap home and away
+            for li, (lbl, n_h, n_a, tail) in enumerate(fz["lines"][:2]):
+                ly = card_y + sy(82) + li * sy(18)
+                lh = sy(18)
+                c_ln = ink["win"] if li == len(fz["lines"][:2]) - 1 else ink["dim"]
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(250), ly, sx(142), lh, 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, lbl, c_ln, _sel(c_ln)))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), ly, sx(80), lh, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(n_h), c_ln, _sel(c_ln)))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(20), ly, sx(40), lh, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, u"-", c_ln, _sel(c_ln)))
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), ly, sx(80), lh, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, str(n_a), c_ln, _sel(c_ln)))
+                if tail:
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(108), ly, sx(84), lh, 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, tail, c_ln, _sel(c_ln)))
+        elif fz and fz.get("under"):
+            # under the score: "12 votes" / "Be the first to vote" / "No fantasy votes"
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(250), card_y + sy(76), sx(500), sy(26), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, fz["under"], ink["win"], _sel(ink["win"])))
 
         if a_png:
             res.append((eListboxPythonMultiContent.TYPE_PIXMAP_ALPHATEST, AWAY_LOGO_X - sx(1), card_y + sy(14), LOGO_SIZE, LOGO_SIZE, get_scaled_pixmap(a_png, LOGO_SIZE, LOGO_SIZE)))
@@ -6233,10 +6491,13 @@ def VNextListEntry(entry):
             res.append((eListboxPythonMultiContent.TYPE_TEXT, away_name_left + pred_w + sx(6), pred_y + sy(2), sx(40), sy(22), 3, RT_HALIGN_LEFT | RT_VALIGN_CENTER, "{:.0f}%".format(a_pct_norm), c_away_pred, _sel(c_away_pred)))
 
             label_text = _t("WIN% (EST)") if pred_is_estimate else _t("WIN%")
-            res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(60), pred_y + sy(2), sx(120), sy(22), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, label_text, ink["muted"], _sel(ink["muted"])))
+            if fz:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, home_name_right - pred_w - sx(54) - sx(110), pred_y + sy(2), sx(108), sy(22), 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, label_text, ink["muted"], _sel(ink["muted"])))
+            else:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(60), pred_y + sy(2), sx(120), sy(22), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, label_text, ink["muted"], _sel(ink["muted"])))
 
         # --- Live possession bar (thin, directly under the score box) ---
-        if status == "LIVE" and (h_poss > 0 or a_poss > 0):
+        if status == "LIVE" and (h_poss > 0 or a_poss > 0) and not fz:
             bar_total_w = sx(200); bar_x = center_cx - sx(100); bar_y = card_y + sy(74); bar_h = sy(5)
             total_poss = h_poss + a_poss
             if total_poss == 0: total_poss = 100.0
@@ -6249,14 +6510,14 @@ def VNextListEntry(entry):
                 res.append((eListboxPythonMultiContent.TYPE_TEXT, bar_x + h_w, bar_y, a_w, bar_h, 0, RT_HALIGN_CENTER, "", c_win, c_win, c_win, c_win))
 
         # --- Shot-count text (absolute numbers), sits just under the possession bar ---
-        if status == "LIVE" and (h_shots > 0 or a_shots > 0):
+        if status == "LIVE" and (h_shots > 0 or a_shots > 0) and not fz:
             h_shot_str = "{}({})".format(h_shots, h_on_target)
             a_shot_str = "{}({})".format(a_shots, a_on_target)
             res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx - sx(100), card_y + sy(82), sx(80), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, h_shot_str, c_dim, _sel(c_dim)))
             res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + sx(20), card_y + sy(82), sx(80), sy(20), 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, a_shot_str, c_dim, _sel(c_dim)))
 
         # --- Comparison stat bars (shots% / shots-on-target% / corners%) ---
-        if status == "LIVE" and (h_pct_stats or a_pct_stats):
+        if status == "LIVE" and (h_pct_stats or a_pct_stats) and not fz:
             track_w = sx(170)
             home_track_x = home_name_right - track_w
             away_track_x = away_name_left
@@ -6317,6 +6578,27 @@ def VNextListEntry(entry):
                 else:
                     res.append((eListboxPythonMultiContent.TYPE_TEXT, center_cx + 120, card_y + 4, 30, 20, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, "RC" if a_red_cards == 1 else "{}RC".format(a_red_cards), ink["live"], ink_s["live"] if is_kit else c_sel))
 
+        if fz:
+            # FantasyScore right column: one time/status badge, then the last three away cheerers
+            time_w = sx(170)
+            time_x = card_x + card_w - sx(22) - time_w
+            time_y = card_y + sy(10)
+            time_h = sy(34)
+            if fz.get("badge_live"):
+                bg_b = bg_b_s = VN_LIVE_RED; fg_b = fg_b_s = 0xffffff
+            elif is_kit:
+                bg_b, bg_b_s = box_n, box_s; fg_b, fg_b_s = ink["accent"], ink_s["accent"]
+            else:
+                bg_b = bg_b_s = vn_bg_navy; fg_b = fg_b_s = vn_accent2
+            draw_rounded_box(res, time_x, time_y, time_w, time_h, bg_b, bg_b, True, bg_b_s)
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, time_x, time_y, time_w, time_h, 3, RT_HALIGN_CENTER | RT_VALIGN_CENTER, fz.get("badge") or time_str, fg_b, fg_b_s))
+            line_h = sy(22)
+            ny = time_y + time_h + sy(4)
+            for i, nm in enumerate(list(fz.get("names_a") or [])[:3]):
+                col = ink["accent"] if i == 0 else c_dim
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, time_x, ny + i * line_h, time_w, line_h, 3, RT_HALIGN_RIGHT | RT_VALIGN_CENTER, nm, col, _sel(col)))
+            return res
+
         # --- RIGHT COLUMN: 1) Match Date/Time Badge (Top Right) ---
         c_time = VN_LIVE_RED if status == "LIVE" else VN_TEXT_SEC
         if status == "LIVE":
@@ -6353,6 +6635,17 @@ def VNextListEntry(entry):
         if is_kit and bg_status == vn_bg_navy:
             bg_status, bg_status_s = box_n, box_s
             fg_status, fg_status_s = ink["accent"], ink_s["accent"]
+        # Countdown in the last two hours before kick-off: "In 45 min" in the winner
+        # (gold) colour; "Starting now" as a filled badge so it stands out.
+        cd_label = countdown_label(status)
+        if cd_label:
+            label_status = cd_label
+            if status == "CD|0":
+                bg_status = bg_status_s = (_pal["button_int"] if is_kit else VN_GOLD)
+                fg_status = fg_status_s = (_pal["button_text_int"] if is_kit else 0x1A1A1A)
+            else:
+                fg_status = c_win
+                fg_status_s = _sel(c_win)
 
         badge_x = time_x
         badge_y = time_y + time_h + sy(8)  # Positioned directly below match date/time badge (card_y + 58)
@@ -8179,6 +8472,8 @@ class SportsMonitor:
                     self.minibar_1_style = data.get("minibar_1_style", "default")
                     self.voter_name = data.get("voter_name", "Anonymous")
                     self.install_registered = bool(data.get("install_registered", False))
+                    # A config file without the flag is an existing install: no first-run setup
+                    self.setup_done = bool(data.get("setup_done", True))
                     # Plugin language
                     global PLUGIN_LANGUAGE
                     PLUGIN_LANGUAGE = data.get("plugin_language", "en")
@@ -8235,7 +8530,20 @@ class SportsMonitor:
             except Exception as e:
                 log_dbg("load_config ERROR: " + str(e))
                 self.defaults()
-        else: self.defaults()
+                self.setup_done = True      # a damaged config is not a new install
+        else:
+            # New install: start with the Champions League and the five big leagues,
+            # and offer the first-run setup when the plugin is opened.
+            self.defaults()
+            try:
+                starter = starter_league_indices()
+                if starter:
+                    self.custom_league_indices = starter
+                    self.saved_custom_league_indices = list(starter)
+                    self.is_custom_mode = True
+            except Exception as e:
+                log_dbg("starter leagues: " + str(e))
+            self.setup_done = False
 
     def defaults(self):
         self.filter_mode = 2; self.theme_mode = "default"; self.transparency = "59"
@@ -8246,6 +8554,7 @@ class SportsMonitor:
         self.ai_enabled = False; self.ai_api_key = ""; self.ai_provider = "gemini"
         self.ai_language = "English"; self.ai_frequency = 30; self.wp_commentary_interval = 4
         self.install_registered = False
+        self.setup_done = True
         self.favorite_teams = []
         self.fav_notified = set()
         self.goal_sound_file = "pop.mp3"
@@ -8312,6 +8621,7 @@ class SportsMonitor:
             "minibar_1_style": self.minibar_1_style,
             "voter_name": self.voter_name,
             "install_registered": getattr(self, "install_registered", False),
+            "setup_done": bool(getattr(self, "setup_done", True)),
             "plugin_language": PLUGIN_LANGUAGE,
             "ai_mode": {
                 "enabled": self.ai_enabled,
@@ -8942,6 +9252,12 @@ class SportsMonitor:
             self.sync_leaderboard()
 
     def evaluate_pending_bets(self):
+        # FantasyScore votes settle from the same scoreboard data (no extra requests
+        # while the match is loaded)
+        try:
+            fantasy_settle(self)
+        except Exception as e:
+            log_dbg("FANTASY: settle error: {}".format(e))
         if hasattr(self, 'repair_epl_resolved_bets'):
             self.repair_epl_resolved_bets()
         if not self.ledger.get("pending_bets"): return
@@ -15941,6 +16257,26 @@ class RacingDriverInfoScreen(Screen):
 
 
 
+def game_info_footer_xml(bar, accent):
+    """Bottom strip of the game info screen: each remote button with what it does
+    (1600x900 design size; scaled with the rest of the skin)."""
+    chip = ('<widget name="{n}" position="{x},866" size="{w},28" font="Regular;20" foregroundColor="#16202C" '
+            'backgroundColor="#E6E9EE" transparent="0" halign="center" valign="center" zPosition="11" />')
+    key = '<eLabel position="{x},869" size="36,22" backgroundColor="{c}" zPosition="11" />'
+    lbl = ('<widget name="{n}" position="{x},866" size="{w},28" font="Regular;22" foregroundColor="#FFFFFF" '
+           'transparent="1" halign="left" valign="center" zPosition="11" />')
+    parts = [
+        '<eLabel position="0,860" size="1600,40" backgroundColor="{}" zPosition="9" />'.format(bar),
+        '<eLabel position="0,860" size="1600,2" backgroundColor="{}" zPosition="10" />'.format(accent),
+        chip.format(n="gi_ok_chip", x=24, w=60), lbl.format(n="gi_ok", x=94, w=250),
+        key.format(x=362, c="#F2B530"), lbl.format(n="gi_yellow", x=408, w=220),
+        key.format(x=646, c="#1E7BE0"), lbl.format(n="gi_blue", x=692, w=280),
+        chip.format(n="gi_page_chip", x=992, w=76), lbl.format(n="page_indicator", x=1078, w=250),
+        chip.format(n="gi_exit_chip", x=1346, w=76), lbl.format(n="gi_exit", x=1432, w=150),
+    ]
+    return "".join(parts)
+
+
 class GameInfoScreen(Screen):
     def __init__(self, session, event_id, league_url="", event_data=None):
         Screen.__init__(self, session)
@@ -16109,7 +16445,6 @@ class GameInfoScreen(Screen):
 
                 <widget name="info_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
                 <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
-                <widget name="page_indicator" position="0,860" size="1600,30" font="Regular;24" foregroundColor="#ffffff" transparent="1" halign="center" zPosition="10" />
             """
         elif self.sport_type == SPORT_TYPE_TENNIS:
             # Tennis uses a symmetric layout with detailed scores below stadium
@@ -16143,7 +16478,6 @@ class GameInfoScreen(Screen):
                 <widget name="info_list" position="0,280" size="1600,580" scrollbarMode="showNever" transparent="1" zPosition="5" />
 
                 <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
-                <widget name="page_indicator" position="0,860" size="1600,30" font="Regular;24" foregroundColor="#ffffff" transparent="1" halign="center" zPosition="10" />
             """
         else:
             # Two-team match layout (1600px Wide)
@@ -16172,17 +16506,18 @@ class GameInfoScreen(Screen):
 
                 <widget name="info_list" position="0,160" size="1600,700" scrollbarMode="showNever" transparent="1" zPosition="5" />
                 <widget name="loading" position="0,400" size="1600,100" font="Regular;32" foregroundColor="{accent}" transparent="1" halign="center" zPosition="10" />
-                <widget name="page_indicator" position="0,860" size="1600,30" font="Regular;24" foregroundColor="#ffffff" transparent="1" halign="center" zPosition="10" />
             """
 
         if self.theme == "ucl":
             bg_color = "#00000000"; top_bar = "#091442"; accent = "#c9a020"
             skin_widgets = common_widgets.replace("{accent}", accent)
-            self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>""")
+            footer = game_info_footer_xml(top_bar, accent)
+            self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}{footer}</screen>""")
         else:
             bg_color = "#38003C"; top_bar = "#28002C"; accent = "#00FF85"
             skin_widgets = common_widgets.replace("{accent}", accent)
-            self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}</screen>""")
+            footer = game_info_footer_xml(top_bar, accent)
+            self.skin = scale_skin_xml(f"""<screen position="center,center" size="1600,900" title="Game Stats" flags="wfNoBorder" backgroundColor="{bg_color}"><eLabel position="0,0" size="1600,150" backgroundColor="{top_bar}" zPosition="0" /><eLabel position="0,150" size="1600,4" backgroundColor="{accent}" zPosition="1" />{skin_widgets}{footer}</screen>""")
 
         self["h_name"] = Label(""); self["a_name"] = Label("")
         self["h_score"] = Label(""); self["a_score"] = Label("")
@@ -16190,6 +16525,11 @@ class GameInfoScreen(Screen):
         self["stadium_name"] = Label(""); self["match_title"] = Label(_t("MATCH DETAILS"))
         self["h_logo"] = Pixmap(); self["a_logo"] = Pixmap()
         self["loading"] = Label(_t("Fetching Data...")); self["page_indicator"] = Label("")
+        # bottom strip: what each remote button does here
+        self["gi_ok_chip"] = Label("OK"); self["gi_ok"] = Label(_t("Standings"))
+        self["gi_yellow"] = Label(_t("Leaderboard")); self["gi_blue"] = Label(_t("Follow match"))
+        self["gi_page_chip"] = Label(u"\u25c4 \u25ba")
+        self["gi_exit_chip"] = Label("EXIT"); self["gi_exit"] = Label(_t("Close"))
 
         self["info_list"] = MenuList([], enableWrapAround=False, content=eListboxPythonMultiContent)
         self["info_list"].l.setFont(0, gFont("Regular", sf(24)))
@@ -16229,6 +16569,58 @@ class GameInfoScreen(Screen):
         self.onClose.append(self._stop_live_refresh)
 
         self.onLayoutFinish.append(self.start_loading)
+        self.onLayoutFinish.append(self._init_footer)
+
+    # ---- bottom strip: button help ---------------------------------------------
+    def _init_footer(self):
+        try:
+            self["info_list"].onSelectionChanged.append(self._update_footer)
+        except Exception:
+            pass
+        self._update_footer()
+
+    def _ok_hint(self):
+        """What OK does on the selected row (same checks as handle_ok)."""
+        data = None
+        try:
+            idx = self["info_list"].getSelectedIndex()
+        except Exception:
+            idx = None
+        if idx is not None:
+            real = self.current_page * self.items_per_page + idx
+            if 0 <= real < len(self.full_rows):
+                try:
+                    data = self.full_rows[real][0]
+                except Exception:
+                    data = None
+        if isinstance(data, tuple) and len(data) > 0:
+            kind = data[0]
+            if kind == "VOTE" and len(data) > 2:
+                if getattr(self, 'has_voted', False) or getattr(self, 'game_status', 'pre') != 'pre':
+                    return _t("Leaderboard")
+                return _t("Vote")
+            if kind == "VIDEO" and len(data) > 3:
+                return _t("Play video")
+            if kind == "PLAY ALL":
+                return _t("Play all videos")
+            if kind == "PLAYER" and len(data) > 2:
+                return _t("Player profile")
+        return _t("Standings")
+
+    def _update_footer(self):
+        try:
+            self["gi_ok"].setText(self._ok_hint())
+            mon = global_sports_monitor
+            following = bool(mon and self.event_id and mon.is_followed(self.event_id))
+            self["gi_blue"].setText(_t("Unfollow match") if following else _t("Follow match"))
+            paged = bool(self["page_indicator"].getText())
+            for name in ("gi_page_chip", "page_indicator"):
+                if paged:
+                    self[name].show()
+                else:
+                    self[name].hide()
+        except Exception as e:
+            log_dbg("GameInfo footer: {}".format(e))
 
     # ---- League-table estimate (soccer games with no ESPN prediction) ----------
     def _model_rows(self, est):
@@ -16283,6 +16675,7 @@ class GameInfoScreen(Screen):
         except Exception:
             ko = 0
         following = mon.toggle_follow_match(self.event_id, ko)
+        self._update_footer()
         msg = _t("Following this match: its alerts always show.") if following else _t("Match unfollowed.")
         self.session.open(MessageBox, msg, MessageBox.TYPE_INFO, timeout=3)
 
@@ -16458,6 +16851,7 @@ class GameInfoScreen(Screen):
                         try: self["info_list"].instance.moveSelectionTo(idx)
                         except: pass
 
+                    self._update_footer()
                     self.session.open(MessageBox, "Vote Submitted! Good luck!", MessageBox.TYPE_INFO, timeout=2)
                     return
 
@@ -16720,6 +17114,7 @@ class GameInfoScreen(Screen):
         if not self.full_rows:
             self["info_list"].setList([])
             self["page_indicator"].setText("")
+            self._update_footer()
             return
 
         total_items = len(self.full_rows)
@@ -16741,9 +17136,10 @@ class GameInfoScreen(Screen):
             pass
 
         if total_pages > 1:
-            self["page_indicator"].setText(_t("Page {}/{}    \u25c4 \u25ba Change Page".format(self.current_page + 1, total_pages)))
+            self["page_indicator"].setText(_t("Page {} of {}").format(self.current_page + 1, total_pages))
         else:
             self["page_indicator"].setText("")
+        self._update_footer()
 
     def page_down(self):
         if getattr(self, '_silent_refresh', False):
@@ -33446,6 +33842,130 @@ class LiveScoreFollowToast(OverlayToastMixin, Screen):
         self.timer.start(5000, True)
 
 
+
+class OnePageStep(object):
+    """LEFT/RIGHT = exactly one page per press, landing on a match row.
+    Receivers differ: on some the list also pages by itself on LEFT/RIGHT, and one
+    press can arrive as two key events a moment apart. So this does not use the
+    list's own paging: it works out the destination row itself (one page from where
+    the cursor rested before the press, never the top bar), moves there, and for a
+    short time afterwards puts the cursor back if anything else moves it. Key events
+    inside that time are the same press."""
+
+    GUARD_S = 0.45
+
+    def __init__(self, get_list, on_done=None, page=6, first_row=1):
+        self._get_list = get_list
+        self._on_done = on_done
+        self._page = page
+        self._first = first_row       # paging never goes above this row (row 0 = top bar)
+        self._settled = None
+        self._last = 0.0
+        self._guard_until = 0.0
+        self._target = None
+        self._job = None
+        self._timer = eTimer()
+        safe_connect(self._timer, self._run)
+        self._settle_timer = eTimer()
+        safe_connect(self._settle_timer, self._settle_or_hold)
+
+    def _count(self):
+        try:
+            return len(self._get_list().list)
+        except Exception:
+            return 0
+
+    def settle(self):
+        """Remember where the cursor rests."""
+        try:
+            self._settled = self._get_list().getSelectedIndex()
+        except Exception:
+            self._settled = None
+
+    def release(self):
+        """The user moved the cursor another way (UP/DOWN): stop holding it."""
+        self._guard_until = 0.0
+        self._target = None
+        self._job = None
+
+    def _holding(self):
+        return self._target is not None and time.time() < self._guard_until
+
+    def _settle_or_hold(self):
+        if self._holding():
+            lst = self._get_list()
+            if lst.getSelectedIndex() != self._target:
+                lst.moveToIndex(self._target)      # an extra jump: undo it
+                if self._on_done:
+                    try:
+                        self._on_done(self._target, self._target)
+                    except Exception:
+                        pass
+            self._settled = self._target
+        elif self._job is None:
+            self.settle()
+
+    def selection_changed(self):
+        # deferred, so during a key press this still knows where the cursor rested
+        try:
+            self._settle_timer.start(0, True)
+        except Exception:
+            self._settle_or_hold()
+
+    def press(self, up, before_page=None):
+        """before_page(pre, cur) -> True when it handled the key itself (the cursor
+        then stays on row 'pre')."""
+        now = time.time()
+        if now - self._last < self.GUARD_S:
+            self.selection_changed()        # same press again: just keep the cursor in place
+            return
+        self._last = now
+        lst = self._get_list()
+        cur = lst.getSelectedIndex()
+        pre = self._settled
+        n = self._count()
+        if pre is None or not 0 <= pre < max(n, 1):
+            pre = cur
+        self._job = (pre, up, before_page)
+        self._guard_until = 0.0
+        self._target = None
+        try:
+            self._timer.start(0, True)
+        except Exception:
+            self._run()
+
+    def _run(self):
+        if not self._job:
+            return
+        pre, up, before_page = self._job
+        self._job = None
+        lst = self._get_list()
+        cur = lst.getSelectedIndex()
+        n = self._count()
+        handled = False
+        if before_page is not None:
+            try:
+                handled = bool(before_page(pre, cur))
+            except Exception as e:
+                log_dbg("LR: handler error: {}".format(e))
+        if handled:
+            target = pre
+        else:
+            lo = min(self._first, max(0, n - 1))
+            target = pre - self._page if up else pre + self._page
+            target = max(lo, min(max(0, n - 1), target))
+        if lst.getSelectedIndex() != target:
+            lst.moveToIndex(target)
+        self._target = target
+        self._settled = target
+        self._guard_until = time.time() + self.GUARD_S
+        if self._on_done:
+            try:
+                self._on_done(pre, target)
+            except Exception:
+                pass
+
+
 class SimpleSportsScreen(Screen):
     @profile_function("SimpleSportsScreen")
     def __init__(self, session):
@@ -33704,7 +34224,7 @@ class SimpleSportsScreen(Screen):
         self["list"].l.setFont(2, gFont("SimplySportFont", sf(38)))
         self["list"].l.setFont(3, gFont("SimplySportFont", sf(17)))
         self["list"].l.setItemHeight(sy(136 if self.is_vnext_theme else 90))
-        self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Livescore.cz")); self["key_blue"] = Label(_t("Watch Party"))
+        self["key_red"] = Label(_t("League List")); self["key_green"] = Label(_t("Mini Bar")); self["key_yellow"] = Label(_t("Livescore.cz")); self["key_blue"] = Label(_t("Fans Zone"))
         self["key_epg"] = Label(_t("Info/EPG: Channels"))
         self["key_ch"] = Label(_t("< > / << >> Browse Days"))
         self["list"].onSelectionChanged.append(self.on_selection_changed)
@@ -33740,6 +34260,8 @@ class SimpleSportsScreen(Screen):
                 "menu": self.open_settings_menu,
                 "up": self._nav_up,
                 "down": self._nav_down,
+                "left": self._nav_left,
+                "right": self._nav_right,
                 "info": self.open_broadcasting,
                 "epg": self.open_broadcasting,
                 "guide": self.open_broadcasting,
@@ -33846,7 +34368,9 @@ class SimpleSportsScreen(Screen):
     def _nav_up(self):
         self._reset_idle_hint()
         old_idx = self["list"].getSelectedIndex()
+        self._lr_stepper().release()
         self["list"].up()
+        self._lr_stepper().settle()
         self._update_selection_glow(old_idx, self["list"].getSelectedIndex())
         self.update_blue_button()
         self.update_screen_info()
@@ -33854,12 +34378,95 @@ class SimpleSportsScreen(Screen):
     def _nav_down(self):
         self._reset_idle_hint()
         old_idx = self["list"].getSelectedIndex()
+        self._lr_stepper().release()
         self["list"].down()
+        self._lr_stepper().settle()
         self._update_selection_glow(old_idx, self["list"].getSelectedIndex())
         self.update_blue_button()
         self.update_screen_info()
 
+    # --- Top navigation row: LEFT = Fans Zone half, RIGHT = Global / My Leagues half ---
+    NAV_IDS = ("__nav_all_matches__", "__nav_return_main__")
+
+    def _nav_half(self):
+        return getattr(self, "_fans_half", "nav")
+
+    def _split_nav_entry(self, nav_entry):
+        """The top row as two halves (vNext) or, in the UCL theme, the focused half's card."""
+        self._nav_base_entry = nav_entry
+        half = self._nav_half()
+        if getattr(self.monitor, "theme_mode", "") == "ucl":
+            if half == "fans":
+                return ("NAV_CARD", _t("FANS"), _t("Fans Zone"), _t("ENTER \u2794"),
+                        _t("Predict today's scores and cheer your team"), "", False, False, None, None, 0, 0)
+            return nav_entry
+        is_return = nav_entry[3] == _t("RETURN \u2794")
+        title = _t("Return to My Leagues") if is_return else _t("Global Soccer Today")
+        sub = _t("Back to your favourite leagues") if is_return else _t("50+ leagues worldwide")
+        return ("NAV_SPLIT", nav_entry[1], title, nav_entry[3], sub, half, False, False, None, None, 0, 0)
+
+    def _on_nav_row(self):
+        idx = self["list"].getSelectedIndex()
+        if idx is not None and 0 <= idx < len(self.current_match_ids) and self.current_match_ids[idx] in self.NAV_IDS:
+            return idx
+        return None
+
+    def _set_nav_half(self, half):
+        idx = self._on_nav_row()
+        if idx is None:
+            return False
+        if self._nav_half() != half and getattr(self, "_nav_base_entry", None):
+            self._fans_half = half
+            try:
+                row = self._render_row(self._split_nav_entry(self._nav_base_entry))
+                lst = list(self["list"].list)
+                lst[idx] = row
+                self["list"].setList(lst)
+                self["list"].moveToIndex(idx)
+            except Exception as e:
+                log_dbg("NAV: half switch failed: {}".format(e))
+        self.update_blue_button()
+        self.update_screen_info()
+        return True
+
+    def _lr_stepper(self):
+        st = getattr(self, "_lr", None)
+        if st is None:
+            st = self._lr = OnePageStep(lambda: self["list"], self._after_lr)
+        return st
+
+    def _lr_top_row(self, half):
+        def handle(pre, cur):
+            ids = self.current_match_ids or []
+            if not (0 <= pre < len(ids) and ids[pre] in self.NAV_IDS):
+                return False
+            if cur != pre:
+                self["list"].moveToIndex(pre)      # the list paged by itself: stay on the top row
+            self._set_nav_half(half)
+            return True
+        return handle
+
+    def _after_lr(self, old_idx, new_idx):
+        self._update_selection_glow(old_idx, new_idx)
+        self.update_blue_button()
+        self.update_screen_info()
+
+    def _nav_left(self):
+        self._reset_idle_hint()
+        self._lr_stepper().press(True, self._lr_top_row("fans"))
+
+    def _nav_right(self):
+        self._reset_idle_hint()
+        self._lr_stepper().press(False, self._lr_top_row("nav"))
+
+    def open_fans_zone(self):
+        self.session.open(FantasyScoreScreen, self)
+
     def on_selection_changed(self):
+        try:
+            self._lr_stepper().selection_changed()
+        except Exception:
+            pass
         try:
             self.update_blue_button()
             self.update_screen_info()
@@ -34194,6 +34801,14 @@ class SimpleSportsScreen(Screen):
 
             self["key_menu"].setText(_t("MENU: Settings  |  1-8: Leagues  |  9: Custom  |  0: Lineups"))
             self.update_top_status()
+            # Countdown badges change once a minute: redraw the rows from the data already
+            # in memory (no download), and keep the "updated ... ago" stamp as it was.
+            if now.second == 0 and getattr(self, '_countdown_rows', 0) > 0 and self.monitor.cached_events:
+                _stamp = self._last_refreshed
+                try:
+                    self.refresh_ui(True)
+                finally:
+                    self._last_refreshed = _stamp
             if now.second % 3 == 0:
                 try:
                     if hasattr(self["list"], "instance") and self["list"].instance:
@@ -34411,12 +35026,17 @@ class SimpleSportsScreen(Screen):
             idx = self["list"].getSelectedIndex()
             if idx is not None and 0 <= idx < len(self.current_match_ids):
                 mid = self.current_match_ids[idx]
+                if mid in self.NAV_IDS and self._nav_half() == "fans":
+                    msg = _t("Fans Zone: press OK to predict today's scores and cheer your team") + u"    \u25ba " + (
+                        _t("My Leagues") if mid == "__nav_return_main__" else _t("Global"))
+                    self["screen_info"].setText(msg)
+                    return
                 if mid == "__nav_all_matches__":
-                    msg = _t("Global Soccer: Press OK to browse all matches worldwide across 50+ leagues")
+                    msg = _t("Global Soccer: Press OK to browse all matches worldwide across 50+ leagues") + u"    \u25c4 " + _t("Fans Zone")
                     self["screen_info"].setText(msg)
                     return
                 elif mid == "__nav_return_main__":
-                    msg = _t("Press OK or RED to return to your Custom/Favorite leagues")
+                    msg = _t("Press OK or RED to return to your Custom/Favorite leagues") + u"    \u25c4 " + _t("Fans Zone")
                     self["screen_info"].setText(msg)
                     return
                 elif mid == "__info__":
@@ -34625,9 +35245,9 @@ class SimpleSportsScreen(Screen):
                     elif state == 'in':
                         self["key_blue"].setText(_t("Watch Live") if "Watch Live" in TRANSLATIONS else "Watch Live")
                         return
-            self["key_blue"].setText(_t("Watch Party"))
+            self["key_blue"].setText(_t("Fans Zone"))
         except Exception:
-            self["key_blue"].setText(_t("Watch Party"))
+            self["key_blue"].setText(_t("Fans Zone"))
 
     def update_filter_button(self):
         self["key_yellow"].setText(_t("SimplySports Arena"))
@@ -35065,6 +35685,7 @@ class SimpleSportsScreen(Screen):
         log_diag("REFRESH_UI: success={} force={} filter_mode={} is_custom={} cached_events={} status='{}'".format(
             success, force_refresh, self.monitor.filter_mode, self.monitor.is_custom_mode, len(self.monitor.cached_events), self.monitor.status_message))
         self._begin_row_cache_pass()
+        self._countdown_rows = 0
         # Guard: Don't refresh UI during loading states UNLESS forced or displaying a Loading status
         if not success and not force_refresh:
             if not is_loading_status(self.monitor.status_message):
@@ -35113,6 +35734,7 @@ class SimpleSportsScreen(Screen):
                 "", False, False, None, None, 0, 0
             )
             nav_id = "__nav_all_matches__"
+        nav_entry = self._split_nav_entry(nav_entry)
 
         if not events:
             # If we already have matches and loading is in progress, keep old list to avoid flicker
@@ -35238,6 +35860,14 @@ class SimpleSportsScreen(Screen):
                     goal_side = self.monitor.goal_flags.get(match_id, {}).get('team')
 
                 status_short = snap['status_short']
+                # Countdown badge for matches kicking off within two hours (main theme, today's view)
+                if (self.monitor.theme_mode != "ucl" and snap.get('state') == 'pre'
+                        and self.monitor.ch_day_offset == 0
+                        and status_short not in ("LIVE", "FIN", "PPD", "SUS", "CAN")):
+                    _cd = countdown_status(utc_iso_to_epoch(event.get('date', '')))
+                    if _cd:
+                        status_short = _cd
+                        self._countdown_rows = getattr(self, '_countdown_rows', 0) + 1
 
                 has_epg = False
                 # Check for recent goals to create a 'heat' effect on the score box
@@ -35664,6 +36294,7 @@ class SimpleSportsScreen(Screen):
         cur_bg_color_lbl = get_main_bg_color_name(getattr(self.monitor, "main_bg_color", "default"))
         
         menu_options = [
+            (_t("Run Quick Setup"), "quick_setup"),
             (_t("Check for Updates"), "update"),
             (_t("Change Interface Theme"), "theme"),
             (_t("Background Color (Main Theme only): ") + cur_bg_color_lbl, "background_color"),
@@ -35727,6 +36358,8 @@ class SimpleSportsScreen(Screen):
             elif action == "alert_options": self.open_alert_options_menu()
             elif action == "notif_test": self.run_notification_test()
             elif action == "change_language": self.open_language_selector()
+            elif action == "quick_setup":
+                self.run_quick_setup()
 
     # ---- Alert options: which matches, which events, and when alerts show ----
     def _alert_option_labels(self):
@@ -36347,8 +36980,14 @@ class SimpleSportsScreen(Screen):
             (_t("Custom Leagues (View/Edit)"), "custom_leagues"),
             (_t("Favorite Leagues"), "favorite_leagues"),
             (_t("My Favorite Teams"), "favorite_teams"),
+            (_t("Run Quick Setup"), "quick_setup"),
         ]
         self.session.openWithCallback(self.league_menu_callback, ChoiceBox, title=_t("League Options"), list=options)
+
+    def run_quick_setup(self):
+        """The first-run setup wizard (language, leagues, teams, look, alerts); the main
+        screen reopens when it changed something."""
+        self.session.openWithCallback(lambda changed=None: self.close(True) if changed else None, SetupWizardScreen)
 
     def league_menu_callback(self, selection):
         if not selection:
@@ -36364,6 +37003,8 @@ class SimpleSportsScreen(Screen):
             self.session.openWithCallback(self.on_selector_closed, FavoriteLeagueSelector)
         elif action == "favorite_teams":
             self.session.openWithCallback(self.on_favorite_teams_closed, FavoriteTeamsManagerScreen)
+        elif action == "quick_setup":
+            self.run_quick_setup()
 
     def open_all_matches_screen(self):
         self.session.openWithCallback(self.on_all_matches_closed, AllSoccerMatchesScreen)
@@ -36488,6 +37129,9 @@ class SimpleSportsScreen(Screen):
         if 0 <= idx < len(self.current_match_ids):
             match_id = self.current_match_ids[idx]
 
+            if match_id in self.NAV_IDS and self._nav_half() == "fans":
+                self.open_fans_zone()
+                return
             if match_id == "__nav_all_matches__":
                 self.open_all_matches_screen()
                 return
@@ -36741,10 +37385,7 @@ class SimpleSportsScreen(Screen):
                         break
 
         if not event:
-            self.session.open(
-                MessageBox,
-                _t("Watch Party is only available for live or scheduled soccer matches."),
-                MessageBox.TYPE_INFO, timeout=5)
+            self.session.open(FantasyScoreScreen, self)
             return
 
         # Access Guard: must be live soccer, not suspended
@@ -36773,24 +37414,9 @@ class SimpleSportsScreen(Screen):
             self.open_match_highlights(event)
             return
 
-        if state != 'pre' or not is_soccer or is_suspended:
-            self.session.open(
-                MessageBox,
-                _t("Watch Party is only available for scheduled soccer matches."),
-                MessageBox.TYPE_INFO, timeout=5)
-            return
-
-        # Extract match data
-        comp = event.get('competitions', [{}])[0]
-        competitors = comp.get('competitors', [])
-        h_name = "Home"; a_name = "Away"
-        for c in competitors:
-            if c.get('homeAway') == 'home':
-                h_name = c.get('team', {}).get('shortDisplayName', c.get('team', {}).get('displayName', 'Home'))
-            elif c.get('homeAway') == 'away':
-                a_name = c.get('team', {}).get('shortDisplayName', c.get('team', {}).get('displayName', 'Away'))
-
-        self.session.open(WatchPartyScreen, event.get('id', ''), h_name, a_name)
+        # v7.4: upcoming matches open FantasyScore (today's soccer, full screen).
+        # The old Watch Party screen (reactions, polled every 5 s) is no longer opened.
+        self.session.open(FantasyScoreScreen, self)
 
     def open_match_highlights(self, event):
         self.session.open(MatchHighlightsScreen, event)
@@ -38935,6 +39561,1487 @@ class BroadcastingChannelsScreen(Screen):
 # ==============================================================================
 # MAIN LAUNCHER (FIXED: Handle Exit/Cancel correctly)
 # ==============================================================================
+# ==============================================================================
+# FIRST-RUN SETUP (shown once on a new install; Settings > "Run Quick Setup" reopens it)
+# ==============================================================================
+STARTER_LEAGUE_SLUGS = ["soccer/uefa.champions", "soccer/eng.1", "soccer/esp.1",
+                        "soccer/ita.1", "soccer/ger.1", "soccer/fra.1"]
+# Leagues offered in the setup's league step, in this order (starters first)
+SETUP_LEAGUE_SLUGS = STARTER_LEAGUE_SLUGS + [
+    "soccer/uefa.europa", "soccer/uefa.europa.conf", "soccer/ksa.1", "soccer/epl.1",
+    "soccer/afc.champions", "soccer/caf.champions", "soccer/fifa.world",
+    "soccer/eng.fa", "soccer/esp.copa_del_rey", "soccer/usa.1", "basketball/nba",
+]
+# Favourite-team name fragments -> club kit (first match wins; checked on lower-case names)
+_KIT_BY_TEAM_NAME = [
+    ("manchester city", "man_city"), ("manchester united", "man_utd"), ("liverpool", "liverpool"),
+    ("barcelona", "barcelona"), ("real madrid", "real_madrid"), ("juventus", "juventus"),
+    ("internazionale", "inter"), ("inter milan", "inter"), ("bayern", "bayern"),
+    ("dortmund", "dortmund"), ("paris saint-germain", "psg"), ("psg", "psg"),
+]
+_KIT_MENU_ORDER = ["man_city", "man_utd", "liverpool", "barcelona", "real_madrid",
+                   "juventus", "inter", "bayern", "dortmund", "psg"]
+
+
+def starter_league_indices():
+    """DATA_SOURCES indices of the six starter leagues (UCL + the big five)."""
+    return [SLUG_TO_IDX[s] for s in STARTER_LEAGUE_SLUGS if s in SLUG_TO_IDX]
+
+
+def kit_for_favorite_teams(favorite_teams):
+    """Club kit key matching the user's first favourite team that has a kit, else None."""
+    for t in favorite_teams or []:
+        name = (t.get("team_name") or "").strip().lower()
+        if name == "inter":
+            return "inter"
+        for frag, key in _KIT_BY_TEAM_NAME:
+            if frag in name and key in MAIN_THEME_BG_COLORS:
+                return key
+    return None
+
+
+class SetupWizardScreen(Screen):
+    """Five quick steps for a new install: language, leagues, favourite teams, look, alerts.
+    Nothing is saved until the last step; EXIT / RED keeps the starter defaults."""
+
+    STEPS = ("language", "leagues", "teams", "look", "alerts")
+    ALERT_PRESETS = [
+        ("sound",     "All my leagues, with sound",         2, "all"),
+        ("silent",    "All my leagues, silent pop-ups",     1, "all"),
+        ("favorites", "Only my favourite teams, with sound", 2, "favorites"),
+        ("off",       "No alerts",                           0, "all"),
+    ]
+
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        self.skin = scale_skin_xml("""
+        <screen position="center,center" size="1100,820" title="SimplySports Setup" backgroundColor="#00111418" flags="wfNoBorder">
+            <eLabel position="0,0" size="1100,820" backgroundColor="#00111418" zPosition="-1" />
+            <eLabel position="0,0" size="1100,6" backgroundColor="#0000AFFF" zPosition="1" />
+            <widget name="step" position="40,26" size="1020,30" font="SimplySportFont;22" foregroundColor="#00D9FF" backgroundColor="#00111418" transparent="1" halign="left" />
+            <widget name="header" position="40,60" size="1020,54" font="SimplySportFont;40" foregroundColor="#FFFFFF" backgroundColor="#00111418" transparent="1" halign="left" valign="center" />
+            <widget name="sub" position="40,118" size="1020,60" font="SimplySportFont;24" foregroundColor="#B0B8C1" backgroundColor="#00111418" transparent="1" halign="left" valign="top" />
+            <eLabel position="40,186" size="1020,2" backgroundColor="#00232B36" />
+            <widget name="list" position="40,198" size="1020,504" scrollbarMode="showOnDemand" transparent="1" />
+            <eLabel position="40,712" size="1020,2" backgroundColor="#00232B36" />
+            <widget name="hint" position="40,720" size="1020,30" font="SimplySportFont;20" foregroundColor="#9AA3AE" backgroundColor="#00111418" transparent="1" halign="center" valign="center" />
+            <widget name="key_red" position="40,762" size="300,40" font="SimplySportFont;24" foregroundColor="#FFFFFF" backgroundColor="#00B3261E" halign="center" valign="center" zPosition="1" />
+            <widget name="key_yellow" position="400,762" size="300,40" font="SimplySportFont;24" foregroundColor="#1A1A1A" backgroundColor="#00F2B530" halign="center" valign="center" zPosition="1" />
+            <widget name="key_green" position="760,762" size="300,40" font="SimplySportFont;24" foregroundColor="#06210F" backgroundColor="#0000C853" halign="center" valign="center" zPosition="1" />
+        </screen>
+        """)
+        mon = global_sports_monitor
+        self.mon = mon
+        self.step_idx = 0
+        # working copy of the choices (applied on Finish)
+        self.lang = PLUGIN_LANGUAGE if PLUGIN_LANGUAGE in ("en", "ar") else "en"
+        self._lang_at_open = PLUGIN_LANGUAGE
+        self.league_choices = [SLUG_TO_IDX[s] for s in SETUP_LEAGUE_SLUGS if s in SLUG_TO_IDX]
+        current = list(getattr(mon, "custom_league_indices", []) or [])
+        self.leagues = set(i for i in current if i in self.league_choices) or set(starter_league_indices())
+        self._extra_leagues = [i for i in current if i not in self.league_choices]   # kept as they are
+        self.look = getattr(mon, "main_bg_color", "default")
+        self._look_touched = False
+        self.alert = "sound"
+        if getattr(mon, "setup_done", False):          # re-run from Settings: start from current values
+            if mon.discovery_mode == 0:
+                self.alert = "off"
+            elif mon.alert_scope == "favorites":
+                self.alert = "favorites"
+            elif mon.discovery_mode == 1:
+                self.alert = "silent"
+            self._look_touched = True
+
+        self["step"] = Label("")
+        self["header"] = Label("")
+        self["sub"] = Label("")
+        self["hint"] = Label("")
+        self["key_red"] = Label("")
+        self["key_yellow"] = Label("")
+        self["key_green"] = Label("")
+        self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        self["list"].l.setFont(0, gFont("SimplySportFont", sf(28)))
+        self["list"].l.setFont(1, gFont("SimplySportFont", sf(20)))
+        self["list"].l.setItemHeight(sy(56))
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions"],
+            {
+                "ok": self.key_ok,
+                "cancel": self.key_skip,
+                "red": self.key_skip,
+                "yellow": self.key_back,
+                "green": self.key_next,
+                "up": self["list"].up,
+                "down": self["list"].down,
+                "left": self["list"].pageUp,
+                "right": self["list"].pageDown,
+            }, -1)
+        self.rows = []      # [(kind, value)] parallel to the list
+        self.onLayoutFinish.append(self.show_step)
+
+    # ---- text helper: the wizard switches language live, before anything is saved ----
+    def _tr(self, text):
+        global PLUGIN_LANGUAGE
+        keep = PLUGIN_LANGUAGE
+        PLUGIN_LANGUAGE = self.lang
+        try:
+            return _t(text)
+        finally:
+            PLUGIN_LANGUAGE = keep
+
+    def _row(self, kind, value, text, checked=None, note="", radio=False):
+        """One list row: a check box / radio mark drawn with plain rectangles (no font glyphs),
+        the label and an optional note on the right."""
+        w = sx(1020)
+        h = sy(56)
+        res = [(kind, value)]
+        tx = sx(16)
+        if checked is not None:
+            bx, by, bs = sx(14), sy(14), sy(28)
+            edge = 0x00C853 if checked else 0x6E7885
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, bx, by, bs, bs, 0, RT_HALIGN_CENTER, "", edge, edge, edge, edge))
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, bx + sy(3), by + sy(3), bs - sy(6), bs - sy(6), 0, RT_HALIGN_CENTER, "", 0x111418, 0x111418, 0x111418, 0x111418))
+            if checked:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT, bx + sy(7), by + sy(7), bs - sy(14), bs - sy(14), 0, RT_HALIGN_CENTER, "", 0x00C853, 0x00C853, 0x00C853, 0x00C853))
+            tx = sx(60)
+        note_w = sx(330) if note else 0
+        res.append((eListboxPythonMultiContent.TYPE_TEXT, tx, 0, w - tx - note_w - sx(16), h, 0,
+                    RT_HALIGN_LEFT | RT_VALIGN_CENTER, text, 0xFFFFFF, 0x00E5FF, None, None))
+        if note:
+            res.append((eListboxPythonMultiContent.TYPE_TEXT, w - note_w - sx(16), 0, note_w, h, 1,
+                        RT_HALIGN_RIGHT | RT_VALIGN_CENTER, note, 0x9AA3AE, 0x9AA3AE, None, None))
+        return res
+
+    # ---- steps ----
+    def show_step(self, keep_index=None):
+        step = self.STEPS[self.step_idx]
+        tr = self._tr
+        self["step"].setText(u"{} {} / {}".format(tr("Step"), self.step_idx + 1, len(self.STEPS)))
+        self["key_red"].setText(tr("Skip Setup"))
+        self["key_yellow"].setText(tr("Back") if self.step_idx > 0 else "")
+        self["key_green"].setText(tr("Finish") if self.step_idx == len(self.STEPS) - 1 else tr("Next"))
+        rows = []
+        if step == "language":
+            self["header"].setText(u"Language / اللغة")
+            self["sub"].setText(u"Choose the language of the plugin.\nاختر لغة البرنامج.")
+            self["hint"].setText(u"OK: " + tr("Select"))
+            rows.append(self._row("lang", "en", "English", self.lang == "en", radio=True))
+            rows.append(self._row("lang", "ar", u"العربية", self.lang == "ar", radio=True))
+        elif step == "leagues":
+            self["header"].setText(tr("Your Leagues"))
+            self["sub"].setText(tr("The Champions League and the five big leagues are already ticked. Add or remove any you like."))
+            self["hint"].setText(u"OK: " + tr("Tick / Untick") + u"   •   " + tr("More leagues later with button 9"))
+            for idx in self.league_choices:
+                rows.append(self._row("league", idx, self._league_label(idx), idx in self.leagues))
+        elif step == "teams":
+            self["header"].setText(tr("Your Favourite Teams"))
+            self["sub"].setText(tr("Optional. You get a heads-up before your teams play, and a star next to their names."))
+            self["hint"].setText(u"OK: " + tr("Add a team, or remove the selected one"))
+            rows.append(self._row("add_team", None, u"+  " + tr("Add a favourite team")))
+            for i, t in enumerate(self.mon.favorite_teams):
+                rows.append(self._row("team", i, u"★  " + (t.get("team_name") or "?"),
+                                      note=self._tr_league(t.get("league_name", ""))))
+        elif step == "look":
+            self["header"].setText(tr("Choose Your Look"))
+            self["sub"].setText(tr("Dress the main screen in your club's shirt, or keep the classic dark look."))
+            self["hint"].setText(u"OK: " + tr("Select") + u"   •   " + tr("Change it any time in Settings"))
+            suggested = kit_for_favorite_teams(self.mon.favorite_teams)
+            if suggested and not self._look_touched:
+                self.look = suggested
+            rows.append(self._row("look", "default", tr("Classic Dark"), self.look == "default", radio=True))
+            for key in _KIT_MENU_ORDER:
+                if key not in MAIN_THEME_BG_COLORS:
+                    continue
+                preset = MAIN_THEME_BG_COLORS[key]
+                name = preset["name_ar"] if self.lang == "ar" else preset["name_en"]
+                name = name.replace(u"⚽", u"").strip()
+                rows.append(self._row("look", key, name, self.look == key, radio=True,
+                                      note=tr("Matches your team") if key == suggested else ""))
+            if self.look not in ["default"] + _KIT_MENU_ORDER:      # a basic colour picked earlier in Settings
+                rows.append(self._row("look", self.look, tr("Keep my current colour"), True, radio=True))
+        elif step == "alerts":
+            self["header"].setText(tr("Goal Alerts"))
+            self["sub"].setText(tr("How should the plugin tell you about goals while you watch TV?"))
+            self["hint"].setText(u"OK: " + tr("Select") + u"   •   " + tr("Fine-tune later in Settings > Alert Options"))
+            for key, label, _mode, _scope in self.ALERT_PRESETS:
+                note = ""
+                if key == "favorites" and not self.mon.favorite_teams:
+                    note = tr("No favourite teams yet")
+                rows.append(self._row("alert", key, tr(label), self.alert == key, radio=True, note=note))
+        self.rows = [r[0] for r in rows]
+        self["list"].setList(rows)
+        if keep_index is not None and rows:
+            try:
+                self["list"].moveToIndex(max(0, min(keep_index, len(rows) - 1)))
+            except Exception:
+                pass
+
+    def _league_label(self, idx):
+        name = DATA_SOURCES[idx][0]
+        return self._tr_league(name)
+
+    def _tr_league(self, name):
+        global PLUGIN_LANGUAGE
+        keep = PLUGIN_LANGUAGE
+        PLUGIN_LANGUAGE = self.lang
+        try:
+            return _league_name(name)
+        except Exception:
+            return name
+        finally:
+            PLUGIN_LANGUAGE = keep
+
+    # ---- keys ----
+    def key_ok(self):
+        idx = self["list"].getSelectedIndex()
+        if idx is None or idx < 0 or idx >= len(self.rows):
+            return
+        kind, value = self.rows[idx]
+        if kind == "lang":
+            self.lang = value
+        elif kind == "league":
+            if value in self.leagues:
+                self.leagues.discard(value)
+            else:
+                self.leagues.add(value)
+        elif kind == "add_team":
+            if len(self.mon.favorite_teams) >= 10:
+                self.session.open(MessageBox, self._tr("Favorites limit reached (10)"), MessageBox.TYPE_INFO, timeout=3)
+                return
+            # the team picker is an existing screen: show it in the language chosen here
+            global PLUGIN_LANGUAGE
+            PLUGIN_LANGUAGE = self.lang
+            self.session.openWithCallback(self._team_added, FavoriteTeamLeagueSelector)
+            return
+        elif kind == "team":
+            teams = self.mon.favorite_teams
+            if 0 <= value < len(teams):
+                teams.pop(value)
+        elif kind == "look":
+            self.look = value
+            self._look_touched = True
+        elif kind == "alert":
+            self.alert = value
+        self.show_step(keep_index=idx)
+
+    def _team_added(self, result=None):
+        self.show_step(keep_index=len(self.mon.favorite_teams))
+
+    def key_back(self):
+        if self.step_idx > 0:
+            self.step_idx -= 1
+            self.show_step()
+
+    def key_next(self):
+        step = self.STEPS[self.step_idx]
+        if step == "leagues" and not self.leagues:
+            self.session.open(MessageBox, self._tr("Please tick at least one league."), MessageBox.TYPE_INFO, timeout=3)
+            return
+        if self.step_idx < len(self.STEPS) - 1:
+            self.step_idx += 1
+            self.show_step()
+        else:
+            self.finish(apply_choices=True)
+
+    def key_skip(self):
+        # Skipping keeps the starter leagues and default look; the setup is not shown again
+        self.finish(apply_choices=False)
+
+    def finish(self, apply_choices):
+        global PLUGIN_LANGUAGE, _TEAM_NAME_CACHE
+        mon = self.mon
+        try:
+            if apply_choices:
+                if self.lang != self._lang_at_open:
+                    _TEAM_NAME_CACHE.clear()
+                PLUGIN_LANGUAGE = self.lang
+                ordered = [i for i in self.league_choices if i in self.leagues] + self._extra_leagues
+                mon.custom_league_indices = ordered
+                mon.saved_custom_league_indices = list(ordered)
+                mon.is_custom_mode = True
+                mon.is_favorite_mode = False
+                mon.is_all_matches_mode = False
+                mon.event_map = {}
+                mon.cached_events = []
+                if self.look in MAIN_THEME_BG_COLORS:
+                    mon.main_bg_color = self.look
+                    if MAIN_THEME_BG_COLORS[self.look].get("is_club"):
+                        mon.theme_mode = "default"      # club kits belong to the main theme
+                for key, _label, mode, scope in self.ALERT_PRESETS:
+                    if key == self.alert:
+                        mon.discovery_mode = mode
+                        mon.active = (mode > 0)
+                        mon.alert_scope = scope
+                        break
+            else:
+                PLUGIN_LANGUAGE = self._lang_at_open
+            mon.setup_done = True
+            mon.save_config()
+            try:
+                mon.ensure_timer_state()
+                mon._start_fav_timer()
+                mon.prefetch_favorite_logos()
+            except Exception as e:
+                log_dbg("[Setup] timers: {}".format(e))
+        except Exception as e:
+            log_dbg("[Setup] finish error: {}".format(e))
+            mon.setup_done = True
+        self.close(apply_choices)
+
+
+# ==============================================================================
+# FANTASYSCORE (v7.4): fans predict the score of today's soccer matches.
+# Blue on the main screen opens it. Upcoming matches: OK opens score entry (one
+# vote per match, final); the cards show the community average once two or more
+# fans have voted. Live / finished matches keep the real score in the boxes with
+# the fans' average and your vote underneath. Green / Yellow / Blue cheer for the
+# home team / neutral / away team; the last three cheerers' names sit in the
+# card's far left (home) and far right (away) columns. Red opens the Fantasy
+# League table (exact score +3, correct result +1).
+#
+# Firebase (bandwidth-light, Spark plan):
+#   fantasy/<matchId>          {ko, n, sh, sa, ch:{h,d,a}, nm:{h:{0,1,2}, a:{0,1,2}}}
+#                              one small record per match; ONE query per screen
+#                              opening fetches all of the day's records (ko index)
+#   fantasy_votes/<matchId>/<uid>   {h, a}   private, write-once (the vote)
+#   fantasy_cheers/<matchId>/<uid>  "h"|"d"|"a"   private, write-once
+# Nothing is polled: the screen loads once when opened and re-reads one match
+# record after this box votes or cheers. Live scores come from the main screen.
+# ==============================================================================
+FANTASY_CATEGORY = "Fantasy League"
+FANTASY_MAX_GOALS = 15
+FANTASY_NAME_LEN = 20
+FANTASY_NAMES_SHOWN = 3
+FANTASY_EXACT_POINTS = 3
+FANTASY_RESULT_POINTS = 1
+FANTASY_EXPIRE_S = 3 * 86400            # a vote still unsettled this long after kick-off is void
+FANTASY_LOOKUP_AFTER_S = 110 * 60       # first ESPN result lookup after kick-off (not in memory)
+FANTASY_LOOKUP_EVERY_S = 30 * 60
+FANTASY_MAX_LOOKUPS = 8
+FANTASY_LEDGER_KEEP_S = 30 * 86400
+
+# List fonts used by the FantasyScore list (index: size). 0-3 match the main screen;
+# 4-9 are the "fan mood" sizes: the leading team's name a little bigger, the other
+# a little smaller (upcoming: by the fans' average; live/finished: by the real score).
+FANTASY_LIST_FONTS = {0: 26, 1: 28, 2: 38, 3: 17, 4: 42, 5: 34, 6: 31, 7: 25, 8: 29, 9: 23}
+_FANTASY_FONT_STEPS = {2: (4, 5), 1: (6, 7), 0: (8, 9)}     # base -> (bigger, smaller)
+_FANTASY_NAME_AREA_PX = 440                                  # name width available beside the logo
+
+
+def fantasy_round(x):
+    """Round half up (1.5 -> 2, 2.5 -> 3): Python's round() would give 2 for 2.5."""
+    return int(math.floor(float(x) + 0.5))
+
+
+def fantasy_clean_record(rec):
+    """A fantasy/<matchId> record as stored, with every field present and sane."""
+    out = {"ko": 0, "n": 0, "sh": 0, "sa": 0, "ch": {"h": 0, "d": 0, "a": 0},
+           "nm": {"h": [], "a": []}}
+    if not isinstance(rec, dict):
+        return out
+
+    def _int(v):
+        try:
+            return max(0, int(v))
+        except (TypeError, ValueError):
+            return 0
+    for k in ("ko", "n", "sh", "sa"):
+        out[k] = _int(rec.get(k))
+    ch = rec.get("ch")
+    if isinstance(ch, dict):
+        for k in ("h", "d", "a"):
+            out["ch"][k] = _int(ch.get(k))
+    nm = rec.get("nm")
+    if isinstance(nm, dict):
+        for side in ("h", "a"):
+            slots = nm.get(side)
+            if isinstance(slots, list):       # Firebase returns 0,1,2 keys as a list
+                slots = dict((str(i), v) for i, v in enumerate(slots))
+            if not isinstance(slots, dict):
+                continue
+            names = []
+            for key in ("0", "1", "2"):
+                v = slots.get(key)
+                if isinstance(v, (str, type(u""))) and v.strip():
+                    names.append(v.strip()[:FANTASY_NAME_LEN])
+            out["nm"][side] = names
+    return out
+
+
+def fantasy_average(rec):
+    """(home, away) community average, rounded, or None with fewer than two votes."""
+    rec = rec or {}
+    n = int(rec.get("n", 0) or 0)
+    if n < 2:
+        return None
+    return (fantasy_round(float(rec.get("sh", 0)) / n), fantasy_round(float(rec.get("sa", 0)) / n))
+
+
+def fantasy_points(vote_h, vote_a, real_h, real_a):
+    """Fantasy League points for one vote: exact score 3, correct result 1, else 0."""
+    vote_h, vote_a, real_h, real_a = int(vote_h), int(vote_a), int(real_h), int(real_a)
+    if vote_h == real_h and vote_a == real_a:
+        return FANTASY_EXACT_POINTS
+
+    def sign(d):
+        return (d > 0) - (d < 0)
+    if sign(vote_h - vote_a) == sign(real_h - real_a):
+        return FANTASY_RESULT_POINTS
+    return 0
+
+
+def fantasy_today_window(now=None):
+    """(start, end) epoch seconds of the box's local calendar day."""
+    now = time.time() if now is None else now
+    d = datetime.datetime.fromtimestamp(now).date()
+    start = time.mktime(datetime.datetime(d.year, d.month, d.day).timetuple())
+    nxt = d + datetime.timedelta(days=1)
+    end = time.mktime(datetime.datetime(nxt.year, nxt.month, nxt.day).timetuple())
+    return int(start), int(end)
+
+
+def fantasy_is_soccer(snap):
+    """Soccer match (team sport, soccer league URL)."""
+    try:
+        if snap.get("sport_type") == SPORT_TYPE_RACING:
+            return False
+        return "soccer" in str(snap.get("league_url", "")).lower() or "epl://" in str(snap.get("league_url", ""))
+    except Exception:
+        return False
+
+
+def fantasy_league_slug(league_url):
+    m = re.search(r"/soccer/([^/?]+)", str(league_url or ""))
+    return m.group(1) if m else ""
+
+
+def fantasy_name_fonts(h_val, a_val, left_text, right_text, area_px=_FANTASY_NAME_AREA_PX):
+    """List font indices for the two team names: the team ahead (h_val vs a_val) a step
+    bigger, the other a step smaller; level or unknown -> the main screen's sizes.
+    The bigger size is only used when the name still fits beside its logo."""
+    def base(text):
+        n = len(text or "")
+        return 0 if n > 27 else (1 if n > 23 else 2)
+    fh, fa = base(left_text), base(right_text)
+    if h_val is None or a_val is None or int(h_val) == int(a_val):
+        return fh, fa
+
+    def bigger(idx, text):
+        up = _FANTASY_FONT_STEPS[idx][0]
+        if len(text or "") * 0.52 * FANTASY_LIST_FONTS[up] <= area_px:
+            return up
+        return idx
+    if int(h_val) > int(a_val):
+        return bigger(fh, left_text), _FANTASY_FONT_STEPS[fa][1]
+    return _FANTASY_FONT_STEPS[fh][1], bigger(fa, right_text)
+
+
+def fantasy_vote_payload(match_id, uid, h, a, ko=None):
+    """Multi-path PATCH (sent to the database root) that casts one vote. The counters
+    use server-side increments; the rules accept them only together with this user's
+    first vote record, so they always move by exactly +1 and the vote's goals."""
+    mid = str(match_id)
+    p = {
+        "fantasy/{}/n".format(mid): {".sv": {"increment": 1}},
+        "fantasy/{}/sh".format(mid): {".sv": {"increment": int(h)}},
+        "fantasy/{}/sa".format(mid): {".sv": {"increment": int(a)}},
+        "fantasy_votes/{}/{}".format(mid, uid): {"h": int(h), "a": int(a)},
+    }
+    if ko:
+        p["fantasy/{}/ko".format(mid)] = int(ko)
+    return p
+
+
+def fantasy_cheer_payload(match_id, uid, side, name, slot, ko=None):
+    """Multi-path PATCH for one cheer ('h', 'd' or 'a'). Home/away cheers also put the
+    name in one of three name slots (the oldest one, by the cheer count)."""
+    mid = str(match_id)
+    p = {
+        "fantasy/{}/ch/{}".format(mid, side): {".sv": {"increment": 1}},
+        "fantasy_cheers/{}/{}".format(mid, uid): side,
+    }
+    if side in ("h", "a"):
+        p["fantasy/{}/nm/{}/{}".format(mid, side, int(slot) % FANTASY_NAMES_SHOWN)] = \
+            (name or "Anonymous").strip()[:FANTASY_NAME_LEN] or "Anonymous"
+    if ko:
+        p["fantasy/{}/ko".format(mid)] = int(ko)
+    return p
+
+
+# ---------------------------------------------------------------- Firebase I/O
+def _fantasy_http_get(url, timeout=8):
+    req = Request(url)
+    req.add_header("Accept-Encoding", "gzip")
+    resp = urlopen(req, timeout=timeout)
+    raw = resp.read()
+    try:
+        enc = resp.info().get("Content-Encoding", "") or ""
+    except Exception:
+        enc = ""
+    if "gzip" in enc.lower() or raw[:2] == b"\x1f\x8b":
+        import gzip
+        import io
+        raw = gzip.GzipFile(fileobj=io.BytesIO(raw)).read()
+    return json.loads(raw.decode("utf-8"))
+
+
+def _fantasy_thread(work, on_done):
+    """Run work() in a worker thread; on_done(result, error) on the UI thread."""
+    def _run():
+        res, err = None, None
+        try:
+            res = work()
+        except Exception as e:
+            err = e
+        try:
+            reactor.callFromThread(on_done, res, err)
+        except Exception:
+            pass
+    t = threading.Thread(target=_run)
+    t.daemon = True
+    t.start()
+
+
+def fantasy_fetch_day(start, end, on_done):
+    """ONE request for every fantasy record of matches kicking off in [start, end).
+    on_done({matchId: record}, error)."""
+    url = '{}/fantasy.json?orderBy=%22ko%22&startAt={}&endAt={}'.format(FIREBASE_URL, int(start), int(end) - 1)
+
+    def work():
+        data = _fantasy_http_get(url)
+        out = {}
+        if isinstance(data, dict):
+            for mid, rec in data.items():
+                out[str(mid)] = fantasy_clean_record(rec)
+        return out
+    _fantasy_thread(work, on_done)
+
+
+def fantasy_fetch_match(match_id, on_done):
+    url = "{}/fantasy/{}.json".format(FIREBASE_URL, match_id)
+    _fantasy_thread(lambda: fantasy_clean_record(_fantasy_http_get(url)), on_done)
+
+
+def fantasy_fetch_own(kind, match_id, on_done):
+    """This user's own vote ('fantasy_votes') or cheer ('fantasy_cheers'), or None."""
+    def work():
+        uid = FIREBASE_AUTH.cached_uid()
+        if not uid:
+            return None
+        url = firebase_auth_url("{}/{}/{}/{}.json".format(FIREBASE_URL, kind, match_id, uid))
+        return _fantasy_http_get(url)
+    _fantasy_thread(work, on_done)
+
+
+def fantasy_write(build_payload, on_done):
+    """Signed-in multi-path PATCH at the database root. build_payload(uid) -> dict.
+    on_done(ok, http_code_or_reason) on the UI thread. print=silent: nothing comes back."""
+    def work():
+        token = FIREBASE_AUTH.token()
+        uid = FIREBASE_AUTH.cached_uid() if token else None
+        if not token or not uid:
+            return (False, "auth")
+        body = json.dumps(build_payload(uid)).encode("utf-8")
+        req = Request("{}/.json?print=silent&auth={}".format(FIREBASE_URL, token), data=body)
+        req.add_header("Content-Type", "application/json")
+        req.add_header("X-HTTP-Method-Override", "PATCH")
+        try:
+            urlopen(req, timeout=10).read()
+            return (True, 200)
+        except Exception as e:
+            return (False, getattr(e, "code", None) or "net")
+
+    def done(res, err):
+        ok, code = res if res else (False, "net")
+        on_done(ok, code)
+    _fantasy_thread(work, done)
+
+
+# ---------------------------------------------------------------- local ledger
+def fantasy_ledger(mon):
+    led = getattr(mon, "ledger", None)
+    if not isinstance(led, dict):
+        return {}
+    fz = led.get("fantasy")
+    if not isinstance(fz, dict):
+        fz = led["fantasy"] = {}
+    return fz
+
+
+def fantasy_entry(mon, match_id, create=False, info=None):
+    fz = fantasy_ledger(mon)
+    mid = str(match_id)
+    e = fz.get(mid)
+    if e is None and create:
+        e = fz[mid] = {}
+    if e is not None and info:
+        for k, v in info.items():
+            if v not in (None, "") and k not in e:
+                e[k] = v
+    return e
+
+
+def _fantasy_result_from_comp(comp):
+    """('final', h, a), ('void',) or None (not over yet) from an ESPN competition."""
+    st = comp.get("status") or {}
+    s_type = st.get("type") or {}
+    state = s_type.get("state", "pre")
+    if state != "post":
+        return None
+    text = u" ".join(str(s_type.get(k) or "") for k in ("name", "description", "detail", "shortDetail")).lower()
+    if s_type.get("completed") is not True:
+        if any(x in text for x in ("cancel", "abandon")):
+            return ("void",)
+        if s_type.get("completed") is False or any(x in text for x in ("postpone", "suspend", "delay")):
+            return None
+    h = a = None
+    for c in comp.get("competitors") or []:
+        try:
+            v = int(c.get("score", 0) if not isinstance(c.get("score"), dict) else c["score"].get("value", 0))
+        except (TypeError, ValueError):
+            v = 0
+        if c.get("homeAway") == "home":
+            h = v
+        elif c.get("homeAway") == "away":
+            a = v
+    if h is None or a is None:
+        return None
+    return ("final", h, a)
+
+
+def _fantasy_result_from_event(ev):
+    try:
+        comp = dict((ev.get("competitions") or [{}])[0])
+        comp["status"] = ev.get("status") or comp.get("status") or {}
+        return _fantasy_result_from_comp(comp)
+    except Exception:
+        return None
+
+
+def _fantasy_apply_result(mon, mid, e, result, now):
+    if e.get("done"):
+        return False
+    if result[0] == "void":
+        e.update(done=True, pts=0, res="void", t=int(now))
+        return True
+    _, rh, ra = result
+    vh, va = e["vote"]
+    pts = fantasy_points(vh, va, rh, ra)
+    e.update(done=True, pts=pts, res="{}-{}".format(rh, ra), t=int(now))
+    stats = mon.ledger.setdefault("sport_stats", {})
+    cat = stats.get(FANTASY_CATEGORY)
+    if not isinstance(cat, dict):
+        cat = stats[FANTASY_CATEGORY] = {"score": 0, "total": 0, "correct": 0}
+    cat["total"] = int(cat.get("total", 0)) + 1
+    cat["score"] = int(cat.get("score", 0)) + pts
+    if pts > 0:
+        cat["correct"] = int(cat.get("correct", 0)) + 1
+    if pts == FANTASY_EXACT_POINTS:
+        mon.ledger["fantasy_exact"] = int(mon.ledger.get("fantasy_exact", 0)) + 1
+    log_diag("FANTASY: match {} vote {}-{} real {}-{} -> +{}".format(mid, vh, va, rh, ra, pts))
+    return True
+
+
+def fantasy_settle(mon, now=None, allow_lookup=True):
+    """Score this box's settled fantasy votes (exact +3, result +1) into the
+    'Fantasy League' leaderboard category. Results come from the scoreboard data in
+    memory; a vote whose match is no longer loaded gets an ESPN result lookup (every
+    30 minutes, at most 8 times) and is void 3 days after kick-off. Returns the
+    number of votes settled now."""
+    now = time.time() if now is None else now
+    fz = fantasy_ledger(mon)
+    if not fz:
+        return 0
+    settled = 0
+    for mid, e in list(fz.items()):
+        if not isinstance(e, dict):
+            del fz[mid]
+            continue
+        if e.get("done") or not e.get("vote"):
+            # forget old entries (settled votes, cheers on past matches)
+            if now - float(e.get("t") or e.get("ko") or now) > FANTASY_LEDGER_KEEP_S:
+                del fz[mid]
+            continue
+        ko = float(e.get("ko") or 0)
+        ev = getattr(mon, "event_map", {}).get(str(mid))
+        result = _fantasy_result_from_event(ev) if ev else None
+        if result is None and ko and now - ko > FANTASY_EXPIRE_S:
+            result = ("void",)
+        if result is None and ev is None and allow_lookup and ko and now - ko > FANTASY_LOOKUP_AFTER_S:
+            _fantasy_remote_lookup(mon, mid, e, now)
+        if result and _fantasy_apply_result(mon, mid, e, result, now):
+            settled += 1
+    if settled:
+        try:
+            mon.save_ledger()
+            mon.sync_leaderboard()
+        except Exception as ex:
+            log_dbg("FANTASY: save/sync failed: {}".format(ex))
+    return settled
+
+
+def _fantasy_remote_lookup(mon, mid, e, now):
+    if int(e.get("lk", 0)) >= FANTASY_MAX_LOOKUPS or now - float(e.get("lk_t", 0)) < FANTASY_LOOKUP_EVERY_S:
+        return
+    slug = fantasy_league_slug(e.get("league_url", ""))
+    if not slug:
+        return
+    e["lk"] = int(e.get("lk", 0)) + 1
+    e["lk_t"] = int(now)
+    url = "https://site.api.espn.com/apis/site/v2/sports/soccer/{}/summary?event={}".format(slug, mid)
+
+    def work():
+        data = _fantasy_http_get(url, timeout=10)
+        comp = ((data or {}).get("header") or {}).get("competitions") or [{}]
+        return _fantasy_result_from_comp(comp[0])
+
+    def done(result, err):
+        if err or not result:
+            return
+        if _fantasy_apply_result(mon, mid, e, result, time.time()):
+            try:
+                mon.save_ledger()
+                mon.sync_leaderboard()
+            except Exception:
+                pass
+    _fantasy_thread(work, done)
+
+
+# ---------------------------------------------------------------- score entry
+class FantasyScoreEntryScreen(Screen):
+    """Enter a score prediction: UP/DOWN change the focused team's goals (0-15),
+    LEFT/RIGHT switch between home and away, OK casts the vote (final), EXIT cancels."""
+
+    def __init__(self, session, h_name, a_name, league=""):
+        Screen.__init__(self, session)
+        pal = get_club_palette()
+        hx = lambda v: "#00%06X" % v
+        bg = hx(pal["card_int"]) if pal["is_club"] else "#00141B24"
+        edge = hx(pal["border_sel_int"])
+        box = hx(pal["score_box_int"])
+        ink = pal["ink"]
+        self.skin = scale_skin_xml("""
+        <screen name="FantasyScoreEntryScreen" position="center,center" size="1000,460" title="FantasyScore" flags="wfNoBorder" backgroundColor="{bg}">
+            <eLabel position="0,0" size="1000,460" backgroundColor="{bg}" zPosition="-1" />
+            <eLabel position="0,0" size="1000,6" backgroundColor="{edge}" zPosition="1" />
+            <widget name="title" position="40,24" size="920,40" font="SimplySportFont;30" foregroundColor="{acc}" backgroundColor="{bg}" transparent="1" halign="center" valign="center" />
+            <widget name="league" position="40,66" size="920,28" font="SimplySportFont;20" foregroundColor="{dim}" backgroundColor="{bg}" transparent="1" halign="center" valign="center" />
+            <widget name="h_name" position="20,150" size="330,110" font="SimplySportFont;32" foregroundColor="{txt}" backgroundColor="{bg}" transparent="1" halign="right" valign="center" />
+            <widget name="a_name" position="650,150" size="330,110" font="SimplySportFont;32" foregroundColor="{txt}" backgroundColor="{bg}" transparent="1" halign="left" valign="center" />
+            <widget name="sel_h" position="374,144" size="112,122" backgroundColor="{edge}" zPosition="1" />
+            <widget name="sel_a" position="514,144" size="112,122" backgroundColor="{edge}" zPosition="1" />
+            <eLabel position="380,150" size="100,110" backgroundColor="{box}" zPosition="2" />
+            <eLabel position="520,150" size="100,110" backgroundColor="{box}" zPosition="2" />
+            <widget name="h_goals" position="380,150" size="100,110" font="SimplySportFont;64" foregroundColor="{txt}" backgroundColor="{box}" halign="center" valign="center" zPosition="3" />
+            <widget name="a_goals" position="520,150" size="100,110" font="SimplySportFont;64" foregroundColor="{txt}" backgroundColor="{box}" halign="center" valign="center" zPosition="3" />
+            <widget name="dash" position="480,150" size="40,110" font="SimplySportFont;40" foregroundColor="{dim}" backgroundColor="{bg}" transparent="1" halign="center" valign="center" />
+            <widget name="arrows_h" position="374,272" size="112,30" font="SimplySportFont;20" foregroundColor="{acc}" backgroundColor="{bg}" transparent="1" halign="center" valign="center" />
+            <widget name="arrows_a" position="514,272" size="112,30" font="SimplySportFont;20" foregroundColor="{acc}" backgroundColor="{bg}" transparent="1" halign="center" valign="center" />
+            <widget name="hint" position="40,322" size="920,30" font="SimplySportFont;21" foregroundColor="{dim}" backgroundColor="{bg}" transparent="1" halign="center" valign="center" />
+            <widget name="note" position="40,356" size="920,30" font="SimplySportFont;19" foregroundColor="{warn}" backgroundColor="{bg}" transparent="1" halign="center" valign="center" />
+            <widget name="key_ok" position="250,396" size="500,46" font="SimplySportFont;24" foregroundColor="{btn_t}" backgroundColor="{btn}" halign="center" valign="center" zPosition="1" />
+        </screen>
+        """.format(bg=bg, edge=edge, box=box, acc=hx(ink["accent"]), dim=hx(ink["dim"]), txt=hx(ink["text"]),
+                   warn=hx(ink["win"]), btn=hx(pal["button_int"]), btn_t=hx(pal["button_text_int"])))
+        self.goals = [0, 0]
+        self.side = 0
+        self["title"] = Label(_t("Your score prediction"))
+        self["league"] = Label(league or "")
+        self["h_name"] = Label(h_name)
+        self["a_name"] = Label(a_name)
+        self["h_goals"] = Label("0")
+        self["a_goals"] = Label("0")
+        self["dash"] = Label("-")
+        self["sel_h"] = Label("")
+        self["sel_a"] = Label("")
+        self["arrows_h"] = Label("")
+        self["arrows_a"] = Label("")
+        self["hint"] = Label(_t(u"▲ ▼  Change score     ◄ ►  Home / Away     EXIT  Cancel"))
+        self["note"] = Label(_t("Your vote is final and can't be changed."))
+        self["key_ok"] = Label(_t("OK  Cast vote"))
+        actions = {
+            "ok": self.key_ok,
+            "cancel": self.key_cancel,
+            "up": lambda: self.change(1),
+            "down": lambda: self.change(-1),
+            "left": lambda: self.set_side(0),
+            "right": lambda: self.set_side(1),
+        }
+        for d in range(10):
+            actions[str(d)] = (lambda v=d: self.set_value(v))
+        self["actions"] = ActionMap(["OkCancelActions", "DirectionActions", "NumberActions"], actions, -1)
+        self.onLayoutFinish.append(self.redraw)
+
+    def change(self, step):
+        self.goals[self.side] = max(0, min(FANTASY_MAX_GOALS, self.goals[self.side] + step))
+        self.redraw()
+
+    def set_value(self, v):
+        self.goals[self.side] = max(0, min(FANTASY_MAX_GOALS, int(v)))
+        self.redraw()
+
+    def set_side(self, side):
+        self.side = side
+        self.redraw()
+
+    def redraw(self):
+        self["h_goals"].setText(str(self.goals[0]))
+        self["a_goals"].setText(str(self.goals[1]))
+        for i, (frame, arrows) in enumerate((("sel_h", "arrows_h"), ("sel_a", "arrows_a"))):
+            try:
+                if i == self.side:
+                    self[frame].show()
+                    self[arrows].setText(u"▲ ▼")
+                else:
+                    self[frame].hide()
+                    self[arrows].setText("")
+            except Exception:
+                pass
+
+    def key_ok(self):
+        self.close((self.goals[0], self.goals[1]))
+
+    def key_cancel(self):
+        self.close(None)
+
+
+# ---------------------------------------------------------------- main screen
+class FantasyScoreScreen(Screen):
+    """Full-screen FantasyScore list of today's soccer matches (see the header above)."""
+
+    LIST_Y = 128
+    LIST_H = 816          # six 136 px rows
+    REFRESH_MS = 20000    # redraw from the main screen's data (no network)
+
+    def __init__(self, session, parent=None):
+        Screen.__init__(self, session)
+        self.parent_screen = parent
+        self.mon = global_sports_monitor
+        pal = get_club_palette()
+        self._pal = pal
+        kit = pal["is_club"]
+        hx = lambda v: "#%06X" % v
+        preset = get_main_bg_preset(getattr(self.mon, "main_bg_color", "default"))
+        c_deep = "#00" + preset["deep_hex"]
+        kh = pal["header"] if kit else None
+        kf = pal["footer"] if kit else None
+        c_head = ("#00%06X" % kh["bg"]) if kh else ("#00" + preset["navy_hex"])
+        c_foot = ("#00%06X" % kf["bg"]) if kf else ("#00" + preset["navy_hex"])
+        fg_title = hx(kh["title"]) if kh else "#" + pal.get("header_title_hex", "00AFFF")
+        fg_text = hx(kh["text"]) if kh else "#FFFFFF"
+        fg_sub = hx(kh["sub"]) if kh else "#B0B8C1"
+        fg_clock = hx(kh["clock"]) if kh else "#F2B530"
+        fg_muted = hx(kh["muted"]) if kh else "#9AA3AE"
+        bar_bg = "#00%06X" % pal["score_box_int"]
+        bar_ink = pal["ink"]
+
+        trim = ""
+        if kh:
+            ty = 118
+            for t_col, t_h in kh["trim"]:
+                if t_col == "stripes":
+                    for i in range(80):
+                        trim += '<eLabel position="{x},{y}" size="24,{h}" backgroundColor="{c}" zPosition="3" />'.format(
+                            x=i * 24, y=ty, h=t_h, c="#0A0A0A" if i % 2 else "#F2F2F2")
+                else:
+                    trim += '<eLabel position="0,{y}" size="1920,{h}" backgroundColor="{c}" zPosition="3" />'.format(y=ty, h=t_h, c=hx(t_col))
+                ty += t_h
+        else:
+            trim = '<eLabel position="0,118" size="1920,2" backgroundColor="#{hl}" zPosition="3" />'.format(hl=pal["header_line"])
+        ftrim = ""
+        if kf:
+            fy = 1008
+            for t_col, t_h in kf["trim"]:
+                ftrim += '<eLabel position="0,{y}" size="1920,{h}" backgroundColor="{c}" zPosition="3" />'.format(y=fy, h=t_h, c=hx(t_col))
+                fy += t_h
+        else:
+            ftrim = '<eLabel position="0,1008" size="1920,2" backgroundColor="#{hl}" zPosition="3" />'.format(hl=pal["header_line"])
+
+        keys = ""
+        for i, (name, accent) in enumerate((("key_red", "#FF5C5C"), ("key_green", "#00C853"),
+                                            ("key_yellow", "#F2B530"), ("key_blue", "#00AFFF"),
+                                            ("key_ok", "#FFFFFF"), ("key_exit", "#C8D0D8"))):
+            x = 30 + i * 312
+            keys += '<eLabel position="{x},1068" size="296,4" backgroundColor="{c}" zPosition="2" />'.format(x=x, c=accent)
+            keys += ('<widget name="{n}" position="{x},1016" size="296,50" font="SimplySportFont;21" foregroundColor="{c}" '
+                     'backgroundColor="{bg}" transparent="1" halign="center" valign="center" zPosition="2" />').format(
+                         n=name, x=x, c=accent, bg=c_foot)
+
+        self.skin = scale_skin_xml("""
+        <screen name="FantasyScoreScreen" position="0,0" size="1920,1080" title="FantasyScore" flags="wfNoBorder" backgroundColor="#00000000">
+            <eLabel position="0,0" size="1920,1080" backgroundColor="{deep}" zPosition="-2" />
+            <widget name="fs_canvas" position="0,0" size="1920,1080" zPosition="-1" alphatest="on" />
+            <eLabel position="0,0" size="1920,118" backgroundColor="{head}" zPosition="0" />
+            {trim}
+            <widget name="title" position="48,22" size="560,40" font="SimplySportFont;34" foregroundColor="{fg_title}" backgroundColor="{head}" transparent="1" halign="left" valign="center" zPosition="2" />
+            <widget name="subtitle" position="48,64" size="760,28" font="SimplySportFont;19" foregroundColor="{fg_sub}" backgroundColor="{head}" transparent="1" halign="left" valign="center" zPosition="2" />
+            <widget name="day" position="620,20" size="680,36" font="SimplySportFont;28" foregroundColor="{fg_text}" backgroundColor="{head}" transparent="1" halign="center" valign="center" zPosition="2" />
+            <widget name="status" position="560,62" size="800,28" font="SimplySportFont;19" foregroundColor="{fg_sub}" backgroundColor="{head}" transparent="1" halign="center" valign="center" zPosition="2" />
+            <widget name="clock" position="1680,20" size="200,40" font="SimplySportFont;28" foregroundColor="{fg_clock}" backgroundColor="{head}" transparent="1" halign="right" valign="center" zPosition="2" />
+            <widget name="points" position="1320,64" size="560,28" font="SimplySportFont;18" foregroundColor="{fg_muted}" backgroundColor="{head}" transparent="1" halign="right" valign="center" zPosition="2" />
+            <widget name="list" position="0,{ly}" size="1920,{lh}" scrollbarMode="showOnDemand" transparent="1" zPosition="1" />
+            <widget name="empty" position="160,420" size="1600,120" font="SimplySportFont;30" foregroundColor="{fg_text}" backgroundColor="{deep}" transparent="1" halign="center" valign="center" zPosition="2" />
+            <eLabel position="22,948" size="1876,56" backgroundColor="{bar_bg}" zPosition="1" />
+            <widget name="party_tag" position="40,948" size="250,56" font="SimplySportFont;20" foregroundColor="{bar_acc}" backgroundColor="{bar_bg}" transparent="1" halign="left" valign="center" zPosition="2" />
+            <widget name="party_info" position="290,948" size="1180,56" font="SimplySportFont;22" foregroundColor="{bar_txt}" backgroundColor="{bar_bg}" transparent="1" halign="center" valign="center" zPosition="2" />
+            <widget name="party_you" position="1470,948" size="410,56" font="SimplySportFont;20" foregroundColor="{bar_win}" backgroundColor="{bar_bg}" transparent="1" halign="right" valign="center" zPosition="2" />
+            <eLabel position="0,1008" size="1920,72" backgroundColor="{foot}" zPosition="0" />
+            {ftrim}
+            {keys}
+        </screen>
+        """.format(deep=c_deep, head=c_head, foot=c_foot, trim=trim, ftrim=ftrim, keys=keys,
+                   fg_title=fg_title, fg_text=fg_text, fg_sub=fg_sub, fg_clock=fg_clock, fg_muted=fg_muted,
+                   ly=self.LIST_Y, lh=self.LIST_H, bar_bg=bar_bg, bar_acc=hx(bar_ink["accent"]),
+                   bar_txt=hx(bar_ink["text"]), bar_win=hx(bar_ink["win"])))
+
+        self["fs_canvas"] = Pixmap()
+        self["title"] = Label(_t("FANTASYSCORE"))
+        self["subtitle"] = Label(_t("Today's soccer: predict the score, cheer your team"))
+        self["day"] = Label("")
+        self["status"] = Label(_t("Loading fan scores..."))
+        self["clock"] = Label("")
+        self["points"] = Label("")
+        self["empty"] = Label("")
+        self["party_tag"] = Label(_t("WATCH PARTY"))
+        self["party_info"] = Label("")
+        self["party_you"] = Label("")
+        self["key_red"] = Label(_t("League Table"))
+        self["key_green"] = Label(_t("Cheer Home"))
+        self["key_yellow"] = Label(_t("Draw / Neutral"))
+        self["key_blue"] = Label(_t("Cheer Away"))
+        self["key_ok"] = Label(_t("OK  Vote"))
+        self["key_exit"] = Label(_t("EXIT  Main Screen"))
+        self["list"] = MenuList([], enableWrapAround=True, content=eListboxPythonMultiContent)
+        for idx, size in FANTASY_LIST_FONTS.items():
+            self["list"].l.setFont(idx, gFont("SimplySportFont", sf(size)))
+        self["list"].l.setItemHeight(sy(136))
+        try:
+            self["list"].onSelectionChanged.append(self._on_list_moved)
+        except Exception:
+            pass
+
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "ColorActions", "DirectionActions"],
+            {
+                "ok": self.key_ok,
+                "cancel": self.close,
+                "red": self.open_table,
+                "green": lambda: self.cheer("h"),
+                "yellow": lambda: self.cheer("d"),
+                "blue": lambda: self.cheer("a"),
+                "up": self.key_up,
+                "down": self.key_down,
+                "left": self.key_page_up,
+                "right": self.key_page_down,
+            }, -1)
+
+        self._placed = False       # first build puts the cursor on the first match
+        self.records = {}          # matchId -> cleaned fantasy record
+        self.load_state = "loading"  # loading | ok | error
+        self.rows = []             # [(mid, snap)] parallel to the list
+        self._busy = set()         # matchIds with a write in flight
+        self.window = fantasy_today_window()
+        self.timer = eTimer()
+        safe_connect(self.timer, self.on_timer)
+        self.onLayoutFinish.append(self.start)
+        self.onClose.append(self.cleanup)
+
+    # ---- lifecycle ----
+    def start(self):
+        try:
+            path = self._pal.get("kit_canvas_path") if self._pal["is_club"] else None
+            if path and os.path.exists(path) and self["fs_canvas"].instance:
+                self["fs_canvas"].instance.setPixmapFromFile(path)
+            else:
+                self["fs_canvas"].hide()
+        except Exception:
+            pass
+        self.rebuild()
+        self.load()
+        self.timer.start(self.REFRESH_MS, False)
+
+    def cleanup(self):
+        try:
+            self.timer.stop()
+        except Exception:
+            pass
+
+    def on_timer(self):
+        if fantasy_today_window()[0] != self.window[0]:
+            # midnight passed: today's list is a different day now
+            self.window = fantasy_today_window()
+            self.load()
+        self.rebuild()
+
+    def load(self):
+        """The single download of this screen: every fantasy record for today."""
+        self.load_state = "loading"
+        self._set_status()
+        fantasy_fetch_day(self.window[0], self.window[1], self.on_loaded)
+
+    def on_loaded(self, records, err):
+        if err is not None or records is None:
+            log_dbg("FANTASY: day load failed: {}".format(err))
+            self.load_state = "error"
+        else:
+            self.records = records
+            self.load_state = "ok"
+        self.rebuild()
+
+    # ---- data ----
+    def _today_matches(self):
+        start, end = self.window
+        out = []
+        for mid, snap in list(getattr(self.mon, "match_snapshots", {}).items()):
+            try:
+                if not fantasy_is_soccer(snap):
+                    continue
+                ko = utc_iso_to_epoch(snap.get("date", ""))
+                if not (start <= ko < end):
+                    continue
+                if snap.get("h_name") in (None, "") or snap.get("a_name") in (None, ""):
+                    continue
+                out.append((str(mid), snap, ko))
+            except Exception:
+                continue
+
+        def order(item):
+            mid, snap, ko = item
+            st = snap.get("state")
+            rank = 0 if st == "in" else (1 if st == "pre" else 2)
+            return (rank, ko if rank < 2 else -ko, mid)
+        out.sort(key=order)
+        return out
+
+    def _logo(self, url, logo_id):
+        try:
+            if self.parent_screen is not None and hasattr(self.parent_screen, "get_logo_path"):
+                return self.parent_screen.get_logo_path(url, logo_id)
+        except Exception:
+            pass
+        return None
+
+    @staticmethod
+    def _kind(snap, ko, now):
+        """'pre' (voting open), 'closed' (kick-off passed, not live yet), 'in', 'post', 'other'."""
+        st = snap.get("status_short", "")
+        if st in ("PPD", "SUS", "CAN") or snap.get("is_postponed"):
+            return "other"
+        state = snap.get("state")
+        if state == "in":
+            return "in"
+        if state == "post":
+            return "post"
+        return "pre" if (not ko or now < ko) else "closed"
+
+    def build_entry(self, mid, snap, ko, now):
+        rec = self.records.get(mid) or fantasy_clean_record(None)
+        mine = fantasy_entry(self.mon, mid) or {}
+        vote = mine.get("vote")
+        kind = self._kind(snap, ko, now)
+        avg = fantasy_average(rec)
+        n = rec["n"]
+        dot = u"  ·  "
+        loaded = self.load_state == "ok"
+
+        def votes_txt(k):
+            return _t("1 vote") if k == 1 else _t("{} votes").format(k)
+        fz = {"names_h": rec["nm"]["h"][:FANTASY_NAMES_SHOWN], "names_a": rec["nm"]["a"][:FANTASY_NAMES_SHOWN],
+              "center": "real", "under": "", "badge": snap.get("time_str", ""), "badge_live": kind == "in"}
+        mood = None
+        if kind in ("pre", "closed"):
+            if vote:
+                fz["center"] = "boxes"
+                fz["s1"], fz["s2"] = (str(avg[0]), str(avg[1])) if avg else (u"–", u"–")
+                fz["lines"] = [(_t("You"), vote[0], vote[1], votes_txt(n))]
+                mood = avg
+            else:
+                fz["center"] = "vote"
+                if kind == "closed":
+                    fz["btn"] = _t("CLOSED")
+                    fz["btn_off"] = True
+                elif not loaded:
+                    fz["btn"] = u"…" if self.load_state == "loading" else _t("OFFLINE")
+                    fz["btn_off"] = True
+                else:
+                    fz["btn"] = _t("VOTE")
+                if loaded:
+                    fz["under"] = votes_txt(n) if n else _t("Be the first to vote")
+            cd = countdown_status(ko, now) if kind == "pre" else None
+            if cd:
+                fz["badge"] = countdown_label(cd)
+        elif kind in ("in", "post"):
+            mood = (snap.get("h_score_int", 0), snap.get("a_score_int", 0))
+            lines = []
+            if loaded or vote:
+                if avg:
+                    lines.append((_t("Fans"), avg[0], avg[1], votes_txt(n)))
+                elif loaded and n == 1:
+                    lines.append((_t("Fans"), u"–", u"–", votes_txt(1)))
+                if vote:
+                    tail = u"+{}".format(mine.get("pts", 0)) if (mine.get("done") and mine.get("res") != "void") else u""
+                    lines.append((_t("You"), vote[0], vote[1], tail))
+                if not lines and loaded:
+                    fz["under"] = _t("No fantasy votes")
+            fz["lines"] = lines
+            if kind == "post":
+                fz["badge"] = _t("FT")
+        else:
+            if vote:
+                fz["lines"] = [(_t("You"), vote[0], vote[1], u"")]
+
+        left = snap.get("h_name_disp") or snap.get("h_name") or "Home"
+        right = snap.get("a_name_disp") or snap.get("a_name") or "Away"
+        left = left if len(left) <= 25 else left[:23] + ".."
+        right = right if len(right) <= 25 else right[:23] + ".."
+        fz["h_font"], fz["a_font"] = fantasy_name_fonts(mood[0] if mood else None, mood[1] if mood else None, left, right)
+
+        h_png = self._logo(snap.get("h_logo_url"), snap.get("h_logo_id"))
+        a_png = self._logo(snap.get("a_logo_url"), snap.get("a_logo_id"))
+        l_png = self._logo(snap.get("l_logo_url"), snap.get("l_logo_id"))
+        status_short = snap.get("status_short", "")
+        score_text = snap.get("score_str", "VS") if kind in ("in", "post") else "VS"
+        c_score_bg = self._pal["navy_int"]
+        h_pred, a_pred, pred_est = self._prediction(mid, snap) if kind in ("pre", "closed") else (0.0, 0.0, 0)
+        entry = (status_short, get_league_abbr(snap.get("league_name", "")), str(left), str(score_text), str(right),
+                 str(snap.get("time_str", "")), None, kind == "in", h_png, a_png,
+                 snap.get("h_score_int", 0), snap.get("a_score_int", 0), False, c_score_bg, l_png,
+                 snap.get("h_red_cards", 0), snap.get("a_red_cards", 0), 0.0, 0.0, [], [], 0, 0, 0, 0, "", "",
+                 h_pred, a_pred, pred_est, None, 0.0, "", fz)
+        return entry
+
+    def _prediction(self, mid, snap):
+        """Win % for the prediction bars: the same sources as the main screen (ESPN odds
+        in the event, else the predictor cache; a few predictor look-ups per redraw)."""
+        h = a = 0.0
+        est = 0
+        try:
+            ev = self.mon.event_map.get(mid)
+            if ev:
+                h, a = extract_win_prediction_from_event(ev)
+            if h <= 0 and a <= 0:
+                cached = self.mon.predictor_entry(mid)
+                if cached:
+                    h, a = cached.get("h_pct", 0.0), cached.get("a_pct", 0.0)
+                    est = 1 if cached.get("source") in ("spread_estimate", "model") else 0
+                elif mid not in getattr(self.mon, "predictor_inflight", set()) and self._pred_fetches < 3:
+                    self._pred_fetches += 1
+                    self.mon.fetch_predictor_async(mid, snap.get("league_url", ""), snap.get("event_id", mid))
+        except Exception as e:
+            log_dbg("FANTASY: prediction for {} failed: {}".format(mid, e))
+        return h, a, est
+
+    def _nav_entry(self):
+        return ("NAV_CARD", _t("LEAGUES"), _t("Return to My Leagues"), _t("RETURN \u2794"),
+                _t("Back to the main screen"), "", False, False, None, None, 0, 0)
+
+    def rebuild(self):
+        now = time.time()
+        self._pred_fetches = 0
+        try:
+            self["clock"].setText(time.strftime("%H:%M"))
+            self["day"].setText(_t("Today") + u"  " + time.strftime("%d/%m"))
+        except Exception:
+            pass
+        sel_mid = None
+        try:
+            i = self["list"].getSelectedIndex()
+            if self.rows and i is not None and 0 <= i < len(self.rows):
+                sel_mid = self.rows[i][0]
+        except Exception:
+            pass
+        matches = self._today_matches()
+        # top row: back to the main screen (like the Global screen's "Return to My Leagues")
+        rows, content = [("__nav__", None, 0)], [VNextListEntry(self._nav_entry())]
+        for mid, snap, ko in matches:
+            try:
+                row = VNextListEntry(self.build_entry(mid, snap, ko, now))
+            except Exception as e:
+                log_dbg("FANTASY: row {} failed: {}".format(mid, e))
+                continue
+            if row:
+                rows.append((mid, snap, ko))
+                content.append(row)
+        self.rows = rows
+        self["list"].setList(content)
+        if sel_mid:
+            for i, r in enumerate(rows):
+                if r[0] == sel_mid:
+                    try:
+                        self["list"].moveToIndex(i)
+                    except Exception:
+                        pass
+                    break
+        elif not self._placed and len(rows) > 1:
+            try:
+                self["list"].moveToIndex(1)
+            except Exception:
+                pass
+        if len(rows) > 1:
+            self._placed = True
+        if len(rows) == 1:
+            if getattr(self.mon, "ch_day_offset", 0) != 0:
+                self["empty"].setText(_t("Switch the main screen to Today to see today's matches."))
+            else:
+                self["empty"].setText(_t("No soccer matches today in your leagues."))
+        else:
+            self["empty"].setText("")
+        self._set_status()
+        self.update_bar()
+
+    def _set_status(self):
+        if self.load_state == "loading":
+            txt = _t("Loading fan scores...")
+        elif self.load_state == "error":
+            txt = _t("Fan scores unavailable. Press OK to try again.")
+        else:
+            votes = sum(self.records.get(r[0], {}).get("n", 0) for r in self.rows)
+            txt = _t("{} matches today").format(len(self.rows) - 1) + u"  ·  " + _t("{} fan votes").format(votes)
+        try:
+            self["status"].setText(txt)
+        except Exception:
+            pass
+        try:
+            cat = (getattr(self.mon, "ledger", {}) or {}).get("sport_stats", {}).get(FANTASY_CATEGORY) or {}
+            self["points"].setText(_t("My Fantasy League points: {}").format(int(cat.get("score", 0))))
+        except Exception:
+            pass
+
+    def _selected(self):
+        try:
+            i = self["list"].getSelectedIndex()
+        except Exception:
+            return None
+        if i is None or not (0 <= i < len(self.rows)) or self.rows[i][0] == "__nav__":
+            return None
+        return self.rows[i]
+
+    def _on_nav(self):
+        try:
+            i = self["list"].getSelectedIndex()
+            return i is not None and 0 <= i < len(self.rows) and self.rows[i][0] == "__nav__"
+        except Exception:
+            return False
+
+    def update_bar(self):
+        sel = self._selected()
+        if not sel:
+            self["party_info"].setText(_t("Press OK to return to the main screen") if self._on_nav() else "")
+            self["party_you"].setText("")
+            return
+        mid, snap, ko = sel
+        rec = self.records.get(mid) or fantasy_clean_record(None)
+        h = snap.get("h_name_disp") or snap.get("h_name") or "Home"
+        a = snap.get("a_name_disp") or snap.get("a_name") or "Away"
+        if self.load_state == "ok":
+            ch = rec["ch"]
+            sep = u"     |     "
+            self["party_info"].setText(
+                _t("{} fans").format(h) + u" " + str(ch["h"]) + sep + _t("Neutral") + u" " + str(ch["d"]) + sep +
+                _t("{} fans").format(a) + u" " + str(ch["a"]))
+        else:
+            self["party_info"].setText(self["status"].getText() if hasattr(self["status"], "getText") else "")
+        mine = fantasy_entry(self.mon, mid) or {}
+        side = mine.get("cheer")
+        if side:
+            who = {"h": h, "a": a}.get(side, _t("Neutral"))
+            self["party_you"].setText(_t("You cheer: {}").format(who))
+        else:
+            self["party_you"].setText(_t("Cheer with GREEN / YELLOW / BLUE"))
+
+    # ---- keys ----
+    def key_up(self):
+        self._lr_stepper().release()
+        self["list"].up()
+        self._lr_stepper().settle()
+        self.update_bar()
+
+    def key_down(self):
+        self._lr_stepper().release()
+        self["list"].down()
+        self._lr_stepper().settle()
+        self.update_bar()
+
+    def _lr_stepper(self):
+        st = getattr(self, "_lr", None)
+        if st is None:
+            st = self._lr = OnePageStep(lambda: self["list"], lambda a, b: self.update_bar())
+        return st
+
+    def key_page_up(self):
+        self._lr_stepper().press(True)
+
+    def key_page_down(self):
+        self._lr_stepper().press(False)
+
+    def _on_list_moved(self):
+        try:
+            self._lr_stepper().selection_changed()
+        except Exception:
+            pass
+        self.update_bar()
+
+    def _info(self, text, timeout=4):
+        self.session.open(MessageBox, text, MessageBox.TYPE_INFO, timeout=timeout)
+
+    def key_ok(self):
+        if self._on_nav():
+            self.close()
+            return
+        if self.load_state == "error":
+            self.load()
+            return
+        sel = self._selected()
+        if not sel:
+            return
+        mid, snap, ko = sel
+        if self.load_state != "ok":
+            self._info(_t("Loading fan scores..."), 2)
+            return
+        mine = fantasy_entry(self.mon, mid) or {}
+        if mine.get("vote"):
+            v = mine["vote"]
+            self._info(self._voted_msg(snap, v[0], v[1]))
+            return
+        if self._kind(snap, ko, time.time()) != "pre":
+            self._info(_t("Voting is closed for this match."))
+            return
+        if mid in self._busy:
+            return
+        h = snap.get("h_name_disp") or snap.get("h_name") or "Home"
+        a = snap.get("a_name_disp") or snap.get("a_name") or "Away"
+        self.session.openWithCallback(lambda res, s=sel: self._on_score(s, res), FantasyScoreEntryScreen,
+                                      h, a, _league_name(snap.get("league_name", "")))
+
+    def _info_for(self, snap):
+        return {"ko": utc_iso_to_epoch(snap.get("date", "")), "h_name": snap.get("h_name_disp") or snap.get("h_name"),
+                "a_name": snap.get("a_name_disp") or snap.get("a_name"), "league_url": snap.get("league_url", ""),
+                "league": snap.get("league_name", "")}
+
+    def _on_score(self, sel, result):
+        if not result:
+            return
+        mid, snap, ko = sel
+        h, a = int(result[0]), int(result[1])
+        if time.time() >= ko:
+            self._info(_t("Voting closed, match has started"))
+            return
+        rec = self.records.get(mid)
+        send_ko = None if (rec and rec.get("ko")) else ko
+        self._busy.add(mid)
+        fantasy_write(lambda uid: fantasy_vote_payload(mid, uid, h, a, send_ko),
+                      lambda ok, code: self._on_vote_sent(sel, h, a, ok, code))
+
+    def _on_vote_sent(self, sel, h, a, ok, code):
+        mid, snap, ko = sel
+        if ok:
+            self._busy.discard(mid)
+            e = fantasy_entry(self.mon, mid, create=True, info=self._info_for(snap))
+            e["vote"] = [h, a]
+            e["t"] = int(time.time())
+            self._save()
+            self._info(_t("Vote cast! Good luck."), 3)
+            self._refresh_match(mid)
+            return
+        if code in (401, 403):
+            # refused: already voted on this match (another install / lost ledger) or kick-off passed
+            fantasy_fetch_own("fantasy_votes", mid, lambda res, err, s=sel: self._on_own_vote(s, res, err))
+            return
+        self._busy.discard(mid)
+        self._info(_t("Could not send your vote. Check the connection and try again."))
+
+    @staticmethod
+    def _voted_msg(snap, h, a):
+        """Each team name next to its own goals, so the text reads right in Arabic too."""
+        hn = snap.get("h_name_disp") or snap.get("h_name") or _t("Home")
+        an = snap.get("a_name_disp") or snap.get("a_name") or _t("Away")
+        return _t("You already voted on this match:") + u"\n" + u"{} {}\n{} {}".format(hn, h, an, a)
+
+    def _on_own_vote(self, sel, res, err):
+        mid, snap, ko = sel
+        self._busy.discard(mid)
+        if isinstance(res, dict) and "h" in res and "a" in res:
+            e = fantasy_entry(self.mon, mid, create=True, info=self._info_for(snap))
+            e["vote"] = [int(res["h"]), int(res["a"])]
+            e["t"] = int(time.time())
+            self._save()
+            self._info(self._voted_msg(snap, res["h"], res["a"]))
+            self._refresh_match(mid)
+        elif time.time() >= ko - 120:
+            self._info(_t("Voting closed, match has started"))
+        else:
+            self._info(_t("Could not send your vote. Check the connection and try again."))
+
+    def cheer(self, side):
+        sel = self._selected()
+        if not sel or self.load_state != "ok":
+            return
+        mid, snap, ko = sel
+        h = snap.get("h_name_disp") or snap.get("h_name") or "Home"
+        a = snap.get("a_name_disp") or snap.get("a_name") or "Away"
+        who = {"h": h, "a": a, "d": _t("Neutral")}
+        mine = fantasy_entry(self.mon, mid) or {}
+        if mine.get("cheer"):
+            self._info(_t("You are already cheering for {}.").format(who.get(mine["cheer"], "")))
+            return
+        if self._kind(snap, ko, time.time()) in ("post", "other"):
+            self._info(_t("This match is over."))
+            return
+        if mid in self._busy:
+            return
+        rec = self.records.get(mid) or fantasy_clean_record(None)
+        slot = rec["ch"].get(side, 0) % FANTASY_NAMES_SHOWN
+        send_ko = None if rec.get("ko") else ko
+        name = getattr(self.mon, "voter_name", "") or "Anonymous"
+        self._busy.add(mid)
+        fantasy_write(lambda uid: fantasy_cheer_payload(mid, uid, side, name, slot, send_ko),
+                      lambda ok, code: self._on_cheer_sent(sel, side, who, ok, code))
+
+    def _on_cheer_sent(self, sel, side, who, ok, code):
+        mid, snap, ko = sel
+        self._busy.discard(mid)
+        if ok:
+            e = fantasy_entry(self.mon, mid, create=True, info=self._info_for(snap))
+            e["cheer"] = side
+            e.setdefault("t", int(time.time()))
+            self._save()
+            self._info(_t("Cheering for {}!").format(who.get(side, "")), 2)
+            self._refresh_match(mid)
+        elif code in (401, 403):
+            fantasy_fetch_own("fantasy_cheers", mid, lambda res, err, s=sel, w=who: self._on_own_cheer(s, w, res))
+        else:
+            self._info(_t("Could not send your cheer. Check the connection and try again."))
+
+    def _on_own_cheer(self, sel, who, res):
+        mid, snap, ko = sel
+        if res in ("h", "d", "a"):
+            e = fantasy_entry(self.mon, mid, create=True, info=self._info_for(snap))
+            e["cheer"] = res
+            self._save()
+            self._info(_t("You are already cheering for {}.").format(who.get(res, "")))
+            self.update_bar()
+        else:
+            self._info(_t("Could not send your cheer. Check the connection and try again."))
+
+    def _refresh_match(self, mid):
+        """Re-read one match record (a few hundred bytes) after this box wrote to it."""
+        def done(rec, err):
+            if err is None and rec is not None:
+                self.records[mid] = rec
+            self.rebuild()
+        self.rebuild()
+        fantasy_fetch_match(mid, done)
+
+    def _save(self):
+        try:
+            self.mon.save_ledger()
+        except Exception as e:
+            log_dbg("FANTASY: ledger save failed: {}".format(e))
+
+    def open_table(self):
+        self.session.open(LeaderboardScreen, FANTASY_CATEGORY)
+
+
 def main(session, **kwargs):
     # The callback handles the plugin restart.
     def launch_plugin(result=None):
@@ -38958,20 +41065,27 @@ def main(session, **kwargs):
             log_dbg("[Install] Registration cancelled. Bouncing to E2 menu.")
             pass
 
-    # Gateway Check:
-    if not global_sports_monitor.install_registered and (not global_sports_monitor.voter_name or global_sports_monitor.voter_name == "Anonymous"):
-        from Screens.VirtualKeyBoard import VirtualKeyBoard
-        session.openWithCallback(
-            on_name_entered,
-            VirtualKeyBoard,
-            title="Registration Required! Please enter a display name:",
-            text=""
-        )
+    def gateway(*_args):
+        # Gateway Check:
+        if not global_sports_monitor.install_registered and (not global_sports_monitor.voter_name or global_sports_monitor.voter_name == "Anonymous"):
+            from Screens.VirtualKeyBoard import VirtualKeyBoard
+            session.openWithCallback(
+                on_name_entered,
+                VirtualKeyBoard,
+                title=_t("Registration Required! Please enter a display name:"),
+                text=""
+            )
+        else:
+            # Already registered! Update 'last_seen' silently in background
+            global_sports_monitor._register_install()
+            # Open plugin normally
+            session.openWithCallback(launch_plugin, SimpleSportsScreen)
+
+    # New install: five quick setup steps first (shown once), then the usual gateway
+    if not getattr(global_sports_monitor, "setup_done", True):
+        session.openWithCallback(gateway, SetupWizardScreen)
     else:
-        # Already registered! Update 'last_seen' silently in background
-        global_sports_monitor._register_install()
-        # Open plugin normally
-        session.openWithCallback(launch_plugin, SimpleSportsScreen)
+        gateway()
 
 
 # ==============================================================================
@@ -39351,10 +41465,20 @@ def ProfileListEntry(outcome, h_name, a_name, picked, score_str, date_str, theme
                             sx(1085), 0, sx(50), h, 0,
                             RT_HALIGN_LEFT | RT_VALIGN_CENTER,
                             u"FT:", c_dim, c_sel))
-            res.append((eListboxPythonMultiContent.TYPE_TEXT,
-                        sx(1140), 0, sx(180), h, 1,
-                        RT_HALIGN_LEFT | RT_VALIGN_CENTER,
-                        _t(score_str) if outcome == "VOID" else score_str, c_text, c_sel))
+            parts = str(score_str).split("-") if outcome != "VOID" else []
+            if len(parts) == 2 and parts[0].strip().isdigit() and parts[1].strip().isdigit():
+                # one number per cell: Arabic (right-to-left) layout would swap "1-0" into "0-1"
+                for cx_, cw_, txt_, al_ in ((1140, 34, parts[0].strip(), RT_HALIGN_RIGHT),
+                                            (1176, 18, u"-", RT_HALIGN_CENTER),
+                                            (1196, 60, parts[1].strip(), RT_HALIGN_LEFT)):
+                    res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                                sx(cx_), 0, sx(cw_), h, 1,
+                                al_ | RT_VALIGN_CENTER, txt_, c_text, c_sel))
+            else:
+                res.append((eListboxPythonMultiContent.TYPE_TEXT,
+                            sx(1140), 0, sx(180), h, 1,
+                            RT_HALIGN_LEFT | RT_VALIGN_CENTER,
+                            _t(score_str) if outcome == "VOID" else score_str, c_text, c_sel))
 
         # Date
         res.append((eListboxPythonMultiContent.TYPE_TEXT,
@@ -39415,8 +41539,9 @@ ARENA_LEAGUES = collections.OrderedDict([
     ("Bundesliga",       ("ger.1",          "#E2001A")),
     ("Ligue 1",          ("fra.1",          "#DAE025")),
     ("Champions League", ("uefa.champions", "#7FA7FF")),
-    ("World Cup",        ("fifa.world",     "#D4AF37")),
+    ("Fantasy League",   ("fantasy",        "#B388FF")),   # v7.4: first page, in the World Cup's old place
     ("Egyptian League",  ("epl",            "#E0263A")),
+    ("World Cup",        ("fifa.world",     "#D4AF37")),   # first card of the second page
 ])
 # Sport-wide categories (the bet's sport): display name, accent colour, logo league
 ARENA_SPORTS = {
@@ -39441,6 +41566,7 @@ ARENA_NICKNAMES = {
     "Champions League": (u"Champion of Champions", u"بطل الأبطال"),
     "World Cup":        (u"Mundial Maestro",       u"مايسترو المونديال"),
     "Egyptian League":  (u"Pharaoh of the League", u"فرعون الدوري"),
+    "Fantasy League":   (u"Fantasy Oracle",        u"عرّاف الفانتازي"),
     "soccer":           (u"Football Sage",         u"حكيم الكرة"),
     "basketball":       (u"Slam Dunk Sage",        u"حكيم السلّة"),
     "football":         (u"Touchdown Titan",       u"عملاق التاتش داون"),
@@ -39471,6 +41597,8 @@ def arena_category_name(category):
 def arena_category_style(category):
     """(logo_url, logo_id, accent colour) for a category's victory badge.
     Categories without a logo get an empty url (a star emblem is shown)."""
+    if category == "Fantasy League":
+        return "", None, "#B388FF"
     if category in ARENA_LEAGUES:
         slug, color = ARENA_LEAGUES[category]
         if slug == "epl":
@@ -39482,6 +41610,8 @@ def arena_category_style(category):
             return ("https://a.espncdn.com/combiner/i?img=/i/teamlogos/leagues/500/{}.png".format(lid),
                     "arena_lg_" + lid, color)
         return "", None, color
+    if category == "Fantasy League":
+        return "", None, "#B388FF"
     return "", None, "#D4AF37"
 
 
@@ -39528,8 +41658,9 @@ def compute_league_leaders(users, categories):
 
 class LeaderboardScreen(Screen):
 
-    def __init__(self, session):
+    def __init__(self, session, initial_category=None):
         Screen.__init__(self, session)
+        self._initial_category = initial_category
         self.setTitle("SimplySports: Global Leaderboard")
 
         theme = getattr(global_sports_monitor, "theme_mode", "default") if global_sports_monitor else "default"
@@ -39740,7 +41871,8 @@ class LeaderboardScreen(Screen):
                 "Bundesliga",
                 "Ligue 1",
                 "Champions League",
-                "World Cup"
+                "World Cup",
+                FANTASY_CATEGORY
             ]
             nav_list = []
             for item in preferred_order:
@@ -39758,6 +41890,10 @@ class LeaderboardScreen(Screen):
                     nav_list.append(s)
 
             self.available_sports = nav_list
+            if self._initial_category in nav_list:
+                # opened from FantasyScore (RED): start on the Fantasy League table
+                self.current_sport_idx = nav_list.index(self._initial_category)
+                self._initial_category = None
             self.apply_sort()
 
         except Exception as e:
@@ -44986,14 +47122,14 @@ def Plugins(**kwargs):
     list = [
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.3 by reali22",
+            description="Live Sports Scores, v7.4 by reali22",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="picon.png",
             fnc=main
         ),
         PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.3 by reali22",
+            description="Live Sports Scores, v7.4 by reali22",
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             fnc=main
         ),
@@ -45008,7 +47144,7 @@ def Plugins(**kwargs):
     if global_sports_monitor and global_sports_monitor.show_in_menu:
         list.append(PluginDescriptor(
             name="SimplySports",
-            description="Live Sports Scores, v7.3 by reali22",
+            description="Live Sports Scores, v7.4 by reali22",
             where=PluginDescriptor.WHERE_MENU,
             fnc=menu
         ))
